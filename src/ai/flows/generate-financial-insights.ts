@@ -19,10 +19,10 @@ const FinancialInsightsInputSchema = z.object({
 export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
 
 const FinancialInsightsOutputSchema = z.object({
-  summary: z.string().describe('A summary of the user\'s financial situation.'),
+  summary: z.string().describe('خلاصه‌ای از وضعیت مالی کاربر.'),
   recommendations: z
     .string()
-    .describe('Personalized recommendations for improving financial health.'),
+    .describe('پیشنهادهای شخصی‌سازی شده برای بهبود سلامت مالی.'),
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
 
@@ -34,12 +34,12 @@ const prompt = ai.definePrompt({
   name: 'financialInsightsPrompt',
   input: {schema: FinancialInsightsInputSchema},
   output: {schema: FinancialInsightsOutputSchema},
-  prompt: `You are a financial advisor providing personalized insights and recommendations based on transaction history.
+  prompt: `شما یک مشاور مالی متخصص و بسیار دوستانه برای یک خانواده ایرانی به نام «حساب کتاب» هستید. کاربران شما علی و فاطمه هستند. وظیفه شما این است که تحلیل‌های خود را کاملاً به زبان فارسی، با لحنی صمیمی، محترمانه و دلگرم‌کننده ارائه دهید.
 
-  Analyze the following transaction history and provide a summary of the user's financial situation, including spending habits, income, and potential areas for improvement.  Also, provide personalized recommendations for improving their financial health.
+  تاریخچه تراکنش‌های زیر را به دقت تحلیل کن و یک خلاصه از وضعیت مالی خانواده (شامل عادت‌های خرید، منابع درآمد و نقاط قابل بهبود) ارائه بده. سپس، چندین پیشنهاد عملی، شخصی‌سازی شده و قابل اجرا برای بهبود وضعیت مالی آن‌ها بنویس.
 
-  Transaction History:
-  {{transactionHistory}}`,
+  تاریخچه تراکنش‌ها:
+  {{{transactionHistory}}}`,
 });
 
 const generateFinancialInsightsFlow = ai.defineFlow(
