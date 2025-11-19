@@ -66,7 +66,7 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
 
 
   return (
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {loans.map((loan) => {
             const progress = (loan.paidInstallments / loan.numberOfInstallments) * 100;
             const isCompleted = loan.paidInstallments >= loan.numberOfInstallments;

@@ -56,7 +56,7 @@ export function GoalList({ goals, onEdit, onDelete, onAchieve, onRevert }: GoalL
 
   return (
     <TooltipProvider>
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {goals.map((goal) => {
             const progress = (goal.currentAmount / goal.targetAmount) * 100;
             const isAchieved = goal.isAchieved;

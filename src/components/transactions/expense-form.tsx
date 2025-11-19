@@ -105,12 +105,12 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="space-y-4">
                <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-2">
+                  <FormItem>
                     <FormLabel>شرح هزینه</FormLabel>
                     <FormControl>
                       <Input placeholder="مثال: خرید هفتگی از فروشگاه" {...field} />
