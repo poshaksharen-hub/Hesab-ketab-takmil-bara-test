@@ -112,13 +112,13 @@ export function useDashboardData() {
       const ownerId = getOwnerId(item);
       if (ownerFilter === 'all') return true;
       if (ownerFilter === 'shared' && ownerId === 'shared') return true;
-      if (ownerFilter === 'ali' && ownerId === aliId) return true;
-      if (ownerFilter === 'fatemeh' && ownerId === fatemehId) return true;
+      if (ownerFilter === aliId && ownerId === aliId) return true;
+      if (ownerFilter === fatemehId && ownerId === fatemehId) return true;
       return false;
     };
 
     const dateMatches = (dateStr: string) => {
-        if (!dateRange) return true;
+        if (!dateRange || !dateRange.from || !dateRange.to) return true;
         const itemDate = new Date(dateStr);
         return itemDate >= dateRange.from && itemDate <= dateRange.to;
     };
@@ -147,11 +147,17 @@ export function useDashboardData() {
 
     const netWorth = totalAssets - totalLiabilities;
     
-    const allTransactions = [...incomes.filter(i => dateMatches(i.date)), ...expenses.filter(e => dateMatches(e.date))].sort((a,b) => {
+    const allTransactions = [...incomes, ...expenses].sort((a,b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.date);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.date);
         return dateB.getTime() - dateA.getTime();
     });
+    
+    const filteredTransactions = allTransactions.filter(t => {
+      const tDate = 'createdAt' in t ? t.createdAt : t.date;
+      return dateMatches(tDate) && ownerMatches(t)
+    });
+
 
     return {
       summary: {
@@ -167,12 +173,13 @@ export function useDashboardData() {
         checks: filteredChecks,
         loans: filteredLoans,
         goals: filteredGoals,
-        transactions: allTransactions,
+        transactions: filteredTransactions,
         payees,
         categories,
         users,
-        bankAccounts,
-      }
+        bankAccounts: bankAccounts.filter(ownerMatches),
+      },
+      allData: { users, incomes, expenses, bankAccounts, categories, checks, goals, loans, payees }
     };
   };
 

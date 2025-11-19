@@ -42,15 +42,12 @@ export default function TransfersPage() {
             });
         }
         
-        const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
-        if(sharedAccountsQuery) {
-            const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
-            const sharedAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount) : [];
-            setAllBankAccounts([...personalAccounts, ...sharedAccounts]);
-        } else {
-            setAllBankAccounts(personalAccounts);
-        }
-
+        const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'));
+        const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
+        const sharedAccounts = sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount);
+        
+        setAllBankAccounts([...personalAccounts, ...sharedAccounts]);
+        
         setIsLoadingData(false);
     }
     fetchAllData();

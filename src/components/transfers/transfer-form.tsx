@@ -27,6 +27,7 @@ import { ArrowDown, ArrowRightLeft } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
 import { formatCurrency } from '@/lib/utils';
 import type { User } from 'firebase/auth';
+import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   fromBankAccountId: z.string().min(1, { message: 'لطفا حساب مبدا را انتخاب کنید.' }),

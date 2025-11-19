@@ -68,19 +68,14 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     if (account.isShared) return "(مشترک)";
     if (!account.userId || !user) return "";
 
-    const allUsers = Object.entries(USER_DETAILS).map(([key, value]) => ({
-      ...value,
-      emailKey: key,
-    }));
+    const userDetailsValues = Object.values(USER_DETAILS);
+    const ownerDetail = userDetailsValues.find(u => u.id === account.userId);
 
-    if (account.userId === user.uid) {
-        const currentUserKey = user.email?.split('@')[0] as keyof typeof USER_DETAILS;
-        return `(${USER_DETAILS[currentUserKey]?.firstName || 'من'})`;
-    } else {
-        // Find the user detail that doesn't match the current user's email
-        const otherUser = allUsers.find(u => u.emailKey !== user.email?.split('@')[0]);
-        return `(${otherUser?.firstName || 'دیگری'})`;
+    if (ownerDetail) {
+      return `(${ownerDetail.firstName})`;
     }
+    
+    return "(ناشناس)";
   };
 
 

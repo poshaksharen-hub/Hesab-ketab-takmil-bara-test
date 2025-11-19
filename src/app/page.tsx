@@ -5,7 +5,7 @@ import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns';
-import { useDashboardData, OwnerFilter } from '@/hooks/use-financial-summary';
+import { useDashboardData, OwnerFilter } from '@/hooks/use-dashboard-data';
 import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
@@ -71,8 +71,8 @@ export default function DashboardPage() {
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">همه</SelectItem>
-                    <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
-                    <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                    <SelectItem value={allData.users.find(u => u.email.startsWith('ali'))?.id ?? 'ali'}>{USER_DETAILS.ali.firstName}</SelectItem>
+                    <SelectItem value={allData.users.find(u => u.email.startsWith('fatemeh'))?.id ?? 'fatemeh'}>{USER_DETAILS.fatemeh.firstName}</SelectItem>
                     <SelectItem value="shared">مشترک</SelectItem>
                 </SelectContent>
             </Select>

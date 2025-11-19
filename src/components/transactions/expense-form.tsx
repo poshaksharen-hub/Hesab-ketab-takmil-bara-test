@@ -68,15 +68,10 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
 
   const getOwnerName = (account: BankAccount) => {
     if (account.isShared) return "(مشترک)";
-    if (!account.userId || !user) return "";
+    if (!account.userId) return "(ناشناس)";
     
-    const currentUserKey = user.email?.split('@')[0] as keyof typeof USER_DETAILS;
-    if (account.userId === user.uid) {
-        return `(${USER_DETAILS[currentUserKey]?.firstName || 'من'})`;
-    } else {
-        const otherUserKey = Object.keys(USER_DETAILS).find(key => key !== currentUserKey) as keyof typeof USER_DETAILS;
-        return `(${USER_DETAILS[otherUserKey]?.firstName || 'دیگری'})`;
-    }
+    const userDetail = Object.values(USER_DETAILS).find(u => u.id === account.userId);
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
   React.useEffect(() => {
