@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
-import type { Loan, LoanPayment, BankAccount, Category } from '@/lib/types';
+import type { Loan, LoanPayment, BankAccount, Category, Payee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
@@ -46,6 +46,12 @@ export default function LoansPage() {
     [firestore, user]
   );
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
+
+  const payeesQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'payees') : null),
+    [firestore, user]
+  );
+  const { data: payees, isLoading: isLoadingPayees } = useCollection<Payee>(payeesQuery);
 
   const handleFormSubmit = async (values: any) => {
     if (!user || !firestore) return;
@@ -215,7 +221,7 @@ export default function LoansPage() {
     setIsFormOpen(true);
   };
   
-  const isLoading = isUserLoading || isLoadingLoans || isLoadingBankAccounts || isLoadingCategories || isLoadingLoanPayments;
+  const isLoading = isUserLoading || isLoadingLoans || isLoadingBankAccounts || isLoadingCategories || isLoadingLoanPayments || isLoadingPayees;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -239,12 +245,14 @@ export default function LoansPage() {
           onSubmit={handleFormSubmit}
           initialData={editingLoan}
           bankAccounts={bankAccounts || []}
+          payees={payees || []}
         />
       ) : (
         <>
             <LoanList
                 loans={loans || []}
                 loanPayments={loanPayments || []}
+                payees={payees || []}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
@@ -263,4 +271,3 @@ export default function LoansPage() {
     </main>
   );
 }
-

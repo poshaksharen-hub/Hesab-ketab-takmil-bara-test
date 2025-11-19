@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, CalendarCheck2 } from 'lucide-react';
-import type { Loan, LoanPayment } from '@/lib/types';
+import type { Loan, LoanPayment, Payee } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -25,13 +25,19 @@ import { getNextDueDate } from '@/lib/date-utils';
 interface LoanListProps {
   loans: Loan[];
   loanPayments: LoanPayment[];
+  payees: Payee[];
   onEdit: (loan: Loan) => void;
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
 }
 
-export function LoanList({ loans, loanPayments, onEdit, onDelete, onPay }: LoanListProps) {
+export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay }: LoanListProps) {
   
+  const getPayeeName = (payeeId?: string) => {
+    if (!payeeId) return 'نامشخص';
+    return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+  };
+
   if (loans.length === 0) {
     return (
         <Card>
@@ -73,6 +79,7 @@ export function LoanList({ loans, loanPayments, onEdit, onDelete, onPay }: LoanL
                             <CardTitle className={cn(isCompleted && "text-muted-foreground line-through")}>{loan.title}</CardTitle>
                              <CardDescription>
                                 {getLoanStatus(loan)}
+                                {loan.payeeId && <span className="mr-2 text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
                             </CardDescription>
                         </div>
                         <div className="flex gap-1">

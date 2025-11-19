@@ -112,6 +112,7 @@ export type FinancialGoal = {
 export type Loan = {
     id: string;
     userId: string;
+    payeeId?: string;
     title: string;
     amount: number;
     installmentAmount: number;

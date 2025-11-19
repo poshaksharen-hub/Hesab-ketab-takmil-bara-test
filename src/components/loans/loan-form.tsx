@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Loan, BankAccount } from '@/lib/types';
+import type { Loan, BankAccount, Payee } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -32,6 +32,7 @@ import { Switch } from '../ui/switch';
 
 const formSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
+  payeeId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'مبلغ وام باید یک عدد مثبت باشد.' }),
   installmentAmount: z.coerce.number().positive({ message: 'مبلغ قسط باید یک عدد مثبت باشد.' }),
   numberOfInstallments: z.coerce.number().int().positive({ message: 'تعداد اقساط باید یک عدد صحیح مثبت باشد.' }),
@@ -49,15 +50,17 @@ interface LoanFormProps {
   onSubmit: (data: any) => void;
   initialData: Loan | null;
   bankAccounts: BankAccount[];
+  payees: Payee[];
 }
 
-export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts }: LoanFormProps) {
+export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
   const form = useForm<LoanFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
       ? { ...initialData, startDate: new Date(initialData.startDate) }
       : {
           title: '',
+          payeeId: '',
           amount: 0,
           installmentAmount: 0,
           numberOfInstallments: 1,
@@ -74,6 +77,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     } else {
       form.reset({
         title: '',
+        payeeId: '',
         amount: 0,
         installmentAmount: 0,
         numberOfInstallments: 1,
@@ -118,6 +122,28 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                 </FormItem>
               )}
             />
+            <FormField
+                control={form.control}
+                name="payeeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>دریافت وام از (طرف حساب)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {payees.map((payee) => (
+                          <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}

@@ -168,6 +168,7 @@
         "properties": {
             "id": { "type": "string" },
             "userId": { "type": "string" },
+            "payeeId": { "type": "string" },
             "title": { "type": "string" },
             "amount": { "type": "number" },
             "installmentAmount": { "type": "number" },
