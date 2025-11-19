@@ -9,7 +9,7 @@ service cloud.firestore {
       // For improved security, consider fetching these UIDs from a secure config document.
       let familyUIDs = [
           "gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2", 
-          "ANOTHER_USER_UID" // Replace with the second user's UID
+          "iwXrEC4MPze90eK0BExOdqMdTZ43"
       ];
       return request.auth != null && request.auth.uid in familyUIDs;
     }
