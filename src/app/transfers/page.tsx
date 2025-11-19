@@ -41,7 +41,7 @@ export default function TransfersPage() {
             
             const isShared = !!account.isShared;
             const ownerId = account.userId;
-            const ref = doc(firestore, isShared ? `shared/data/bankAccounts/${accountId}` : `users/${ownerId}/bankAccounts/${accountId}`);
+            const ref = doc(firestore, isShared ? `shared/data/bankAccounts/${bankAccountId}` : `users/${ownerId}/bankAccounts/${bankAccountId}`);
             
             return ref;
         };
