@@ -1,0 +1,213 @@
+
+'use client';
+
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, runTransaction, query, where } from 'firebase/firestore';
+import { CheckList } from '@/components/checks/check-list';
+import { CheckForm } from '@/components/checks/check-form';
+import type { Check, BankAccount, Payee, Category } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+
+export default function ChecksPage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [editingCheck, setEditingCheck] = React.useState<Check | null>(null);
+
+  const checksQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'checks') : null),
+    [firestore, user]
+  );
+  const { data: checks, isLoading: isLoadingChecks } = useCollection<Check>(checksQuery);
+
+  const bankAccountsQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'bankAccounts') : null),
+    [firestore, user]
+  );
+  const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
+  
+  const payeesQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'payees') : null),
+    [firestore, user]
+  );
+  const { data: payees, isLoading: isLoadingPayees } = useCollection<Payee>(payeesQuery);
+
+  const categoriesQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
+    [firestore, user]
+  );
+  const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
+
+
+  const handleFormSubmit = async (values: Omit<Check, 'id' | 'userId'>) => {
+    if (!user || !firestore) return;
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        if (editingCheck) {
+          // Edit
+          const checkRef = doc(firestore, 'users', user.uid, 'checks', editingCheck.id);
+          transaction.update(checkRef, values);
+          toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
+        } else {
+          // Create
+          const newCheckRef = doc(collection(firestore, 'users', user.uid, 'checks'));
+          const newCheck = {
+            ...values,
+            id: newCheckRef.id,
+            userId: user.uid,
+          };
+          transaction.set(newCheckRef, newCheck);
+          toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
+        }
+      });
+      setIsFormOpen(false);
+      setEditingCheck(null);
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "خطا در ثبت چک",
+            description: error.message || "مشکلی در ثبت چک پیش آمد.",
+        });
+    }
+  };
+
+  const handleClearCheck = async (check: Check) => {
+    if (!user || !firestore) return;
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
+        const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
+
+        const bankAccountDoc = await transaction.get(bankAccountRef);
+        if (!bankAccountDoc.exists() || bankAccountDoc.data().balance < check.amount) {
+          throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
+        }
+
+        // 1. Update check status
+        transaction.update(checkRef, { status: 'cleared' });
+
+        // 2. Deduct amount from bank account
+        transaction.update(bankAccountRef, { balance: bankAccountDoc.data().balance - check.amount });
+
+        // 3. Create corresponding expense
+        const expenseRef = doc(collection(firestore, 'users', user.uid, 'expenses'));
+        transaction.set(expenseRef, {
+            id: expenseRef.id,
+            userId: user.uid,
+            amount: check.amount,
+            bankAccountId: check.bankAccountId,
+            categoryId: check.categoryId,
+            date: new Date().toISOString(),
+            description: `پاس کردن چک به: ${payees?.find(p => p.id === check.payeeId)?.name || 'نامشخص'}`,
+            type: 'expense',
+            checkId: check.id, // Link expense to check
+        });
+      });
+      toast({ title: "موفقیت", description: "چک با موفقیت پاس شد." });
+    } catch (error: any) {
+       toast({
+            variant: "destructive",
+            title: "خطا در پاس کردن چک",
+            description: error.message || "مشکلی در عملیات پاس کردن چک پیش آمد.",
+        });
+    }
+  };
+
+  const handleDelete = async (check: Check) => {
+    if (!user || !firestore) return;
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
+            
+            if (check.status === 'cleared') {
+                const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
+                const bankAccountDoc = await transaction.get(bankAccountRef);
+                if(bankAccountDoc.exists()){
+                    // Refund the amount
+                    transaction.update(bankAccountRef, { balance: bankAccountDoc.data().balance + check.amount });
+                }
+
+                // Delete the corresponding expense
+                const expensesRef = collection(firestore, 'users', user.uid, 'expenses');
+                const q = query(expensesRef, where("checkId", "==", check.id));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((doc) => {
+                    transaction.delete(doc.ref);
+                });
+            }
+            
+            transaction.delete(checkRef);
+        });
+
+        toast({ title: "موفقیت", description: "چک با موفقیت حذف شد." });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "خطا در حذف چک",
+            description: error.message || "مشکلی در حذف چک پیش آمد.",
+        });
+    }
+  };
+
+  const handleEdit = (check: Check) => {
+    setEditingCheck(check);
+    setIsFormOpen(true);
+  };
+  
+  const handleAddNew = () => {
+    setEditingCheck(null);
+    setIsFormOpen(true);
+  };
+  
+  const isLoading = isUserLoading || isLoadingChecks || isLoadingBankAccounts || isLoadingPayees || isLoadingCategories;
+
+  return (
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <div className="flex items-center justify-between">
+        <h1 className="font-headline text-3xl font-bold tracking-tight">
+          مدیریت چک‌ها
+        </h1>
+        <Button onClick={handleAddNew}>
+          <PlusCircle className="ml-2 h-4 w-4" />
+          ثبت چک جدید
+        </Button>
+      </div>
+
+      {isLoading ? (
+          <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+          </div>
+      ) : isFormOpen ? (
+        <CheckForm
+          isOpen={isFormOpen}
+          setIsOpen={setIsFormOpen}
+          onSubmit={handleFormSubmit}
+          initialData={editingCheck}
+          bankAccounts={bankAccounts || []}
+          payees={payees || []}
+          categories={categories || []}
+        />
+      ) : (
+        <CheckList
+          checks={checks || []}
+          bankAccounts={bankAccounts || []}
+          payees={payees || []}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onClear={handleClearCheck}
+        />
+      )}
+    </main>
+  );
+}

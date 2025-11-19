@@ -25,6 +25,19 @@ export type Income = {
   updatedAt?: any;
 }
 
+export type Expense = {
+  id: string;
+  userId: string;
+  bankAccountId: string;
+  categoryId: string;
+  amount: number;
+  date: string;
+  description: string;
+  type: 'expense';
+  checkId?: string; // Optional: to link expense to a cleared check
+};
+
+
 export type BankAccount = {
     id: string;
     userId: string;
@@ -39,7 +52,6 @@ export type Category = {
   userId: string;
   name: string;
   description?: string;
-  icon: LucideIcon;
 };
 
 export type UserProfile = {
@@ -66,6 +78,7 @@ export type Check = {
     issueDate: string;
     dueDate: string;
     status: 'pending' | 'cleared';
+    description?: string;
 }
 
 export type Loan = {
