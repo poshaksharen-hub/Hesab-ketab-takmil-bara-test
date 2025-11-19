@@ -1,9 +1,10 @@
 'use client';
 
 import { type Transaction, type Income, type Expense, type UserProfile, type Category } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Briefcase, ShoppingCart } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns-jalali';
 
 
 type RecentTransactionsProps = {
@@ -33,6 +34,15 @@ export function RecentTransactions({ transactions, categories, users }: RecentTr
       return user ? user.firstName : 'نامشخص';
   }
 
+  const formatDate = (date: any) => {
+    try {
+      const d = date.toDate ? date.toDate() : new Date(date);
+      return formatDistanceToNow(d, { addSuffix: true });
+    } catch {
+      return "تاریخ نامشخص"
+    }
+  }
+
 
   return (
     <div className="space-y-4">
@@ -51,7 +61,7 @@ export function RecentTransactions({ transactions, categories, users }: RecentTr
             </Avatar>
             <div className="ml-4 space-y-1">
               <p className="text-sm font-medium leading-none">{transaction.description}</p>
-              <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)})</p>
+              <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transaction.createdAt)}</span></p>
             </div>
             <div
               className={`mr-auto font-medium ${

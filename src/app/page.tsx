@@ -1,148 +1,35 @@
 'use client';
 
-import { Suspense, useEffect, useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { OverviewCards } from '@/components/dashboard/overview-cards';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
-import { SpendingChart } from '@/components/dashboard/spending-chart';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, onSnapshot, getDocs, where, Unsubscribe } from 'firebase/firestore';
-import type { Income, Expense, BankAccount, UserProfile, Category } from '@/lib/types';
-import React from 'react';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { DateRangeFilter, type DateRange } from '@/components/dashboard/date-range-filter';
+import { useFinancialSummary } from '@/hooks/use-financial-summary';
+import { OverallSummary } from '@/components/dashboard/overall-summary';
+import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
+import { AccountBalanceCards } from '@/components/dashboard/account-balance-cards';
+import { CategorySpending } from '@/components/dashboard/category-spending';
+import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
 
 export default function DashboardPage() {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const { isUserLoading } = useUser();
+  const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
 
-  const [allIncomes, setAllIncomes] = useState<Income[]>([]);
-  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
-  const [allBankAccounts, setAllBankAccounts] = useState<BankAccount[]>([]);
-  const [allCategories, setAllCategories] = useState<Category[]>([]);
-  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-
-  // Effect to fetch initial user profiles once
-  useEffect(() => {
-    if (!firestore) return;
-    const fetchInitialUsers = async () => {
-      setIsLoadingData(true);
-      const usersSnapshot = await getDocs(collection(firestore, 'users'));
-      const userProfiles = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
-      setAllUsers(userProfiles);
-      setIsLoadingData(false); // Set to false after users are fetched
-    };
-    fetchInitialUsers();
-  }, [firestore]);
-
-  // Effect to set up listeners when users are available
-  useEffect(() => {
-    if (!firestore || allUsers.length === 0) return;
-
-    const userIds = allUsers.map(u => u.id);
-    const unsubscribes: Unsubscribe[] = [];
-
-    const setupListeners = <T,>(collectionName: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-        const itemUnsubscribes = userIds.map(uid => {
-            const q = collection(firestore, 'users', uid, collectionName);
-            return onSnapshot(q, (snapshot) => {
-                // When any user's collection changes, refetch all data for that collection type
-                Promise.all(userIds.map(id => getDocs(collection(firestore, 'users', id, collectionName))))
-                    .then(snapshots => {
-                        const allItems = snapshots.flat().map(snap => snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as T))).flat();
-                        setter(allItems);
-                    });
-            });
-        });
-        unsubscribes.push(...itemUnsubscribes);
-    };
-
-    setupListeners<Income>('incomes', setAllIncomes);
-    setupListeners<Expense>('expenses', setAllExpenses);
-    setupListeners<Category>('categories', setAllCategories);
-
-    // Listener for bank accounts (personal and shared)
-    const personalAccountUnsubscribes = userIds.map(uid => {
-      return onSnapshot(collection(firestore, 'users', uid, 'bankAccounts'), () => {
-        // Refetch all personal and shared accounts when any personal account changes
-        fetchAllBankAccounts();
-      });
-    });
-    unsubscribes.push(...personalAccountUnsubscribes);
-    
-    const fetchAllBankAccounts = async () => {
-        const personalPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'bankAccounts')));
-        const personalSnapshots = await Promise.all(personalPromises);
-        const personalAccounts = personalSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
-
-        const sharedQuery = user?.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
-        if (sharedQuery) {
-          const sharedSnapshots = await getDocs(sharedQuery);
-          const sharedAccounts = sharedSnapshots.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount);
-          setAllBankAccounts([...personalAccounts, ...sharedAccounts]);
-        } else {
-           setAllBankAccounts(personalAccounts);
-        }
-    };
-
-    if (user?.uid) {
-        const sharedQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true));
-        const sharedUnsubscribe = onSnapshot(sharedQuery, () => {
-            fetchAllBankAccounts();
-        });
-        unsubscribes.push(sharedUnsubscribe);
-    }
-    
-    // Initial fetch for bank accounts
-    fetchAllBankAccounts();
-
-    return () => unsubscribes.forEach(unsub => unsub());
-  }, [firestore, allUsers, user]);
-
-
-  const allTransactions = React.useMemo(() => {
-    if (!allIncomes || !allExpenses) return [];
-    const combined = [...allIncomes, ...allExpenses];
-    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allIncomes, allExpenses]);
-
-  const recentTransactions = React.useMemo(() => {
-    return allTransactions.slice(0, 5);
-  }, [allTransactions]);
-
-  const monthlyMetrics = React.useMemo(() => {
-    const now = new Date();
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
-    
-    const monthlyIncome = (allIncomes || [])
-        .filter(inc => {
-            const incDate = new Date(inc.date);
-            return incDate >= start && incDate <= end;
-        })
-        .reduce((sum, inc) => sum + inc.amount, 0);
-        
-    const monthlyExpense = (allExpenses || [])
-        .filter(exp => {
-            const expDate = new Date(exp.date);
-            return expDate >= start && expDate <= end;
-        })
-        .reduce((sum, exp) => sum + exp.amount, 0);
-
-    const totalBalance = allBankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
-
-    return { monthlyIncome, monthlyExpense, totalBalance };
-  }, [allIncomes, allExpenses, allBankAccounts]);
-
+  const {
+    summary,
+    isLoading: isLoadingData,
+  } = useFinancialSummary({ dateRange });
 
   const isLoading = isUserLoading || isLoadingData;
-
+  
   if (isLoading) {
     return (
       <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
         <div className="flex items-center justify-between space-y-2">
            <Skeleton className="h-8 w-48" />
+           <Skeleton className="h-10 w-64" />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Skeleton className="h-32" />
@@ -177,25 +64,60 @@ export default function DashboardPage() {
   
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
         <h1 className="font-headline text-3xl font-bold tracking-tight">
-          داشبورد
+          داشبورد جامع مالی
         </h1>
+        <DateRangeFilter value={dateRange} onChange={setDateRange} />
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <OverviewCards 
-            totalIncome={monthlyMetrics.monthlyIncome}
-            totalExpenses={monthlyMetrics.monthlyExpense}
-            balance={monthlyMetrics.totalBalance}
-            />
+
+      {/* Overall Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <OverallSummary summary={summary} />
       </div>
+
+       {/* Account Balance Cards */}
+       <div className="grid gap-4 md:grid-cols-3">
+        <AccountBalanceCards 
+            aliBalance={summary.aliTotalBalance}
+            fatemehBalance={summary.fatemehTotalBalance}
+            sharedBalance={summary.sharedTotalBalance}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
         <Card className="xl:col-span-4">
           <CardHeader>
-            <CardTitle className="font-headline">هزینه بر اساس دسته‌بندی</CardTitle>
+            <CardTitle className="font-headline">روند درآمد و هزینه</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-              <SpendingChart transactions={allTransactions} categories={allCategories} />
+            <IncomeExpenseChart 
+                income={summary.totalIncome}
+                expense={summary.totalExpense}
+            />
+          </CardContent>
+        </Card>
+        <Card className="xl:col-span-3">
+          <CardHeader>
+            <CardTitle className="font-headline">هزینه‌ها بر اساس دسته‌بندی</CardTitle>
+          </CardHeader>
+          <CardContent>
+             <CategorySpending expenses={summary.expenses} categories={summary.categories}/>
+          </CardContent>
+        </Card>
+      </div>
+
+       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
+        <Card className="xl:col-span-4">
+          <CardHeader>
+            <CardTitle className="font-headline">موعدهای پیش رو</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <UpcomingDeadlines 
+                checks={summary.checks} 
+                loans={summary.loans}
+                payees={summary.payees}
+            />
           </CardContent>
         </Card>
         <Card className="xl:col-span-3">
@@ -203,7 +125,11 @@ export default function DashboardPage() {
             <CardTitle className="font-headline">تراکنش‌های اخیر</CardTitle>
           </CardHeader>
           <CardContent>
-              <RecentTransactions transactions={recentTransactions} categories={allCategories} users={allUsers} />
+              <RecentTransactions 
+                transactions={summary.recentTransactions} 
+                categories={summary.categories} 
+                users={summary.users}
+            />
           </CardContent>
         </Card>
       </div>
