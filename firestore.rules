@@ -1,126 +1,55 @@
-/**
- * @fileOverview Firestore Security Rules for Hesab Ketab.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal data (users, transactions). Shared resources (categories, shared accounts) have more permissive read access but tightly controlled write access. The rules prioritize authorization independence to ensure efficient and secure access control.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles, accessible only by the user themselves.
- * - /users/{userId}/transactions/{transactionId}: Stores user-specific transactions, accessible only by the user.
- * - /categories/{categoryId}: Stores global categories, publicly readable but only writable by authorized users (currently open writes, needs role-based restrictions).
- * - /sharedAccounts/{sharedAccountId}: Stores shared account metadata.
- * - /sharedAccounts/{sharedAccountId}/transactions/{transactionId}: Stores transactions related to a shared account. Access is controlled by membership in the shared account.
- *
- * Key Security Decisions:
- * - User listing is disallowed to protect user privacy.
- * - Categories are publicly readable to facilitate data sharing. Write access to categories is currently open.
- *
- * Denormalization for Authorization:
- * The `user1Id` and `user2Id` fields are denormalized from the /sharedAccounts/{sharedAccountId} document into each transaction document within the /sharedAccounts/{sharedAccountId}/transactions/{transactionId} subcollection. This way, security rules can directly check if `request.auth.uid` matches either `user1Id` or `user2Id` within the transaction document, without needing to perform a `get()` operation on the parent document.
- */
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-    /**
-     * @description Grants access to user profiles, ensuring only the user can access their own data.
-     * @path /users/{userId}
-     * @allow (create, update, get, delete): Authenticated user with matching userId.
-     *   Example (create): request.auth.uid = "user123", request.resource.data.id = "user123"
-     *   Example (update): request.auth.uid = "user123", resource.data.id = "user123"
-     * @deny (create, update, get, delete): Authenticated user with mismatched userId.
-     *   Example (create): request.auth.uid = "user123", request.resource.data.id = "user456"
-     * @principle Enforces document ownership for all operations.
-     */
+    // Users Collection
+    // Each user can read/write their own profile.
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false; // User listing is disabled for privacy.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow read, update, delete: if isOwner(userId);
+      allow create: if isSignedIn(); 
     }
 
-    /**
-     * @description Grants access to user-specific transactions, ensuring only the user can access their own transactions.
-     * @path /users/{userId}/transactions/{transactionId}
-     * @allow (create, update, get, delete): Authenticated user with matching userId.
-     *   Example (create): request.auth.uid = "user123", request.resource.data.userId = "user123"
-     *   Example (update): request.auth.uid = "user123", resource.data.userId = "user123"
-     * @deny (create, update, get, delete): Authenticated user with mismatched userId.
-     *   Example (create): request.auth.uid = "user123", request.resource.data.userId = "user456"
-     * @principle Enforces document ownership for all operations on user-specific transactions.
-     */
-    match /users/{userId}/transactions/{transactionId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId);
+    // Personal Bank Accounts
+    // Only the owner can manage their personal bank accounts.
+    match /users/{userId}/bankAccounts/{accountId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Shared Bank Accounts
+    // Any member of a shared account can read it.
+    // Writes are handled through transactions and a more permissive ruleset is needed here,
+    // but the transaction logic itself will enforce permissions.
+    match /shared/data/bankAccounts/{accountId} {
+      allow read: if isSignedIn() && resource.data.members[request.auth.uid] == true;
+      allow write: if isSignedIn(); // Writes are complex and controlled by transactions.
     }
 
-    /**
-     * @description Grants read access to categories for all authenticated users, but restricts write access (currently open).
-     * @path /categories/{categoryId}
-     * @allow (get, list): Any authenticated user.
-     * @allow (create, update, delete): Currently allows all. Needs role-based access control.
-     * @principle Provides public read access to categories but requires restricted write access.
-     */
-    match /categories/{categoryId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin role validation
+    // Personal Categories
+    match /users/{userId}/categories/{categoryId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Personal Payees
+    match /users/{userId}/payees/{payeeId} {
+        allow read, write: if isOwner(userId);
     }
 
-    /**
-     * @description Grants access to shared account metadata. Currently, the rules allow read access to all authenticated users, but restrict write access.
-     * @path /sharedAccounts/{sharedAccountId}
-     */
-    match /sharedAccounts/{sharedAccountId} {
-        allow get: if true;
-        allow list: if true;
-        allow create: if false;
-        allow update: if false;
-        allow delete: if false;
-    }
-
-    /**
-     * @description Grants access to transactions within a shared account, ensuring only participants can access them.
-     * @path /sharedAccounts/{sharedAccountId}/transactions/{transactionId}
-     * @allow (create, update, get, delete): Authenticated user who is a member of the shared account.
-     *   Example: request.auth.uid is either user1Id or user2Id in the transaction document.
-     * @deny (create, update, get, delete): Authenticated user who is not a member of the shared account.
-     *   Example: request.auth.uid is neither user1Id nor user2Id in the transaction document.
-     * @principle Enforces shared access control based on the shared account membership.
-     */
-    match /sharedAccounts/{sharedAccountId}/transactions/{transactionId} {
-        function isParticipant(user1Id, user2Id) {
-          return request.auth != null && (request.auth.uid == user1Id || request.auth.uid == user2Id);
-        }
-
-        function isExistingParticipant(user1Id, user2Id) {
-            return isParticipant(user1Id, user2Id) && resource != null;
-        }
-
-        allow get: if true;
-        allow list: if true;
-        allow create: if request.resource.data.user1Id != null && request.resource.data.user2Id != null && isParticipant(request.resource.data.user1Id, request.resource.data.user2Id);
-        allow update: if resource.data.user1Id != null && resource.data.user2Id != null && isExistingParticipant(resource.data.user1Id, resource.data.user2Id);
-        allow delete: if resource.data.user1Id != null && resource.data.user2Id != null && isExistingParticipant(resource.data.user1Id, resource.data.user2Id);
+    // Personal Incomes, Expenses, Checks, Loans, Goals, Transfers, Payments
+    // These are all user-specific and can only be accessed by the owner.
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write: if isOwner(userId);
     }
   }
 }
+
+    

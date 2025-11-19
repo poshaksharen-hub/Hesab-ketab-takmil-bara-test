@@ -15,126 +15,200 @@
           "description": "Email address of the user.",
           "format": "email"
         },
-        "fullName": {
+        "firstName": {
           "type": "string",
-          "description": "Full name of the user."
+          "description": "First name of the user."
         },
-        "sharedAccountIds": {
-          "type": "array",
-          "description": "References to SharedAccount entities. (Relationship: User N:N SharedAccount)",
-          "items": {
-            "type": "string"
-          }
+        "lastName": {
+            "type": "string",
+            "description": "Last name of the user."
         }
       },
       "required": [
         "id",
         "email",
-        "fullName"
+        "firstName",
+        "lastName"
       ]
     },
-    "Transaction": {
+    "BankAccount": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
+      "title": "BankAccount",
       "type": "object",
-      "description": "Represents a financial transaction.",
+      "description": "Represents a bank account, which can be personal or shared.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Transaction entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Transaction)"
-        },
-        "categoryId": {
-          "type": "string",
-          "description": "Reference to Category. (Relationship: Category 1:N Transaction)"
-        },
-        "date": {
-          "type": "string",
-          "description": "Date of the transaction.",
-          "format": "date-time"
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount of the transaction."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the transaction."
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "Owner of the account if personal. Null if shared." },
+        "name": { "type": "string" },
+        "balance": { "type": "number" },
+        "initialBalance": { "type": "number" },
+        "blockedBalance": { "type": "number", "description": "Amount blocked for financial goals."},
+        "isShared": { "type": "boolean" },
+        "members": { "type": "object", "description": "Map of user IDs who are members of this shared account." },
+        "theme": { "type": "string", "enum": ["blue", "green", "purple", "orange", "gray"] }
       },
-      "required": [
-        "id",
-        "userId",
-        "categoryId",
-        "date",
-        "amount"
-      ]
+      "required": ["id", "name", "balance", "initialBalance"]
+    },
+    "Income": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Income",
+      "type": "object",
+      "description": "Represents an income transaction.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "The user account this income belongs to (owner of the bank account)." },
+        "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
+        "bankAccountId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "source": { "type": "string" },
+        "type": { "type": "string", "enum": ["income"] },
+        "category": { "type": "string", "description": "Always 'درآمد'" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "registeredByUserId", "bankAccountId", "amount", "date", "description", "source", "type", "category", "createdAt"]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents an expense transaction.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "The user account this expense belongs to (owner of the bank account)." },
+        "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
+        "bankAccountId": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["expense"] },
+        "checkId": { "type": "string" },
+        "goalId": { "type": "string" },
+        "loanPaymentId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt"]
     },
     "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
-      "description": "Represents a category for financial transactions.",
+      "description": "Represents a category for expenses.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Category entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the category."
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of the category (e.g., income, expense)."
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" }
       },
-      "required": [
-        "id",
-        "name",
-        "type"
-      ]
+      "required": ["id", "userId", "name"]
     },
-    "SharedAccount": {
+    "Payee": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SharedAccount",
+      "title": "Payee",
       "type": "object",
-      "description": "Represents a shared account between two users.",
+      "description": "Represents a payee for checks.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the SharedAccount entity."
-        },
-        "user1Id": {
-          "type": "string",
-          "description": "Reference to User 1. (Relationship: User 1:N SharedAccount)"
-        },
-        "user2Id": {
-          "type": "string",
-          "description": "Reference to User 2. (Relationship: User 1:N SharedAccount)"
-        },
-        "transactionIds": {
-          "type": "array",
-          "description": "References to Transactions. (Relationship: SharedAccount 1:N Transaction)",
-          "items": {
-            "type": "string"
-          }
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phoneNumber": { "type": "string" }
       },
-      "required": [
-        "id",
-        "user1Id",
-        "user2Id"
-      ]
+      "required": ["id", "userId", "name"]
+    },
+    "Check": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Check",
+      "type": "object",
+      "description": "Represents a financial check.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "bankAccountId": { "type": "string" },
+        "payeeId": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "amount": { "type": "number" },
+        "issueDate": { "type": "string", "format": "date-time" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "cleared"] },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "userId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status"]
+    },
+    "FinancialGoal": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "FinancialGoal",
+        "type": "object",
+        "description": "Represents a financial savings goal.",
+        "properties": {
+            "id": { "type": "string" },
+            "userId": { "type": "string" },
+            "name": { "type": "string" },
+            "targetAmount": { "type": "number" },
+            "currentAmount": { "type": "number" },
+            "targetDate": { "type": "string", "format": "date-time" },
+            "isAchieved": { "type": "boolean" },
+            "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+            "savedFromBankAccountId": { "type": "string" },
+            "savedAmount": { "type": "number" }
+        },
+        "required": ["id", "userId", "name", "targetAmount", "currentAmount", "targetDate", "isAchieved", "priority"]
+    },
+    "Loan": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Loan",
+        "type": "object",
+        "description": "Represents a loan.",
+        "properties": {
+            "id": { "type": "string" },
+            "userId": { "type": "string" },
+            "title": { "type": "string" },
+            "amount": { "type": "number" },
+            "installmentAmount": { "type": "number" },
+            "remainingAmount": { "type": "number" },
+            "startDate": { "type": "string", "format": "date-time" },
+            "paymentDay": { "type": "number" },
+            "numberOfInstallments": { "type": "number" },
+            "paidInstallments": { "type": "number" }
+        },
+        "required": ["id", "userId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "paymentDay", "numberOfInstallments", "paidInstallments"]
+    },
+    "LoanPayment": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "LoanPayment",
+        "type": "object",
+        "description": "Represents a payment towards a loan.",
+        "properties": {
+            "id": { "type": "string" },
+            "userId": { "type": "string" },
+            "loanId": { "type": "string" },
+            "bankAccountId": { "type": "string" },
+            "amount": { "type": "number" },
+            "paymentDate": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "userId", "loanId", "bankAccountId", "amount", "paymentDate"]
+    },
+    "Transfer": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Transfer",
+        "type": "object",
+        "description": "Represents an internal transfer between accounts.",
+        "properties": {
+            "id": { "type": "string" },
+            "userId": { "type": "string", "description": "The user who initiated the transfer." },
+            "fromBankAccountId": { "type": "string" },
+            "toBankAccountId": { "type": "string" },
+            "amount": { "type": "number" },
+            "transferDate": { "type": "string", "format": "date-time" },
+            "description": { "type": "string" }
+        },
+        "required": ["id", "userId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate"]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -142,92 +216,31 @@
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profiles. The 'id' field in the User document must match the 'userId' in the path.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
+          "schema": { "$ref": "#/entities/User" },
+          "description": "Stores user profiles."
+        },
+        "subcollections": [
+            { "name": "bankAccounts", "schema": { "$ref": "#/entities/BankAccount" }, "description": "Personal bank accounts for the user." },
+            { "name": "incomes", "schema": { "$ref": "#/entities/Income" }, "description": "Income records for the user." },
+            { "name": "expenses", "schema": { "$ref": "#/entities/Expense" }, "description": "Expense records for the user." },
+            { "name": "categories", "schema": { "$ref": "#/entities/Category" }, "description": "Personal expense categories for the user." },
+            { "name": "payees", "schema": { "$ref": "#/entities/Payee" }, "description": "Personal payees for the user." },
+            { "name": "checks", "schema": { "$ref": "#/entities/Check" }, "description": "Checks issued by the user." },
+            { "name": "financialGoals", "schema": { "$ref": "#/entities/FinancialGoal" }, "description": "Financial goals for the user." },
+            { "name": "loans", "schema": { "$ref": "#/entities/Loan" }, "description": "Loans taken by the user." },
+            { "name": "loanPayments", "schema": { "$ref": "#/entities/LoanPayment" }, "description": "Payments made by the user for their loans." },
+            { "name": "transfers", "schema": { "$ref": "#/entities/Transfer" }, "description": "Transfers initiated by the user." }
+        ]
       },
       {
-        "path": "/users/{userId}/transactions/{transactionId}",
+        "path": "/shared/data/bankAccounts/{accountId}",
         "definition": {
-          "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "Stores transactions for a specific user. Owned by the user identified by 'userId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier for the transaction."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": {
-            "$ref": "#/backend/entities/Category"
-          },
-          "description": "Stores global categories available to all users.",
-          "params": [
-            {
-              "name": "categoryId",
-              "description": "The unique identifier for the category."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/sharedAccounts/{sharedAccountId}",
-        "definition": {
-          "entityName": "SharedAccount",
-          "schema": {
-            "$ref": "#/backend/entities/SharedAccount"
-          },
-          "description": "Stores shared accounts between two users.",
-          "params": [
-            {
-              "name": "sharedAccountId",
-              "description": "The unique identifier for the shared account."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/sharedAccounts/{sharedAccountId}/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "Stores transactions for a specific shared account. Includes denormalized 'user1Id' and 'user2Id' fields for authorization independence.",
-          "params": [
-            {
-              "name": "sharedAccountId",
-              "description": "The unique identifier for the shared account."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier for the transaction."
-            }
-          ]
+          "schema": { "$ref": "#/entities/BankAccount" },
+          "description": "Shared bank accounts accessible by multiple users."
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to support a personal finance application named Hesab Ketab, focusing on individual and shared financial tracking. The design prioritizes Authorization Independence and QAPs.  \n\n*   **Users:** User data is stored under `/users/{userId}`. This path-based ownership simplifies security rules and ensures that only the user can access their own data. The `id` field in the User document should match the `userId` used in the path. This structure provides clear ownership.\n*   **Transactions:** Transactions are stored under `/users/{userId}/transactions/{transactionId}`. This structure enables simple ownership-based security rules since the `userId` is directly embedded in the path. Each transaction document is owned by a specific user, ensuring privacy and control. Transactions include references (`categoryId`) but these references are purely for data organization and do not affect security.\n*   **Categories:** Categories are stored under `/categories/{categoryId}`. Since categories are intended to be global, no user-specific context is needed. Security rules can allow read access to all authenticated users.\n*   **Shared Accounts:** Shared accounts are stored under `/sharedAccounts/{sharedAccountId}`. The `SharedAccount` document contains the `user1Id` and `user2Id` fields. Transactions associated with a shared account are stored under `/sharedAccounts/{sharedAccountId}/transactions/{transactionId}`. This enables the system to associate transactions with a shared account.\n\n**Authorization Independence (Denormalization):**\n\n*   **Shared Accounts:** To ensure that only the members of the shared account can access the transactions, we denormalize the `user1Id` and `user2Id` fields from the `/sharedAccounts/{sharedAccountId}` document into each transaction document within the `/sharedAccounts/{sharedAccountId}/transactions/{transactionId}` subcollection. This way, when a user tries to read or write a transaction, security rules can directly check if `request.auth.uid` matches either `user1Id` or `user2Id` within the transaction document, without needing to perform a `get()` operation on the parent document.\n\n**QAPs (Queries and Permissions):**\n\n*   The design inherently supports secure listing of user-specific transactions using the path `/users/{userId}/transactions/{transactionId}`. Security rules can easily enforce that only the user with the matching `userId` can list the transactions under that path.\n*   The `/categories` collection allows all authenticated users to list and read categories, facilitating data sharing and ensuring QAPs for category retrieval.\n\nThe chosen structure ensures that all documents within a collection share the same security requirements, avoids hierarchical authorization dependencies, and enables secure `list` operations. The separation of user-specific data (transactions) and shared data (categories, shared accounts) into different collections simplifies security rules and data management."
+    ]
   }
 }
+
+    
