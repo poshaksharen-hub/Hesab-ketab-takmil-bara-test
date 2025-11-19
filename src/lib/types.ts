@@ -11,6 +11,20 @@ export type Transaction = {
   bankAccountId: string;
 };
 
+export type Income = {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'income';
+  source: string;
+  category: string;
+  userId: string;
+  bankAccountId: string;
+  createdAt: any;
+  updatedAt?: any;
+}
+
 export type BankAccount = {
     id: string;
     userId: string;
@@ -81,7 +95,7 @@ export type FinancialGoal = {
     targetAmount: number;
     currentAmount: number;
     targetDate: string;
-    isAchieved: boolean;
+isAchieved: boolean;
 }
 
 export type Transfer = {

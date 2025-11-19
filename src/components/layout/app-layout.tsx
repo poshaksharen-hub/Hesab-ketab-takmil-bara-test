@@ -26,6 +26,7 @@ import {
   Sun,
   Moon,
   LogIn,
+  TrendingUp,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -57,6 +58,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+    { href: '/income', label: 'درآمدها', icon: TrendingUp },
     { href: '/transactions', label: 'تراکنش ها', icon: ArrowRightLeft },
     { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
     { href: '/sharing', label: 'اشتراک گذاری', icon: Users },

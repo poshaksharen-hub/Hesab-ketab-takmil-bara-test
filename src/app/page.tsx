@@ -13,7 +13,7 @@ export default function DashboardPage() {
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h1 className="font-headline text-3xl font-bold tracking-tight">
-          Dashboard
+          داشبورد
         </h1>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -24,7 +24,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
         <Card className="xl:col-span-4">
           <CardHeader>
-            <CardTitle className="font-headline">Spending by Category</CardTitle>
+            <CardTitle className="font-headline">هزینه بر اساس دسته‌بندی</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             <Suspense fallback={<Skeleton className="h-[350px]" />}>
@@ -34,7 +34,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="xl:col-span-3">
           <CardHeader>
-            <CardTitle className="font-headline">Recent Transactions</CardTitle>
+            <CardTitle className="font-headline">تراکنش‌های اخیر</CardTitle>
           </CardHeader>
           <CardContent>
             <Suspense fallback={<Skeleton className="h-[350px]" />}>
