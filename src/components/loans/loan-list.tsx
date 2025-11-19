@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CalendarCheck2 } from 'lucide-react';
+import { Edit, Trash2, CalendarCheck2, RotateCcw } from 'lucide-react';
 import type { Loan, LoanPayment, Payee } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -67,7 +67,7 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
 
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        {loans.map((loan) => {
+        {loans.sort((a, b) => a.paidInstallments - b.paidInstallments).map((loan) => {
             const progress = (loan.paidInstallments / loan.numberOfInstallments) * 100;
             const isCompleted = loan.paidInstallments >= loan.numberOfInstallments;
 

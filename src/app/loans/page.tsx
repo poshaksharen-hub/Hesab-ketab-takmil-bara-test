@@ -1,10 +1,9 @@
-
 'use client';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import type { Loan, LoanPayment, BankAccount, Category, Payee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,46 +11,31 @@ import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
 import { LoanForm } from '@/components/loans/loan-form';
 import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+
 
 export default function LoansPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData, getFilteredData } = useDashboardData();
+
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [payingLoan, setPayingLoan] = useState<Loan | null>(null);
 
-  const loansQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'loans') : null),
-    [firestore, user]
-  );
-  const { data: loans, isLoading: isLoadingLoans } = useCollection<Loan>(loansQuery);
-  
-  const loanPaymentsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'loanPayments') : null),
-    [firestore, user]
-  );
-  const { data: loanPayments, isLoading: isLoadingLoanPayments } = useCollection<LoanPayment>(loanPaymentsQuery);
-
-
-  const bankAccountsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'bankAccounts') : null),
-    [firestore, user]
-  );
-  const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
-  
-  const categoriesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
-    [firestore, user]
-  );
-  const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
-
-  const payeesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'payees') : null),
-    [firestore, user]
-  );
-  const { data: payees, isLoading: isLoadingPayees } = useCollection<Payee>(payeesQuery);
+  // We need to get all data, not just filtered data, for some operations.
+  const { 
+    loans, 
+    loanPayments, 
+    bankAccounts, 
+    categories, 
+    payees, 
+    users,
+    incomes,
+    expenses
+  } = allData;
 
   const handleFormSubmit = async (values: any) => {
     if (!user || !firestore) return;
@@ -59,36 +43,46 @@ export default function LoansPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
+            const loanOwnerId = user.uid; // Loans are personal to the creator
+
             if (editingLoan) {
                 // Edit loan
-                const loanRef = doc(firestore, 'users', user.uid, 'loans', editingLoan.id);
+                const loanRef = doc(firestore, 'users', loanOwnerId, 'loans', editingLoan.id);
                 // Note: Logic for changing loan amount after creation can be complex.
                 // For simplicity, we are just updating the description/title here.
                 transaction.update(loanRef, loanData);
                 toast({ title: "موفقیت", description: "وام با موفقیت ویرایش شد." });
             } else {
                 // Create loan
-                const newLoanRef = doc(collection(firestore, 'users', user.uid, 'loans'));
+                const newLoanRef = doc(collection(firestore, 'users', loanOwnerId, 'loans'));
                 transaction.set(newLoanRef, {
                     ...loanData,
                     id: newLoanRef.id,
-                    userId: user.uid,
+                    userId: loanOwnerId,
                     paidInstallments: 0,
                     remainingAmount: loanData.amount,
                 });
                 
                 // Optional: Deposit loan amount as an income
                 if (depositOnCreate && depositToAccountId) {
-                    const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', depositToAccountId);
-                    const incomeRef = doc(collection(firestore, 'users', user.uid, 'incomes'));
+                    const accountToDeposit = bankAccounts.find(acc => acc.id === depositToAccountId);
+                    if (!accountToDeposit) throw new Error("حساب بانکی برای واریز مبلغ وام یافت نشد.");
+
+                    const isShared = !!accountToDeposit.isShared;
+                    const ownerId = accountToDeposit.userId;
+
+                    const bankAccountRef = doc(firestore, isShared ? `shared/data/bankAccounts/${depositToAccountId}` : `users/${ownerId}/bankAccounts/${depositToAccountId}`);
+                    const incomeOwnerId = ownerId; // Income belongs to the account owner
+                    const incomeRef = doc(collection(firestore, 'users', incomeOwnerId, 'incomes'));
                     
                     const bankAccountDoc = await transaction.get(bankAccountRef);
-                    if (!bankAccountDoc.exists()) throw new Error("حساب بانکی برای واریز مبلغ وام یافت نشد.");
+                    if (!bankAccountDoc.exists()) throw new Error("حساب بانکی برای واریز یافت نشد.");
                     
                     transaction.update(bankAccountRef, { balance: bankAccountDoc.data().balance + loanData.amount });
                     transaction.set(incomeRef, {
                         id: incomeRef.id,
-                        userId: user.uid,
+                        userId: incomeOwnerId,
+                        registeredByUserId: user.uid,
                         amount: loanData.amount,
                         bankAccountId: depositToAccountId,
                         date: loanData.startDate,
@@ -118,16 +112,25 @@ export default function LoansPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const loanRef = doc(firestore, 'users', user.uid, 'loans', loan.id);
-            const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', paymentBankAccountId);
+            const loanRef = doc(firestore, 'users', loan.userId, 'loans', loan.id);
+            
+            const accountToPayFrom = bankAccounts.find(acc => acc.id === paymentBankAccountId);
+            if (!accountToPayFrom) throw new Error("کارت بانکی برای پرداخت یافت نشد.");
+
+            const isShared = !!accountToPayFrom.isShared;
+            const ownerId = accountToPayFrom.userId;
+
+            const bankAccountRef = doc(firestore, isShared ? `shared/data/bankAccounts/${paymentBankAccountId}` : `users/${ownerId}/bankAccounts/${paymentBankAccountId}`);
             
             const bankAccountDoc = await transaction.get(bankAccountRef);
-            if (!bankAccountDoc.exists() || bankAccountDoc.data().balance < installmentAmount) {
+            const availableBalance = bankAccountDoc.data()!.balance - (bankAccountDoc.data()!.blockedBalance || 0);
+
+            if (!bankAccountDoc.exists() || availableBalance < installmentAmount) {
                 throw new Error("موجودی حساب برای پرداخت قسط کافی نیست.");
             }
 
             // 1. Deduct from bank account
-            transaction.update(bankAccountRef, { balance: bankAccountDoc.data().balance - installmentAmount });
+            transaction.update(bankAccountRef, { balance: bankAccountDoc.data()!.balance - installmentAmount });
 
             // 2. Update loan document
             const newPaidInstallments = (loan.paidInstallments || 0) + 1;
@@ -138,22 +141,24 @@ export default function LoansPage() {
             });
 
             // 3. Create a loan payment record
-            const paymentRef = doc(collection(firestore, 'users', user.uid, 'loanPayments'));
+            const paymentRef = doc(collection(firestore, 'users', loan.userId, 'loanPayments'));
             transaction.set(paymentRef, {
                 id: paymentRef.id,
                 loanId: loan.id,
                 bankAccountId: paymentBankAccountId,
                 amount: installmentAmount,
                 paymentDate: new Date().toISOString(),
-                userId: user.uid,
+                userId: loan.userId,
             });
 
             // 4. Create a corresponding expense
-            const expenseRef = doc(collection(firestore, 'users', user.uid, 'expenses'));
-            const expenseCategory = categories?.find(c => c.name === 'پرداخت اقساط') || categories?.[0];
+            const expenseOwnerId = ownerId;
+            const expenseRef = doc(collection(firestore, 'users', expenseOwnerId, 'expenses'));
+            const expenseCategory = categories?.find(c => c.name.includes('قسط')) || categories?.[0];
             transaction.set(expenseRef, {
                 id: expenseRef.id,
-                userId: user.uid,
+                userId: expenseOwnerId,
+                registeredByUserId: user.uid,
                 amount: installmentAmount,
                 bankAccountId: paymentBankAccountId,
                 categoryId: expenseCategory?.id || 'uncategorized',
@@ -161,6 +166,7 @@ export default function LoansPage() {
                 description: `پرداخت قسط وام: ${loan.title}`,
                 type: 'expense',
                 loanPaymentId: paymentRef.id,
+                createdAt: serverTimestamp(),
             });
         });
         toast({ title: "موفقیت", description: "قسط با موفقیت پرداخت و به عنوان هزینه ثبت شد." });
@@ -175,26 +181,32 @@ export default function LoansPage() {
   };
 
   const handleDelete = async (loanId: string) => {
-    if (!user || !firestore) return;
-    
+    if (!user || !firestore || !loans) return;
+
+    const loanToDelete = loans.find(l => l.id === loanId);
+    if (!loanToDelete) return;
+
     try {
         const batch = writeBatch(firestore);
         
         // Find and delete all payments for this loan
-        const paymentsQuery = query(collection(firestore, 'users', user.uid, 'loanPayments'), where('loanId', '==', loanId));
+        const paymentsQuery = query(collection(firestore, 'users', loanToDelete.userId, 'loanPayments'), where('loanId', '==', loanId));
         const paymentsSnapshot = await getDocs(paymentsQuery);
         const paymentIds = paymentsSnapshot.docs.map(d => d.id);
         paymentsSnapshot.forEach(doc => batch.delete(doc.ref));
 
-        // Find and delete all expenses associated with those payments
-        if (paymentIds.length > 0) {
-            const expensesQuery = query(collection(firestore, 'users', user.uid, 'expenses'), where('loanPaymentId', 'in', paymentIds));
-            const expensesSnapshot = await getDocs(expensesQuery);
-            expensesSnapshot.forEach(doc => batch.delete(doc.ref));
+        // Find and delete all expenses associated with those payments across ALL users
+        for (const u of users) {
+             if (paymentIds.length > 0) {
+                const expensesQuery = query(collection(firestore, 'users', u.id, 'expenses'), where('loanPaymentId', 'in', paymentIds));
+                const expensesSnapshot = await getDocs(expensesQuery);
+                expensesSnapshot.forEach(doc => batch.delete(doc.ref));
+            }
         }
+       
 
         // Delete the main loan document
-        const loanRef = doc(firestore, 'users', user.uid, 'loans', loanId);
+        const loanRef = doc(firestore, 'users', loanToDelete.userId, 'loans', loanId);
         batch.delete(loanRef);
 
         await batch.commit();
@@ -221,7 +233,7 @@ export default function LoansPage() {
     setIsFormOpen(true);
   };
   
-  const isLoading = isUserLoading || isLoadingLoans || isLoadingBankAccounts || isLoadingCategories || isLoadingLoanPayments || isLoadingPayees;
+  const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">

@@ -22,12 +22,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Check, BankAccount, Payee, Category } from '@/lib/types';
+import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns-jalali';
+import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
@@ -50,9 +51,10 @@ interface CheckFormProps {
   bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
+  users: UserProfile[];
 }
 
-export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, categories }: CheckFormProps) {
+export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, categories, users }: CheckFormProps) {
   const form = useForm<CheckFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -97,6 +99,12 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
     };
     onSubmit(submissionData);
   }
+
+  const getOwnerName = (account: BankAccount) => {
+    if (account.isShared) return "(مشترک)";
+    const owner = users.find(u => u.id === account.userId);
+    return owner ? `(${owner.firstName})` : "(ناشناس)";
+  };
 
   const checkingAccounts = bankAccounts.filter(acc => acc.accountType === 'checking');
 
@@ -162,7 +170,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                         </FormControl>
                         <SelectContent>
                             {checkingAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>{account.bankName}</SelectItem>
+                            <SelectItem key={account.id} value={account.id}>{`${account.bankName} ${getOwnerName(account)}`}</SelectItem>
                             ))}
                         </SelectContent>
                         </Select>

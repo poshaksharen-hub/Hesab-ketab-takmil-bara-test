@@ -76,7 +76,7 @@ export function GoalList({ goals, onEdit, onDelete, onAchieve, onRevert }: GoalL
                             {isAchieved ? (
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon">
+                                        <Button variant="ghost" size="icon" aria-label="بازگردانی هدف">
                                             <RotateCcw className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>
@@ -96,14 +96,14 @@ export function GoalList({ goals, onEdit, onDelete, onAchieve, onRevert }: GoalL
                                     </AlertDialogContent>
                                 </AlertDialog>
                             ) : (
-                                <Button variant="ghost" size="icon" onClick={() => onEdit(goal)}>
+                                <Button variant="ghost" size="icon" onClick={() => onEdit(goal)} aria-label="ویرایش هدف">
                                     <Edit className="h-4 w-4" />
                                 </Button>
                             )}
 
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isAchieved}>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isAchieved} aria-label="حذف هدف">
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>

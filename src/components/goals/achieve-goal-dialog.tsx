@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -59,7 +58,10 @@ export function AchieveGoalDialog({
   onOpenChange,
   onSubmit,
 }: AchieveGoalDialogProps) {
-  const remainingAmount = useMemo(() => goal.targetAmount - goal.currentAmount, [goal]);
+  const remainingAmount = useMemo(() => {
+    const remaining = goal.targetAmount - goal.currentAmount;
+    return remaining < 0 ? 0 : remaining;
+  }, [goal]);
 
   const form = useForm<AchieveGoalFormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +70,15 @@ export function AchieveGoalDialog({
       categoryId: '',
     },
   });
+
+  React.useEffect(() => {
+    // Reset form when goal changes
+    form.reset({
+      paymentCardId: bankAccounts.find(acc => acc.id !== goal.savedFromBankAccountId)?.id || '',
+      categoryId: '',
+    });
+  }, [goal, bankAccounts, form]);
+
 
   function handleFormSubmit(data: AchieveGoalFormValues) {
     onSubmit({
@@ -105,7 +116,7 @@ export function AchieveGoalDialog({
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>پرداخت مابقی از کارت</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
@@ -114,7 +125,7 @@ export function AchieveGoalDialog({
                         <SelectContent>
                         {bankAccounts.filter(acc => acc.id !== goal.savedFromBankAccountId).map((account) => (
                             <SelectItem key={account.id} value={account.id}>
-                                {account.name} (موجودی: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
+                                {account.bankName} (موجودی: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
                             </SelectItem>
                         ))}
                         </SelectContent>
@@ -131,7 +142,7 @@ export function AchieveGoalDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>دسته‌بندی هزینه</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="یک دسته‌بندی برای این هزینه انتخاب کنید" />

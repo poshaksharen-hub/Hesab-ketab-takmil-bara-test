@@ -38,7 +38,8 @@ describe('Bank Cards (CRUD)', () => {
     cy.contains('ویرایش').click();
     
     cy.get('input[name="bankName"]').clear().type('بانک تست شخصی (ویرایش شده)');
-    cy.contains('ذخیره').click();
+    cy.get('input[name="accountType"]').parents('form').find('button[type="submit"]').contains('ذخیره').click();
+
 
     cy.contains('کارت بانکی با موفقیت ویرایش شد.').should('be.visible');
     cy.contains('بانک تست شخصی (ویرایش شده)').should('be.visible');

@@ -1,11 +1,10 @@
-
 'use client';
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
 import type { Check, BankAccount, Payee, Category } from '@/lib/types';
@@ -13,39 +12,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+
 
 export default function ChecksPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCheck, setEditingCheck] = React.useState<Check | null>(null);
-
-  const checksQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'checks') : null),
-    [firestore, user]
-  );
-  const { data: checks, isLoading: isLoadingChecks } = useCollection<Check>(checksQuery);
-
-  const bankAccountsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'bankAccounts') : null),
-    [firestore, user]
-  );
-  const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   
-  const payeesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'payees') : null),
-    [firestore, user]
-  );
-  const { data: payees, isLoading: isLoadingPayees } = useCollection<Payee>(payeesQuery);
-
-  const categoriesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
-    [firestore, user]
-  );
-  const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
-
+  const { checks, bankAccounts, payees, categories, users } = allData;
 
   const handleFormSubmit = async (values: Omit<Check, 'id' | 'userId'>) => {
     if (!user || !firestore) return;
@@ -90,24 +69,38 @@ export default function ChecksPage() {
 
   const handleClearCheck = async (check: Check) => {
     if (!user || !firestore || check.status === 'cleared') return;
-    const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
-    const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
+    
+    const checkRef = doc(firestore, 'users', check.userId, 'checks', check.id);
+    
+    const account = bankAccounts.find(acc => acc.id === check.bankAccountId);
+    if (!account) {
+        toast({ variant: 'destructive', title: "خطا", description: "حساب بانکی چک یافت نشد." });
+        return;
+    }
+    const isShared = !!account.isShared;
+    const ownerId = account.userId;
+    
+    const bankAccountRef = doc(firestore, isShared ? `shared/data/bankAccounts/${account.id}` : `users/${ownerId}/bankAccounts/${account.id}`);
 
     try {
       await runTransaction(firestore, async (transaction) => {
         const bankAccountDoc = await transaction.get(bankAccountRef);
-        if (!bankAccountDoc.exists() || bankAccountDoc.data().balance < check.amount) {
+        const availableBalance = bankAccountDoc.data()!.balance - (bankAccountDoc.data()!.blockedBalance || 0);
+
+        if (!bankAccountDoc.exists() || availableBalance < check.amount) {
           throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
         }
 
         transaction.update(checkRef, { status: 'cleared' });
-        const newBalance = bankAccountDoc.data().balance - check.amount;
+        const newBalance = bankAccountDoc.data()!.balance - check.amount;
         transaction.update(bankAccountRef, { balance: newBalance });
 
-        const expenseRef = doc(collection(firestore, 'users', user.uid, 'expenses'));
+        const expenseOwnerId = ownerId;
+        const expenseRef = doc(collection(firestore, 'users', expenseOwnerId, 'expenses'));
         transaction.set(expenseRef, {
             id: expenseRef.id,
-            userId: user.uid,
+            userId: expenseOwnerId,
+            registeredByUserId: user.uid,
             amount: check.amount,
             bankAccountId: check.bankAccountId,
             categoryId: check.categoryId,
@@ -115,6 +108,7 @@ export default function ChecksPage() {
             description: `پاس کردن چک به: ${payees?.find(p => p.id === check.payeeId)?.name || 'نامشخص'}`,
             type: 'expense',
             checkId: check.id,
+            createdAt: serverTimestamp(),
         });
       });
       toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
@@ -137,22 +131,27 @@ export default function ChecksPage() {
 
   const handleDelete = async (check: Check) => {
     if (!user || !firestore) return;
-    const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
+    const checkRef = doc(firestore, 'users', check.userId, 'checks', check.id);
     try {
         await runTransaction(firestore, async (transaction) => {
             if (check.status === 'cleared') {
-                const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
-                const bankAccountDoc = await transaction.get(bankAccountRef);
-                
-                if(bankAccountDoc.exists()){
-                    const newBalance = bankAccountDoc.data().balance + check.amount;
-                    transaction.update(bankAccountRef, { balance: newBalance });
+                const account = bankAccounts.find(acc => acc.id === check.bankAccountId);
+                 if (account) {
+                    const isShared = !!account.isShared;
+                    const ownerId = account.userId;
+                    const bankAccountRef = doc(firestore, isShared ? `shared/data/bankAccounts/${account.id}` : `users/${ownerId}/bankAccounts/${account.id}`);
+
+                    const bankAccountDoc = await transaction.get(bankAccountRef);
+                    if(bankAccountDoc.exists()){
+                        const currentBalance = bankAccountDoc.data().balance;
+                        transaction.update(bankAccountRef, { balance: currentBalance + check.amount });
+                    }
                 }
 
-                const expensesRef = collection(firestore, 'users', user.uid, 'expenses');
-                const q = query(expensesRef, where("checkId", "==", check.id));
-                const querySnapshot = await getDocs(q);
-                querySnapshot.forEach((doc) => {
+                // Delete the expense from the correct user's collection
+                const expenseToDeleteQuery = query(collection(firestore, 'users', account!.userId, 'expenses'), where("checkId", "==", check.id));
+                const expenseSnapshot = await getDocs(expenseToDeleteQuery);
+                expenseSnapshot.forEach((doc) => {
                     transaction.delete(doc.ref);
                 });
             }
@@ -196,7 +195,10 @@ export default function ChecksPage() {
     setIsFormOpen(true);
   };
   
-  const isLoading = isUserLoading || isLoadingChecks || isLoadingBankAccounts || isLoadingPayees || isLoadingCategories;
+  const isLoading = isUserLoading || isDashboardLoading;
+  
+  const userPayees = payees.filter(p => p.userId === user?.uid);
+  const userCategories = categories.filter(c => c.userId === user?.uid);
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -223,8 +225,9 @@ export default function ChecksPage() {
           onSubmit={handleFormSubmit}
           initialData={editingCheck}
           bankAccounts={bankAccounts || []}
-          payees={payees || []}
-          categories={categories || []}
+          payees={userPayees || []}
+          categories={userCategories || []}
+          users={users}
         />
       ) : (
         <CheckList
