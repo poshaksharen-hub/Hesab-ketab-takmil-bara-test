@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface CheckListProps {
   checks: Check[];
@@ -38,8 +39,8 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
   const getStatusBadge = (status: 'pending' | 'cleared', dueDate: string) => {
     const isOverdue = new Date(dueDate) < new Date() && status === 'pending';
     if (isOverdue) return <Badge variant="destructive">سررسید گذشته</Badge>;
-    if (status === 'pending') return <Badge variant="secondary">در انتظار</Badge>;
-    return <Badge className="bg-emerald-500 text-white">پاس شده</Badge>;
+    if (status === 'pending') return <Badge variant="secondary">در انتظار پاس</Badge>;
+    return <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">پاس شده</Badge>;
   };
   
   if (checks.length === 0) {
@@ -56,6 +57,7 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
   }
 
   return (
+    <TooltipProvider>
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">لیست چک‌ها</CardTitle>
@@ -73,8 +75,8 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
             </TableRow>
           </TableHeader>
           <TableBody>
-            {checks.map((check) => (
-              <TableRow key={check.id} className={cn(check.status === 'cleared' && 'text-muted-foreground')}>
+            {checks.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime()).map((check) => (
+              <TableRow key={check.id} className={cn(check.status === 'cleared' && 'text-muted-foreground opacity-70')}>
                 <TableCell className="font-medium">{getPayeeName(check.payeeId)}</TableCell>
                 <TableCell>{formatCurrency(check.amount, 'IRT')}</TableCell>
                 <TableCell className="hidden md:table-cell">{formatJalaliDate(new Date(check.dueDate))}</TableCell>
@@ -92,7 +94,7 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>آیا از پاس کردن این چک مطمئن هستید؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    مبلغ چک از حساب شما کسر و یک هزینه متناظر ثبت خواهد شد.
+                                    مبلغ چک از حساب شما کسر و یک هزینه متناظر ثبت خواهد شد. این عملیات غیرقابل بازگشت است.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -104,9 +106,20 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
                             </AlertDialogContent>
                         </AlertDialog>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(check)} disabled={check.status === 'cleared'}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Button variant="ghost" size="icon" onClick={() => onEdit(check)} disabled={check.status === 'cleared'}>
+                                  <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          {check.status === 'cleared' && (
+                            <TooltipContent>
+                              <p>چک پاس شده قابل ویرایش نیست.</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
@@ -117,7 +130,7 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، مبلغ آن به حساب شما بازگردانده خواهد شد.
+                                    این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، با حذف آن مبلغ به حساب شما بازگردانده شده و هزینه مرتبط نیز حذف خواهد شد.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -136,5 +149,6 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
         </Table>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }

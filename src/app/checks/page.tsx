@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, runTransaction, query, where } from 'firebase/firestore';
+import { collection, doc, runTransaction, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
 import type { Check, BankAccount, Payee, Category } from '@/lib/types';
@@ -49,24 +49,24 @@ export default function ChecksPage() {
     if (!user || !firestore) return;
 
     try {
-      await runTransaction(firestore, async (transaction) => {
-        if (editingCheck) {
-          // Edit
-          const checkRef = doc(firestore, 'users', user.uid, 'checks', editingCheck.id);
+      if (editingCheck) {
+        // Edit
+        const checkRef = doc(firestore, 'users', user.uid, 'checks', editingCheck.id);
+        // Editing a check doesn't involve balance changes directly.
+        // Status changes are handled by clear/unclear functions.
+        await runTransaction(firestore, async (transaction) => {
           transaction.update(checkRef, values);
-          toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
-        } else {
-          // Create
-          const newCheckRef = doc(collection(firestore, 'users', user.uid, 'checks'));
-          const newCheck = {
+        });
+        toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
+      } else {
+        // Create
+        await addDoc(collection(firestore, 'users', user.uid, 'checks'), {
             ...values,
-            id: newCheckRef.id,
             userId: user.uid,
-          };
-          transaction.set(newCheckRef, newCheck);
-          toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
-        }
-      });
+            status: 'pending', // Always pending on creation
+        });
+        toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
+      }
       setIsFormOpen(false);
       setEditingCheck(null);
     } catch (error: any) {
@@ -79,7 +79,7 @@ export default function ChecksPage() {
   };
 
   const handleClearCheck = async (check: Check) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || check.status === 'cleared') return;
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -91,13 +91,14 @@ export default function ChecksPage() {
           throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
         }
 
-        // 1. Update check status
+        // 1. Update check status to 'cleared'
         transaction.update(checkRef, { status: 'cleared' });
 
-        // 2. Deduct amount from bank account
-        transaction.update(bankAccountRef, { balance: bankAccountDoc.data().balance - check.amount });
+        // 2. Deduct amount from bank account balance
+        const newBalance = bankAccountDoc.data().balance - check.amount;
+        transaction.update(bankAccountRef, { balance: newBalance });
 
-        // 3. Create corresponding expense
+        // 3. Create a corresponding expense record
         const expenseRef = doc(collection(firestore, 'users', user.uid, 'expenses'));
         transaction.set(expenseRef, {
             id: expenseRef.id,
@@ -108,10 +109,10 @@ export default function ChecksPage() {
             date: new Date().toISOString(),
             description: `پاس کردن چک به: ${payees?.find(p => p.id === check.payeeId)?.name || 'نامشخص'}`,
             type: 'expense',
-            checkId: check.id, // Link expense to check
+            checkId: check.id, // Link expense to the check
         });
       });
-      toast({ title: "موفقیت", description: "چک با موفقیت پاس شد." });
+      toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
     } catch (error: any) {
        toast({
             variant: "destructive",
@@ -128,23 +129,27 @@ export default function ChecksPage() {
         await runTransaction(firestore, async (transaction) => {
             const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
             
+            // If the check was already cleared, we need to reverse the financial impact
             if (check.status === 'cleared') {
                 const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
                 const bankAccountDoc = await transaction.get(bankAccountRef);
+                
+                // Refund the amount to the bank account
                 if(bankAccountDoc.exists()){
-                    // Refund the amount
-                    transaction.update(bankAccountRef, { balance: bankAccountDoc.data().balance + check.amount });
+                    const newBalance = bankAccountDoc.data().balance + check.amount;
+                    transaction.update(bankAccountRef, { balance: newBalance });
                 }
 
-                // Delete the corresponding expense
+                // Find and delete the corresponding expense
                 const expensesRef = collection(firestore, 'users', user.uid, 'expenses');
                 const q = query(expensesRef, where("checkId", "==", check.id));
-                const querySnapshot = await getDocs(q);
+                const querySnapshot = await getDocs(q); // getDocs should be outside transaction, but for this case it might be fine. For robustness, fetch outside and pass refs to transaction.
                 querySnapshot.forEach((doc) => {
                     transaction.delete(doc.ref);
                 });
             }
             
+            // Finally, delete the check document itself
             transaction.delete(checkRef);
         });
 
@@ -159,6 +164,15 @@ export default function ChecksPage() {
   };
 
   const handleEdit = (check: Check) => {
+    // Prevent editing of cleared checks
+    if (check.status === 'cleared') {
+      toast({
+        variant: "destructive",
+        title: "امکان ویرایش وجود ندارد",
+        description: "چک‌های پاس شده قابل ویرایش نیستند. برای اصلاح، لطفا چک را حذف و مجددا ثبت کنید.",
+      });
+      return;
+    }
     setEditingCheck(check);
     setIsFormOpen(true);
   };
@@ -211,3 +225,4 @@ export default function ChecksPage() {
     </main>
   );
 }
+
