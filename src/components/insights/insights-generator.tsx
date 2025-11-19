@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useTransition } from 'react';
@@ -40,16 +41,16 @@ export function InsightsGenerator({ transactionHistory }: InsightsGeneratorProps
                 <BrainCircuit className="size-6 text-primary" />
             </div>
             <div>
-                <CardTitle className="font-headline">Analyze Your Finances</CardTitle>
+                <CardTitle className="font-headline">تحلیل وضعیت مالی</CardTitle>
                 <CardDescription>
-                    Click the button below to process your recent transactions and receive an AI-powered summary and recommendations.
+                    برای پردازش تراکنش‌های اخیر و دریافت خلاصه و پیشنهادهای هوش مصنوعی، روی دکمه زیر کلیک کنید.
                 </CardDescription>
             </div>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleGenerate} disabled={isPending}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            {isPending ? 'Analyzing...' : 'Generate Insights'}
+          <Button onClick={handleGenerate} disabled={isPending || transactionHistory === "[]"}>
+            <Sparkles className="ml-2 h-4 w-4" />
+            {isPending ? 'در حال تحلیل...' : 'شروع تحلیل'}
           </Button>
         </CardContent>
       </Card>
@@ -83,7 +84,7 @@ export function InsightsGenerator({ transactionHistory }: InsightsGeneratorProps
       {error && (
         <Alert variant="destructive">
             <Terminal className="h-4 w-4" />
-            <AlertTitle>An Error Occurred</AlertTitle>
+            <AlertTitle>خطا در پردازش</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -92,7 +93,7 @@ export function InsightsGenerator({ transactionHistory }: InsightsGeneratorProps
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline">Financial Summary</CardTitle>
+              <CardTitle className="font-headline">خلاصه وضعیت مالی</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="whitespace-pre-wrap text-sm leading-relaxed">{insights.summary}</p>
@@ -100,7 +101,7 @@ export function InsightsGenerator({ transactionHistory }: InsightsGeneratorProps
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline">Recommendations</CardTitle>
+              <CardTitle className="font-headline">پیشنهادها</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="whitespace-pre-wrap text-sm leading-relaxed">{insights.recommendations}</p>
