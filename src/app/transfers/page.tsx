@@ -7,6 +7,7 @@ import type { BankAccount, Transfer, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TransferForm } from '@/components/transfers/transfer-form';
+import { TransferList } from '@/components/transfers/transfer-list';
 
 export default function TransfersPage() {
   const { user, isUserLoading } = useUser();
@@ -17,6 +18,13 @@ export default function TransfersPage() {
   const [allUsers, setAllUsers] = React.useState<UserProfile[]>([]);
   const [isLoadingData, setIsLoadingData] = React.useState(true);
   
+  const transfersQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'transfers') : null),
+    [firestore, user]
+  );
+  const { data: transfers, isLoading: isLoadingTransfers } = useCollection<Transfer>(transfersQuery);
+
+
   React.useEffect(() => {
     if (!firestore || !user) return;
     
@@ -34,7 +42,7 @@ export default function TransfersPage() {
             });
         }
         
-        const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '!=', undefined));
+        const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true));
         const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
         const sharedAccounts = sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount);
 
@@ -123,7 +131,7 @@ export default function TransfersPage() {
     }
   };
 
-  const isLoading = isUserLoading || isLoadingData;
+  const isLoading = isUserLoading || isLoadingData || isLoadingTransfers;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -133,24 +141,37 @@ export default function TransfersPage() {
         </h1>
       </div>
       
-      <p className="text-muted-foreground">
-        از این بخش برای جابجایی پول بین حساب‌های خود استفاده کنید. این عملیات به عنوان درآمد یا هزینه در گزارش‌ها ثبت نمی‌شود.
-      </p>
-
-      {isLoading ? (
-        <div className="max-w-2xl mx-auto">
-          <Skeleton className="h-64 w-full" />
+      <div className="grid gap-8 lg:grid-cols-5">
+        <div className="lg:col-span-2">
+            <p className="text-muted-foreground mb-4">
+                از این بخش برای جابجایی پول بین حساب‌های خود استفاده کنید. این عملیات به عنوان درآمد یا هزینه در گزارش‌ها ثبت نمی‌شود.
+            </p>
+            {isLoading ? (
+                <Skeleton className="h-96 w-full" />
+            ) : (
+                <TransferForm
+                    bankAccounts={allBankAccounts}
+                    onSubmit={handleTransferSubmit}
+                    user={user}
+                    users={allUsers}
+                />
+            )}
         </div>
-      ) : (
-        <div className="max-w-2xl mx-auto">
-          <TransferForm
-            bankAccounts={allBankAccounts}
-            onSubmit={handleTransferSubmit}
-            user={user}
-            users={allUsers}
-          />
+        <div className="lg:col-span-3">
+            {isLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            ) : (
+                <TransferList 
+                    transfers={transfers || []}
+                    bankAccounts={allBankAccounts}
+                />
+            )}
         </div>
-      )}
+      </div>
     </main>
   );
 }
