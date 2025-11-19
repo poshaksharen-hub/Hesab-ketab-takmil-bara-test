@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -33,7 +32,7 @@ interface CheckListProps {
 }
 
 export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onClear }: CheckListProps) {
-  const getBankAccountName = (id: string) => bankAccounts.find(acc => acc.id === id)?.name || 'نامشخص';
+  const getBankAccountName = (id: string) => bankAccounts.find(acc => acc.id === id)?.bankName || 'نامشخص';
   const getPayeeName = (id: string) => payees.find(p => p.id === id)?.name || 'نامشخص';
 
   const getStatusBadge = (status: 'pending' | 'cleared', dueDate: string) => {

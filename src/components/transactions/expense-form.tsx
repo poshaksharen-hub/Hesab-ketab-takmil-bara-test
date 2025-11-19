@@ -185,7 +185,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                       <SelectContent>
                         {bankAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.name} ${getOwnerName(account)}`}
+                            {`${account.bankName} ${getOwnerName(account)}`}
                           </SelectItem>
                         ))}
                       </SelectContent>

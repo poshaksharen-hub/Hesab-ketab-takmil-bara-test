@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, MoreVertical, Wifi, Nfc } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, Wifi } from 'lucide-react';
 import type { BankAccount, UserProfile } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import {
@@ -52,6 +52,10 @@ const ChipIcon = () => (
     </svg>
 );
 
+const formatCardNumber = (cardNumber: string) => {
+    return cardNumber.replace(/(\d{4})/g, '$1 ').trim();
+};
+
 
 export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   const { user } = useUser();
@@ -81,7 +85,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
             <div key={card.id} className={cn("relative rounded-xl p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-all hover:scale-[1.02]", themeClasses[card.theme || 'blue'])}>
                 <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
                 <div className='relative z-10 flex justify-between items-start'>
-                    <span className="font-bold text-lg tracking-wider">{card.name}</span>
+                    <span className="font-bold text-lg tracking-wider">{card.bankName}</span>
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 hover:text-white">
@@ -119,20 +123,33 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                     </DropdownMenu>
                 </div>
                 
-                <div className="relative z-10 space-y-4">
+                <div className="relative z-10 space-y-2">
                     <div className="flex items-center justify-between">
                        <ChipIcon />
                        <Wifi className="h-8 w-8 -rotate-45" />
                     </div>
 
-                    <div className='text-left'>
-                        <p className="text-2xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace('تومان', '')}</p>
-                        <p className="text-sm opacity-80">موجودی کل</p>
+                    <p className="text-2xl font-mono tracking-widest font-bold text-center" dir="ltr">
+                        {formatCardNumber(card.cardNumber)}
+                    </p>
+
+                    <div className="flex justify-between items-end text-xs font-mono" dir="ltr">
+                        <div>
+                            <p className="opacity-70">CVV2</p>
+                            <p>{card.cvv2}</p>
+                        </div>
+                         <div>
+                            <p className="opacity-70">EXPIRES</p>
+                            <p>{card.expiryDate}</p>
+                        </div>
                     </div>
 
-                    <div className="flex justify-between items-end">
+                    <div className="flex justify-between items-end pt-2">
                         <span className="font-mono text-sm tracking-wider uppercase">{getOwnerName(card)}</span>
-                        <span className="font-bold text-lg">{card.isShared ? 'مشترک' : 'شخصی'}</span>
+                        <div className='text-left'>
+                            <p className="text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace('تومان', '')}</p>
+                            <p className="text-xs opacity-80">موجودی</p>
+                        </div>
                     </div>
                 </div>
             </div>

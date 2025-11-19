@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -99,6 +98,8 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
     onSubmit(submissionData);
   }
 
+  const checkingAccounts = bankAccounts.filter(acc => acc.accountType === 'checking');
+
   return (
       <Card>
         <CardHeader>
@@ -153,12 +154,12 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="یک حساب بانکی انتخاب کنید" />
+                          <SelectValue placeholder="یک حساب دارای دسته‌چک انتخاب کنید" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {bankAccounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
+                        {checkingAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>{account.bankName}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

@@ -47,7 +47,12 @@ export type Expense = {
 export type BankAccount = {
     id: string;
     userId: string;
-    name: string;
+    bankName: string;
+    accountNumber: string;
+    cardNumber: string;
+    expiryDate: string; // MM/YY
+    cvv2: string;
+    accountType: 'checking' | 'savings';
     balance: number;
     initialBalance: number;
     blockedBalance?: number;

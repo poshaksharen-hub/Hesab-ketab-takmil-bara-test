@@ -31,7 +31,7 @@ interface ExpenseListProps {
 }
 
 export function ExpenseList({ expenses, bankAccounts, categories, users, onEdit, onDelete }: ExpenseListProps) {
-  const getBankAccountName = (id: string) => bankAccounts.find(acc => acc.id === id)?.name || 'نامشخص';
+  const getBankAccountName = (id: string) => bankAccounts.find(acc => acc.id === id)?.bankName || 'نامشخص';
   const getCategoryName = (id: string) => categories.find(cat => cat.id === id)?.name || 'نامشخص';
   const getUserName = (userId: string) => users.find(u => u.id === userId)?.firstName || 'نامشخص';
 

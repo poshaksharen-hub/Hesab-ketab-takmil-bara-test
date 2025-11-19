@@ -30,7 +30,7 @@ interface IncomeListProps {
 export function IncomeList({ incomes, bankAccounts, users, onEdit, onDelete }: IncomeListProps) {
   const getBankAccountName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
-    return account ? account.name : 'نامشخص';
+    return account ? account.bankName : 'نامشخص';
   };
 
   const getUserName = (userId: string) => {

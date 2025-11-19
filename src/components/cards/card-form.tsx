@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,9 +29,15 @@ import type { BankAccount, UserProfile } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
 
+const expiryDateRegex = /^(0[1-9]|1[0-2])\/?([0-9]{2})$/;
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'نام کارت باید حداقل ۲ حرف داشته باشد.' }),
+  bankName: z.string().min(2, { message: 'نام بانک باید حداقل ۲ حرف داشته باشد.' }),
+  accountNumber: z.string().min(5, { message: 'شماره حساب معتبر نیست.' }),
+  cardNumber: z.string().regex(/^\d{16}$/, { message: 'شماره کارت باید ۱۶ رقم باشد.' }),
+  expiryDate: z.string().regex(expiryDateRegex, { message: 'تاریخ انقضا را با فرمت MM/YY وارد کنید.' }),
+  cvv2: z.string().min(3, { message: 'CVV2 حداقل ۳ رقم است.' }).max(4, { message: 'CVV2 حداکثر ۴ رقم است.' }),
+  accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
   owner: z.string().min(1, { message: 'لطفا صاحب حساب را مشخص کنید.'}),
   isShared: z.boolean().default(false),
@@ -53,7 +59,12 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
+      bankName: '',
+      accountNumber: '',
+      cardNumber: '',
+      expiryDate: '',
+      cvv2: '',
+      accountType: 'savings',
       initialBalance: 0,
       owner: 'me',
       isShared: false,
@@ -66,7 +77,12 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
   React.useEffect(() => {
     if (initialData) {
       form.reset({
-         name: initialData.name,
+         bankName: initialData.bankName,
+         accountNumber: initialData.accountNumber,
+         cardNumber: initialData.cardNumber,
+         expiryDate: initialData.expiryDate,
+         cvv2: initialData.cvv2,
+         accountType: initialData.accountType,
          initialBalance: initialData.initialBalance,
          owner: initialData.isShared ? 'shared' : (initialData.userId === user?.uid ? 'me' : 'other'),
          isShared: !!initialData.isShared,
@@ -74,7 +90,12 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         });
     } else {
       form.reset({
-        name: '',
+        bankName: '',
+        accountNumber: '',
+        cardNumber: '',
+        expiryDate: '',
+        cvv2: '',
+        accountType: 'savings',
         initialBalance: 0,
         owner: 'me',
         isShared: false,
@@ -99,12 +120,12 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)}>
             <CardContent className="space-y-6">
-              <FormField
+               <FormField
                 control={form.control}
-                name="name"
+                name="bankName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>نام کارت/بانک</FormLabel>
+                    <FormLabel>نام بانک</FormLabel>
                     <FormControl>
                       <Input placeholder="مثال: بانک ملی" {...field} />
                     </FormControl>
@@ -112,6 +133,60 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="accountNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>شماره حساب</FormLabel>
+                    <FormControl>
+                      <Input dir="ltr" placeholder="شماره حساب بانکی" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="cardNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>شماره کارت</FormLabel>
+                    <FormControl>
+                      <Input dir="ltr" maxLength={16} placeholder="---- ---- ---- ----" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="expiryDate"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>تاریخ انقضا</FormLabel>
+                        <FormControl>
+                          <Input dir="ltr" placeholder="MM/YY" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="cvv2"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>CVV2</FormLabel>
+                        <FormControl>
+                          <Input dir="ltr" placeholder="---" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="initialBalance"
@@ -122,6 +197,27 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                       <Input type="number" {...field} disabled={!!initialData} />
                     </FormControl>
                     {!initialData && <FormDescription>این مبلغ فقط یکبار در زمان ایجاد کارت ثبت می‌شود.</FormDescription>}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="accountType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>نوع حساب</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="نوع حساب را انتخاب کنید" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="savings">پس‌انداز / کوتاه مدت</SelectItem>
+                        <SelectItem value="checking">جاری / با دسته‌چک</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -218,7 +218,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                       <SelectContent>
                         {bankAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.name} ${getOwnerName(account)}`}
+                            {`${account.bankName} ${getOwnerName(account)}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
