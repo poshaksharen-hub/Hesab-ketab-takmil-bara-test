@@ -9,7 +9,10 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart';
-import { type Transaction } from '@/lib/types';
+import { type Income, type Expense, type Category } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -20,15 +23,26 @@ const CHART_COLORS = [
 ];
 
 type SpendingChartProps = {
-  transactions: Transaction[];
+  transactions: (Income | Expense)[];
 };
 
 export function SpendingChart({ transactions }: SpendingChartProps) {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const categoriesQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
+    [firestore, user]
+  );
+  const { data: categories } = useCollection<Category>(categoriesQuery);
+
   const chartData = React.useMemo(() => {
+    const getCategoryName = (id: string) => categories?.find(c => c.id === id)?.name || 'متفرقه';
+
     const expenseByCategory = transactions
-      .filter((t) => t.type === 'expense')
+      .filter((t): t is Expense => t.type === 'expense')
       .reduce((acc, t) => {
-        const categoryLabel = t.category;
+        const categoryLabel = getCategoryName(t.categoryId);
         acc[categoryLabel] = (acc[categoryLabel] || 0) + t.amount;
         return acc;
       }, {} as { [key: string]: number });
@@ -37,7 +51,7 @@ export function SpendingChart({ transactions }: SpendingChartProps) {
       name: category,
       value: total,
     }));
-  }, [transactions]);
+  }, [transactions, categories]);
   
   const chartConfig = React.useMemo(() => {
       const config: any = {};
@@ -53,7 +67,7 @@ export function SpendingChart({ transactions }: SpendingChartProps) {
   if (chartData.length === 0) {
     return (
       <div className="flex h-[350px] w-full items-center justify-center">
-        <p className="text-muted-foreground">No expense data available.</p>
+        <p className="text-muted-foreground">داده‌ای برای نمایش هزینه وجود ندارد.</p>
       </div>
     );
   }

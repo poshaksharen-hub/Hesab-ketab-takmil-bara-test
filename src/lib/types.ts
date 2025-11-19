@@ -18,7 +18,7 @@ export type Income = {
   amount: number;
   type: 'income';
   source: string;
-  category: string;
+  category: string; // This is 'درآمد' for all incomes
   userId: string;
   bankAccountId: string;
   createdAt: any;
