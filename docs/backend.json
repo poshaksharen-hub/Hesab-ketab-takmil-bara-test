@@ -1,0 +1,841 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Hesab Ketab application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName"
+      ]
+    },
+    "BankAccount": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BankAccount",
+      "type": "object",
+      "description": "Represents a bank account or card.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the bank account entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N BankAccount)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the bank account."
+        },
+        "balance": {
+          "type": "number",
+          "description": "Current balance of the bank account."
+        },
+        "initialBalance": {
+          "type": "number",
+          "description": "Initial balance of the bank account."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "balance",
+        "initialBalance"
+      ]
+    },
+    "Income": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Income",
+      "type": "object",
+      "description": "Represents an income transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the income entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Income)"
+        },
+        "bankAccountId": {
+          "type": "string",
+          "description": "Reference to BankAccount. (Relationship: BankAccount 1:N Income)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the income."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the income.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the income."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "bankAccountId",
+        "amount",
+        "date"
+      ]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents an expense transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the expense entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Expense)"
+        },
+        "bankAccountId": {
+          "type": "string",
+          "description": "Reference to BankAccount. (Relationship: BankAccount 1:N Expense)"
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Expense)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the expense.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the expense."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "bankAccountId",
+        "categoryId",
+        "amount",
+        "date"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category for expenses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the category entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Category)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the category."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name"
+      ]
+    },
+    "Payee": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payee",
+      "type": "object",
+      "description": "Represents a payee.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payee entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Payee)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the payee."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Phone number of the payee."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name"
+      ]
+    },
+    "Check": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Check",
+      "type": "object",
+      "description": "Represents a check.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the check entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Check)"
+        },
+        "bankAccountId": {
+          "type": "string",
+          "description": "Reference to BankAccount. (Relationship: BankAccount 1:N Check)"
+        },
+        "payeeId": {
+          "type": "string",
+          "description": "Reference to Payee. (Relationship: Payee 1:N Check)"
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Check)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the check."
+        },
+        "issueDate": {
+          "type": "string",
+          "description": "Issue date of the check.",
+          "format": "date-time"
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "Due date of the check.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the check (e.g., pending, cleared)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "bankAccountId",
+        "payeeId",
+        "categoryId",
+        "amount",
+        "issueDate",
+        "dueDate",
+        "status"
+      ]
+    },
+    "Loan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Loan",
+      "type": "object",
+      "description": "Represents a loan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the loan entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Loan)"
+        },
+        "bankAccountId": {
+          "type": "string",
+          "description": "Reference to BankAccount. (Relationship: BankAccount 1:N Loan)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Total amount of the loan."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "Interest rate of the loan."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date of the loan.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date of the loan.",
+          "format": "date-time"
+        },
+        "numberOfInstallments": {
+          "type": "number",
+          "description": "Total number of installments for the loan."
+        },
+        "paidInstallments": {
+          "type": "number",
+          "description": "Number of installments already paid."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "bankAccountId",
+        "amount",
+        "interestRate",
+        "startDate",
+        "endDate",
+        "numberOfInstallments",
+        "paidInstallments"
+      ]
+    },
+    "LoanPayment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LoanPayment",
+      "type": "object",
+      "description": "Represents a payment made towards a loan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the loan payment entity."
+        },
+        "loanId": {
+          "type": "string",
+          "description": "Reference to Loan. (Relationship: Loan 1:N LoanPayment)"
+        },
+        "bankAccountId": {
+          "type": "string",
+          "description": "Reference to BankAccount. (Relationship: BankAccount 1:N LoanPayment)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount paid towards the loan."
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "Date when the payment was made.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "loanId",
+        "bankAccountId",
+        "amount",
+        "paymentDate"
+      ]
+    },
+    "FinancialGoal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FinancialGoal",
+      "type": "object",
+      "description": "Represents a financial goal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the financial goal entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N FinancialGoal)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the financial goal."
+        },
+        "targetAmount": {
+          "type": "number",
+          "description": "Target amount for the financial goal."
+        },
+        "currentAmount": {
+          "type": "number",
+          "description": "Current amount saved towards the goal."
+        },
+        "targetDate": {
+          "type": "string",
+          "description": "Target date for achieving the goal.",
+          "format": "date-time"
+        },
+        "isAchieved": {
+          "type": "boolean",
+          "description": "Indicates if the goal has been achieved."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "targetAmount",
+        "currentAmount",
+        "targetDate",
+        "isAchieved"
+      ]
+    },
+    "Transfer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transfer",
+      "type": "object",
+      "description": "Represents a transfer between two bank accounts.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transfer entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Transfer)"
+        },
+        "fromBankAccountId": {
+          "type": "string",
+          "description": "Reference to BankAccount (Source). (Relationship: BankAccount 1:N Transfer)"
+        },
+        "toBankAccountId": {
+          "type": "string",
+          "description": "Reference to BankAccount (Destination). (Relationship: BankAccount 1:N Transfer)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount transferred."
+        },
+        "transferDate": {
+          "type": "string",
+          "description": "Date of the transfer.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the transfer."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "fromBankAccountId",
+        "toBankAccountId",
+        "amount",
+        "transferDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/bankAccounts/{bankAccountId}",
+        "definition": {
+          "entityName": "BankAccount",
+          "schema": {
+            "$ref": "#/backend/entities/BankAccount"
+          },
+          "description": "Stores bank account information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "bankAccountId",
+              "description": "The unique identifier for the bank account."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/incomes/{incomeId}",
+        "definition": {
+          "entityName": "Income",
+          "schema": {
+            "$ref": "#/backend/entities/Income"
+          },
+          "description": "Stores income transaction information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "incomeId",
+              "description": "The unique identifier for the income transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores expense transaction information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for the expense transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores expense categories for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "categoryId",
+              "description": "The unique identifier for the expense category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/payees/{payeeId}",
+        "definition": {
+          "entityName": "Payee",
+          "schema": {
+            "$ref": "#/backend/entities/Payee"
+          },
+          "description": "Stores payee information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "payeeId",
+              "description": "The unique identifier for the payee."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/checks/{checkId}",
+        "definition": {
+          "entityName": "Check",
+          "schema": {
+            "$ref": "#/backend/entities/Check"
+          },
+          "description": "Stores check information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "checkId",
+              "description": "The unique identifier for the check."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/loans/{loanId}",
+        "definition": {
+          "entityName": "Loan",
+          "schema": {
+            "$ref": "#/backend/entities/Loan"
+          },
+          "description": "Stores loan information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "loanId",
+              "description": "The unique identifier for the loan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/loanPayments/{loanPaymentId}",
+        "definition": {
+          "entityName": "LoanPayment",
+          "schema": {
+            "$ref": "#/backend/entities/LoanPayment"
+          },
+          "description": "Stores loan payment information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "loanPaymentId",
+              "description": "The unique identifier for the loan payment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/financialGoals/{financialGoalId}",
+        "definition": {
+          "entityName": "FinancialGoal",
+          "schema": {
+            "$ref": "#/backend/entities/FinancialGoal"
+          },
+          "description": "Stores financial goal information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "financialGoalId",
+              "description": "The unique identifier for the financial goal."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/transfers/{transferId}",
+        "definition": {
+          "entityName": "Transfer",
+          "schema": {
+            "$ref": "#/backend/entities/Transfer"
+          },
+          "description": "Stores transfer information for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "transferId",
+              "description": "The unique identifier for the transfer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/bankAccounts/{bankAccountId}",
+        "definition": {
+          "entityName": "BankAccount",
+          "schema": {
+            "$ref": "#/backend/entities/BankAccount"
+          },
+          "description": "Stores shared bank account information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "bankAccountId",
+              "description": "The unique identifier for the shared bank account."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/incomes/{incomeId}",
+        "definition": {
+          "entityName": "Income",
+          "schema": {
+            "$ref": "#/backend/entities/Income"
+          },
+          "description": "Stores shared income transaction information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "incomeId",
+              "description": "The unique identifier for the shared income transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores shared expense transaction information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for the shared expense transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores shared expense categories. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "categoryId",
+              "description": "The unique identifier for the shared expense category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/payees/{payeeId}",
+        "definition": {
+          "entityName": "Payee",
+          "schema": {
+            "$ref": "#/backend/entities/Payee"
+          },
+          "description": "Stores shared payee information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "payeeId",
+              "description": "The unique identifier for the shared payee."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/checks/{checkId}",
+        "definition": {
+          "entityName": "Check",
+          "schema": {
+            "$ref": "#/backend/entities/Check"
+          },
+          "description": "Stores shared check information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "checkId",
+              "description": "The unique identifier for the shared check."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/loans/{loanId}",
+        "definition": {
+          "entityName": "Loan",
+          "schema": {
+            "$ref": "#/backend/entities/Loan"
+          },
+          "description": "Stores shared loan information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "loanId",
+              "description": "The unique identifier for the shared loan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/loanPayments/{loanPaymentId}",
+        "definition": {
+          "entityName": "LoanPayment",
+          "schema": {
+            "$ref": "#/backend/entities/LoanPayment"
+          },
+          "description": "Stores shared loan payment information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "loanPaymentId",
+              "description": "The unique identifier for the shared loan payment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/financialGoals/{financialGoalId}",
+        "definition": {
+          "entityName": "FinancialGoal",
+          "schema": {
+            "$ref": "#/backend/entities/FinancialGoal"
+          },
+          "description": "Stores shared financial goal information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "financialGoalId",
+              "description": "The unique identifier for the shared financial goal."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shared/transfers/{transferId}",
+        "definition": {
+          "entityName": "Transfer",
+          "schema": {
+            "$ref": "#/backend/entities/Transfer"
+          },
+          "description": "Stores shared transfer information. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "transferId",
+              "description": "The unique identifier for the shared transfer."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure data isolation and secure access control for the 'Hesab Ketab' application, which is intended for collaborative financial management between two users (Ali and Fatemeh). The key principle is to avoid hierarchical authorization dependencies, allowing for atomic operations and simplified security rules.  \n\nEach user has their own dedicated set of collections for managing their financial data (bank accounts, incomes, expenses, categories, payees, checks, loans, loan payments, financial goals and transfers). This path-based ownership model ensures that users can only access their own data.  Since this application shares data between two users, a `shared` collection is introduced.  This is where data between Ali and Fatemeh will be stored. All documents stored in this collection will contain a `members` map that explicitly lists the UIDs of allowed users and their roles. This pattern provides Authorization Independence, eliminating the need for `get()` calls in security rules.\n\nAuthorization Independence is achieved through path-based ownership `/users/{userId}` and the membership map in `shared`.  For example, each document in `/shared/bankAccounts` will contain the `members` field that specifies which users have what level of access.\n\nThis structure effectively supports the required QAPs (Rules are not Filters) by enabling secure `list` operations.  For example, listing bank accounts under `/users/{userId}/bankAccounts` is secure because the rule simply checks if `request.auth.uid == userId`. Similarly, listing shared bank accounts is secure because the rule checks if `request.auth.uid` exists in the `members` map."
+  }
+}

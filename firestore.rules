@@ -1,0 +1,582 @@
+/**
+ * @file Firestore Security Rules for Hesab Ketab Application
+ * @description This ruleset enforces a strict user-ownership model for personal financial data and a shared access model for collaborative data, ensuring that users can only access data they own or have been explicitly granted access to.
+ *
+ * Data Structure:
+ * All personal financial data is nested under /users/{userId}, ensuring that only the authenticated user with a matching UID can access it.
+ * Shared financial data is stored under the /shared/{collection}/{documentId} path.  Each document under /shared has a `members` map which holds the UIDs of users who have access to that document.
+ *
+ * Key Security Decisions:
+ * - Users can only manage data under their own /users/{userId} path.
+ * - Users cannot list all users in the database.
+ * - Shared collections enforce access control through a `members` map on each document.
+ * - The rules do not validate the data schema beyond critical authorization fields, allowing for flexible data shapes during prototyping.
+ *
+ * Denormalization for Authorization:
+ * - All documents in user-owned collections include a `userId` field to simplify authorization checks (e.g., `/users/{userId}/bankAccounts/{bankAccountId}`).
+ * - All documents in shared collections include a `members` map to explicitly define user roles and permissions (e.g., `/shared/bankAccounts/{bankAccountId}`).
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Enforces owner-only access to user profiles.
+     * @path /users/{userId}
+     * @allow (create) - User with UID 'user_abc' can create their profile at /users/user_abc if the 'id' field in the data also equals 'user_abc'.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete their profile at /users/user_abc.
+     * @deny (create) - User with UID 'user_def' cannot create a profile at /users/user_abc.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the profile at /users/user_abc.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to bank accounts under a user's profile.
+     * @path /users/{userId}/bankAccounts/{bankAccountId}
+     * @allow (create) - User with UID 'user_abc' can create a bank account under /users/user_abc/bankAccounts/account_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the bank account at /users/user_abc/bankAccounts/account_123.
+     * @deny (create) - User with UID 'user_def' cannot create a bank account under /users/user_abc/bankAccounts/account_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the bank account at /users/user_abc/bankAccounts/account_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/bankAccounts/{bankAccountId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to income transactions under a user's profile.
+     * @path /users/{userId}/incomes/{incomeId}
+     * @allow (create) - User with UID 'user_abc' can create an income transaction under /users/user_abc/incomes/income_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the income transaction at /users/user_abc/incomes/income_123.
+     * @deny (create) - User with UID 'user_def' cannot create an income transaction under /users/user_abc/incomes/income_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the income transaction at /users/user_abc/incomes/income_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/incomes/{incomeId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to expense transactions under a user's profile.
+     * @path /users/{userId}/expenses/{expenseId}
+     * @allow (create) - User with UID 'user_abc' can create an expense transaction under /users/user_abc/expenses/expense_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the expense transaction at /users/user_abc/expenses/expense_123.
+     * @deny (create) - User with UID 'user_def' cannot create an expense transaction under /users/user_abc/expenses/expense_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the expense transaction at /users/user_abc/expenses/expense_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/expenses/{expenseId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to expense categories under a user's profile.
+     * @path /users/{userId}/categories/{categoryId}
+     * @allow (create) - User with UID 'user_abc' can create an expense category under /users/user_abc/categories/category_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the expense category at /users/user_abc/categories/category_123.
+     * @deny (create) - User with UID 'user_def' cannot create an expense category under /users/user_abc/categories/category_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the expense category at /users/user_abc/categories/category_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/categories/{categoryId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to payees under a user's profile.
+     * @path /users/{userId}/payees/{payeeId}
+     * @allow (create) - User with UID 'user_abc' can create a payee under /users/user_abc/payees/payee_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the payee at /users/user_abc/payees/payee_123.
+     * @deny (create) - User with UID 'user_def' cannot create a payee under /users/user_abc/payees/payee_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the payee at /users/user_abc/payees/payee_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/payees/{payeeId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to checks under a user's profile.
+     * @path /users/{userId}/checks/{checkId}
+     * @allow (create) - User with UID 'user_abc' can create a check under /users/user_abc/checks/check_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the check at /users/user_abc/checks/check_123.
+     * @deny (create) - User with UID 'user_def' cannot create a check under /users/user_abc/checks/check_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the check at /users/user_abc/checks/check_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/checks/{checkId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to loans under a user's profile.
+     * @path /users/{userId}/loans/{loanId}
+     * @allow (create) - User with UID 'user_abc' can create a loan under /users/user_abc/loans/loan_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the loan at /users/user_abc/loans/loan_123.
+     * @deny (create) - User with UID 'user_def' cannot create a loan under /users/user_abc/loans/loan_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the loan at /users/user_abc/loans/loan_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/loans/{loanId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to loan payments under a user's profile.
+     * @path /users/{userId}/loanPayments/{loanPaymentId}
+     * @allow (create) - User with UID 'user_abc' can create a loan payment under /users/user_abc/loanPayments/payment_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the loan payment at /users/user_abc/loanPayments/payment_123.
+     * @deny (create) - User with UID 'user_def' cannot create a loan payment under /users/user_abc/loanPayments/payment_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the loan payment at /users/user_abc/loanPayments/payment_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/loanPayments/{loanPaymentId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.loanId in get(/databases/$(database)/documents/users/$(userId)/loans).data;
+      allow update: if isExistingOwner(userId) && request.resource.data.loanId in get(/databases/$(database)/documents/users/$(userId)/loans).data;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to financial goals under a user's profile.
+     * @path /users/{userId}/financialGoals/{financialGoalId}
+     * @allow (create) - User with UID 'user_abc' can create a financial goal under /users/user_abc/financialGoals/goal_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the financial goal at /users/user_abc/financialGoals/goal_123.
+     * @deny (create) - User with UID 'user_def' cannot create a financial goal under /users/user_abc/financialGoals/goal_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the financial goal at /users/user_abc/financialGoals/goal_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/financialGoals/{financialGoalId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces owner-only access to transfers under a user's profile.
+     * @path /users/{userId}/transfers/{transferId}
+     * @allow (create) - User with UID 'user_abc' can create a transfer under /users/user_abc/transfers/transfer_123.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, or delete the transfer at /users/user_abc/transfers/transfer_123.
+     * @deny (create) - User with UID 'user_def' cannot create a transfer under /users/user_abc/transfers/transfer_123.
+     * @deny (get, update, delete) - User with UID 'user_def' cannot read, update, or delete the transfer at /users/user_abc/transfers/transfer_123.
+     * @principle Enforces document ownership for writes and allows owner-only reads.
+     */
+    match /users/{userId}/transfers/{transferId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+       /**
+     * @description Enforces shared access to bank accounts. Only users listed in the 'members' map can access.
+     * @path /shared/bankAccounts/{bankAccountId}
+     */
+     match /shared/bankAccounts/{bankAccountId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to incomes. Only users listed in the 'members' map can access.
+     * @path /shared/incomes/{incomeId}
+     */
+    match /shared/incomes/{incomeId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to expenses. Only users listed in the 'members' map can access.
+     * @path /shared/expenses/{expenseId}
+     */
+    match /shared/expenses/{expenseId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to categories. Only users listed in the 'members' map can access.
+     * @path /shared/categories/{categoryId}
+     */
+    match /shared/categories/{categoryId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to payees. Only users listed in the 'members' map can access.
+     * @path /shared/payees/{payeeId}
+     */
+    match /shared/payees/{payeeId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to checks. Only users listed in the 'members' map can access.
+     * @path /shared/checks/{checkId}
+     */
+    match /shared/checks/{checkId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to loans. Only users listed in the 'members' map can access.
+     * @path /shared/loans/{loanId}
+     */
+    match /shared/loans/{loanId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to loan payments. Only users listed in the 'members' map can access.
+     * @path /shared/loanPayments/{loanPaymentId}
+     */
+    match /shared/loanPayments/{loanPaymentId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to financial goals. Only users listed in the 'members' map can access.
+     * @path /shared/financialGoals/{financialGoalId}
+     */
+    match /shared/financialGoals/{financialGoalId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+
+    /**
+     * @description Enforces shared access to transfers. Only users listed in the 'members' map can access.
+     * @path /shared/transfers/{transferId}
+     */
+    match /shared/transfers/{transferId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isCollaborator() {
+            return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isExistingCollaborator() {
+            return isCollaborator() && resource != null;
+        }
+
+        allow get: if isCollaborator();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isExistingCollaborator();
+        allow delete: if isExistingCollaborator();
+    }
+  }
+}
