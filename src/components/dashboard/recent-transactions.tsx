@@ -1,6 +1,6 @@
 'use client';
 
-import { type Transaction, type Income, type Expense, type UserProfile, type Category } from '@/lib/types';
+import { type Income, type Expense, type UserProfile, type Category } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Briefcase, ShoppingCart } from 'lucide-react';
@@ -51,6 +51,7 @@ export function RecentTransactions({ transactions, categories, users }: RecentTr
         const categoryId = 'categoryId' in transaction ? transaction.categoryId : 'درآمد';
         const categoryName = getCategoryName(categoryId);
         const registeredById = 'registeredByUserId' in transaction ? transaction.registeredByUserId : transaction.userId;
+        const transactionDate = 'createdAt' in transaction ? transaction.createdAt : transaction.date;
         
         return (
           <div key={transaction.id} className="flex items-center">
@@ -61,7 +62,7 @@ export function RecentTransactions({ transactions, categories, users }: RecentTr
             </Avatar>
             <div className="ml-4 space-y-1">
               <p className="text-sm font-medium leading-none">{transaction.description}</p>
-              <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transaction.createdAt)}</span></p>
+              <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transactionDate)}</span></p>
             </div>
             <div
               className={`mr-auto font-medium ${

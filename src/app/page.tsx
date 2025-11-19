@@ -1,138 +1,144 @@
 'use client';
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RecentTransactions } from '@/components/dashboard/recent-transactions';
-import { DateRangeFilter, type DateRange } from '@/components/dashboard/date-range-filter';
-import { useFinancialSummary } from '@/hooks/use-financial-summary';
+import { DateRange } from 'react-day-picker';
+import { subDays } from 'date-fns';
+import { useDashboardData, OwnerFilter } from '@/hooks/use-financial-summary';
+import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
-import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
-import { AccountBalanceCards } from '@/components/dashboard/account-balance-cards';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { CategorySpending } from '@/components/dashboard/category-spending';
 import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
+import { USER_DETAILS } from '@/lib/constants';
+
+function DashboardSkeleton() {
+  return (
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <div className="flex items-center justify-between space-y-2">
+        <Skeleton className="h-8 w-48" />
+        <div className="flex gap-2">
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-10 w-72" />
+        </div>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28" />)}
+      </div>
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-10 w-72" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-64" />
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
 
 export default function DashboardPage() {
   const { isUserLoading } = useUser();
-  const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
-
-  const {
-    summary,
-    isLoading: isLoadingData,
-  } = useFinancialSummary({ dateRange });
-
-  const isLoading = isUserLoading || isLoadingData;
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 29),
+    to: new Date(),
+  });
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('all');
   
-  if (isLoading) {
-    return (
-      <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-        <div className="flex items-center justify-between space-y-2">
-           <Skeleton className="h-8 w-48" />
-           <Skeleton className="h-10 w-64" />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
-            <Card className="xl:col-span-4">
-                 <CardHeader>
-                    <Skeleton className="h-6 w-1/2" />
-                 </CardHeader>
-                 <CardContent>
-                    <Skeleton className="h-[350px]" />
-                 </CardContent>
-            </Card>
-            <Card className="xl:col-span-3">
-                <CardHeader>
-                     <Skeleton className="h-6 w-1/3" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                </CardContent>
-            </Card>
-        </div>
-      </main>
-    )
+  const { isLoading, getFilteredData, allData } = useDashboardData();
+
+  const { summary, details } = getFilteredData(date, ownerFilter);
+  
+  const effectiveLoading = isUserLoading || isLoading;
+
+  if (effectiveLoading) {
+    return <DashboardSkeleton />;
   }
   
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <h1 className="font-headline text-3xl font-bold tracking-tight">
-          داشبورد جامع مالی
+          مرکز تحلیل مالی
         </h1>
-        <DateRangeFilter value={dateRange} onChange={setDateRange} />
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row">
+            <Select value={ownerFilter} onValueChange={(value) => setOwnerFilter(value as OwnerFilter)}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="فیلتر مالکیت" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">همه</SelectItem>
+                    <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                    <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                    <SelectItem value="shared">مشترک</SelectItem>
+                </SelectContent>
+            </Select>
+            <CustomDateRangePicker date={date} setDate={setDate} />
+        </div>
       </div>
 
       {/* Overall Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <OverallSummary summary={summary} />
       </div>
 
-       {/* Account Balance Cards */}
-       <div className="grid gap-4 md:grid-cols-3">
-        <AccountBalanceCards 
-            aliBalance={summary.aliTotalBalance}
-            fatemehBalance={summary.fatemehTotalBalance}
-            sharedBalance={summary.sharedTotalBalance}
-        />
-      </div>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">نمای کلی</TabsTrigger>
+          <TabsTrigger value="transactions">تراکنش‌ها</TabsTrigger>
+          <TabsTrigger value="debts">بدهی‌ها (چک و وام)</TabsTrigger>
+          <TabsTrigger value="goals">اهداف</TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
-        <Card className="xl:col-span-4">
-          <CardHeader>
-            <CardTitle className="font-headline">روند درآمد و هزینه</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <IncomeExpenseChart 
-                income={summary.totalIncome}
-                expense={summary.totalExpense}
-            />
-          </CardContent>
-        </Card>
-        <Card className="xl:col-span-3">
-          <CardHeader>
-            <CardTitle className="font-headline">هزینه‌ها بر اساس دسته‌بندی</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <CategorySpending expenses={summary.expenses} categories={summary.categories}/>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
+              <Card className="xl:col-span-4">
+                <CardHeader>
+                  <CardTitle className="font-headline">هزینه‌ها بر اساس دسته‌بندی</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CategorySpending expenses={details.expenses} categories={allData.categories}/>
+                </CardContent>
+              </Card>
+              <Card className="xl:col-span-3">
+                <CardHeader>
+                  <CardTitle className="font-headline">موعدهای پیش رو</CardTitle>
+                </CardHeader>
+                <CardContent className="pl-2">
+                  <UpcomingDeadlines 
+                      checks={allData.checks} 
+                      loans={allData.loans}
+                      payees={allData.payees}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+        </TabsContent>
 
-       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
-        <Card className="xl:col-span-4">
-          <CardHeader>
-            <CardTitle className="font-headline">موعدهای پیش رو</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <UpcomingDeadlines 
-                checks={summary.checks} 
-                loans={summary.loans}
-                payees={summary.payees}
-            />
-          </CardContent>
-        </Card>
-        <Card className="xl:col-span-3">
-          <CardHeader>
-            <CardTitle className="font-headline">تراکنش‌های اخیر</CardTitle>
-          </CardHeader>
-          <CardContent>
-              <RecentTransactions 
-                transactions={summary.recentTransactions} 
-                categories={summary.categories} 
-                users={summary.users}
-            />
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="transactions" className="space-y-4">
+             <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">تراکنش‌های اخیر</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <RecentTransactions 
+                        transactions={details.transactions} 
+                        categories={allData.categories} 
+                        users={allData.users}
+                    />
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="debts" className="space-y-4">
+          <p>تحلیل چک‌ها و وام‌ها در اینجا نمایش داده خواهد شد.</p>
+        </TabsContent>
+        <TabsContent value="goals" className="space-y-4">
+           <p>تحلیل اهداف مالی در اینجا نمایش داده خواهد شد.</p>
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }

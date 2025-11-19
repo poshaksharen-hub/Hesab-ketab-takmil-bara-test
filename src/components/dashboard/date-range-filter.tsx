@@ -1,31 +1,62 @@
 'use client';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { type DateRange } from "@/hooks/use-financial-summary";
+import React from 'react';
+import { DateRange } from 'react-day-picker';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns-jalali';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
-interface DateRangeFilterProps {
-  value: DateRange;
-  onChange: (value: DateRange) => void;
+interface CustomDateRangePickerProps {
+  date: DateRange | undefined;
+  setDate: (date: DateRange | undefined) => void;
+  className?: string;
 }
 
-export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
+export function CustomDateRangePicker({
+  date,
+  setDate,
+  className,
+}: CustomDateRangePickerProps) {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="بازه زمانی را انتخاب کنید" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="thisMonth">این ماه</SelectItem>
-        <SelectItem value="lastMonth">ماه گذشته</SelectItem>
-        <SelectItem value="thisWeek">این هفته</SelectItem>
-        <SelectItem value="lastWeek">هفته گذشته</SelectItem>
-        <SelectItem value="thisYear">امسال</SelectItem>
-      </SelectContent>
-    </Select>
+    <div className={cn('grid gap-2', className)}>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            id="date"
+            variant={'outline'}
+            className={cn(
+              'w-[300px] justify-start text-right font-normal',
+              !date && 'text-muted-foreground'
+            )}
+          >
+            <CalendarIcon className="ml-2 h-4 w-4" />
+            {date?.from ? (
+              date.to ? (
+                <>
+                  {format(date.from, 'LLL dd, y')} -{' '}
+                  {format(date.to, 'LLL dd, y')}
+                </>
+              ) : (
+                format(date.from, 'LLL dd, y')
+              )
+            ) : (
+              <span>یک بازه زمانی انتخاب کنید</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            initialFocus
+            mode="range"
+            defaultMonth={date?.from}
+            selected={date}
+            onSelect={setDate}
+            numberOfMonths={2}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }

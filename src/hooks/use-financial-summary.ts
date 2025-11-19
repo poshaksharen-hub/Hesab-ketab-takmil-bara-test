@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import type {
   Income,
@@ -14,19 +14,10 @@ import type {
   Payee
 } from '@/lib/types';
 import { USER_DETAILS } from '@/lib/constants';
-import { getDateRange } from '@/lib/date-utils';
 
-export type DateRange = 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'thisYear';
+export type OwnerFilter = 'all' | 'ali' | 'fatemeh' | 'shared';
 
-interface FinancialSummaryProps {
-  dateRange: DateRange;
-}
-
-const aliEmailKey = 'ali';
-const fatemehEmailKey = 'fatemeh';
-
-
-export function useFinancialSummary({ dateRange }: FinancialSummaryProps) {
+export function useDashboardData() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
@@ -41,6 +32,9 @@ export function useFinancialSummary({ dateRange }: FinancialSummaryProps) {
   const [payees, setPayees] = useState<Payee[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
+  
+  const aliUser = useMemo(() => users.find(u => u.email.startsWith('ali')), [users]);
+  const fatemehUser = useMemo(() => users.find(u => u.email.startsWith('fatemeh')), [users]);
 
   useEffect(() => {
     if (!firestore || isUserLoading) return;
@@ -48,7 +42,6 @@ export function useFinancialSummary({ dateRange }: FinancialSummaryProps) {
     const fetchData = async () => {
       setIsLoading(true);
 
-      // Fetch users first to get their IDs
       const usersSnapshot = await getDocs(collection(firestore, 'users'));
       const userProfiles = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
       setUsers(userProfiles);
@@ -59,42 +52,39 @@ export function useFinancialSummary({ dateRange }: FinancialSummaryProps) {
         return;
       }
 
-      // Fetch all collections for all users
       const collectionsToFetch = [
         { name: 'incomes', setter: setIncomes },
         { name: 'expenses', setter: setExpenses },
-        { name: 'bankAccounts', setter: setBankAccounts, isPersonal: true },
         { name: 'categories', setter: setCategories },
         { name: 'checks', setter: setChecks },
         { name: 'financialGoals', setter: setGoals },
         { name: 'loans', setter: setLoans },
         { name: 'payees', setter: setPayees },
       ];
+      
+      const personalAccounts: BankAccount[] = [];
+      const personalAccountPromises = userIds.map(async (uid) => {
+        const snapshot = await getDocs(collection(firestore, 'users', uid, 'bankAccounts'));
+        snapshot.docs.forEach(doc => {
+            personalAccounts.push({ ...(doc.data() as Omit<BankAccount, 'id'>), id: doc.id, userId: uid });
+        });
+      });
 
-      const allPromises = collectionsToFetch.map(async (col) => {
+
+      const collectionPromises = collectionsToFetch.map(async (col) => {
         const userDocsPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, col.name)));
         const userDocsSnapshots = await Promise.all(userDocsPromises);
-        let items: any[] = [];
-        userDocsSnapshots.forEach((snapshot, index) => {
-            snapshot.docs.forEach(doc => {
-                const data = doc.data();
-                const item: any = { ...data, id: doc.id };
-                if (col.isPersonal) {
-                    item.userId = userIds[index];
-                }
-                items.push(item);
-            });
-        });
+        const items = userDocsSnapshots.flat().map(snapshot => snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as any))).flat();
         col.setter(items);
       });
 
-      // Fetch shared bank accounts
       const sharedAccountsPromise = getDocs(collection(firestore, 'shared/data/bankAccounts')).then(snapshot => {
-          const sharedItems = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isShared: true } as BankAccount));
-          setBankAccounts(prev => [...prev, ...sharedItems]);
+          return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isShared: true } as BankAccount));
       });
 
-      await Promise.all([...allPromises, sharedAccountsPromise]);
+      const [sharedAccounts, ..._] = await Promise.all([sharedAccountsPromise, ...collectionPromises, ...personalAccountPromises]);
+      
+      setBankAccounts([...personalAccounts, ...sharedAccounts]);
 
       setIsLoading(false);
     };
@@ -103,75 +93,92 @@ export function useFinancialSummary({ dateRange }: FinancialSummaryProps) {
 
   }, [firestore, isUserLoading]);
 
-  const summary = useMemo(() => {
-    const aliUser = users.find(u => u.email.startsWith(aliEmailKey));
-    const fatemehUser = users.find(u => u.email.startsWith(fatemehEmailKey));
-
-    const { from: fromDate, to: toDate } = getDateRange(dateRange);
-
-    const filterByDate = <T extends { date: string }>(items: T[]): T[] => {
-        return items.filter(item => {
-            const itemDate = new Date(item.date);
-            return itemDate >= fromDate && itemDate <= toDate;
-        });
-    };
+  const getFilteredData = (dateRange?: { from: Date, to: Date }, ownerFilter: OwnerFilter = 'all') => {
     
-    const filteredExpenses = filterByDate(expenses);
-    const filteredIncomes = filterByDate(incomes);
+    const aliId = aliUser?.id;
+    const fatemehId = fatemehUser?.id;
+    
+    const getOwnerId = (item: { userId?: string, bankAccountId?: string, isShared?: boolean }) => {
+        if ('isShared' in item && item.isShared) return 'shared';
+        if (item.userId) return item.userId;
+        if (item.bankAccountId) {
+            const account = bankAccounts.find(ba => ba.id === item.bankAccountId);
+            return account?.isShared ? 'shared' : account?.userId;
+        }
+        return undefined;
+    };
+
+    const ownerMatches = (item: any) => {
+      const ownerId = getOwnerId(item);
+      if (ownerFilter === 'all') return true;
+      if (ownerFilter === 'shared' && ownerId === 'shared') return true;
+      if (ownerFilter === 'ali' && ownerId === aliId) return true;
+      if (ownerFilter === 'fatemeh' && ownerId === fatemehId) return true;
+      return false;
+    };
+
+    const dateMatches = (dateStr: string) => {
+        if (!dateRange) return true;
+        const itemDate = new Date(dateStr);
+        return itemDate >= dateRange.from && itemDate <= dateRange.to;
+    };
+
+    const filteredIncomes = incomes.filter(i => dateMatches(i.date) && ownerMatches(i));
+    const filteredExpenses = expenses.filter(e => dateMatches(e.date) && ownerMatches(e));
+    const filteredGoals = goals.filter(g => ownerMatches(g));
+    const filteredChecks = checks.filter(c => ownerMatches(c));
+    const filteredLoans = loans.filter(l => ownerMatches(l));
+
 
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
     
-    const aliTotalBalance = bankAccounts
-        .filter(acc => !acc.isShared && acc.userId === aliUser?.id)
-        .reduce((sum, acc) => sum + acc.balance, 0);
-    
-    const fatemehTotalBalance = bankAccounts
-        .filter(acc => !acc.isShared && acc.userId === fatemehUser?.id)
+    const totalAssets = bankAccounts
+        .filter(ownerMatches)
         .reduce((sum, acc) => sum + acc.balance, 0);
 
-    const sharedTotalBalance = bankAccounts
-        .filter(acc => acc.isShared)
-        .reduce((sum, acc) => sum + acc.balance, 0);
-
-    const totalAssets = aliTotalBalance + fatemehTotalBalance + sharedTotalBalance;
-
-    const pendingChecksAmount = checks
+    const pendingChecksAmount = filteredChecks
         .filter(c => c.status === 'pending')
         .reduce((sum, c) => sum + c.amount, 0);
     
-    const remainingLoanAmount = loans.reduce((sum, l) => sum + l.remainingAmount, 0);
+    const remainingLoanAmount = filteredLoans.reduce((sum, l) => sum + l.remainingAmount, 0);
 
     const totalLiabilities = pendingChecksAmount + remainingLoanAmount;
 
     const netWorth = totalAssets - totalLiabilities;
     
-    const allTransactions = [...incomes, ...expenses].sort((a,b) => {
+    const allTransactions = [...incomes.filter(i => dateMatches(i.date)), ...expenses.filter(e => dateMatches(e.date))].sort((a,b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.date);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.date);
         return dateB.getTime() - dateA.getTime();
     });
 
     return {
-      totalIncome,
-      totalExpense,
-      netWorth,
-      totalAssets,
-      totalLiabilities,
-      aliTotalBalance,
-      fatemehTotalBalance,
-      sharedTotalBalance,
-      recentTransactions: allTransactions.slice(0, 5),
-      // Raw data for other components
-      expenses: filteredExpenses,
-      incomes: filteredIncomes,
-      checks,
-      loans,
-      payees,
-      categories,
-      users,
+      summary: {
+        totalIncome,
+        totalExpense,
+        netWorth,
+        totalAssets,
+        totalLiabilities,
+      },
+      details: {
+        incomes: filteredIncomes,
+        expenses: filteredExpenses,
+        checks: filteredChecks,
+        loans: filteredLoans,
+        goals: filteredGoals,
+        transactions: allTransactions,
+        payees,
+        categories,
+        users,
+        bankAccounts,
+      }
     };
-  }, [dateRange, users, incomes, expenses, bankAccounts, categories, checks, goals, loans, payees]);
+  };
 
-  return { summary, isLoading };
+  return { 
+    isLoading, 
+    getFilteredData, 
+    allData: { users, incomes, expenses, bankAccounts, categories, checks, goals, loans, payees }
+  };
 }
