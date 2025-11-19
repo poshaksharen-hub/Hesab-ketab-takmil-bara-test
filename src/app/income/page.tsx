@@ -9,10 +9,12 @@ import { IncomeList } from '@/components/income/income-list';
 import { IncomeForm } from '@/components/income/income-form';
 import type { Income, BankAccount } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function IncomePage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingIncome, setEditingIncome] = React.useState<Income | null>(null);
@@ -38,7 +40,9 @@ export default function IncomePage() {
   const allBankAccounts = React.useMemo(() => {
     const personal = bankAccounts || [];
     const shared = sharedBankAccounts?.filter(acc => 'members' in acc && user && (acc as any).members[user.uid]) || [];
-    return [...personal, ...shared.map(acc => ({...acc, isShared: true}))];
+    // Ensure shared accounts have a distinct ID for the UI
+    const mappedShared = shared.map(acc => ({...acc, id: `shared-${acc.id}`, isShared: true}));
+    return [...personal, ...mappedShared];
   }, [bankAccounts, sharedBankAccounts, user]);
 
 
@@ -49,6 +53,7 @@ export default function IncomePage() {
       await runTransaction(firestore, async (transaction) => {
         const targetCardRef = doc(firestore, values.bankAccountId.startsWith('shared-') ? `shared/bankAccounts/${values.bankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${values.bankAccountId}`);
         const targetCardDoc = await transaction.get(targetCardRef);
+        
         if (!targetCardDoc.exists()) {
           throw new Error("کارت بانکی مورد نظر یافت نشد.");
         }
@@ -71,6 +76,7 @@ export default function IncomePage() {
 
           // 3. به‌روزرسانی سند درآمد
           transaction.update(oldIncomeRef, { ...values, updatedAt: serverTimestamp() });
+          toast({ title: "موفقیت", description: "درآمد با موفقیت ویرایش شد." });
 
         } else {
           // --- حالت ثبت جدید ---
@@ -85,15 +91,20 @@ export default function IncomePage() {
             userId: user.uid,
             createdAt: serverTimestamp(),
           });
+          toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
         }
       });
       
       setEditingIncome(null);
       setIsFormOpen(false);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("خطا در ثبت تراکنش:", error);
-      // TODO: Show toast notification to user
+      toast({
+        variant: "destructive",
+        title: "خطا در ثبت درآمد",
+        description: error.message || "مشکلی در ثبت اطلاعات پیش آمد. لطفا دوباره تلاش کنید.",
+      });
     }
   };
 
@@ -111,14 +122,20 @@ export default function IncomePage() {
             const cardDoc = await transaction.get(cardRef);
             if (cardDoc.exists()) {
                 const cardData = cardDoc.data() as BankAccount;
+                // کسر مبلغ درآمد از موجودی هنگام حذف
                 transaction.update(cardRef, { balance: cardData.balance - incomeToDelete.amount });
             }
             
             transaction.delete(incomeRef);
         });
-    } catch (error) {
+        toast({ title: "موفقیت", description: "درآمد با موفقیت حذف شد." });
+    } catch (error: any) {
         console.error("خطا در حذف درآمد:", error);
-        // TODO: Show toast notification
+        toast({
+            variant: "destructive",
+            title: "خطا در حذف درآمد",
+            description: error.message || "مشکلی در حذف اطلاعات پیش آمد.",
+        });
     }
   };
 

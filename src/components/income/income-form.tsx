@@ -29,7 +29,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns-jalali';
 import type { User } from 'firebase/auth';
-
+import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
@@ -50,12 +50,6 @@ interface IncomeFormProps {
   user: User | null;
 }
 
-const incomeSources = [
-    { value: 'شغل مشترک', label: 'شغل مشترک' },
-    { value: 'علی', label: 'علی' },
-    { value: 'فاطمه', label: 'فاطمه' },
-];
-
 export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user }: IncomeFormProps) {
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(formSchema),
@@ -70,21 +64,32 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         },
   });
 
+  const ownerIsAli = user?.email?.startsWith('ali');
+  const incomeSources = [
+      { value: 'شغل مشترک', label: 'شغل مشترک' },
+      { value: ownerIsAli ? 'علی' : 'فاطمه', label: ownerIsAli ? 'علی' : 'فاطمه' },
+      { value: ownerIsAli ? 'فاطمه' : 'علی', label: ownerIsAli ? 'فاطمه' : 'علی' },
+  ];
+
   const sourceValue = form.watch('source');
+  const aliUid = user?.uid; // Assuming the logged-in user is one of them.
+  // This is a simplification. In a real app, you'd fetch the other user's UID.
+  const fatemehUid = user?.email === 'ali@khanevadati.app' ? 'fatemeh_uid_placeholder' : user?.uid;
+
 
   const filteredBankAccounts = React.useMemo(() => {
     if (sourceValue === 'شغل مشترک') {
       return bankAccounts.filter(acc => acc.isShared);
     }
-    if (sourceValue === 'علی') {
-        // Assuming Ali's data doesn't have a specific owner flag, we filter by what's NOT fatemeh's
-        return bankAccounts.filter(acc => acc.userId !== 'fatemeh_uid_placeholder' && !acc.isShared);
+    const currentUserKey = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+    if (sourceValue === USER_DETAILS.ali.firstName) {
+        return bankAccounts.filter(acc => acc.userId === user?.uid && !acc.isShared);
     }
-    if (sourceValue === 'فاطمه') {
-        return bankAccounts.filter(acc => acc.userId === 'fatemeh_uid_placeholder' && !acc.isShared);
+    if (sourceValue === USER_DETAILS.fatemeh.firstName) {
+        return bankAccounts.filter(acc => acc.userId !== user?.uid && !acc.isShared);
     }
-    return bankAccounts;
-  }, [sourceValue, bankAccounts]);
+    return bankAccounts.filter(acc => !acc.isShared);
+  }, [sourceValue, bankAccounts, user]);
 
   React.useEffect(() => {
     if (initialData) {
@@ -101,11 +106,18 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   }, [initialData, form]);
 
   React.useEffect(() => {
+    // Auto-select shared wallet if source is "شغل مشترک"
     if (sourceValue === 'شغل مشترک') {
       const sharedWallet = bankAccounts.find(acc => acc.isShared);
       if (sharedWallet) {
-        form.setValue('bankAccountId', `shared-${sharedWallet.id}`);
+        form.setValue('bankAccountId', sharedWallet.id);
       }
+    } else {
+       // Clear bankAccountId if it's a shared one and source changes
+       const currentBankAccountId = form.getValues('bankAccountId');
+       if (currentBankAccountId.startsWith('shared-')) {
+           form.setValue('bankAccountId', '');
+       }
     }
   }, [sourceValue, bankAccounts, form]);
 
@@ -113,7 +125,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
-        // These fields are not part of the schema but needed for the parent
         type: 'income' as 'income',
         category: 'درآمد',
     };
@@ -200,7 +211,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>منبع درآمد</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="یک منبع انتخاب کنید" />
@@ -234,7 +245,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                       </FormControl>
                       <SelectContent>
                         {filteredBankAccounts.map((account) => (
-                          <SelectItem key={account.id} value={account.isShared ? `shared-${account.id}` : account.id}>
+                          <SelectItem key={account.id} value={account.id}>
                             {account.name}
                           </SelectItem>
                         ))}

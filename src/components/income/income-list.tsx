@@ -28,7 +28,8 @@ interface IncomeListProps {
 
 export function IncomeList({ incomes, bankAccounts, onEdit, onDelete }: IncomeListProps) {
   const getBankAccountName = (id: string) => {
-    const account = bankAccounts.find(acc => acc.id === id.replace('shared-','') );
+    // Handle both regular and shared IDs (`shared-someId`)
+    const account = bankAccounts.find(acc => acc.id === id);
     return account ? account.name : 'نامشخص';
   };
   
@@ -67,12 +68,12 @@ export function IncomeList({ incomes, bankAccounts, onEdit, onDelete }: IncomeLi
             {incomes.map((income) => (
               <TableRow key={income.id}>
                 <TableCell className="font-medium">{income.description}</TableCell>
-                <TableCell className='text-emerald-500 dark:text-emerald-400'>{formatCurrency(income.amount, 'IRT')}</TableCell>
+                <TableCell className='text-emerald-500 dark:text-emerald-400 font-semibold'>{formatCurrency(income.amount, 'IRT')}</TableCell>
                 <TableCell className="hidden md:table-cell">{formatJalaliDate(new Date(income.date))}</TableCell>
                 <TableCell className="hidden md:table-cell">{getBankAccountName(income.bankAccountId)}</TableCell>
                 <TableCell className="hidden sm:table-cell">{income.source}</TableCell>
                 <TableCell className="text-left">
-                    <div className='flex gap-2'>
+                    <div className='flex gap-2 justify-end'>
                         <Button variant="ghost" size="icon" onClick={() => onEdit(income)}>
                             <Edit className="h-4 w-4" />
                         </Button>
@@ -86,7 +87,7 @@ export function IncomeList({ incomes, bankAccounts, onEdit, onDelete }: IncomeLi
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>آیا از حذف این درآمد مطمئن هستید؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    این عمل قابل بازگشت نیست. این درآمد برای همیشه حذف خواهد شد و موجودی حساب شما متناسب با آن به‌روزرسانی می‌شود.
+                                    این عمل قابل بازگشت نیست. با حذف این درآمد، مبلغ آن از موجودی حساب شما کسر خواهد شد.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
