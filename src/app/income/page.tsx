@@ -47,9 +47,9 @@ export default function IncomePage() {
       const incomes = incomeSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Income))).flat();
       const personalBankAccounts = bankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
 
-      const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true));
-      const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
-      const sharedBankAccounts = sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount);
+      const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
+      const sharedAccountsSnapshot = sharedAccountsQuery ? await getDocs(sharedAccountsQuery) : null;
+      const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount) : [];
 
       setAllIncomes(incomes);
       setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);

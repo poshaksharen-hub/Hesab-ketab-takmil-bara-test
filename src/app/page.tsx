@@ -32,7 +32,7 @@ export default function DashboardPage() {
     const expensePromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'expenses')));
     const bankAccountPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'bankAccounts')));
     const categoryPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'categories')));
-    const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '!=', undefined));
+    const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '!=', undefined)) : null;
 
     const [
       incomeSnapshots,
@@ -45,14 +45,14 @@ export default function DashboardPage() {
       Promise.all(expensePromises),
       Promise.all(bankAccountPromises),
       Promise.all(categoryPromises),
-      getDocs(sharedAccountsQuery),
+      sharedAccountsQuery ? getDocs(sharedAccountsQuery) : Promise.resolve(null),
     ]);
 
     const incomes = incomeSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Income))).flat();
     const expenses = expenseSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Expense))).flat();
     const personalBankAccounts = bankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
     const categories = categorySnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id } as Category))).flat();
-    const sharedBankAccounts = sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount);
+    const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount) : [];
 
     setAllIncomes(incomes);
     setAllExpenses(expenses);
@@ -87,7 +87,7 @@ export default function DashboardPage() {
         onSnapshot(collection(firestore, 'users', uid, 'categories'), fetchData),
       ]);
       
-      const sharedSub = onSnapshot(query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user?.uid}`, '!=', undefined)), fetchData);
+      const sharedSub = user.uid ? onSnapshot(query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user?.uid}`, '!=', undefined)), fetchData) : () => {};
       unsubscribes.push(sharedSub);
 
       return () => unsubscribes.forEach(unsub => unsub());

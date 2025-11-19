@@ -41,7 +41,7 @@ export default function CardsPage() {
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   
   const sharedBankAccountsQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '!=', undefined)) : null),
+    () => (user?.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '!=', undefined)) : null),
     [firestore, user]
   );
   const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
