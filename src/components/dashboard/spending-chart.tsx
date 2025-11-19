@@ -24,23 +24,16 @@ const CHART_COLORS = [
 
 type SpendingChartProps = {
   transactions: (Income | Expense)[];
+  categories: Category[];
 };
 
-export function SpendingChart({ transactions }: SpendingChartProps) {
-  const { user } = useUser();
-  const firestore = useFirestore();
-
-  const categoriesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
-    [firestore, user]
-  );
-  const { data: categories } = useCollection<Category>(categoriesQuery);
-
+export function SpendingChart({ transactions, categories }: SpendingChartProps) {
+  
   const chartData = React.useMemo(() => {
     const getCategoryName = (id: string) => categories?.find(c => c.id === id)?.name || 'متفرقه';
 
     const expenseByCategory = transactions
-      .filter((t): t is Expense => t.type === 'expense')
+      .filter((t): t is Expense => 'categoryId' in t)
       .reduce((acc, t) => {
         const categoryLabel = getCategoryName(t.categoryId);
         acc[categoryLabel] = (acc[categoryLabel] || 0) + t.amount;

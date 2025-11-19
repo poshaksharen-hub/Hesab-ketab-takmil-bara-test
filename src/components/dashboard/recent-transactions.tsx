@@ -1,29 +1,19 @@
 'use client';
 
-import { type Transaction, type Income, type Expense } from '@/lib/types';
+import { type Transaction, type Income, type Expense, type UserProfile, type Category } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { Category } from '@/lib/types';
 import { Briefcase, ShoppingCart } from 'lucide-react';
 
 
 type RecentTransactionsProps = {
   transactions: (Income | Expense)[];
+  categories: Category[];
+  users: UserProfile[];
 };
 
-export function RecentTransactions({ transactions }: RecentTransactionsProps) {
-    const { user } = useUser();
-    const firestore = useFirestore();
-
-    const categoriesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
-    [firestore, user]
-    );
-    const { data: categories } = useCollection<Category>(categoriesQuery);
-
-
+export function RecentTransactions({ transactions, categories, users }: RecentTransactionsProps) {
+    
   if (!transactions || transactions.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -32,17 +22,25 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
     );
   }
 
-  const getCategoryName = (id: string) => {
+  const getCategoryName = (id?: string) => {
+    if (!id) return 'متفرقه';
     if (id === 'درآمد') return 'درآمد';
     return categories?.find(c => c.id === id)?.name || 'متفرقه';
+  }
+
+  const getRegisteredByUserName = (id: string) => {
+      const user = users.find(u => u.id === id);
+      return user ? user.firstName : 'نامشخص';
   }
 
 
   return (
     <div className="space-y-4">
       {transactions.map((transaction) => {
-        const isIncome = transaction.type === 'income';
-        const categoryName = getCategoryName(transaction.category);
+        const isIncome = 'source' in transaction;
+        const categoryId = 'categoryId' in transaction ? transaction.categoryId : 'درآمد';
+        const categoryName = getCategoryName(categoryId);
+        const registeredById = 'registeredByUserId' in transaction ? transaction.registeredByUserId : transaction.userId;
         
         return (
           <div key={transaction.id} className="flex items-center">
@@ -53,7 +51,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             </Avatar>
             <div className="ml-4 space-y-1">
               <p className="text-sm font-medium leading-none">{transaction.description}</p>
-              <p className="text-sm text-muted-foreground">{categoryName}</p>
+              <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)})</p>
             </div>
             <div
               className={`mr-auto font-medium ${

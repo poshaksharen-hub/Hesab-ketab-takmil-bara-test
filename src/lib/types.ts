@@ -20,6 +20,7 @@ export type Income = {
   source: string;
   category: string; // This is 'درآمد' for all incomes
   userId: string;
+  registeredByUserId: string;
   bankAccountId: string;
   createdAt: any;
   updatedAt?: any;
@@ -28,6 +29,7 @@ export type Income = {
 export type Expense = {
   id: string;
   userId: string;
+  registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;
   amount: number;

@@ -6,9 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { OverviewCards } from '@/components/dashboard/overview-cards';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { SpendingChart } from '@/components/dashboard/spending-chart';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
-import type { Income, Expense, BankAccount } from '@/lib/types';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, query, onSnapshot, getDocs, where } from 'firebase/firestore';
+import type { Income, Expense, BankAccount, UserProfile, Category } from '@/lib/types';
 import React from 'react';
 import { startOfMonth, endOfMonth } from 'date-fns';
 
@@ -19,30 +19,61 @@ export default function DashboardPage() {
   const [allIncomes, setAllIncomes] = useState<Income[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [allBankAccounts, setAllBankAccounts] = useState<BankAccount[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
     if (!user || !firestore) return;
     
-    const fetchData = async () => {
-      setIsLoadingData(true);
+    setIsLoadingData(true);
 
-      const usersSnapshot = await getDocs(collection(firestore, 'users'));
-      const userIds = usersSnapshot.docs.map(doc => doc.id);
+    const unsubscribes: (() => void)[] = [];
 
+    // 1. Fetch static user data once
+    getDocs(collection(firestore, 'users')).then(usersSnapshot => {
+      const userProfiles = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
+      const userIds = userProfiles.map(u => u.id);
+      setAllUsers(userProfiles);
+
+      // 2. Set up real-time listeners for all users' data
+      const incomeSub = onSnapshot(query(collection(firestore, 'users', userIds[0], 'incomes')), () => fetchData(userIds, userProfiles));
+      const incomeSub2 = onSnapshot(query(collection(firestore, 'users', userIds[1], 'incomes')), () => fetchData(userIds, userProfiles));
+      
+      const expenseSub = onSnapshot(query(collection(firestore, 'users', userIds[0], 'expenses')), () => fetchData(userIds, userProfiles));
+      const expenseSub2 = onSnapshot(query(collection(firestore, 'users', userIds[1], 'expenses')), () => fetchData(userIds, userProfiles));
+
+      const bankSub = onSnapshot(query(collection(firestore, 'users', userIds[0], 'bankAccounts')), () => fetchData(userIds, userProfiles));
+      const bankSub2 = onSnapshot(query(collection(firestore, 'users', userIds[1], 'bankAccounts')), () => fetchData(userIds, userProfiles));
+      
+      const catSub = onSnapshot(query(collection(firestore, 'users', userIds[0], 'categories')), () => fetchData(userIds, userProfiles));
+      const catSub2 = onSnapshot(query(collection(firestore, 'users', userIds[1], 'categories')), () => fetchData(userIds, userProfiles));
+
+      const sharedSub = onSnapshot(query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)), () => fetchData(userIds, userProfiles));
+      
+      unsubscribes.push(incomeSub, incomeSub2, expenseSub, expenseSub2, bankSub, bankSub2, catSub, catSub2, sharedSub);
+      
+      // 3. Initial data fetch
+      fetchData(userIds, userProfiles);
+    });
+
+    const fetchData = async (userIds: string[], userProfiles: UserProfile[]) => {
       const incomePromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'incomes')));
       const expensePromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'expenses')));
       const bankAccountPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'bankAccounts')));
+      const categoryPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'categories')));
       
-      const [incomeSnapshots, expenseSnapshots, bankAccountSnapshots] = await Promise.all([
+      const [incomeSnapshots, expenseSnapshots, bankAccountSnapshots, categorySnapshots] = await Promise.all([
         Promise.all(incomePromises),
         Promise.all(expensePromises),
-        Promise.all(bankAccountPromises)
+        Promise.all(bankAccountPromises),
+        Promise.all(categoryPromises),
       ]);
 
       const incomes = incomeSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Income))).flat();
       const expenses = expenseSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Expense))).flat();
-      const bankAccounts = bankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
+      const personalBankAccounts = bankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
+      const categories = categorySnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id } as Category))).flat();
 
       const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true));
       const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
@@ -50,25 +81,11 @@ export default function DashboardPage() {
 
       setAllIncomes(incomes);
       setAllExpenses(expenses);
-      setAllBankAccounts([...bankAccounts, ...sharedBankAccounts]);
+      setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);
+      setAllCategories(categories);
+      setAllUsers(userProfiles);
       setIsLoadingData(false);
     };
-
-    fetchData();
-
-    // Set up listeners for real-time updates
-    const unsubscribes = [
-      ...userIds.map(uid => onSnapshot(collection(firestore, 'users', uid, 'incomes'), () => fetchData())),
-      ...userIds.map(uid => onSnapshot(collection(firestore, 'users', uid, 'expenses'), () => fetchData())),
-      ...userIds.map(uid => onSnapshot(collection(firestore, 'users', uid, 'bankAccounts'), () => fetchData())),
-      onSnapshot(query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)), () => fetchData())
-    ];
-    
-    // We need userIds to setup the listeners, so we fetch it once
-    let userIds: string[] = [];
-    getDocs(collection(firestore, 'users')).then(snap => {
-        userIds = snap.docs.map(d => d.id);
-    });
 
     return () => unsubscribes.forEach(unsub => unsub());
 
@@ -168,7 +185,7 @@ export default function DashboardPage() {
             <CardTitle className="font-headline">هزینه بر اساس دسته‌بندی</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-              <SpendingChart transactions={allTransactions} />
+              <SpendingChart transactions={allTransactions} categories={allCategories} />
           </CardContent>
         </Card>
         <Card className="xl:col-span-3">
@@ -176,7 +193,7 @@ export default function DashboardPage() {
             <CardTitle className="font-headline">تراکنش‌های اخیر</CardTitle>
           </CardHeader>
           <CardContent>
-              <RecentTransactions transactions={recentTransactions} />
+              <RecentTransactions transactions={recentTransactions} categories={allCategories} users={allUsers} />
           </CardContent>
         </Card>
       </div>

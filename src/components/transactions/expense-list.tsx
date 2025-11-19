@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { Expense, BankAccount, Category } from '@/lib/types';
+import type { Expense, BankAccount, Category, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import {
   AlertDialog,
@@ -25,13 +25,16 @@ interface ExpenseListProps {
   expenses: Expense[];
   bankAccounts: BankAccount[];
   categories: Category[];
+  users: UserProfile[];
   onEdit: (expense: Expense) => void;
   onDelete: (expense: Expense) => void;
 }
 
-export function ExpenseList({ expenses, bankAccounts, categories, onEdit, onDelete }: ExpenseListProps) {
+export function ExpenseList({ expenses, bankAccounts, categories, users, onEdit, onDelete }: ExpenseListProps) {
   const getBankAccountName = (id: string) => bankAccounts.find(acc => acc.id === id)?.name || 'نامشخص';
   const getCategoryName = (id: string) => categories.find(cat => cat.id === id)?.name || 'نامشخص';
+  const getUserName = (userId: string) => users.find(u => u.id === userId)?.firstName || 'نامشخص';
+
 
   if (expenses.length === 0) {
     return (
@@ -61,7 +64,7 @@ export function ExpenseList({ expenses, bankAccounts, categories, onEdit, onDele
               <TableHead>مبلغ</TableHead>
               <TableHead className="hidden md:table-cell">تاریخ</TableHead>
               <TableHead className="hidden sm:table-cell">دسته‌بندی</TableHead>
-              <TableHead className="hidden md:table-cell">برداشت از</TableHead>
+              <TableHead className="hidden md:table-cell">ثبت توسط</TableHead>
               <TableHead className="text-left">عملیات</TableHead>
             </TableRow>
           </TableHeader>
@@ -74,7 +77,7 @@ export function ExpenseList({ expenses, bankAccounts, categories, onEdit, onDele
                 <TableCell className="hidden sm:table-cell">
                     <Badge variant="outline">{getCategoryName(expense.categoryId)}</Badge>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">{getBankAccountName(expense.bankAccountId)}</TableCell>
+                <TableCell className="hidden md:table-cell">{getUserName(expense.registeredByUserId)}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex gap-2 justify-end'>
                         <Tooltip>

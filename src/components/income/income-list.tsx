@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
-import type { Income, BankAccount } from '@/lib/types';
+import type { Income, BankAccount, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import {
   AlertDialog,
@@ -22,16 +22,21 @@ import {
 interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
+  users: UserProfile[];
   onEdit: (income: Income) => void;
-  onDelete: (incomeId: string) => void;
+  onDelete: (income: Income) => void;
 }
 
-export function IncomeList({ incomes, bankAccounts, onEdit, onDelete }: IncomeListProps) {
+export function IncomeList({ incomes, bankAccounts, users, onEdit, onDelete }: IncomeListProps) {
   const getBankAccountName = (id: string) => {
-    // Handle both regular and shared IDs (`shared-someId`)
     const account = bankAccounts.find(acc => acc.id === id);
     return account ? account.name : 'نامشخص';
   };
+
+  const getUserName = (userId: string) => {
+      const user = users.find(u => u.id === userId);
+      return user ? user.firstName : 'نامشخص';
+  }
   
   if (incomes.length === 0) {
     return (
@@ -60,18 +65,18 @@ export function IncomeList({ incomes, bankAccounts, onEdit, onDelete }: IncomeLi
               <TableHead>مبلغ</TableHead>
               <TableHead className="hidden md:table-cell">تاریخ</TableHead>
               <TableHead className="hidden md:table-cell">واریز به</TableHead>
-              <TableHead className="hidden sm:table-cell">منبع</TableHead>
+              <TableHead className="hidden sm:table-cell">ثبت توسط</TableHead>
               <TableHead className="text-left">عملیات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {incomes.map((income) => (
+            {incomes.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((income) => (
               <TableRow key={income.id}>
                 <TableCell className="font-medium">{income.description}</TableCell>
                 <TableCell className='text-emerald-500 dark:text-emerald-400 font-semibold'>{formatCurrency(income.amount, 'IRT')}</TableCell>
                 <TableCell className="hidden md:table-cell">{formatJalaliDate(new Date(income.date))}</TableCell>
                 <TableCell className="hidden md:table-cell">{getBankAccountName(income.bankAccountId)}</TableCell>
-                <TableCell className="hidden sm:table-cell">{income.source}</TableCell>
+                <TableCell className="hidden sm:table-cell">{getUserName(income.registeredByUserId)}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex gap-2 justify-end'>
                         <Button variant="ghost" size="icon" onClick={() => onEdit(income)}>
@@ -92,7 +97,7 @@ export function IncomeList({ incomes, bankAccounts, onEdit, onDelete }: IncomeLi
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(income.id)}>
+                                <AlertDialogAction onClick={() => onDelete(income)}>
                                     بله، حذف کن
                                 </AlertDialogAction>
                                 </AlertDialogFooter>
