@@ -7,6 +7,13 @@ import { FirebaseClientProvider } from '@/firebase';
 export const metadata: Metadata = {
   title: 'حساب کتاب',
   description: 'اپلیکیشن حسابداری خانواده شما',
+  manifest: '/manifest.webmanifest',
+  themeColor: '#1e3a8a',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'حساب کتاب',
+  },
 };
 
 export default function RootLayout({
