@@ -83,7 +83,7 @@ export function ExpenseList({ expenses, bankAccounts, categories, users, onEdit,
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div className='inline-flex'>
-                                <Button variant="ghost" size="icon" onClick={() => onEdit(expense)} disabled={!!expense.checkId || !!expense.loanPaymentId}>
+                                <Button variant="ghost" size="icon" onClick={() => onEdit(expense)} disabled={!!expense.checkId || !!expense.loanPaymentId} aria-label="Edit">
                                     <Edit className="h-4 w-4" />
                                 </Button>
                                 </div>
@@ -97,7 +97,7 @@ export function ExpenseList({ expenses, bankAccounts, categories, users, onEdit,
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <div className='inline-flex'>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={!!expense.checkId || !!expense.loanPaymentId}>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={!!expense.checkId || !!expense.loanPaymentId} aria-label="Delete">
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>

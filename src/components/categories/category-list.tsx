@@ -62,12 +62,12 @@ export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps
                 <TableCell className="hidden sm:table-cell">{category.description || '-'}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex gap-2 justify-end'>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(category)}>
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(category)} aria-label="Edit">
                             <Edit className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete">
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </AlertDialogTrigger>

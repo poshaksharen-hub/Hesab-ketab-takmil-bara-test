@@ -79,12 +79,12 @@ export function IncomeList({ incomes, bankAccounts, users, onEdit, onDelete }: I
                 <TableCell>{getUserName(income.registeredByUserId)}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex gap-2 justify-end'>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(income)}>
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(income)} aria-label="Edit">
                             <Edit className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete">
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </AlertDialogTrigger>

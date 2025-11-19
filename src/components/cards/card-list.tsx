@@ -89,7 +89,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                     <span className="font-bold text-lg tracking-wider">{card.bankName}</span>
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 hover:text-white">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 hover:text-white" aria-label="Actions">
                                 <MoreVertical className="h-5 w-5" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -100,7 +100,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                             </DropdownMenuItem>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                     <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive">
+                                     <div data-cy="delete-card-trigger" className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive">
                                         <Trash2 className="ml-2 h-4 w-4" />
                                         حذف
                                     </div>
@@ -148,7 +148,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                     <div className="flex justify-between items-end pt-2">
                         <span className="font-mono text-sm tracking-wider uppercase">{getOwnerName(card)}</span>
                         <div className='text-left'>
-                            <p className="text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace('تومان', '')}</p>
+                            <p className="text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
                             <p className="text-xs opacity-80">موجودی</p>
                         </div>
                     </div>
