@@ -34,8 +34,8 @@ export default function CardsPage() {
 
 
   const bankAccountsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'bankAccounts') : null),
-    [firestore, user]
+    () => (allUsers.length > 0 ? query(collection(firestore, 'users', allUsers[0].id, 'bankAccounts')) : null),
+    [firestore, allUsers]
   );
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   

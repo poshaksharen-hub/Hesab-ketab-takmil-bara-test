@@ -48,10 +48,14 @@ export default function IncomePage() {
         const personalBankAccounts = allBankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
 
         const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
-        const sharedAccountsSnapshot = sharedAccountsQuery ? await getDocs(sharedAccountsQuery) : null;
-        const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount) : [];
+        if (sharedAccountsQuery) {
+          const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
+          const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount) : [];
+          setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);
+        } else {
+          setAllBankAccounts(personalBankAccounts);
+        }
 
-        setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
         toast({

@@ -43,10 +43,14 @@ export default function TransfersPage() {
         }
         
         const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
-        const sharedAccountsSnapshot = sharedAccountsQuery ? await getDocs(sharedAccountsQuery) : null;
-        const sharedAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount) : [];
+        if(sharedAccountsQuery) {
+            const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
+            const sharedAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount) : [];
+            setAllBankAccounts([...personalAccounts, ...sharedAccounts]);
+        } else {
+            setAllBankAccounts(personalAccounts);
+        }
 
-        setAllBankAccounts([...personalAccounts, ...sharedAccounts]);
         setIsLoadingData(false);
     }
     fetchAllData();

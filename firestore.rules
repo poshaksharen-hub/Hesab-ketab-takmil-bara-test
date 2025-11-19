@@ -4,52 +4,39 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Helper Functions
+    function isFamilyMember() {
+      // IMPORTANT: Replace with the actual UIDs of the two family members
+      // For improved security, consider fetching these UIDs from a secure config document.
+      let familyUIDs = [
+          "gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2", 
+          "ANOTHER_USER_UID" // Replace with the second user's UID
+      ];
+      return request.auth != null && request.auth.uid in familyUIDs;
+    }
+    
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
-    
-    function isSignedIn() {
-      return request.auth != null;
-    }
 
     // Users Collection
-    // Each user can read/write their own profile.
+    // Each of the two family members can create/update their own profile.
     match /users/{userId} {
-      allow read, update, delete: if isOwner(userId);
-      allow create: if isSignedIn(); 
+      allow read: if isFamilyMember();
+      allow create: if isOwner(userId) && isFamilyMember();
+      allow update, delete: if isOwner(userId);
     }
 
-    // Personal Bank Accounts
-    // Only the owner can manage their personal bank accounts.
-    match /users/{userId}/bankAccounts/{accountId} {
-      allow read, write: if isOwner(userId);
+    // Personal Bank Accounts, Categories, Payees
+    // Any family member can read/write to any family member's personal data.
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write: if isFamilyMember();
     }
     
     // Shared Bank Accounts
-    // Any member of a shared account can read it.
-    // Writes are handled through transactions and a more permissive ruleset is needed here,
-    // but the transaction logic itself will enforce permissions.
+    // Any family member can read and write to shared accounts.
+    // The dangerous `allow write: if isSignedIn()` has been removed.
     match /shared/data/bankAccounts/{accountId} {
-      allow read: if isSignedIn() && resource.data.members[request.auth.uid] == true;
-      allow write: if isSignedIn(); // Writes are complex and controlled by transactions.
-    }
-
-    // Personal Categories
-    match /users/{userId}/categories/{categoryId} {
-      allow read, write: if isOwner(userId);
-    }
-    
-    // Personal Payees
-    match /users/{userId}/payees/{payeeId} {
-        allow read, write: if isOwner(userId);
-    }
-
-    // Personal Incomes, Expenses, Checks, Loans, Goals, Transfers, Payments
-    // These are all user-specific and can only be accessed by the owner.
-    match /users/{userId}/{collection}/{docId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isFamilyMember();
     }
   }
 }
-
-    

@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
   // Effect to set up listeners when users are available
   useEffect(() => {
-    if (!firestore || allUsers.length === 0 || !user) return;
+    if (!firestore || allUsers.length === 0) return;
 
     const userIds = allUsers.map(u => u.id);
     const unsubscribes: Unsubscribe[] = [];
@@ -76,14 +76,17 @@ export default function DashboardPage() {
         const personalSnapshots = await Promise.all(personalPromises);
         const personalAccounts = personalSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
 
-        const sharedQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
-        const sharedSnapshots = sharedQuery ? await getDocs(sharedQuery) : null;
-        const sharedAccounts = sharedSnapshots ? sharedSnapshots.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount) : [];
-
-        setAllBankAccounts([...personalAccounts, ...sharedAccounts]);
+        const sharedQuery = user?.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
+        if (sharedQuery) {
+          const sharedSnapshots = await getDocs(sharedQuery);
+          const sharedAccounts = sharedSnapshots.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount);
+          setAllBankAccounts([...personalAccounts, ...sharedAccounts]);
+        } else {
+           setAllBankAccounts(personalAccounts);
+        }
     };
 
-    if (user.uid) {
+    if (user?.uid) {
         const sharedQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true));
         const sharedUnsubscribe = onSnapshot(sharedQuery, () => {
             fetchAllBankAccounts();

@@ -48,11 +48,15 @@ export default function ExpensesPage() {
         const categories = categorySnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Category))).flat();
 
         const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
-        const sharedAccountsSnapshot = sharedAccountsQuery ? await getDocs(sharedAccountsQuery) : null;
-        const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount) : [];
+        if (sharedAccountsQuery) {
+          const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
+          const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount) : [];
+          setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);
+        } else {
+          setAllBankAccounts(personalBankAccounts);
+        }
 
         setAllExpenses(expenses);
-        setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);
         setAllCategories(categories);
       } catch (error) {
         console.error("Failed to fetch expense page data:", error);
