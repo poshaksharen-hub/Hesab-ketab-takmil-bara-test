@@ -28,6 +28,7 @@ import {
   LogIn,
   TrendingUp,
   LogOut,
+  CreditCard,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -63,6 +64,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
+    { href: '/cards', label: 'کارت‌های بانکی', icon: CreditCard },
     { href: '/transactions', label: 'تراکنش ها', icon: ArrowRightLeft },
     { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
     { href: '/sharing', label: 'اشتراک گذاری', icon: Users },
@@ -72,22 +74,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     await signOut(auth);
     router.push('/login');
   };
-  
+
   // Route Guard
   React.useEffect(() => {
     if (!isUserLoading && !user && pathname !== '/login') {
       router.replace('/login');
     }
   }, [isUserLoading, user, pathname, router]);
-  
+
   if (isUserLoading && pathname !== '/login') {
     return (
-        <div className="flex h-screen items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <HesabKetabLogo className="size-16 text-primary animate-pulse" />
-                <p className="text-muted-foreground">در حال بارگذاری...</p>
-            </div>
+      <div className="flex h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <HesabKetabLogo className="size-16 animate-pulse text-primary" />
+          <p className="text-muted-foreground">در حال بارگذاری...</p>
         </div>
+      </div>
     );
   }
 
