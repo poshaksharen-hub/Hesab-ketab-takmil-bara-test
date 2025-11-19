@@ -64,25 +64,22 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         },
   });
 
-  const getOwnerName = (userId: string, isShared?: boolean) => {
-    if (isShared) return "مشترک";
-    
+  const getOwnerName = (account: BankAccount) => {
+    if (account.isShared) return "مشترک";
     // Find user details based on userId
-    const userDetailKey = Object.keys(USER_DETAILS).find(key => {
-        // This is a bit of a hack, in a real app you'd have a users collection to lookup names
-        if (!user || !user.email) return false;
-        if (user.uid === userId) {
-            return user.email.startsWith(key);
-        } else {
-            return !user.email.startsWith(key);
+    const ownerEmailKey = Object.keys(USER_DETAILS).find(key => {
+        const detail = USER_DETAILS[key as keyof typeof USER_DETAILS];
+        // In a real app, you would have the user's ID or a better mapping.
+        // This is a simplified lookup based on the hardcoded structure.
+        const userWithThisAccount = bankAccounts.find(ba => ba.userId === account.userId);
+        if (userWithThisAccount) {
+            return true; // Simplified logic, assuming userIds match
         }
+        return false;
     });
 
-    if (userDetailKey) {
-        return USER_DETAILS[userDetailKey as 'ali' | 'fatemeh'].firstName;
-    }
-    
-    return "ناشناس";
+    if(account.userId === user?.uid) return " (من)";
+    return " (دیگری)";
   };
 
 
@@ -225,7 +222,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                       <SelectContent>
                         {bankAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.name} (${getOwnerName(account.userId, account.isShared)})`}
+                            {`${account.name} ${getOwnerName(account)}`}
                           </SelectItem>
                         ))}
                       </SelectContent>

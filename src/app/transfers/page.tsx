@@ -3,7 +3,7 @@
 import React from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, runTransaction, serverTimestamp, addDoc, query, where, getDocs } from 'firebase/firestore';
-import type { BankAccount, Transfer } from '@/lib/types';
+import type { BankAccount, Transfer, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TransferForm } from '@/components/transfers/transfer-form';
@@ -14,14 +14,19 @@ export default function TransfersPage() {
   const { toast } = useToast();
 
  const [allBankAccounts, setAllBankAccounts] = React.useState<BankAccount[]>([]);
-  const [isLoadingAllBankAccounts, setIsLoadingAllBankAccounts] = React.useState(true);
+  const [allUsers, setAllUsers] = React.useState<UserProfile[]>([]);
+  const [isLoadingData, setIsLoadingData] = React.useState(true);
   
   React.useEffect(() => {
     if (!firestore || !user) return;
-    const fetchAllAccounts = async () => {
-        setIsLoadingAllBankAccounts(true);
-        const personalAccounts: BankAccount[] = [];
+    
+    const fetchAllData = async () => {
+        setIsLoadingData(true);
         const usersSnapshot = await getDocs(collection(firestore, 'users'));
+        const userProfiles = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
+        setAllUsers(userProfiles);
+
+        const personalAccounts: BankAccount[] = [];
         for (const userDoc of usersSnapshot.docs) {
             const accountsSnapshot = await getDocs(collection(firestore, 'users', userDoc.id, 'bankAccounts'));
             accountsSnapshot.forEach(doc => {
@@ -29,14 +34,14 @@ export default function TransfersPage() {
             });
         }
         
-        const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true));
+        const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '!=', undefined));
         const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
         const sharedAccounts = sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount);
 
         setAllBankAccounts([...personalAccounts, ...sharedAccounts]);
-        setIsLoadingAllBankAccounts(false);
+        setIsLoadingData(false);
     }
-    fetchAllAccounts();
+    fetchAllData();
   },[firestore, user]);
 
 
@@ -55,22 +60,21 @@ export default function TransfersPage() {
     try {
       await runTransaction(firestore, async (transaction) => {
         
-        const getCardRef = (bankAccountId: string) => {
-            const isShared = bankAccountId.startsWith('shared-');
-            const accountId = isShared ? bankAccountId.replace('shared-', '') : bankAccountId;
-            let ownerId = '';
-            if (isShared) {
-                ownerId = user.uid; // Not strictly correct but works for path construction
-            } else {
-                const account = allBankAccounts.find(acc => acc.id === accountId);
-                if (!account) throw new Error(`کارت با شناسه ${accountId} یافت نشد`);
-                ownerId = account.userId;
-            }
-            return doc(firestore, isShared ? `shared/data/bankAccounts/${accountId}` : `users/${ownerId}/bankAccounts/${accountId}`);
+        const getCardRefAndOwner = (bankAccountIdWithPrefix: string) => {
+            const isShared = bankAccountIdWithPrefix.startsWith('shared-');
+            const accountId = isShared ? bankAccountIdWithPrefix.replace('shared-', '') : bankAccountIdWithPrefix;
+            
+            const account = allBankAccounts.find(acc => acc.id === bankAccountIdWithPrefix);
+            if (!account) throw new Error(`کارت با شناسه ${bankAccountIdWithPrefix} یافت نشد`);
+            
+            const ownerId = account.userId;
+            const ref = doc(firestore, isShared ? `shared/data/bankAccounts/${accountId}` : `users/${ownerId}/bankAccounts/${accountId}`);
+            
+            return ref;
         };
         
-        const fromCardRef = getCardRef(values.fromBankAccountId);
-        const toCardRef = getCardRef(values.toBankAccountId);
+        const fromCardRef = getCardRefAndOwner(values.fromBankAccountId);
+        const toCardRef = getCardRefAndOwner(values.toBankAccountId);
 
         const fromCardDoc = await transaction.get(fromCardRef);
         const toCardDoc = await transaction.get(toCardRef);
@@ -119,7 +123,7 @@ export default function TransfersPage() {
     }
   };
 
-  const isLoading = isUserLoading || isLoadingAllBankAccounts;
+  const isLoading = isUserLoading || isLoadingData;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -143,6 +147,7 @@ export default function TransfersPage() {
             bankAccounts={allBankAccounts}
             onSubmit={handleTransferSubmit}
             user={user}
+            users={allUsers}
           />
         </div>
       )}

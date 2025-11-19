@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
@@ -26,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import type { BankAccount, UserProfile } from '@/lib/types';
 import type { User } from 'firebase/auth';
+import { USER_DETAILS } from '@/lib/constants';
 
 
 const formSchema = z.object({
@@ -43,13 +45,19 @@ interface CardFormProps {
   onSubmit: (data: any) => void;
   initialData: BankAccount | null;
   user: User | null;
+  users: UserProfile[];
 }
 
-export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user }: CardFormProps) {
+export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users }: CardFormProps) {
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
-      ? { ...initialData, owner: initialData.userId === user?.uid ? 'me' : 'other' }
+      ? { 
+          name: initialData.name,
+          initialBalance: initialData.initialBalance,
+          owner: initialData.userId === user?.uid ? 'me' : 'other',
+          isShared: !!initialData.isShared,
+        }
       : {
           name: '',
           initialBalance: 0,
@@ -57,12 +65,16 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user }: Car
           isShared: false,
         },
   });
+  
+  const otherUser = users.find(u => u.id !== user?.uid);
 
   React.useEffect(() => {
     if (initialData) {
       form.reset({
-         ...initialData,
-         owner: initialData.userId === user?.uid ? 'me' : 'other' 
+         name: initialData.name,
+         initialBalance: initialData.initialBalance,
+         owner: initialData.userId === user?.uid ? 'me' : 'other',
+         isShared: !!initialData.isShared
         });
     } else {
       form.reset({
@@ -75,14 +87,10 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user }: Car
   }, [initialData, form, user]);
 
   function handleFormSubmit(data: CardFormValues) {
-    const submissionData = {
-        ...data,
-        userId: data.owner === 'me' ? user?.uid : 'other_user_placeholder_uid', // Replace with actual logic to get other user's UID
-    };
-    onSubmit(submissionData);
+    onSubmit(data);
   }
   
-  const ownerIsAli = user?.email?.startsWith('ali');
+  const isShared = form.watch('isShared');
 
   return (
       <Card>
@@ -116,27 +124,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user }: Car
                     <FormControl>
                       <Input type="number" {...field} disabled={!!initialData} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="owner"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>صاحب حساب</FormLabel>
-                     <Select onValueChange={field.onChange} defaultValue={field.value} disabled={form.getValues('isShared')}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="me">{ownerIsAli ? "علی" : "فاطمه"}</SelectItem>
-                        <SelectItem value="other">{ownerIsAli ? "فاطمه" : "علی"}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {!initialData && <FormDescription>این مبلغ فقط یکبار در زمان ایجاد کارت ثبت می‌شود.</FormDescription>}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -148,25 +136,41 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user }: Car
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
                       <FormLabel>حساب مشترک</FormLabel>
-                      <p className="text-[0.8rem] text-muted-foreground">
+                      <FormDescription>
                         این حساب به عنوان کیف پول مشترک در نظر گرفته شود؟
-                      </p>
+                      </FormDescription>
                     </div>
                     <FormControl>
                       <Switch
                         checked={field.value}
-                        onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            if(checked) {
-                                form.setValue('owner', 'me'); // Reset owner for simplicity or specific logic
-                            }
-                        }}
+                        onCheckedChange={field.onChange}
+                        disabled={!!initialData}
                       />
                     </FormControl>
                   </FormItem>
                 )}
               />
-
+               <FormField
+                control={form.control}
+                name="owner"
+                render={({ field }) => (
+                  <FormItem style={{ display: isShared ? 'none' : 'block' }}>
+                    <FormLabel>صاحب حساب</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isShared || !!initialData}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="me">{user?.firstName || 'من'}</SelectItem>
+                        <SelectItem value="other">{otherUser?.firstName || 'دیگری'}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>

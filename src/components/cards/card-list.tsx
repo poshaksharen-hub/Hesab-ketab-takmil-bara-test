@@ -24,19 +24,16 @@ interface CardListProps {
   cards: BankAccount[];
   onEdit: (card: BankAccount) => void;
   onDelete: (cardId: string, isShared: boolean) => void;
+  users: UserProfile[];
 }
 
-export function CardList({ cards, onEdit, onDelete }: CardListProps) {
+export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   const { user } = useUser();
 
   const getOwnerName = (userId: string, isShared?: boolean) => {
     if (isShared) return "مشترک";
-    if (user?.uid === userId) {
-      const key = user.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-      return USER_DETAILS[key].firstName;
-    }
-    const key = user?.email?.startsWith('ali') ? 'fatemeh' : 'ali';
-    return USER_DETAILS[key].firstName;
+    const owner = users.find(u => u.id === userId);
+    return owner?.firstName || "ناشناس";
   };
 
   if (cards.length === 0) {

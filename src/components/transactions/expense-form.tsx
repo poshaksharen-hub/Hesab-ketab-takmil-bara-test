@@ -66,16 +66,10 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
         },
   });
 
-  const getOwnerName = (userId: string, isShared?: boolean) => {
-    if (isShared) return "مشترک";
-    
-    // This logic is simplified. In a real app, you'd have a more robust way to get user names.
-    const userEmail = user?.email || '';
-    if (user?.uid === userId) {
-      return userEmail.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
-    } else {
-      return userEmail.startsWith('ali') ? USER_DETAILS.fatemeh.firstName : USER_DETAILS.ali.firstName;
-    }
+  const getOwnerName = (account: BankAccount) => {
+    if (account.isShared) return "(مشترک)";
+    if (account.userId === user?.uid) return `(${USER_DETAILS.ali.firstName})`;
+    return `(${USER_DETAILS.fatemeh.firstName})`;
   };
 
   React.useEffect(() => {
@@ -189,7 +183,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                       <SelectContent>
                         {bankAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.name} (${getOwnerName(account.userId, account.isShared)})`}
+                            {`${account.name} ${getOwnerName(account)}`}
                           </SelectItem>
                         ))}
                       </SelectContent>

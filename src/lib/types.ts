@@ -52,6 +52,7 @@ export type BankAccount = {
     initialBalance: number;
     blockedBalance?: number;
     isShared?: boolean;
+    members?: { [key: string]: boolean };
 }
 
 export type Category = {
