@@ -35,6 +35,8 @@ export type Expense = {
   description: string;
   type: 'expense';
   checkId?: string; // Optional: to link expense to a cleared check
+  goalId?: string; // Optional: to link expense to an achieved goal
+  loanPaymentId?: string; // Optional: to link expense to a loan payment
   createdAt: any;
   updatedAt?: any;
 };
@@ -101,17 +103,19 @@ export type FinancialGoal = {
 export type Loan = {
     id: string;
     userId: string;
-    bankAccountId: string;
+    title: string;
     amount: number;
-    interestRate: number;
+    installmentAmount: number;
+    remainingAmount: number;
     startDate: string;
-    endDate: string;
+    paymentDay: number; // Day of the month
     numberOfInstallments: number;
     paidInstallments: number;
 }
 
 export type LoanPayment = {
     id: string;
+    userId: string;
     loanId: string;
     bankAccountId: string;
     amount: number;

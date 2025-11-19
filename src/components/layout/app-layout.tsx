@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -34,6 +33,7 @@ import {
   BookCopy,
   FolderKanban,
   Target,
+  Landmark,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -74,6 +74,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban },
     { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy },
+    { href: '/loans', label: 'وام‌ها', icon: Landmark },
     { href: '/goals', label: 'اهداف مالی', icon: Target },
     { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
   ];

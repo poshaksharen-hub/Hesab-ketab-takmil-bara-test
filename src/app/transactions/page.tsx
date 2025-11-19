@@ -59,8 +59,9 @@ export default function ExpensesPage() {
                 // 1. Revert previous transaction
                 if (editingExpense.bankAccountId === expenseData.bankAccountId) {
                     // Card is the same, just adjust balance
+                    const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
                     const adjustedBalance = fromCardData.balance + editingExpense.amount - expenseData.amount;
-                    if (adjustedBalance < 0) {
+                    if (availableBalance + editingExpense.amount < expenseData.amount) {
                         throw new Error("موجودی حساب کافی نیست.");
                     }
                     transaction.update(fromCardRef, { balance: adjustedBalance });
@@ -71,7 +72,8 @@ export default function ExpensesPage() {
                         const oldCardData = oldCardDoc.data() as BankAccount;
                         transaction.update(oldCardRef, { balance: oldCardData.balance + editingExpense.amount });
                     }
-                    if (fromCardData.balance < expenseData.amount) {
+                    const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
+                    if (availableBalance < expenseData.amount) {
                          throw new Error("موجودی حساب جدید کافی نیست.");
                     }
                     transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
@@ -83,7 +85,8 @@ export default function ExpensesPage() {
 
             } else {
                 // --- Create Mode ---
-                if (fromCardData.balance < expenseData.amount) {
+                const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
+                if (availableBalance < expenseData.amount) {
                     throw new Error("موجودی حساب برای انجام این هزینه کافی نیست.");
                 }
                 // 1. Deduct from balance
@@ -142,6 +145,14 @@ export default function ExpensesPage() {
   };
 
   const handleEdit = (expense: Expense) => {
+    if (expense.checkId || expense.loanPaymentId) {
+        toast({
+            variant: "destructive",
+            title: "امکان ویرایش وجود ندارد",
+            description: "این هزینه به صورت خودکار (بابت چک یا قسط وام) ثبت شده و قابل ویرایش نیست.",
+        });
+        return;
+    }
     setEditingExpense(expense);
     setIsFormOpen(true);
   };

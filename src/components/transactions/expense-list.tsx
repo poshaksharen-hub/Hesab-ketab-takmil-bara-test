@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -46,6 +47,7 @@ export function ExpenseList({ expenses, bankAccounts, categories, onEdit, onDele
   }
 
   return (
+    <TooltipProvider>
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">لیست هزینه‌ها</CardTitle>
@@ -75,14 +77,27 @@ export function ExpenseList({ expenses, bankAccounts, categories, onEdit, onDele
                 <TableCell className="hidden md:table-cell">{getBankAccountName(expense.bankAccountId)}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex gap-2 justify-end'>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(expense)} disabled={!!expense.checkId}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className='inline-flex'>
+                                <Button variant="ghost" size="icon" onClick={() => onEdit(expense)} disabled={!!expense.checkId || !!expense.loanPaymentId}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                </div>
+                            </TooltipTrigger>
+                            {(!!expense.checkId || !!expense.loanPaymentId) && (
+                                <TooltipContent>
+                                    <p>این هزینه به صورت خودکار ثبت شده و قابل ویرایش نیست.</p>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={!!expense.checkId}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className='inline-flex'>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={!!expense.checkId || !!expense.loanPaymentId}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
@@ -107,5 +122,6 @@ export function ExpenseList({ expenses, bankAccounts, categories, onEdit, onDele
         </Table>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
