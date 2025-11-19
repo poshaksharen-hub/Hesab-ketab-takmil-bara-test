@@ -32,12 +32,13 @@ export default function IncomePage() {
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   
   const sharedBankAccountsQuery = useMemoFirebase(
-    () => collection(firestore, 'shared', 'bankAccounts'),
+    () => collection(firestore, 'shared', 'data', 'bankAccounts'),
     [firestore]
   );
   const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
 
   const allBankAccounts = React.useMemo(() => {
+    if (!user) return [];
     const personal = bankAccounts || [];
     const shared = sharedBankAccounts?.filter(acc => 'members' in acc && user && (acc as any).members[user.uid]) || [];
     // Ensure shared accounts have a distinct ID for the UI
@@ -51,7 +52,7 @@ export default function IncomePage() {
 
     try {
       await runTransaction(firestore, async (transaction) => {
-        const targetCardRef = doc(firestore, values.bankAccountId.startsWith('shared-') ? `shared/bankAccounts/${values.bankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${values.bankAccountId}`);
+        const targetCardRef = doc(firestore, values.bankAccountId.startsWith('shared-') ? `shared/data/bankAccounts/${values.bankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${values.bankAccountId}`);
         const targetCardDoc = await transaction.get(targetCardRef);
         
         if (!targetCardDoc.exists()) {
@@ -62,7 +63,7 @@ export default function IncomePage() {
         if (editingIncome) {
           // --- حالت ویرایش ---
           const oldIncomeRef = doc(firestore, 'users', user.uid, 'incomes', editingIncome.id);
-          const oldCardRef = doc(firestore, editingIncome.bankAccountId.startsWith('shared-') ? `shared/bankAccounts/${editingIncome.bankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${editingIncome.bankAccountId}`);
+          const oldCardRef = doc(firestore, editingIncome.bankAccountId.startsWith('shared-') ? `shared/data/bankAccounts/${editingIncome.bankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${editingIncome.bankAccountId}`);
           
           // 1. خنثی‌سازی تراکنش قبلی
           const oldCardDoc = await transaction.get(oldCardRef);
@@ -117,7 +118,7 @@ export default function IncomePage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const incomeRef = doc(firestore, 'users', user.uid, 'incomes', incomeId);
-            const cardRef = doc(firestore, incomeToDelete.bankAccountId.startsWith('shared-') ? `shared/bankAccounts/${incomeToDelete.bankAccountId.replace('shared-','')}`: `users/${user.uid}/bankAccounts/${incomeToDelete.bankAccountId}`);
+            const cardRef = doc(firestore, incomeToDelete.bankAccountId.startsWith('shared-') ? `shared/data/bankAccounts/${incomeToDelete.bankAccountId.replace('shared-','')}`: `users/${user.uid}/bankAccounts/${incomeToDelete.bankAccountId}`);
 
             const cardDoc = await transaction.get(cardRef);
             if (cardDoc.exists()) {
@@ -189,3 +190,4 @@ export default function IncomePage() {
     </main>
   );
 }
+    

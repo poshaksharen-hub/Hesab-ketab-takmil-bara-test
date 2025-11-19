@@ -26,7 +26,7 @@ export default function CardsPage() {
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   
   const sharedBankAccountsQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'shared', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
+    () => (user ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
     [firestore, user]
   );
   const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
@@ -43,7 +43,7 @@ export default function CardsPage() {
 
     if (editingCard) {
       // Edit
-      const cardRef = doc(firestore, editingCard.isShared ? `shared/bankAccounts/${editingCard.id.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${editingCard.id}`);
+      const cardRef = doc(firestore, editingCard.isShared ? `shared/data/bankAccounts/${editingCard.id.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${editingCard.id}`);
       const { initialBalance, ...updateData } = values; // Exclude initialBalance on edit
       await updateDoc(cardRef, updateData);
       toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
@@ -55,7 +55,7 @@ export default function CardsPage() {
         balance: values.initialBalance,
       };
       if(values.isShared){
-         const sharedColRef = collection(firestore, 'shared', 'bankAccounts');
+         const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
          await addDoc(sharedColRef, {...newCard, members: {[user.uid]: true}}); // Add member field
       } else {
          const userColRef = collection(firestore, 'users', user.uid, 'bankAccounts');
@@ -88,7 +88,7 @@ export default function CardsPage() {
                 throw new Error("امکان حذف وجود ندارد. از این کارت برای پرداخت اقساط وام استفاده شده است.");
             }
 
-            const cardRef = doc(firestore, isShared ? `shared/bankAccounts/${cardId.replace('shared-','')}` :`users/${user.uid}/bankAccounts/${cardId}`);
+            const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${cardId.replace('shared-','')}` :`users/${user.uid}/bankAccounts/${cardId}`);
             transaction.delete(cardRef);
         });
 
@@ -149,3 +149,4 @@ export default function CardsPage() {
     </main>
   );
 }
+    

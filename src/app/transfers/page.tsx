@@ -21,7 +21,7 @@ export default function TransfersPage() {
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
 
   const sharedBankAccountsQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'shared', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
+    () => (user ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
     [firestore, user]
   );
   const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
@@ -47,8 +47,8 @@ export default function TransfersPage() {
 
     try {
       await runTransaction(firestore, async (transaction) => {
-        const fromCardRef = doc(firestore, values.fromBankAccountId.startsWith('shared-') ? `shared/bankAccounts/${values.fromBankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${values.fromBankAccountId}`);
-        const toCardRef = doc(firestore, values.toBankAccountId.startsWith('shared-') ? `shared/bankAccounts/${values.toBankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${values.toBankAccountId}`);
+        const fromCardRef = doc(firestore, values.fromBankAccountId.startsWith('shared-') ? `shared/data/bankAccounts/${values.fromBankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${values.fromBankAccountId}`);
+        const toCardRef = doc(firestore, values.toBankAccountId.startsWith('shared-') ? `shared/data/bankAccounts/${values.toBankAccountId.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${values.toBankAccountId}`);
 
         const fromCardDoc = await transaction.get(fromCardRef);
         const toCardDoc = await transaction.get(toCardRef);
@@ -126,3 +126,5 @@ export default function TransfersPage() {
     </main>
   );
 }
+
+    

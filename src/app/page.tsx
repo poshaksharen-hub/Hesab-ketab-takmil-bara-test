@@ -52,7 +52,7 @@ export default function DashboardPage() {
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   
   const sharedBankAccountsQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'shared', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
+    () => (user ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
     [firestore, user]
   );
   const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
@@ -176,3 +176,4 @@ export default function DashboardPage() {
     </main>
   );
 }
+    

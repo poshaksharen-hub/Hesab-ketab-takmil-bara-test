@@ -676,7 +676,7 @@
         }
       },
       {
-        "path": "/shared/bankAccounts/{bankAccountId}",
+        "path": "/shared/data/bankAccounts/{bankAccountId}",
         "definition": {
           "entityName": "BankAccount",
           "schema": {
@@ -692,7 +692,7 @@
         }
       },
       {
-        "path": "/shared/incomes/{incomeId}",
+        "path": "/shared/data/incomes/{incomeId}",
         "definition": {
           "entityName": "Income",
           "schema": {
@@ -708,7 +708,7 @@
         }
       },
       {
-        "path": "/shared/expenses/{expenseId}",
+        "path": "/shared/data/expenses/{expenseId}",
         "definition": {
           "entityName": "Expense",
           "schema": {
@@ -724,7 +724,7 @@
         }
       },
       {
-        "path": "/shared/categories/{categoryId}",
+        "path": "/shared/data/categories/{categoryId}",
         "definition": {
           "entityName": "Category",
           "schema": {
@@ -740,7 +740,7 @@
         }
       },
       {
-        "path": "/shared/payees/{payeeId}",
+        "path": "/shared/data/payees/{payeeId}",
         "definition": {
           "entityName": "Payee",
           "schema": {
@@ -756,7 +756,7 @@
         }
       },
       {
-        "path": "/shared/checks/{checkId}",
+        "path": "/shared/data/checks/{checkId}",
         "definition": {
           "entityName": "Check",
           "schema": {
@@ -772,7 +772,7 @@
         }
       },
       {
-        "path": "/shared/loans/{loanId}",
+        "path": "/shared/data/loans/{loanId}",
         "definition": {
           "entityName": "Loan",
           "schema": {
@@ -788,7 +788,7 @@
         }
       },
       {
-        "path": "/shared/loanPayments/{loanPaymentId}",
+        "path": "/shared/data/loanPayments/{loanPaymentId}",
         "definition": {
           "entityName": "LoanPayment",
           "schema": {
@@ -804,7 +804,7 @@
         }
       },
       {
-        "path": "/shared/financialGoals/{financialGoalId}",
+        "path": "/shared/data/financialGoals/{financialGoalId}",
         "definition": {
           "entityName": "FinancialGoal",
           "schema": {
@@ -820,7 +820,7 @@
         }
       },
       {
-        "path": "/shared/transfers/{transferId}",
+        "path": "/shared/data/transfers/{transferId}",
         "definition": {
           "entityName": "Transfer",
           "schema": {
@@ -836,6 +836,7 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure data isolation and secure access control for the 'Hesab Ketab' application, which is intended for collaborative financial management between two users (Ali and Fatemeh). The key principle is to avoid hierarchical authorization dependencies, allowing for atomic operations and simplified security rules.  \n\nEach user has their own dedicated set of collections for managing their financial data (bank accounts, incomes, expenses, categories, payees, checks, loans, loan payments, financial goals and transfers). This path-based ownership model ensures that users can only access their own data.  Since this application shares data between two users, a `shared` collection is introduced.  This is where data between Ali and Fatemeh will be stored. All documents stored in this collection will contain a `members` map that explicitly lists the UIDs of allowed users and their roles. This pattern provides Authorization Independence, eliminating the need for `get()` calls in security rules.\n\nAuthorization Independence is achieved through path-based ownership `/users/{userId}` and the membership map in `shared`.  For example, each document in `/shared/bankAccounts` will contain the `members` field that specifies which users have what level of access.\n\nThis structure effectively supports the required QAPs (Rules are not Filters) by enabling secure `list` operations.  For example, listing bank accounts under `/users/{userId}/bankAccounts` is secure because the rule simply checks if `request.auth.uid == userId`. Similarly, listing shared bank accounts is secure because the rule checks if `request.auth.uid` exists in the `members` map."
+    "reasoning": "The Firestore structure is designed to ensure data isolation and secure access control for the 'Hesab Ketab' application, which is intended for collaborative financial management between two users (Ali and Fatemeh). The key principle is to avoid hierarchical authorization dependencies, allowing for atomic operations and simplified security rules.  \n\nEach user has their own dedicated set of collections for managing their financial data (bank accounts, incomes, expenses, categories, payees, checks, loans, loan payments, financial goals and transfers). This path-based ownership model ensures that users can only access their own data.  Since this application shares data between two users, a `shared/data` collection is introduced.  This is where data between Ali and Fatemeh will be stored. All documents stored in this collection will contain a `members` map that explicitly lists the UIDs of allowed users and their roles. This pattern provides Authorization Independence, eliminating the need for `get()` calls in security rules.\n\nAuthorization Independence is achieved through path-based ownership `/users/{userId}` and the membership map in `shared/data`.  For example, each document in `/shared/data/bankAccounts` will contain the `members` field that specifies which users have what level of access.\n\nThis structure effectively supports the required QAPs (Rules are not Filters) by enabling secure `list` operations.  For example, listing bank accounts under `/users/{userId}/bankAccounts` is secure because the rule simply checks if `request.auth.uid == userId`. Similarly, listing shared bank accounts is secure because the rule checks if `request.auth.uid` exists in the `members` map."
   }
 }
+    

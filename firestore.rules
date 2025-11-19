@@ -4,7 +4,7 @@
  *
  * Data Structure:
  * All personal financial data is nested under /users/{userId}, ensuring that only the authenticated user with a matching UID can access it.
- * Shared financial data is stored under the /shared/{collection}/{documentId} path.  Each document under /shared has a `members` map which holds the UIDs of users who have access to that document.
+ * Shared financial data is stored under the /shared/data/{collection}/{documentId} path.  Each document under /shared/data has a `members` map which holds the UIDs of users who have access to that document.
  *
  * Key Security Decisions:
  * - Users can only manage data under their own /users/{userId} path.
@@ -14,7 +14,7 @@
  *
  * Denormalization for Authorization:
  * - All documents in user-owned collections include a `userId` field to simplify authorization checks (e.g., `/users/{userId}/bankAccounts/{bankAccountId}`).
- * - All documents in shared collections include a `members` map to explicitly define user roles and permissions (e.g., `/shared/bankAccounts/{bankAccountId}`).
+ * - All documents in shared collections include a `members` map to explicitly define user roles and permissions (e.g., `/shared/data/bankAccounts/{bankAccountId}`).
  */
 rules_version = '2';
 service cloud.firestore {
@@ -338,18 +338,18 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
     }
-
-       /**
-     * @description Enforces shared access to bank accounts. Only users listed in the 'members' map can access.
-     * @path /shared/bankAccounts/{bankAccountId}
-     */
-     match /shared/bankAccounts/{bankAccountId} {
-        function isSignedIn() {
+    
+    match /shared/data/{collection}/{docId} {
+       function isSignedIn() {
             return request.auth != null;
         }
 
         function isCollaborator() {
             return isSignedIn() && request.auth.uid in resource.data.members;
+        }
+
+        function isCreatingCollaborator() {
+             return isSignedIn() && request.auth.uid in request.resource.data.members;
         }
 
         function isExistingCollaborator() {
@@ -358,225 +358,10 @@ service cloud.firestore {
 
         allow get: if isCollaborator();
         allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to incomes. Only users listed in the 'members' map can access.
-     * @path /shared/incomes/{incomeId}
-     */
-    match /shared/incomes/{incomeId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to expenses. Only users listed in the 'members' map can access.
-     * @path /shared/expenses/{expenseId}
-     */
-    match /shared/expenses/{expenseId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to categories. Only users listed in the 'members' map can access.
-     * @path /shared/categories/{categoryId}
-     */
-    match /shared/categories/{categoryId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to payees. Only users listed in the 'members' map can access.
-     * @path /shared/payees/{payeeId}
-     */
-    match /shared/payees/{payeeId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to checks. Only users listed in the 'members' map can access.
-     * @path /shared/checks/{checkId}
-     */
-    match /shared/checks/{checkId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to loans. Only users listed in the 'members' map can access.
-     * @path /shared/loans/{loanId}
-     */
-    match /shared/loans/{loanId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to loan payments. Only users listed in the 'members' map can access.
-     * @path /shared/loanPayments/{loanPaymentId}
-     */
-    match /shared/loanPayments/{loanPaymentId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to financial goals. Only users listed in the 'members' map can access.
-     * @path /shared/financialGoals/{financialGoalId}
-     */
-    match /shared/financialGoals/{financialGoalId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isExistingCollaborator();
-        allow delete: if isExistingCollaborator();
-    }
-
-    /**
-     * @description Enforces shared access to transfers. Only users listed in the 'members' map can access.
-     * @path /shared/transfers/{transferId}
-     */
-    match /shared/transfers/{transferId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-
-        function isCollaborator() {
-            return isSignedIn() && request.auth.uid in resource.data.members;
-        }
-
-        function isExistingCollaborator() {
-            return isCollaborator() && resource != null;
-        }
-
-        allow get: if isCollaborator();
-        allow list: if isSignedIn();
-        allow create: if isSignedIn();
+        allow create: if isCreatingCollaborator();
         allow update: if isExistingCollaborator();
         allow delete: if isExistingCollaborator();
     }
   }
 }
+    
