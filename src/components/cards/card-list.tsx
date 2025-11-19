@@ -3,9 +3,9 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Eye, EyeOff, MoreVertical } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, Wifi, Nfc } from 'lucide-react';
 import type { BankAccount, UserProfile } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +17,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { USER_DETAILS } from '@/lib/constants';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useUser } from '@/firebase';
 
 interface CardListProps {
@@ -27,13 +32,34 @@ interface CardListProps {
   users: UserProfile[];
 }
 
+const themeClasses = {
+    blue: 'from-blue-500 to-blue-700',
+    green: 'from-emerald-500 to-green-700',
+    purple: 'from-violet-500 to-purple-700',
+    orange: 'from-orange-500 to-amber-700',
+    gray: 'from-slate-600 to-gray-800',
+};
+
+
+const ChipIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none">
+        <rect x="0.5" y="0.5" width="47" height="35" rx="4.5" fill="#D9D9D9" stroke="#A6A6A6"/>
+        <path d="M24 0V36" stroke="#A6A6A6" strokeWidth="0.5"/>
+        <path d="M24 18H0" stroke="#A6A6A6" strokeWidth="0.5"/>
+        <path d="M24 18H48" stroke="#A6A6A6" strokeWidth="0.5"/>
+        <path d="M12 9H36" stroke="#A6A6A6" strokeWidth="0.5"/>
+        <path d="M12 27H36" stroke="#A6A6A6" strokeWidth="0.5"/>
+    </svg>
+);
+
+
 export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   const { user } = useUser();
 
   const getOwnerName = (card: BankAccount) => {
-    if (card.isShared) return "مشترک";
+    if (card.isShared) return "حساب مشترک";
     const owner = users.find(u => u.id === card.userId);
-    return owner?.firstName || "ناشناس";
+    return owner ? `${owner.firstName} ${owner.lastName}` : "ناشناس";
   };
 
   if (cards.length === 0) {
@@ -52,24 +78,27 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {cards.map((card) => (
-            <Card key={card.id} className="flex flex-col justify-between shadow-lg">
-                <CardHeader>
-                    <div className='flex justify-between items-start'>
-                        <div>
-                            <CardTitle>{card.name}</CardTitle>
-                            <CardDescription>
-                                {getOwnerName(card)}
-                            </CardDescription>
-                        </div>
-                        <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => onEdit(card)}>
-                                <Edit className="h-4 w-4" />
+            <div key={card.id} className={cn("relative rounded-xl p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-all hover:scale-[1.02]", themeClasses[card.theme || 'blue'])}>
+                <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
+                <div className='relative z-10 flex justify-between items-start'>
+                    <span className="font-bold text-lg tracking-wider">{card.name}</span>
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 hover:text-white">
+                                <MoreVertical className="h-5 w-5" />
                             </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onEdit(card)}>
+                                <Edit className="ml-2 h-4 w-4" />
+                                ویرایش
+                            </DropdownMenuItem>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                     <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive">
+                                        <Trash2 className="ml-2 h-4 w-4" />
+                                        حذف
+                                    </div>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -86,26 +115,27 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
-                        </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+                
+                <div className="relative z-10 space-y-4">
+                    <div className="flex items-center justify-between">
+                       <ChipIcon />
+                       <Wifi className="h-8 w-8 -rotate-45" />
                     </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-2">
-                        <div className='text-center my-4'>
-                            <p className="text-sm text-muted-foreground">موجودی کل</p>
-                            <p className="text-3xl font-bold tracking-tight">{formatCurrency(card.balance, 'IRT')}</p>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">موجودی مسدود شده</span>
-                            <span>{formatCurrency(card.blockedBalance || 0, 'IRT')}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold text-base">
-                            <span className="text-muted-foreground">موجودی در دسترس</span>
-                            <span>{formatCurrency(card.balance - (card.blockedBalance || 0), 'IRT')}</span>
-                        </div>
+
+                    <div className='text-left'>
+                        <p className="text-2xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace('تومان', '')}</p>
+                        <p className="text-sm opacity-80">موجودی کل</p>
                     </div>
-                </CardContent>
-            </Card>
+
+                    <div className="flex justify-between items-end">
+                        <span className="font-mono text-sm tracking-wider uppercase">{getOwnerName(card)}</span>
+                        <span className="font-bold text-lg">{card.isShared ? 'مشترک' : 'شخصی'}</span>
+                    </div>
+                </div>
+            </div>
         ))}
     </div>
   );

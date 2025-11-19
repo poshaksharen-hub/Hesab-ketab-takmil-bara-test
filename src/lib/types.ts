@@ -53,6 +53,7 @@ export type BankAccount = {
     blockedBalance?: number;
     isShared?: boolean;
     members?: { [key: string]: boolean };
+    theme: 'blue' | 'green' | 'purple' | 'orange' | 'gray';
 }
 
 export type Category = {

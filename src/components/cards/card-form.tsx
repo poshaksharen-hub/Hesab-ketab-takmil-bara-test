@@ -35,6 +35,7 @@ const formSchema = z.object({
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
   owner: z.string().min(1, { message: 'لطفا صاحب حساب را مشخص کنید.'}),
   isShared: z.boolean().default(false),
+  theme: z.enum(['blue', 'green', 'purple', 'orange', 'gray']).default('blue'),
 });
 
 type CardFormValues = z.infer<typeof formSchema>;
@@ -56,6 +57,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
       initialBalance: 0,
       owner: 'me',
       isShared: false,
+      theme: 'blue'
     },
   });
   
@@ -67,7 +69,8 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
          name: initialData.name,
          initialBalance: initialData.initialBalance,
          owner: initialData.isShared ? 'shared' : (initialData.userId === user?.uid ? 'me' : 'other'),
-         isShared: !!initialData.isShared
+         isShared: !!initialData.isShared,
+         theme: initialData.theme || 'blue',
         });
     } else {
       form.reset({
@@ -75,6 +78,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         initialBalance: 0,
         owner: 'me',
         isShared: false,
+        theme: 'blue',
       });
     }
   }, [initialData, form, user]);
@@ -118,6 +122,30 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                       <Input type="number" {...field} disabled={!!initialData} />
                     </FormControl>
                     {!initialData && <FormDescription>این مبلغ فقط یکبار در زمان ایجاد کارت ثبت می‌شود.</FormDescription>}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="theme"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>رنگ تم کارت</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="یک رنگ انتخاب کنید" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="blue">آبی</SelectItem>
+                        <SelectItem value="green">سبز</SelectItem>
+                        <SelectItem value="purple">بنفش</SelectItem>
+                        <SelectItem value="orange">نارنجی</SelectItem>
+                        <SelectItem value="gray">خاکستری</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
