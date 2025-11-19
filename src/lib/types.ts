@@ -14,7 +14,7 @@ export type Transaction = {
 export type Income = {
   id: string;
   date: string;
-  description: string;
+  description:string;
   amount: number;
   type: 'income';
   source: string;
@@ -35,6 +35,8 @@ export type Expense = {
   description: string;
   type: 'expense';
   checkId?: string; // Optional: to link expense to a cleared check
+  createdAt: any;
+  updatedAt?: any;
 };
 
 
