@@ -105,8 +105,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useSimpleTheme();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const userAvatar = getPlaceholderImage('user-avatar');
-
+  
   const handleSignOut = async () => {
     if (auth) {
       await signOut(auth);
@@ -120,6 +119,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       router.replace('/login');
     }
   }, [isUserLoading, user, pathname, router]);
+
+  const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+  const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
+  const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
 
   if (isUserLoading && pathname !== '/login') {
     return (
@@ -165,11 +168,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     src={userAvatar?.imageUrl}
                     data-ai-hint={userAvatar?.imageHint}
                   />
-                  <AvatarFallback>HK</AvatarFallback>
+                  <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col truncate">
                   <span className="truncate text-sm font-semibold">
-                    {USER_DETAILS[user.email?.split('@')[0] as keyof typeof USER_DETAILS]?.firstName || 'کاربر'}
+                    {userName}
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
                     {user.email}
