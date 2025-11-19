@@ -46,6 +46,7 @@ export type BankAccount = {
     name: string;
     balance: number;
     initialBalance: number;
+    blockedBalance?: number;
     isShared?: boolean;
 }
 
@@ -83,6 +84,20 @@ export type Check = {
     description?: string;
 }
 
+export type FinancialGoal = {
+    id: string;
+    userId: string;
+    name: string;
+    targetAmount: number;
+    currentAmount: number;
+    targetDate: string;
+    isAchieved: boolean;
+    priority: 'low' | 'medium' | 'high';
+    savedFromBankAccountId?: string;
+    savedAmount?: number;
+}
+
+
 export type Loan = {
     id: string;
     userId: string;
@@ -101,16 +116,6 @@ export type LoanPayment = {
     bankAccountId: string;
     amount: number;
     paymentDate: string;
-}
-
-export type FinancialGoal = {
-    id: string;
-    userId: string;
-    name: string;
-    targetAmount: number;
-    currentAmount: number;
-    targetDate: string;
-isAchieved: boolean;
 }
 
 export type Transfer = {

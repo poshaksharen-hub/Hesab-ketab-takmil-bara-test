@@ -98,15 +98,14 @@ export function CardList({ cards, onEdit, onDelete }: CardListProps) {
                             <p className="text-sm text-muted-foreground">موجودی کل</p>
                             <p className="text-3xl font-bold tracking-tight">{formatCurrency(card.balance, 'IRT')}</p>
                         </div>
-                        {/* In a real app, you would have blockedBalance as well */}
-                        {/* <div className="flex justify-between">
+                        <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">موجودی مسدود شده</span>
-                            <span>{formatCurrency(0, 'IRT')}</span>
+                            <span>{formatCurrency(card.blockedBalance || 0, 'IRT')}</span>
                         </div>
-                        <div className="flex justify-between font-semibold">
+                        <div className="flex justify-between font-semibold text-base">
                             <span className="text-muted-foreground">موجودی در دسترس</span>
-                            <span>{formatCurrency(card.balance, 'IRT')}</span>
-                        </div> */}
+                            <span>{formatCurrency(card.balance - (card.blockedBalance || 0), 'IRT')}</span>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
