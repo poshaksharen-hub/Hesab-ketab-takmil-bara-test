@@ -28,6 +28,7 @@ import {
   Moon,
   LogIn,
   TrendingUp,
+  TrendingDown,
   LogOut,
   CreditCard,
   BookUser,
@@ -70,13 +71,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
-    { href: '/transactions', label: 'هزینه‌ها', icon: ArrowRightLeft },
+    { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },
+    { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft },
     { href: '/cards', label: 'کارت‌های بانکی', icon: CreditCard },
     { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban },
     { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy },
     { href: '/loans', label: 'وام‌ها', icon: Landmark },
-    { href: '/goals', label: 'اهداف مالی', icon: Target },
+    { href: '/sharing', label: 'اهداف مالی', icon: Target },
     { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
   ];
 
