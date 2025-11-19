@@ -44,7 +44,7 @@ type IncomeFormValues = z.infer<typeof formSchema>;
 interface IncomeFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Income, 'id' | 'userId' | 'createdAt'>) => void;
+  onSubmit: (data: Omit<Income, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'registeredByUserId'>) => void;
   initialData: Income | null;
   bankAccounts: BankAccount[];
   user: User | null;
@@ -63,24 +63,24 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
           bankAccountId: '',
         },
   });
-
+  
   const getOwnerName = (account: BankAccount) => {
-    if (account.isShared) return "مشترک";
-    // Find user details based on userId
-    const ownerEmailKey = Object.keys(USER_DETAILS).find(key => {
-        const detail = USER_DETAILS[key as keyof typeof USER_DETAILS];
-        // In a real app, you would have the user's ID or a better mapping.
-        // This is a simplified lookup based on the hardcoded structure.
-        const userWithThisAccount = bankAccounts.find(ba => ba.userId === account.userId);
-        if (userWithThisAccount) {
-            return true; // Simplified logic, assuming userIds match
-        }
-        return false;
+    if (account.isShared) return "(مشترک)";
+    const ownerDetails = Object.values(USER_DETAILS).find(detail => {
+        // This is a proxy for matching. In a real app, you'd have a more direct link.
+        // For this app, we assume the `userId` on the account tells us who the owner is.
+        const userWithAccount = bankAccounts.find(ba => ba.userId === account.userId);
+        return !!userWithAccount;
     });
 
-    if(account.userId === user?.uid) return " (من)";
-    return " (دیگری)";
-  };
+    if (account.userId === user?.uid) {
+        const currentUserKey = user.email?.split('@')[0] as keyof typeof USER_DETAILS;
+        return `(${USER_DETAILS[currentUserKey]?.firstName || 'من'})`;
+    } else {
+        const otherUserKey = Object.keys(USER_DETAILS).find(key => key !== user?.email?.split('@')[0]) as keyof typeof USER_DETAILS;
+        return `(${USER_DETAILS[otherUserKey]?.firstName || 'دیگری'})`;
+    }
+};
 
 
   React.useEffect(() => {

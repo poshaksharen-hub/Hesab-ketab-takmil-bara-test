@@ -45,7 +45,7 @@ type ExpenseFormValues = z.infer<typeof formSchema>;
 interface ExpenseFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: ExpenseFormValues) => void;
+  onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'registeredByUserId'>) => void;
   initialData: Expense | null;
   bankAccounts: BankAccount[];
   categories: Category[];
@@ -68,8 +68,13 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
 
   const getOwnerName = (account: BankAccount) => {
     if (account.isShared) return "(مشترک)";
-    if (account.userId === user?.uid) return `(${USER_DETAILS.ali.firstName})`;
-    return `(${USER_DETAILS.fatemeh.firstName})`;
+    if (!account.userId || !user) return "";
+    if (account.userId === user.uid) {
+      const key = user.email?.split('@')[0] as keyof typeof USER_DETAILS;
+      return `(${USER_DETAILS[key]?.firstName || ''})`;
+    }
+    const otherUserKey = Object.keys(USER_DETAILS).find(k => k !== user.email?.split('@')[0]) as keyof typeof USER_DETAILS;
+    return `(${USER_DETAILS[otherUserKey]?.firstName || ''})`;
   };
 
   React.useEffect(() => {

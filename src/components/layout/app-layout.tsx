@@ -23,7 +23,6 @@ import {
   LayoutDashboard,
   ArrowRightLeft,
   Sparkles,
-  Users,
   PanelLeft,
   Sun,
   Moon,
@@ -43,6 +42,7 @@ import { getPlaceholderImage } from '@/lib/placeholder-images';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
+import { USER_DETAILS } from '@/lib/constants';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -107,7 +107,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const userAvatar = getPlaceholderImage('user-avatar');
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    if (auth) {
+      await signOut(auth);
+    }
     router.push('/login');
   };
 
@@ -166,7 +168,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </Avatar>
                 <div className="flex flex-col truncate">
                   <span className="truncate text-sm font-semibold">
-                    {user.email?.split('@')[0] === 'ali' ? 'علی' : 'فاطمه'}
+                    {USER_DETAILS[user.email?.split('@')[0] as keyof typeof USER_DETAILS]?.firstName || 'کاربر'}
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
                     {user.email}

@@ -10,8 +10,6 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart';
 import { type Income, type Expense, type Category } from '@/lib/types';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
 
 
 const CHART_COLORS = [

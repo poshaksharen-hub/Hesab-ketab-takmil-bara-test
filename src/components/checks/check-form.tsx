@@ -56,18 +56,16 @@ interface CheckFormProps {
 export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, categories }: CheckFormProps) {
   const form = useForm<CheckFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData
-      ? { ...initialData, issueDate: new Date(initialData.issueDate), dueDate: new Date(initialData.dueDate) }
-      : {
-          payeeId: '',
-          bankAccountId: '',
-          categoryId: '',
-          amount: 0,
-          issueDate: new Date(),
-          dueDate: new Date(),
-          status: 'pending',
-          description: '',
-        },
+    defaultValues: {
+      payeeId: '',
+      bankAccountId: '',
+      categoryId: '',
+      amount: 0,
+      issueDate: new Date(),
+      dueDate: new Date(),
+      status: 'pending',
+      description: '',
+    },
   });
 
   React.useEffect(() => {
