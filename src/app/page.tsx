@@ -106,7 +106,7 @@ export default function DashboardPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
                 <Card className="xl:col-span-3">
                     <CardHeader>
                         <CardTitle className="font-headline">درآمد در مقابل هزینه</CardTitle>
