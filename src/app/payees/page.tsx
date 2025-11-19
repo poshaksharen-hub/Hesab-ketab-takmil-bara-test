@@ -70,6 +70,7 @@ export default function PayeesPage() {
 
   const handleDelete = async (payeeId: string) => {
     if (!user || !firestore) return;
+    const payeeRef = doc(firestore, 'users', user.uid, 'payees', payeeId);
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -81,7 +82,6 @@ export default function PayeesPage() {
                 throw new Error("امکان حذف وجود ندارد. این طرف حساب در یک یا چند چک استفاده شده است.");
             }
             
-            const payeeRef = doc(firestore, 'users', user.uid, 'payees', payeeId);
             transaction.delete(payeeRef);
         });
 
@@ -89,7 +89,7 @@ export default function PayeesPage() {
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: `users/${user.uid}/payees/${payeeId}`,
+                path: payeeRef.path,
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);

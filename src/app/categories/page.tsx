@@ -70,6 +70,7 @@ export default function CategoriesPage() {
 
   const handleDelete = async (categoryId: string) => {
     if (!user || !firestore) return;
+    const categoryRef = doc(firestore, 'users', user.uid, 'categories', categoryId);
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -88,8 +89,7 @@ export default function CategoriesPage() {
             if (!checksSnapshot.empty) {
                 throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند چک استفاده شده است.");
             }
-
-            const categoryRef = doc(firestore, 'users', user.uid, 'categories', categoryId);
+            
             transaction.delete(categoryRef);
         });
 
@@ -97,7 +97,7 @@ export default function CategoriesPage() {
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
-                path: `users/${user.uid}/categories/${categoryId}`,
+                path: categoryRef.path,
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);

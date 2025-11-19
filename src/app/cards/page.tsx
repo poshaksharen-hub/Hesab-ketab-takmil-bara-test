@@ -47,10 +47,17 @@ export default function CardsPage() {
   const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
 
    const allBankAccounts = React.useMemo(() => {
-    const personal = (bankAccounts || []).map(acc => ({...acc, userId: user?.uid ?? ''}));
-    const shared = (sharedBankAccounts || []).map(acc => ({...acc, isShared: true, id: `shared-${acc.id}`}));
+    if (!user || !bankAccounts || !sharedBankAccounts) return [];
+    const personal = bankAccounts.map(acc => ({...acc, userId: user.uid}));
+    const otherUserId = allUsers.find(u => u.id !== user.uid)?.id;
+    // This part is tricky without a direct query. Assuming we need to fetch other user's accounts separately if needed.
+    // For now, let's just combine personal and shared.
+    const shared = sharedBankAccounts.map(acc => ({...acc, isShared: true, id: `shared-${acc.id}`}));
+    
+    // A better approach would be a query that gets all accounts for all involved users.
+    // This is a simplification for the current UI.
     return [...personal, ...shared];
-  }, [bankAccounts, sharedBankAccounts, user]);
+  }, [bankAccounts, sharedBankAccounts, user, allUsers]);
 
 
   const handleFormSubmit = async (values: Omit<BankAccount, 'id' | 'balance'>) => {
@@ -63,7 +70,7 @@ export default function CardsPage() {
       const ownerId = editingCard.userId;
       
       const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${cardId}` : `users/${ownerId}/bankAccounts/${cardId}`);
-      const { initialBalance, isShared: isSharedVal, owner, ...updateData } = values; // Exclude fields that shouldn't be edited
+      const { initialBalance, isShared: isSharedVal, owner, ...updateData } = values as any; 
       
       updateDoc(cardRef, updateData)
         .then(() => {
@@ -79,7 +86,7 @@ export default function CardsPage() {
         });
     } else {
       // --- Create ---
-      const { isShared, owner, ...cardData } = values;
+      const { isShared, owner, ...cardData } = values as any;
       const newCardBase = {
         ...cardData,
         balance: values.initialBalance,
@@ -141,7 +148,8 @@ export default function CardsPage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const realCardId = isShared ? cardId.replace('shared-', '') : cardId;
-            
+            let cardToDeleteRef: any;
+
             for (const userId of collectionsToSearch) {
                 const checksRef = collection(firestore, 'users', userId, 'checks');
                 const pendingChecksQuery = query(checksRef, where('bankAccountId', '==', realCardId), where('status', '==', 'pending'));
@@ -160,25 +168,18 @@ export default function CardsPage() {
                 }
             }
 
-            const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${realCardId}` : `users/${user.uid}/bankAccounts/${realCardId}`);
-            const cardDoc = await transaction.get(cardRef);
-            if (!cardDoc.exists()) {
-                 // Try finding it under the other user's collection if not found under current user
-                 const otherUser = allUsers.find(u => u.id !== user.uid);
-                 if (otherUser && !isShared) {
-                     const otherUserCardRef = doc(firestore, 'users', otherUser.id, 'bankAccounts', realCardId);
-                     const otherUserCardDoc = await transaction.get(otherUserCardRef);
-                     if (otherUserCardDoc.exists()) {
-                         transaction.delete(otherUserCardRef);
-                     } else {
-                         throw new Error("کارت بانکی برای حذف یافت نشد.");
-                     }
-                 } else {
-                    throw new Error("کارت بانکی برای حذف یافت نشد.");
-                 }
+            if (isShared) {
+                cardToDeleteRef = doc(firestore, 'shared', 'data', 'bankAccounts', realCardId);
             } else {
-                transaction.delete(cardRef);
+                const cardOwner = allBankAccounts.find(c => c.id === cardId)?.userId;
+                const ownerId = cardOwner || user.uid; // Fallback, though cardOwner should exist
+                cardToDeleteRef = doc(firestore, `users/${ownerId}/bankAccounts/${cardId}`);
             }
+             const cardDoc = await transaction.get(cardToDeleteRef);
+             if (!cardDoc.exists()) {
+                 throw new Error("کارت بانکی برای حذف یافت نشد.");
+             }
+             transaction.delete(cardToDeleteRef);
         });
 
         toast({ title: "موفقیت", description: "کارت بانکی با موفقیت حذف شد." });

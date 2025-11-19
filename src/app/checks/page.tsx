@@ -90,12 +90,11 @@ export default function ChecksPage() {
 
   const handleClearCheck = async (check: Check) => {
     if (!user || !firestore || check.status === 'cleared') return;
+    const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
+    const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
 
     try {
       await runTransaction(firestore, async (transaction) => {
-        const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
-        const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
-
         const bankAccountDoc = await transaction.get(bankAccountRef);
         if (!bankAccountDoc.exists() || bankAccountDoc.data().balance < check.amount) {
           throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
@@ -122,8 +121,8 @@ export default function ChecksPage() {
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: `users/${user.uid}/checks/${check.id}`,
-                operation: 'update', // This is a transaction, but conceptually it's an update
+                path: checkRef.path, // Simplified path for the transaction
+                operation: 'write', 
             });
             errorEmitter.emit('permission-error', permissionError);
        } else {
@@ -138,11 +137,9 @@ export default function ChecksPage() {
 
   const handleDelete = async (check: Check) => {
     if (!user || !firestore) return;
-
+    const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
     try {
         await runTransaction(firestore, async (transaction) => {
-            const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
-            
             if (check.status === 'cleared') {
                 const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
                 const bankAccountDoc = await transaction.get(bankAccountRef);
@@ -167,7 +164,7 @@ export default function ChecksPage() {
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: `users/${user.uid}/checks/${check.id}`,
+                path: checkRef.path, // Simplified path
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);

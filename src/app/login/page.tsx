@@ -78,7 +78,7 @@ export default function LoginPage() {
       });
       router.push('/');
     } catch (error: any) {
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+      if (error.code === 'auth/user-not-found') {
         try {
           const userCredential = await createUserWithEmailAndPassword(
             auth,
@@ -98,6 +98,9 @@ export default function LoginPage() {
               firstName: userDetail.firstName,
               lastName: userDetail.lastName,
             };
+            
+            // This is a critical step, if it fails, the user is created but profile is not.
+            // We'll add custom error handling here.
             await setDoc(userProfileRef, profileData)
               .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({
@@ -124,6 +127,7 @@ export default function LoginPage() {
           });
         }
       } else {
+        // Handle other auth errors like wrong password
         toast({
           variant: 'destructive',
           title: 'خطا در ورود',

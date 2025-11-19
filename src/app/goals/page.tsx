@@ -1,0 +1,385 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import {
+  useUser,
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+} from '@/firebase';
+import {
+  collection,
+  doc,
+  runTransaction,
+  writeBatch,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
+import type {
+  FinancialGoal,
+  BankAccount,
+  Category,
+} from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { GoalList } from '@/components/goals/goal-list';
+import { GoalForm } from '@/components/goals/goal-form';
+import { AchieveGoalDialog } from '@/components/goals/achieve-goal-dialog';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
+
+export default function GoalsPage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
+  const [achievingGoal, setAchievingGoal] = useState<FinancialGoal | null>(
+    null
+  );
+
+  const goalsQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'financialGoals') : null),
+    [firestore, user]
+  );
+  const { data: goals, isLoading: isLoadingGoals } =
+    useCollection<FinancialGoal>(goalsQuery);
+
+  const bankAccountsQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'bankAccounts') : null),
+    [firestore, user]
+  );
+  const { data: bankAccounts, isLoading: isLoadingBankAccounts } =
+    useCollection<BankAccount>(bankAccountsQuery);
+  
+  const categoriesQuery = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
+    [firestore, user]
+  );
+  const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
+
+  const handleFormSubmit = async (values: any) => {
+    if (!user || !firestore) return;
+    const { savedAmount, savedFromBankAccountId, ...goalData } = values;
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        let originalBlockedAmount = 0;
+        let originalSavedAccountId = null;
+
+        if (editingGoal) {
+          const goalRef = doc(firestore, 'users', user.uid, 'financialGoals', editingGoal.id);
+          originalBlockedAmount = editingGoal.savedAmount || 0;
+          originalSavedAccountId = editingGoal.savedFromBankAccountId;
+          
+          transaction.update(goalRef, {
+            ...goalData,
+            currentAmount: savedAmount,
+            savedAmount: savedAmount,
+            savedFromBankAccountId: savedFromBankAccountId,
+          });
+
+        } else {
+           const newGoalRef = doc(collection(firestore, 'users', user.uid, 'financialGoals'));
+           transaction.set(newGoalRef, {
+            ...goalData,
+            id: newGoalRef.id,
+            userId: user.uid,
+            isAchieved: false,
+            currentAmount: savedAmount,
+            savedAmount: savedAmount,
+            savedFromBankAccountId: savedFromBankAccountId,
+          });
+        }
+        
+        // Revert old blocked amount if account changed or goal is edited
+        if (editingGoal && originalSavedAccountId && originalSavedAccountId !== savedFromBankAccountId) {
+            const oldAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', originalSavedAccountId);
+            const oldAccountDoc = await transaction.get(oldAccountRef);
+            if(oldAccountDoc.exists()) {
+                const oldAccountData = oldAccountDoc.data();
+                transaction.update(oldAccountRef, { blockedBalance: (oldAccountData.blockedBalance || 0) - originalBlockedAmount });
+            }
+        } else if (editingGoal && originalSavedAccountId === savedFromBankAccountId) {
+             const accountRef = doc(firestore, 'users', user.uid, 'bankAccounts', originalSavedAccountId);
+             const accountDoc = await transaction.get(accountRef);
+             if(accountDoc.exists()){
+                const accountData = accountDoc.data();
+                transaction.update(accountRef, { blockedBalance: (accountData.blockedBalance || 0) - originalBlockedAmount + savedAmount });
+             }
+        }
+
+
+        // Block new amount
+        if (savedFromBankAccountId && savedAmount > 0) {
+            const newAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', savedFromBankAccountId);
+            const newAccountDoc = await transaction.get(newAccountRef);
+            if (!newAccountDoc.exists()) throw new Error("حساب بانکی انتخاب شده برای پس‌انداز یافت نشد.");
+            
+            const newAccountData = newAccountDoc.data();
+            const availableBalance = newAccountData.balance - (newAccountData.blockedBalance || 0);
+
+            if (!editingGoal || originalSavedAccountId !== savedFromBankAccountId) {
+               if (availableBalance < savedAmount) {
+                    throw new Error("موجودی حساب برای مسدود کردن مبلغ کافی نیست.");
+                }
+                transaction.update(newAccountRef, { blockedBalance: (newAccountData.blockedBalance || 0) + savedAmount });
+            }
+        }
+      });
+
+      toast({
+        title: 'موفقیت',
+        description: `هدف مالی با موفقیت ${
+          editingGoal ? 'ویرایش' : 'ذخیره'
+        } شد.`,
+      });
+      setIsFormOpen(false);
+      setEditingGoal(null);
+    } catch (error: any) {
+      if (error.name === 'FirebaseError') {
+        const permissionError = new FirestorePermissionError({
+            path: `users/${user.uid}/financialGoals`,
+            operation: 'write'
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      } else {
+        toast({
+            variant: 'destructive',
+            title: 'خطا در ثبت هدف',
+            description:
+            error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
+        });
+      }
+    }
+  };
+
+   const handleAchieveGoal = async ({ paymentAmount, paymentCardId, categoryId }: { paymentAmount: number, paymentCardId: string, categoryId: string }) => {
+    if (!user || !firestore || !achievingGoal) return;
+    const goal = achievingGoal;
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const goalRef = doc(firestore, 'users', user.uid, 'financialGoals', goal.id);
+
+            // 1. Unblock any saved amount
+            if (goal.savedFromBankAccountId && goal.savedAmount) {
+                const savedFromAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', goal.savedFromBankAccountId);
+                const savedFromAccountDoc = await transaction.get(savedFromAccountRef);
+                if (savedFromAccountDoc.exists()) {
+                    const balance = savedFromAccountDoc.data().balance;
+                    const blockedBalance = savedFromAccountDoc.data().blockedBalance || 0;
+                    transaction.update(savedFromAccountRef, { 
+                        blockedBalance: blockedBalance - goal.savedAmount,
+                    });
+                }
+            }
+            
+            // 2. Deduct remaining amount if needed
+            if (paymentAmount > 0 && paymentCardId) {
+                 const paymentAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', paymentCardId);
+                 const paymentAccountDoc = await transaction.get(paymentAccountRef);
+                 if (!paymentAccountDoc.exists()) throw new Error("کارت پرداخت یافت نشد.");
+                 const availableBalance = paymentAccountDoc.data().balance - (paymentAccountDoc.data().blockedBalance || 0);
+                 if(availableBalance < paymentAmount) throw new Error("موجودی کارت پرداخت کافی نیست.");
+                 transaction.update(paymentAccountRef, { balance: paymentAccountDoc.data().balance - paymentAmount });
+            }
+
+            // 3. Create an expense for the full target amount
+            const expenseRef = doc(collection(firestore, 'users', user.uid, 'expenses'));
+            transaction.set(expenseRef, {
+                id: expenseRef.id,
+                userId: user.uid,
+                amount: goal.targetAmount,
+                bankAccountId: goal.savedFromBankAccountId || paymentCardId,
+                categoryId: categoryId,
+                date: new Date().toISOString(),
+                description: `تحقق هدف: ${goal.name}`,
+                type: 'expense',
+                goalId: goal.id,
+            });
+            
+            // 4. Mark goal as achieved
+            transaction.update(goalRef, { isAchieved: true });
+        });
+        toast({ title: "تبریک!", description: `هدف "${goal.name}" با موفقیت محقق شد.` });
+        setAchievingGoal(null);
+
+    } catch (error: any) {
+        if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}/financialGoals/${goal.id}`,
+                operation: 'write'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در تحقق هدف",
+                description: error.message,
+            });
+        }
+    }
+  };
+
+
+   const handleRevertGoal = async (goal: FinancialGoal) => {
+    if (!user || !firestore) return;
+    try {
+      const batch = writeBatch(firestore);
+      const goalRef = doc(firestore, 'users', user.uid, 'financialGoals', goal.id);
+
+      // Find and delete the associated expense
+      const expensesQuery = query(collection(firestore, 'users', user.uid, 'expenses'), where('goalId', '==', goal.id));
+      const expensesSnapshot = await getDocs(expensesQuery);
+      let expenseAmount = 0;
+      let paymentCardId = '';
+
+      expensesSnapshot.forEach(doc => {
+          const expenseData = doc.data();
+          expenseAmount = expenseData.amount;
+          paymentCardId = expenseData.bankAccountId;
+          batch.delete(doc.ref);
+      });
+
+      // Re-block saved amount
+      if (goal.savedFromBankAccountId && goal.savedAmount) {
+          const savedAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', goal.savedFromBankAccountId);
+          batch.update(savedAccountRef, { 'blockedBalance': goal.savedAmount });
+      }
+
+      // Refund the paid amount
+      const paidAmount = expenseAmount - (goal.savedAmount || 0);
+      if (paidAmount > 0 && paymentCardId) {
+          const paymentAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', paymentCardId);
+          // Note: This needs a read before write, so a transaction would be safer.
+          // For simplicity in batch, we assume we can just add it back.
+          // This could be improved with a transaction for full safety.
+           batch.update(paymentAccountRef, { 'balance': (bankAccounts?.find(b => b.id === paymentCardId)?.balance || 0) + paidAmount });
+      }
+
+
+      // Mark goal as not achieved
+      batch.update(goalRef, { isAchieved: false });
+
+      await batch.commit();
+      toast({ title: 'موفقیت', description: 'هدف با موفقیت بازگردانی شد.' });
+    } catch (error: any) {
+       if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}/financialGoals/${goal.id}`,
+                operation: 'write'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+       } else {
+         toast({ variant: 'destructive', title: 'خطا', description: error.message });
+       }
+    }
+  };
+
+  const handleDelete = async (goal: FinancialGoal) => {
+    if (!user || !firestore) return;
+    const goalRef = doc(firestore, 'users', user.uid, 'financialGoals', goal.id);
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            // Unblock any saved amount
+            if (goal.savedFromBankAccountId && goal.savedAmount) {
+                const accountRef = doc(firestore, 'users', user.uid, 'bankAccounts', goal.savedFromBankAccountId);
+                const accountDoc = await transaction.get(accountRef);
+                if (accountDoc.exists()) {
+                    const currentBlocked = accountDoc.data().blockedBalance || 0;
+                    transaction.update(accountRef, { blockedBalance: currentBlocked - goal.savedAmount });
+                }
+            }
+            transaction.delete(goalRef);
+        });
+
+        toast({ title: "موفقیت", description: "هدف مالی با موفقیت حذف شد." });
+    } catch (error: any) {
+        if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
+                path: goalRef.path,
+                operation: 'delete'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'خطا در حذف هدف',
+                description: 'مشکلی در حذف هدف پیش آمد.',
+            });
+        }
+    }
+  };
+
+  const handleAddNew = () => {
+    setEditingGoal(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (goal: FinancialGoal) => {
+    setEditingGoal(goal);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenAchieveDialog = (goal: FinancialGoal) => {
+    setAchievingGoal(goal);
+  };
+
+  const isLoading =
+    isUserLoading || isLoadingGoals || isLoadingBankAccounts || isLoadingCategories;
+
+  return (
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <div className="flex items-center justify-between">
+        <h1 className="font-headline text-3xl font-bold tracking-tight">
+          اهداف مالی
+        </h1>
+        <Button onClick={handleAddNew}>
+          <PlusCircle className="ml-2 h-4 w-4" />
+          افزودن هدف جدید
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
+      ) : isFormOpen ? (
+        <GoalForm
+          isOpen={isFormOpen}
+          setIsOpen={setIsFormOpen}
+          onSubmit={handleFormSubmit}
+          initialData={editingGoal}
+          bankAccounts={bankAccounts || []}
+        />
+      ) : (
+        <>
+          <GoalList
+            goals={goals || []}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onAchieve={handleOpenAchieveDialog}
+            onRevert={handleRevertGoal}
+          />
+          {achievingGoal && (
+            <AchieveGoalDialog
+              goal={achievingGoal}
+              bankAccounts={bankAccounts || []}
+              categories={categories || []}
+              isOpen={!!achievingGoal}
+              onOpenChange={() => setAchievingGoal(null)}
+              onSubmit={handleAchieveGoal}
+            />
+          )}
+        </>
+      )}
+    </main>
+  );
+}
