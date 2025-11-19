@@ -64,37 +64,27 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         },
   });
 
-  const ownerIsAli = user?.email?.startsWith('ali');
-  const incomeSources = [
-      { value: 'شغل مشترک', label: 'شغل مشترک' },
-      { value: ownerIsAli ? 'علی' : 'فاطمه', label: ownerIsAli ? 'علی' : 'فاطمه' },
-      { value: ownerIsAli ? 'فاطمه' : 'علی', label: ownerIsAli ? 'فاطمه' : 'علی' },
-  ];
+  const getOwnerName = (userId: string, isShared?: boolean) => {
+    if (isShared) return "مشترک";
+    
+    // Find user details based on userId
+    const userDetailKey = Object.keys(USER_DETAILS).find(key => {
+        // This is a bit of a hack, in a real app you'd have a users collection to lookup names
+        if (!user || !user.email) return false;
+        if (user.uid === userId) {
+            return user.email.startsWith(key);
+        } else {
+            return !user.email.startsWith(key);
+        }
+    });
 
-  const sourceValue = form.watch('source');
-  
-  const filteredBankAccounts = React.useMemo(() => {
-    if (!user) return [];
-    if (sourceValue === 'شغل مشترک') {
-      return bankAccounts.filter(acc => acc.isShared);
+    if (userDetailKey) {
+        return USER_DETAILS[userDetailKey as 'ali' | 'fatemeh'].firstName;
     }
-    const currentUserKey = user.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-    const otherUserKey = user.email?.startsWith('ali') ? 'fatemeh' : 'ali';
+    
+    return "ناشناس";
+  };
 
-    if (sourceValue === USER_DETAILS[currentUserKey].firstName) {
-        // Find personal accounts of the current user
-        return bankAccounts.filter(acc => acc.userId === user.uid && !acc.isShared);
-    }
-    if (sourceValue === USER_DETAILS[otherUserKey].firstName) {
-        // Find personal accounts of the other user
-        // This relies on the assumption we can distinguish the other user's accounts.
-        // A better approach would be to have a proper user management system.
-        // For this app, we assume any non-shared account not belonging to the current user is the other's.
-        return bankAccounts.filter(acc => acc.userId !== user.uid && !acc.isShared);
-    }
-    // Default case, perhaps show all personal accounts
-    return bankAccounts.filter(acc => !acc.isShared);
-  }, [sourceValue, bankAccounts, user]);
 
   React.useEffect(() => {
     if (initialData) {
@@ -110,22 +100,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     }
   }, [initialData, form]);
 
-  React.useEffect(() => {
-    // Auto-select shared wallet if source is "شغل مشترک"
-    if (sourceValue === 'شغل مشترک') {
-      const sharedWallet = bankAccounts.find(acc => acc.isShared);
-      if (sharedWallet) {
-        form.setValue('bankAccountId', sharedWallet.id);
-      }
-    } else {
-       // Clear bankAccountId if it's a shared one and source changes
-       const currentBankAccountId = form.getValues('bankAccountId');
-       const isCurrentShared = bankAccounts.find(acc => acc.id === currentBankAccountId)?.isShared;
-       if (isCurrentShared) {
-           form.setValue('bankAccountId', '');
-       }
-    }
-  }, [sourceValue, bankAccounts, form]);
 
   function handleFormSubmit(data: IncomeFormValues) {
     const submissionData = {
@@ -224,9 +198,9 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {incomeSources.map((source) => (
-                          <SelectItem key={source.value} value={source.value}>{source.label}</SelectItem>
-                        ))}
+                        <SelectItem value="شغل مشترک">شغل مشترک</SelectItem>
+                        <SelectItem value={USER_DETAILS.ali.firstName}>درآمد علی</SelectItem>
+                        <SelectItem value={USER_DETAILS.fatemeh.firstName}>درآمد فاطمه</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -242,7 +216,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
-                      disabled={sourceValue === 'شغل مشترک' && filteredBankAccounts.length === 1}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -250,9 +223,9 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {filteredBankAccounts.map((account) => (
+                        {bankAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {account.name}
+                            {`${account.name} (${getOwnerName(account.userId, account.isShared)})`}
                           </SelectItem>
                         ))}
                       </SelectContent>

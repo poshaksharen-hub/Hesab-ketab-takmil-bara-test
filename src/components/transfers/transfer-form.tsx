@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -27,6 +26,8 @@ import type { BankAccount } from '@/lib/types';
 import { ArrowDown, ArrowRightLeft } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
 import { formatCurrency } from '@/lib/utils';
+import type { User } from 'firebase/auth';
+import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   fromBankAccountId: z.string().min(1, { message: 'لطفا حساب مبدا را انتخاب کنید.' }),
@@ -40,9 +41,10 @@ type TransferFormValues = z.infer<typeof formSchema>;
 interface TransferFormProps {
   onSubmit: (data: TransferFormValues) => void;
   bankAccounts: BankAccount[];
+  user: User | null;
 }
 
-export function TransferForm({ onSubmit, bankAccounts }: TransferFormProps) {
+export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps) {
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -52,6 +54,17 @@ export function TransferForm({ onSubmit, bankAccounts }: TransferFormProps) {
       description: '',
     },
   });
+  
+  const getOwnerName = (userId: string, isShared?: boolean) => {
+    if (isShared) return "مشترک";
+    
+    const userEmail = user?.email || '';
+    if (user?.uid === userId) {
+      return userEmail.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+    } else {
+      return userEmail.startsWith('ali') ? USER_DETAILS.fatemeh.firstName : USER_DETAILS.ali.firstName;
+    }
+  };
 
   function handleFormSubmit(data: TransferFormValues) {
     onSubmit(data);
@@ -87,7 +100,7 @@ export function TransferForm({ onSubmit, bankAccounts }: TransferFormProps) {
                       <SelectContent>
                         {bankAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {account.name} (موجودی: {formatCurrency(account.balance, 'IRT')})
+                            {`${account.name} (${getOwnerName(account.userId, account.isShared)}) - ${formatCurrency(account.balance, 'IRT')}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -116,7 +129,7 @@ export function TransferForm({ onSubmit, bankAccounts }: TransferFormProps) {
                       <SelectContent>
                         {bankAccounts.filter(acc => acc.id !== fromAccountId).map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {account.name} (موجودی: {formatCurrency(account.balance, 'IRT')})
+                            {`${account.name} (${getOwnerName(account.userId, account.isShared)}) - ${formatCurrency(account.balance, 'IRT')}`}
                           </SelectItem>
                         ))}
                       </SelectContent>

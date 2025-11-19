@@ -1,13 +1,13 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OverviewCards } from '@/components/dashboard/overview-cards';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { SpendingChart } from '@/components/dashboard/spending-chart';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
 import type { Income, Expense, BankAccount } from '@/lib/types';
 import React from 'react';
 import { startOfMonth, endOfMonth } from 'date-fns';
@@ -16,80 +16,87 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  // Fetch Incomes
-  const incomesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'incomes') : null),
-    [firestore, user]
-  );
-  const { data: incomes, isLoading: isLoadingIncomes } = useCollection<Income>(incomesQuery);
+  const [allIncomes, setAllIncomes] = useState<Income[]>([]);
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+  const [allBankAccounts, setAllBankAccounts] = useState<BankAccount[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Fetch Expenses
-  const expensesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'expenses') : null),
-    [firestore, user]
-  );
-  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
-  
-  // Fetch Recent Transactions (combining latest 5 incomes and expenses)
-    const recentIncomesQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'users', user.uid, 'incomes'), orderBy('date', 'desc'), limit(5)) : null),
-    [firestore, user]
-    );
-    const { data: recentIncomes, isLoading: isLoadingRecentIncomes } = useCollection<Income>(recentIncomesQuery);
+  useEffect(() => {
+    if (!user || !firestore) return;
+    
+    const fetchData = async () => {
+      setIsLoadingData(true);
 
-    const recentExpensesQuery = useMemoFirebase(
-        () => (user ? query(collection(firestore, 'users', user.uid, 'expenses'), orderBy('date', 'desc'), limit(5)) : null),
-        [firestore, user]
-    );
-    const { data: recentExpenses, isLoading: isLoadingRecentExpenses } = useCollection<Expense>(recentExpensesQuery);
+      const usersSnapshot = await getDocs(collection(firestore, 'users'));
+      const userIds = usersSnapshot.docs.map(doc => doc.id);
 
+      const incomePromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'incomes')));
+      const expensePromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'expenses')));
+      const bankAccountPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'bankAccounts')));
+      
+      const [incomeSnapshots, expenseSnapshots, bankAccountSnapshots] = await Promise.all([
+        Promise.all(incomePromises),
+        Promise.all(expensePromises),
+        Promise.all(bankAccountPromises)
+      ]);
 
-  // Fetch Bank Accounts
-  const bankAccountsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'bankAccounts') : null),
-    [firestore, user]
-  );
-  const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
-  
-  const sharedBankAccountsQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
-    [firestore, user]
-  );
-  const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
+      const incomes = incomeSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Income))).flat();
+      const expenses = expenseSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Expense))).flat();
+      const bankAccounts = bankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
 
-  const allBankAccounts = React.useMemo(() => {
-    const personal = bankAccounts || [];
-    const shared = sharedBankAccounts || [];
-    return [...personal, ...shared];
-  }, [bankAccounts, sharedBankAccounts]);
+      const sharedAccountsQuery = query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true));
+      const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
+      const sharedBankAccounts = sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount);
 
+      setAllIncomes(incomes);
+      setAllExpenses(expenses);
+      setAllBankAccounts([...bankAccounts, ...sharedBankAccounts]);
+      setIsLoadingData(false);
+    };
+
+    fetchData();
+
+    // Set up listeners for real-time updates
+    const unsubscribes = [
+      ...userIds.map(uid => onSnapshot(collection(firestore, 'users', uid, 'incomes'), () => fetchData())),
+      ...userIds.map(uid => onSnapshot(collection(firestore, 'users', uid, 'expenses'), () => fetchData())),
+      ...userIds.map(uid => onSnapshot(collection(firestore, 'users', uid, 'bankAccounts'), () => fetchData())),
+      onSnapshot(query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)), () => fetchData())
+    ];
+    
+    // We need userIds to setup the listeners, so we fetch it once
+    let userIds: string[] = [];
+    getDocs(collection(firestore, 'users')).then(snap => {
+        userIds = snap.docs.map(d => d.id);
+    });
+
+    return () => unsubscribes.forEach(unsub => unsub());
+
+  }, [user, firestore]);
 
   const allTransactions = React.useMemo(() => {
-    if (!incomes || !expenses) return [];
-    const combined = [...incomes, ...expenses];
+    if (!allIncomes || !allExpenses) return [];
+    const combined = [...allIncomes, ...allExpenses];
     return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [incomes, expenses]);
+  }, [allIncomes, allExpenses]);
 
   const recentTransactions = React.useMemo(() => {
-    if (!recentIncomes || !recentExpenses) return [];
-    const combined = [...recentIncomes, ...recentExpenses];
-    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
-}, [recentIncomes, recentExpenses]);
-
+    return allTransactions.slice(0, 5);
+  }, [allTransactions]);
 
   const monthlyMetrics = React.useMemo(() => {
     const now = new Date();
     const start = startOfMonth(now);
     const end = endOfMonth(now);
     
-    const monthlyIncome = (incomes || [])
+    const monthlyIncome = (allIncomes || [])
         .filter(inc => {
             const incDate = new Date(inc.date);
             return incDate >= start && incDate <= end;
         })
         .reduce((sum, inc) => sum + inc.amount, 0);
         
-    const monthlyExpense = (expenses || [])
+    const monthlyExpense = (allExpenses || [])
         .filter(exp => {
             const expDate = new Date(exp.date);
             return expDate >= start && expDate <= end;
@@ -99,10 +106,10 @@ export default function DashboardPage() {
     const totalBalance = allBankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
     return { monthlyIncome, monthlyExpense, totalBalance };
-  }, [incomes, expenses, allBankAccounts]);
+  }, [allIncomes, allExpenses, allBankAccounts]);
 
 
-  const isLoading = isUserLoading || isLoadingIncomes || isLoadingExpenses || isLoadingBankAccounts || isLoadingRecentIncomes || isLoadingRecentExpenses || isLoadingSharedBankAccounts;
+  const isLoading = isUserLoading || isLoadingData;
 
   if (isLoading) {
     return (
@@ -176,4 +183,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-    

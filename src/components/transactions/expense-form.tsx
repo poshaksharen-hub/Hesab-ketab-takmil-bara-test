@@ -28,6 +28,9 @@ import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns-jalali';
+import { USER_DETAILS } from '@/lib/constants';
+import type { User } from 'firebase/auth';
+
 
 const formSchema = z.object({
   description: z.string().min(2, { message: 'شرح هزینه باید حداقل ۲ حرف داشته باشد.' }),
@@ -46,9 +49,10 @@ interface ExpenseFormProps {
   initialData: Expense | null;
   bankAccounts: BankAccount[];
   categories: Category[];
+  user: User | null;
 }
 
-export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories }: ExpenseFormProps) {
+export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, user }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -61,6 +65,18 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
           categoryId: '',
         },
   });
+
+  const getOwnerName = (userId: string, isShared?: boolean) => {
+    if (isShared) return "مشترک";
+    
+    // This logic is simplified. In a real app, you'd have a more robust way to get user names.
+    const userEmail = user?.email || '';
+    if (user?.uid === userId) {
+      return userEmail.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+    } else {
+      return userEmail.startsWith('ali') ? USER_DETAILS.fatemeh.firstName : USER_DETAILS.ali.firstName;
+    }
+  };
 
   React.useEffect(() => {
     if (initialData) {
@@ -172,7 +188,9 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                       </FormControl>
                       <SelectContent>
                         {bankAccounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
+                          <SelectItem key={account.id} value={account.id}>
+                            {`${account.name} (${getOwnerName(account.userId, account.isShared)})`}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
