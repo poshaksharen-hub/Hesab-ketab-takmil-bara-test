@@ -48,16 +48,24 @@ export default function CardsPage() {
 
    const allBankAccounts = React.useMemo(() => {
     if (!user || !bankAccounts || !sharedBankAccounts) return [];
-    const personal = bankAccounts.map(acc => ({...acc, userId: user.uid}));
-    const otherUserId = allUsers.find(u => u.id !== user.uid)?.id;
-    // This part is tricky without a direct query. Assuming we need to fetch other user's accounts separately if needed.
-    // For now, let's just combine personal and shared.
-    const shared = sharedBankAccounts.map(acc => ({...acc, isShared: true, id: `shared-${acc.id}`}));
     
-    // A better approach would be a query that gets all accounts for all involved users.
-    // This is a simplification for the current UI.
-    return [...personal, ...shared];
-  }, [bankAccounts, sharedBankAccounts, user, allUsers]);
+    // Combine personal accounts from all users. In a real scenario, you'd fetch all users' accounts if needed.
+    // For this app, let's assume we primarily show the current user's personal accounts and all shared accounts.
+    const personal = bankAccounts.map(acc => ({...acc, userId: user.uid, isShared: false}));
+    
+    // Add shared accounts
+    const shared = sharedBankAccounts.map(acc => ({...acc, isShared: true, id: acc.id}));
+    
+    // To get a truly complete list including the *other* user's personal accounts,
+    // we would need another query, but that complicates things. For now, let's just
+    // display the current user's personal accounts and the shared ones.
+    // A better approach is to fetch all accounts that the user has access to.
+    
+    const combined = [...personal, ...shared];
+    const uniqueAccounts = Array.from(new Map(combined.map(item => [item.id, item])).values());
+    
+    return uniqueAccounts;
+}, [bankAccounts, sharedBankAccounts, user]);
 
 
   const handleFormSubmit = async (values: Omit<BankAccount, 'id' | 'balance'>) => {
@@ -65,8 +73,8 @@ export default function CardsPage() {
 
     if (editingCard) {
       // --- Edit ---
-      const isShared = editingCard.isShared;
-      const cardId = isShared ? editingCard.id.replace('shared-','') : editingCard.id;
+      const isShared = !!editingCard.isShared;
+      const cardId = editingCard.id;
       const ownerId = editingCard.userId;
       
       const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${cardId}` : `users/${ownerId}/bankAccounts/${cardId}`);
@@ -141,16 +149,16 @@ export default function CardsPage() {
   };
 
   const handleDelete = async (cardId: string, isShared: boolean) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || allUsers.length === 0) return;
     
-    const collectionsToSearch = allUsers.map(u => u.id);
+    const userIds = allUsers.map(u => u.id);
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const realCardId = isShared ? cardId.replace('shared-', '') : cardId;
-            let cardToDeleteRef: any;
+            const realCardId = cardId;
+            let cardToDeleteRef;
 
-            for (const userId of collectionsToSearch) {
+            for (const userId of userIds) {
                 const checksRef = collection(firestore, 'users', userId, 'checks');
                 const pendingChecksQuery = query(checksRef, where('bankAccountId', '==', realCardId), where('status', '==', 'pending'));
                 const pendingChecksSnapshot = await getDocs(pendingChecksQuery);
@@ -195,6 +203,7 @@ export default function CardsPage() {
         }
     }
   };
+
 
   const handleEdit = (card: BankAccount) => {
     setEditingCard(card);

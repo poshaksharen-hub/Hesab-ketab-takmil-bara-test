@@ -30,9 +30,9 @@ interface CardListProps {
 export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   const { user } = useUser();
 
-  const getOwnerName = (userId: string, isShared?: boolean) => {
-    if (isShared) return "مشترک";
-    const owner = users.find(u => u.id === userId);
+  const getOwnerName = (card: BankAccount) => {
+    if (card.isShared) return "مشترک";
+    const owner = users.find(u => u.id === card.userId);
     return owner?.firstName || "ناشناس";
   };
 
@@ -58,7 +58,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                         <div>
                             <CardTitle>{card.name}</CardTitle>
                             <CardDescription>
-                                {getOwnerName(card.userId, card.isShared)}
+                                {getOwnerName(card)}
                             </CardDescription>
                         </div>
                         <div className="flex gap-1">

@@ -51,19 +51,12 @@ interface CardFormProps {
 export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users }: CardFormProps) {
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData
-      ? { 
-          name: initialData.name,
-          initialBalance: initialData.initialBalance,
-          owner: initialData.userId === user?.uid ? 'me' : 'other',
-          isShared: !!initialData.isShared,
-        }
-      : {
-          name: '',
-          initialBalance: 0,
-          owner: 'me',
-          isShared: false,
-        },
+    defaultValues: {
+      name: '',
+      initialBalance: 0,
+      owner: 'me',
+      isShared: false,
+    },
   });
   
   const otherUser = users.find(u => u.id !== user?.uid);
@@ -73,7 +66,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
       form.reset({
          name: initialData.name,
          initialBalance: initialData.initialBalance,
-         owner: initialData.userId === user?.uid ? 'me' : 'other',
+         owner: initialData.isShared ? 'shared' : (initialData.userId === user?.uid ? 'me' : 'other'),
          isShared: !!initialData.isShared
         });
     } else {
@@ -156,15 +149,15 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                 render={({ field }) => (
                   <FormItem style={{ display: isShared ? 'none' : 'block' }}>
                     <FormLabel>صاحب حساب</FormLabel>
-                     <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isShared || !!initialData}>
+                     <Select onValueChange={field.onChange} value={field.value} disabled={isShared || !!initialData}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="me">{user?.firstName || 'من'}</SelectItem>
-                        <SelectItem value="other">{otherUser?.firstName || 'دیگری'}</SelectItem>
+                        <SelectItem value="me">{USER_DETAILS.ali.firstName} (من)</SelectItem>
+                        <SelectItem value="other">{USER_DETAILS.fatemeh.firstName}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
