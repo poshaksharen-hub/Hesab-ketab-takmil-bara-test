@@ -71,10 +71,14 @@ export default function LoginPage() {
     try {
       // 1. Attempt to sign in
       await signInWithEmailAndPassword(auth, email, password);
+      toast({
+        title: 'ورود موفق',
+        description: 'شما با موفقیت وارد شدید.',
+      });
       router.push('/');
     } catch (error: any) {
       // 2. If user does not exist, create a new user (Auto-Signup)
-      if (error.code === 'auth/user-not-found') {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
           const userCredential = await createUserWithEmailAndPassword(
             auth,
@@ -96,7 +100,10 @@ export default function LoginPage() {
               lastName: userDetail.lastName,
             });
           }
-
+          toast({
+            title: 'حساب کاربری ایجاد شد',
+            description: 'حساب شما با موفقیت ایجاد و وارد شدید.',
+          });
           router.push('/');
         } catch (creationError: any) {
           toast({
@@ -111,7 +118,7 @@ export default function LoginPage() {
         toast({
           variant: 'destructive',
           title: 'خطا در ورود',
-          description: 'ایمیل یا رمز عبور اشتباه است.',
+          description: 'ایمیل یا رمز عبور اشتباه است. لطفاً دوباره تلاش کنید.',
         });
       }
     } finally {
