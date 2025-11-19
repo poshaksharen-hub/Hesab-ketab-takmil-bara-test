@@ -52,7 +52,8 @@ const ChipIcon = () => (
     </svg>
 );
 
-const formatCardNumber = (cardNumber: string) => {
+const formatCardNumber = (cardNumber?: string) => {
+    if (!cardNumber) return '';
     return cardNumber.replace(/(\d{4})/g, '$1 ').trim();
 };
 
