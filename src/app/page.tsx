@@ -7,7 +7,7 @@ import { OverviewCards } from '@/components/dashboard/overview-cards';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { SpendingChart } from '@/components/dashboard/spending-chart';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import type { Income, Expense, BankAccount } from '@/lib/types';
 import React from 'react';
 import { startOfMonth, endOfMonth } from 'date-fns';
@@ -51,13 +51,28 @@ export default function DashboardPage() {
   );
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   
+  const sharedBankAccountsQuery = useMemoFirebase(
+    () => (user ? query(collection(firestore, 'shared', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
+    [firestore, user]
+  );
+  const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
+
+  const allBankAccounts = React.useMemo(() => {
+    const personal = bankAccounts || [];
+    const shared = sharedBankAccounts || [];
+    return [...personal, ...shared];
+  }, [bankAccounts, sharedBankAccounts]);
+
+
   const allTransactions = React.useMemo(() => {
-    const combined = [...(incomes || []), ...(expenses || [])];
+    if (!incomes || !expenses) return [];
+    const combined = [...incomes, ...expenses];
     return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [incomes, expenses]);
 
   const recentTransactions = React.useMemo(() => {
-    const combined = [...(recentIncomes || []), ...(recentExpenses || [])];
+    if (!recentIncomes || !recentExpenses) return [];
+    const combined = [...recentIncomes, ...recentExpenses];
     return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
 }, [recentIncomes, recentExpenses]);
 
@@ -81,13 +96,13 @@ export default function DashboardPage() {
         })
         .reduce((sum, exp) => sum + exp.amount, 0);
 
-    const totalBalance = (bankAccounts || []).reduce((sum, acc) => sum + acc.balance, 0);
+    const totalBalance = allBankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
     return { monthlyIncome, monthlyExpense, totalBalance };
-  }, [incomes, expenses, bankAccounts]);
+  }, [incomes, expenses, allBankAccounts]);
 
 
-  const isLoading = isUserLoading || isLoadingIncomes || isLoadingExpenses || isLoadingBankAccounts || isLoadingRecentIncomes || isLoadingRecentExpenses;
+  const isLoading = isUserLoading || isLoadingIncomes || isLoadingExpenses || isLoadingBankAccounts || isLoadingRecentIncomes || isLoadingRecentExpenses || isLoadingSharedBankAccounts;
 
   if (isLoading) {
     return (

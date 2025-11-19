@@ -72,22 +72,27 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   ];
 
   const sourceValue = form.watch('source');
-  const aliUid = user?.uid; // Assuming the logged-in user is one of them.
-  // This is a simplification. In a real app, you'd fetch the other user's UID.
-  const fatemehUid = user?.email === 'ali@khanevadati.app' ? 'fatemeh_uid_placeholder' : user?.uid;
-
-
+  
   const filteredBankAccounts = React.useMemo(() => {
+    if (!user) return [];
     if (sourceValue === 'شغل مشترک') {
       return bankAccounts.filter(acc => acc.isShared);
     }
-    const currentUserKey = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-    if (sourceValue === USER_DETAILS.ali.firstName) {
-        return bankAccounts.filter(acc => acc.userId === user?.uid && !acc.isShared);
+    const currentUserKey = user.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+    const otherUserKey = user.email?.startsWith('ali') ? 'fatemeh' : 'ali';
+
+    if (sourceValue === USER_DETAILS[currentUserKey].firstName) {
+        // Find personal accounts of the current user
+        return bankAccounts.filter(acc => acc.userId === user.uid && !acc.isShared);
     }
-    if (sourceValue === USER_DETAILS.fatemeh.firstName) {
-        return bankAccounts.filter(acc => acc.userId !== user?.uid && !acc.isShared);
+    if (sourceValue === USER_DETAILS[otherUserKey].firstName) {
+        // Find personal accounts of the other user
+        // This relies on the assumption we can distinguish the other user's accounts.
+        // A better approach would be to have a proper user management system.
+        // For this app, we assume any non-shared account not belonging to the current user is the other's.
+        return bankAccounts.filter(acc => acc.userId !== user.uid && !acc.isShared);
     }
+    // Default case, perhaps show all personal accounts
     return bankAccounts.filter(acc => !acc.isShared);
   }, [sourceValue, bankAccounts, user]);
 
@@ -115,7 +120,8 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     } else {
        // Clear bankAccountId if it's a shared one and source changes
        const currentBankAccountId = form.getValues('bankAccountId');
-       if (currentBankAccountId.startsWith('shared-')) {
+       const isCurrentShared = bankAccounts.find(acc => acc.id === currentBankAccountId)?.isShared;
+       if (isCurrentShared) {
            form.setValue('bankAccountId', '');
        }
     }
@@ -236,7 +242,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
-                      disabled={sourceValue === 'شغل مشترک'}
+                      disabled={sourceValue === 'شغل مشترک' && filteredBankAccounts.length === 1}
                     >
                       <FormControl>
                         <SelectTrigger>
