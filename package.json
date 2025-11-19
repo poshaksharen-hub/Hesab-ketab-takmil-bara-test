@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "genkit start --port 6100 -- tsx src/ai/dev.ts & next dev --turbopack",
+    "dev": "next dev --turbopack",
     "genkit:dev": "genkit start --port 6100 -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start --port 6100 -- tsx --watch src/ai/dev.ts",
     "build": "NODE_ENV=production next build",
