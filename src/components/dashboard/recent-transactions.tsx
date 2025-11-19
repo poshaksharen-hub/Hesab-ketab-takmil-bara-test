@@ -1,19 +1,21 @@
 'use client';
 
-import { type Income, type Expense, type UserProfile, type Category } from '@/lib/types';
+import { type Income, type Expense, type UserProfile, type Category, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Briefcase, ShoppingCart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns-jalali';
+import { Badge } from '../ui/badge';
 
 
 type RecentTransactionsProps = {
   transactions: (Income | Expense)[];
   categories: Category[];
   users: UserProfile[];
+  bankAccounts: BankAccount[];
 };
 
-export function RecentTransactions({ transactions, categories, users }: RecentTransactionsProps) {
+export function RecentTransactions({ transactions, categories, users, bankAccounts }: RecentTransactionsProps) {
     
   if (!transactions || transactions.length === 0) {
     return (
@@ -43,6 +45,10 @@ export function RecentTransactions({ transactions, categories, users }: RecentTr
     }
   }
 
+  const isShared = (transaction: Income | Expense) => {
+      const account = bankAccounts.find(acc => acc.id === transaction.bankAccountId);
+      return account?.isShared;
+  }
 
   return (
     <div className="space-y-4">
@@ -51,7 +57,7 @@ export function RecentTransactions({ transactions, categories, users }: RecentTr
         const categoryId = 'categoryId' in transaction ? transaction.categoryId : 'درآمد';
         const categoryName = getCategoryName(categoryId);
         const registeredById = 'registeredByUserId' in transaction ? transaction.registeredByUserId : transaction.userId;
-        const transactionDate = 'createdAt' in transaction ? transaction.createdAt : transaction.date;
+        const transactionDate = 'createdAt' in transaction && transaction.createdAt ? transaction.createdAt : transaction.date;
         
         return (
           <div key={transaction.id} className="flex items-center">
@@ -61,7 +67,10 @@ export function RecentTransactions({ transactions, categories, users }: RecentTr
               </AvatarFallback>
             </Avatar>
             <div className="ml-4 space-y-1">
-              <p className="text-sm font-medium leading-none">{transaction.description}</p>
+              <p className="text-sm font-medium leading-none flex items-center gap-2">
+                {transaction.description}
+                {isShared(transaction) && <Badge variant="secondary">مشترک</Badge>}
+              </p>
               <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transactionDate)}</span></p>
             </div>
             <div

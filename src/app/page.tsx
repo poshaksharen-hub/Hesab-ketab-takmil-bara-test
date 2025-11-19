@@ -14,6 +14,8 @@ import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { CategorySpending } from '@/components/dashboard/category-spending';
 import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
 import { USER_DETAILS } from '@/lib/constants';
+import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
+import { AccountBalanceCards } from '@/components/dashboard/account-balance-cards';
 
 function DashboardSkeleton() {
   return (
@@ -25,8 +27,11 @@ function DashboardSkeleton() {
           <Skeleton className="h-10 w-72" />
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28" />)}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28" />)}
+      </div>
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28" />)}
       </div>
       <Card>
         <CardHeader>
@@ -53,6 +58,8 @@ export default function DashboardPage() {
   const { summary, details } = getFilteredData(date, ownerFilter);
   
   const effectiveLoading = isUserLoading || isLoading;
+  const aliId = allData.users.find(u => u.email.startsWith('ali'))?.id;
+  const fatemehId = allData.users.find(u => u.email.startsWith('fatemeh'))?.id;
 
   if (effectiveLoading) {
     return <DashboardSkeleton />;
@@ -71,8 +78,8 @@ export default function DashboardPage() {
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">همه</SelectItem>
-                    <SelectItem value={allData.users.find(u => u.email.startsWith('ali'))?.id ?? 'ali'}>{USER_DETAILS.ali.firstName}</SelectItem>
-                    <SelectItem value={allData.users.find(u => u.email.startsWith('fatemeh'))?.id ?? 'fatemeh'}>{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                    {aliId && <SelectItem value={aliId}>{USER_DETAILS.ali.firstName}</SelectItem>}
+                    {fatemehId && <SelectItem value={fatemehId}>{USER_DEtails.fatemeh.firstName}</SelectItem>}
                     <SelectItem value="shared">مشترک</SelectItem>
                 </SelectContent>
             </Select>
@@ -81,40 +88,55 @@ export default function DashboardPage() {
       </div>
 
       {/* Overall Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <OverallSummary summary={summary} />
+      </div>
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <AccountBalanceCards 
+            aliBalance={summary.aliBalance}
+            fatemehBalance={summary.fatemehBalance}
+            sharedBalance={summary.sharedBalance}
+        />
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">نمای کلی</TabsTrigger>
           <TabsTrigger value="transactions">تراکنش‌ها</TabsTrigger>
-          <TabsTrigger value="debts">بدهی‌ها (چک و وام)</TabsTrigger>
-          <TabsTrigger value="goals">اهداف</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-7">
-              <Card className="xl:col-span-4">
-                <CardHeader>
-                  <CardTitle className="font-headline">هزینه‌ها بر اساس دسته‌بندی</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CategorySpending expenses={details.expenses} categories={allData.categories}/>
-                </CardContent>
-              </Card>
-              <Card className="xl:col-span-3">
-                <CardHeader>
-                  <CardTitle className="font-headline">موعدهای پیش رو</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <UpcomingDeadlines 
-                      checks={allData.checks} 
-                      loans={allData.loans}
-                      payees={allData.payees}
-                  />
-                </CardContent>
-              </Card>
+                <Card className="xl:col-span-3">
+                    <CardHeader>
+                        <CardTitle className="font-headline">درآمد در مقابل هزینه</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <IncomeExpenseChart income={summary.totalIncome} expense={summary.totalExpense} />
+                    </CardContent>
+                </Card>
+                <Card className="xl:col-span-4">
+                    <CardHeader>
+                    <CardTitle className="font-headline">هزینه‌ها بر اساس دسته‌بندی</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                    <CategorySpending expenses={details.expenses} categories={allData.categories}/>
+                    </CardContent>
+                </Card>
+            </div>
+             <div className="grid grid-cols-1 gap-4">
+                 <Card className="xl:col-span-3">
+                    <CardHeader>
+                    <CardTitle className="font-headline">موعدهای پیش رو</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                    <UpcomingDeadlines 
+                        checks={allData.checks} 
+                        loans={allData.loans}
+                        payees={allData.payees}
+                    />
+                    </CardContent>
+                </Card>
             </div>
         </TabsContent>
 
@@ -128,15 +150,10 @@ export default function DashboardPage() {
                         transactions={details.transactions} 
                         categories={allData.categories} 
                         users={allData.users}
+                        bankAccounts={allData.bankAccounts}
                     />
                 </CardContent>
             </Card>
-        </TabsContent>
-        <TabsContent value="debts" className="space-y-4">
-          <p>تحلیل چک‌ها و وام‌ها در اینجا نمایش داده خواهد شد.</p>
-        </TabsContent>
-        <TabsContent value="goals" className="space-y-4">
-           <p>تحلیل اهداف مالی در اینجا نمایش داده خواهد شد.</p>
         </TabsContent>
       </Tabs>
     </main>
