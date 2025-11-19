@@ -11,6 +11,8 @@ import { PayeeForm } from '@/components/payees/payee-form';
 import type { Payee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 export default function PayeesPage() {
   const { user, isUserLoading } = useUser();
@@ -29,28 +31,41 @@ export default function PayeesPage() {
   const handleFormSubmit = async (values: Omit<Payee, 'id' | 'userId'>) => {
     if (!user || !firestore) return;
 
-    try {
-        if (editingPayee) {
-            const payeeRef = doc(firestore, 'users', user.uid, 'payees', editingPayee.id);
-            await updateDoc(payeeRef, values);
-            toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
-        } else {
-            const newPayee = {
-                ...values,
-                userId: user.uid,
-            };
-            await addDoc(collection(firestore, 'users', user.uid, 'payees'), newPayee);
-            toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
-        }
-        setIsFormOpen(false);
-        setEditingPayee(null);
-    } catch (error: any) {
-         toast({
-            variant: "destructive",
-            title: "خطا در ثبت طرف حساب",
-            description: error.message || "مشکلی در ثبت اطلاعات پیش آمد.",
-        });
+    if (editingPayee) {
+        const payeeRef = doc(firestore, 'users', user.uid, 'payees', editingPayee.id);
+        updateDoc(payeeRef, values)
+            .then(() => {
+                toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: payeeRef.path,
+                    operation: 'update',
+                    requestResourceData: values,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
+    } else {
+        const newPayee = {
+            ...values,
+            userId: user.uid,
+        };
+        const payeesColRef = collection(firestore, 'users', user.uid, 'payees');
+        addDoc(payeesColRef, newPayee)
+            .then(() => {
+                toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: payeesColRef.path,
+                    operation: 'create',
+                    requestResourceData: newPayee,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
     }
+    setIsFormOpen(false);
+    setEditingPayee(null);
   };
 
   const handleDelete = async (payeeId: string) => {
@@ -72,11 +87,19 @@ export default function PayeesPage() {
 
         toast({ title: "موفقیت", description: "طرف حساب با موفقیت حذف شد." });
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "خطا در حذف",
-            description: error.message || "مشکلی در حذف طرف حساب پیش آمد.",
-        });
+        if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}/payees/${payeeId}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در حذف",
+                description: error.message || "مشکلی در حذف طرف حساب پیش آمد.",
+            });
+        }
     }
   };
 

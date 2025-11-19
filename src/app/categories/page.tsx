@@ -11,6 +11,8 @@ import { CategoryForm } from '@/components/categories/category-form';
 import type { Category } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 export default function CategoriesPage() {
   const { user, isUserLoading } = useUser();
@@ -29,28 +31,41 @@ export default function CategoriesPage() {
   const handleFormSubmit = async (values: Omit<Category, 'id' | 'userId'>) => {
     if (!user || !firestore) return;
 
-    try {
-        if (editingCategory) {
-            const categoryRef = doc(firestore, 'users', user.uid, 'categories', editingCategory.id);
-            await updateDoc(categoryRef, values);
+    if (editingCategory) {
+        const categoryRef = doc(firestore, 'users', user.uid, 'categories', editingCategory.id);
+        updateDoc(categoryRef, values)
+        .then(() => {
             toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." });
-        } else {
-            const newCategory = {
-                ...values,
-                userId: user.uid,
-            };
-            await addDoc(collection(firestore, 'users', user.uid, 'categories'), newCategory);
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: categoryRef.path,
+                operation: 'update',
+                requestResourceData: values,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
+    } else {
+        const newCategory = {
+            ...values,
+            userId: user.uid,
+        };
+        const categoriesColRef = collection(firestore, 'users', user.uid, 'categories');
+        addDoc(categoriesColRef, newCategory)
+        .then(() => {
             toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
-        }
-        setIsFormOpen(false);
-        setEditingCategory(null);
-    } catch (error: any) {
-         toast({
-            variant: "destructive",
-            title: "خطا در ثبت دسته‌بندی",
-            description: error.message || "مشکلی در ثبت اطلاعات پیش آمد.",
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: categoriesColRef.path,
+                operation: 'create',
+                requestResourceData: newCategory,
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
     }
+    setIsFormOpen(false);
+    setEditingCategory(null);
   };
 
   const handleDelete = async (categoryId: string) => {
@@ -58,7 +73,6 @@ export default function CategoriesPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            // Check for usage in expenses
             const expensesRef = collection(firestore, 'users', user.uid, 'expenses');
             const expensesQuery = query(expensesRef, where('categoryId', '==', categoryId));
             const expensesSnapshot = await getDocs(expensesQuery);
@@ -67,7 +81,6 @@ export default function CategoriesPage() {
                 throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند هزینه استفاده شده است.");
             }
             
-            // Check for usage in checks
             const checksRef = collection(firestore, 'users', user.uid, 'checks');
             const checksQuery = query(checksRef, where('categoryId', '==', categoryId));
             const checksSnapshot = await getDocs(checksQuery);
@@ -82,11 +95,19 @@ export default function CategoriesPage() {
 
         toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت حذف شد." });
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "خطا در حذف",
-            description: error.message || "مشکلی در حذف دسته‌بندی پیش آمد.",
-        });
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}/categories/${categoryId}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در حذف",
+                description: error.message || "مشکلی در حذف دسته‌بندی پیش آمد.",
+            });
+        }
     }
   };
 

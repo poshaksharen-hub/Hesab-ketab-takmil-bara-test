@@ -10,6 +10,8 @@ import { CardForm } from '@/components/cards/card-form';
 import type { BankAccount, Check, LoanPayment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 export default function CardsPage() {
   const { user, isUserLoading } = useUser();
@@ -45,23 +47,55 @@ export default function CardsPage() {
       // Edit
       const cardRef = doc(firestore, editingCard.isShared ? `shared/data/bankAccounts/${editingCard.id.replace('shared-','')}` : `users/${user.uid}/bankAccounts/${editingCard.id}`);
       const { initialBalance, ...updateData } = values; // Exclude initialBalance on edit
-      await updateDoc(cardRef, updateData);
-      toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
+      updateDoc(cardRef, updateData)
+        .then(() => {
+          toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
+        })
+        .catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: cardRef.path,
+            operation: 'update',
+            requestResourceData: updateData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
     } else {
       // Create
-      const newCard = {
+      const newCard: Omit<BankAccount, 'id'> = {
         ...values,
         userId: user.uid,
         balance: values.initialBalance,
       };
       if(values.isShared){
          const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
-         await addDoc(sharedColRef, {...newCard, members: {[user.uid]: true}}); // Add member field
+         const dataToSend = {...newCard, members: {[user.uid]: true}};
+         addDoc(sharedColRef, dataToSend)
+            .then(() => {
+              toast({ title: "موفقیت", description: "کارت بانکی جدید با موفقیت اضافه شد." });
+            })
+            .catch(async (serverError) => {
+              const permissionError = new FirestorePermissionError({
+                path: sharedColRef.path,
+                operation: 'create',
+                requestResourceData: dataToSend,
+              });
+              errorEmitter.emit('permission-error', permissionError);
+            });
       } else {
          const userColRef = collection(firestore, 'users', user.uid, 'bankAccounts');
-         await addDoc(userColRef, newCard);
+         addDoc(userColRef, newCard)
+            .then(() => {
+              toast({ title: "موفقیت", description: "کارت بانکی جدید با موفقیت اضافه شد." });
+            })
+            .catch(async (serverError) => {
+              const permissionError = new FirestorePermissionError({
+                path: userColRef.path,
+                operation: 'create',
+                requestResourceData: newCard,
+              });
+              errorEmitter.emit('permission-error', permissionError);
+            });
       }
-      toast({ title: "موفقیت", description: "کارت بانکی جدید با موفقیت اضافه شد." });
     }
     setIsFormOpen(false);
     setEditingCard(null);
@@ -94,11 +128,19 @@ export default function CardsPage() {
 
         toast({ title: "موفقیت", description: "کارت بانکی با موفقیت حذف شد." });
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "خطا در حذف کارت",
-            description: error.message || "مشکلی در حذف کارت پیش آمد.",
-        });
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}/bankAccounts/${cardId}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در حذف کارت",
+                description: error.message || "مشکلی در حذف کارت پیش آمد.",
+            });
+        }
     }
   };
 
@@ -149,4 +191,3 @@ export default function CardsPage() {
     </main>
   );
 }
-    

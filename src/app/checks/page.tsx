@@ -5,12 +5,14 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, runTransaction, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc } from 'firebase/firestore';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
 import type { Check, BankAccount, Payee, Category } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 export default function ChecksPage() {
   const { user, isUserLoading } = useUser();
@@ -48,34 +50,42 @@ export default function ChecksPage() {
   const handleFormSubmit = async (values: Omit<Check, 'id' | 'userId'>) => {
     if (!user || !firestore) return;
 
-    try {
-      if (editingCheck) {
-        // Edit
-        const checkRef = doc(firestore, 'users', user.uid, 'checks', editingCheck.id);
-        // Editing a check doesn't involve balance changes directly.
-        // Status changes are handled by clear/unclear functions.
-        await runTransaction(firestore, async (transaction) => {
-          transaction.update(checkRef, values);
+    if (editingCheck) {
+      const checkRef = doc(firestore, 'users', user.uid, 'checks', editingCheck.id);
+      updateDoc(checkRef, values)
+        .then(() => {
+          toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: checkRef.path,
+                operation: 'update',
+                requestResourceData: values,
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
-        toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
-      } else {
-        // Create
-        await addDoc(collection(firestore, 'users', user.uid, 'checks'), {
-            ...values,
-            userId: user.uid,
-            status: 'pending', // Always pending on creation
-        });
-        toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
-      }
-      setIsFormOpen(false);
-      setEditingCheck(null);
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "خطا در ثبت چک",
-            description: error.message || "مشکلی در ثبت چک پیش آمد.",
+    } else {
+      const newCheck = {
+        ...values,
+        userId: user.uid,
+        status: 'pending' as 'pending',
+      };
+      const checksColRef = collection(firestore, 'users', user.uid, 'checks');
+      addDoc(checksColRef, newCheck)
+        .then(() => {
+          toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: checksColRef.path,
+                operation: 'create',
+                requestResourceData: newCheck,
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
     }
+    setIsFormOpen(false);
+    setEditingCheck(null);
   };
 
   const handleClearCheck = async (check: Check) => {
@@ -91,14 +101,10 @@ export default function ChecksPage() {
           throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
         }
 
-        // 1. Update check status to 'cleared'
         transaction.update(checkRef, { status: 'cleared' });
-
-        // 2. Deduct amount from bank account balance
         const newBalance = bankAccountDoc.data().balance - check.amount;
         transaction.update(bankAccountRef, { balance: newBalance });
 
-        // 3. Create a corresponding expense record
         const expenseRef = doc(collection(firestore, 'users', user.uid, 'expenses'));
         transaction.set(expenseRef, {
             id: expenseRef.id,
@@ -109,16 +115,24 @@ export default function ChecksPage() {
             date: new Date().toISOString(),
             description: `پاس کردن چک به: ${payees?.find(p => p.id === check.payeeId)?.name || 'نامشخص'}`,
             type: 'expense',
-            checkId: check.id, // Link expense to the check
+            checkId: check.id,
         });
       });
       toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
     } catch (error: any) {
-       toast({
-            variant: "destructive",
-            title: "خطا در پاس کردن چک",
-            description: error.message || "مشکلی در عملیات پاس کردن چک پیش آمد.",
-        });
+       if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}/checks/${check.id}`,
+                operation: 'update', // This is a transaction, but conceptually it's an update
+            });
+            errorEmitter.emit('permission-error', permissionError);
+       } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در پاس کردن چک",
+                description: error.message || "مشکلی در عملیات پاس کردن چک پیش آمد.",
+            });
+       }
     }
   };
 
@@ -129,42 +143,45 @@ export default function ChecksPage() {
         await runTransaction(firestore, async (transaction) => {
             const checkRef = doc(firestore, 'users', user.uid, 'checks', check.id);
             
-            // If the check was already cleared, we need to reverse the financial impact
             if (check.status === 'cleared') {
                 const bankAccountRef = doc(firestore, 'users', user.uid, 'bankAccounts', check.bankAccountId);
                 const bankAccountDoc = await transaction.get(bankAccountRef);
                 
-                // Refund the amount to the bank account
                 if(bankAccountDoc.exists()){
                     const newBalance = bankAccountDoc.data().balance + check.amount;
                     transaction.update(bankAccountRef, { balance: newBalance });
                 }
 
-                // Find and delete the corresponding expense
                 const expensesRef = collection(firestore, 'users', user.uid, 'expenses');
                 const q = query(expensesRef, where("checkId", "==", check.id));
-                const querySnapshot = await getDocs(q); // getDocs should be outside transaction, but for this case it might be fine. For robustness, fetch outside and pass refs to transaction.
+                const querySnapshot = await getDocs(q);
                 querySnapshot.forEach((doc) => {
                     transaction.delete(doc.ref);
                 });
             }
             
-            // Finally, delete the check document itself
             transaction.delete(checkRef);
         });
 
         toast({ title: "موفقیت", description: "چک با موفقیت حذف شد." });
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "خطا در حذف چک",
-            description: error.message || "مشکلی در حذف چک پیش آمد.",
-        });
+        if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}/checks/${check.id}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در حذف چک",
+                description: error.message || "مشکلی در حذف چک پیش آمد.",
+            });
+        }
     }
   };
 
   const handleEdit = (check: Check) => {
-    // Prevent editing of cleared checks
     if (check.status === 'cleared') {
       toast({
         variant: "destructive",
@@ -225,4 +242,3 @@ export default function ChecksPage() {
     </main>
   );
 }
-

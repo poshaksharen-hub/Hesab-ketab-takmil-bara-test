@@ -34,6 +34,8 @@ import { useAuth, useFirestore } from '@/firebase';
 import { ALLOWED_USERS, USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const formSchema = z.object({
   email: z
@@ -69,7 +71,6 @@ export default function LoginPage() {
     const { email, password } = values;
 
     try {
-      // 1. Attempt to sign in
       await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'ورود موفق',
@@ -77,7 +78,6 @@ export default function LoginPage() {
       });
       router.push('/');
     } catch (error: any) {
-      // 2. If user does not exist, create a new user (Auto-Signup)
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
           const userCredential = await createUserWithEmailAndPassword(
@@ -87,18 +87,28 @@ export default function LoginPage() {
           );
           const user = userCredential.user;
 
-          // 3. Create user profile document in Firestore
           const userDetailKey = email.split('@')[0] as 'ali' | 'fatemeh';
           const userDetail = USER_DETAILS[userDetailKey];
 
           if (userDetail) {
             const userProfileRef = doc(firestore, 'users', user.uid);
-            await setDoc(userProfileRef, {
+            const profileData = {
               id: user.uid,
               email: user.email,
               firstName: userDetail.firstName,
               lastName: userDetail.lastName,
-            });
+            };
+            await setDoc(userProfileRef, profileData)
+              .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                  path: userProfileRef.path,
+                  operation: 'create',
+                  requestResourceData: profileData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                // Re-throw to be caught by the outer catch block
+                throw permissionError;
+              });
           }
           toast({
             title: 'حساب کاربری ایجاد شد',
@@ -106,7 +116,7 @@ export default function LoginPage() {
           });
           router.push('/');
         } catch (creationError: any) {
-          toast({
+           toast({
             variant: 'destructive',
             title: 'خطا در ایجاد حساب',
             description:
@@ -114,7 +124,6 @@ export default function LoginPage() {
           });
         }
       } else {
-        // Handle other login errors (e.g., wrong password)
         toast({
           variant: 'destructive',
           title: 'خطا در ورود',
