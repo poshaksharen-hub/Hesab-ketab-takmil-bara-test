@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import { ExpenseForm } from '@/components/transactions/expense-form';
 import type { Expense, BankAccount, Category, UserProfile } from '@/lib/types';
@@ -12,62 +12,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 export default function ExpensesPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
 
-  const [allExpenses, setAllExpenses] = React.useState<Expense[]>([]);
-  const [allBankAccounts, setAllBankAccounts] = React.useState<BankAccount[]>([]);
-  const [allCategories, setAllCategories] = React.useState<Category[]>([]);
-  const [allUsers, setAllUsers] = React.useState<UserProfile[]>([]);
-  const [isLoadingData, setIsLoadingData] = React.useState(true);
-
-  React.useEffect(() => {
-    if (!user || !firestore) return;
-    const fetchData = async () => {
-      setIsLoadingData(true);
-      try {
-        const usersSnapshot = await getDocs(collection(firestore, 'users'));
-        const userProfiles = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id } as UserProfile));
-        const userIds = userProfiles.map(u => u.id);
-        setAllUsers(userProfiles);
-
-        const [expenseSnapshots, bankAccountSnapshots, categorySnapshots] = await Promise.all([
-          Promise.all(userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'expenses')))),
-          Promise.all(userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'bankAccounts')))),
-          Promise.all(userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'categories'))))
-        ]);
-
-        const expenses = expenseSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Expense))).flat();
-        const personalBankAccounts = bankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
-        const categories = categorySnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Category))).flat();
-
-        const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
-        if (sharedAccountsQuery) {
-          const sharedAccountsSnapshot = await getDocs(sharedAccountsQuery);
-          const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount) : [];
-          setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);
-        } else {
-          setAllBankAccounts(personalBankAccounts);
-        }
-
-        setAllExpenses(expenses);
-        setAllCategories(categories);
-      } catch (error) {
-        console.error("Failed to fetch expense page data:", error);
-        toast({ variant: "destructive", title: "خطا در بارگذاری اطلاعات" });
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    fetchData();
-  }, [user, firestore, toast]);
+  const {
+    expenses: allExpenses,
+    bankAccounts: allBankAccounts,
+    categories: allCategories,
+    users: allUsers,
+  } = allData;
 
   const handleFormSubmit = async (values: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'type' | 'registeredByUserId'>) => {
     if (!user || !firestore) return;
@@ -75,13 +36,12 @@ export default function ExpensesPage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const expenseData = { ...values, type: 'expense' as 'expense' };
-            const isSharedAccount = expenseData.bankAccountId.startsWith('shared-');
-            const accountId = isSharedAccount ? expenseData.bankAccountId.replace('shared-', '') : expenseData.bankAccountId;
             
             const account = allBankAccounts.find(acc => acc.id === expenseData.bankAccountId);
             if (!account) throw new Error("کارت بانکی یافت نشد");
+            const isSharedAccount = !!account.isShared;
 
-            const fromCardRef = doc(firestore, isSharedAccount ? `shared/data/bankAccounts/${accountId}` : `users/${account.userId}/bankAccounts/${accountId}`);
+            const fromCardRef = doc(firestore, isSharedAccount ? `shared/data/bankAccounts/${account.id}` : `users/${account.userId}/bankAccounts/${account.id}`);
             const fromCardDoc = await transaction.get(fromCardRef);
 
             if (!fromCardDoc.exists()) {
@@ -93,12 +53,11 @@ export default function ExpensesPage() {
                 // --- Edit Mode ---
                 const oldExpenseRef = doc(firestore, 'users', editingExpense.userId, 'expenses', editingExpense.id);
                 
-                const isOldShared = editingExpense.bankAccountId.startsWith('shared-');
-                const oldAccountId = isOldShared ? editingExpense.bankAccountId.replace('shared-', '') : editingExpense.bankAccountId;
                 const oldAccount = allBankAccounts.find(acc => acc.id === editingExpense.bankAccountId);
                 if(!oldAccount) throw new Error("کارت بانکی قدیمی یافت نشد.");
+                const isOldShared = !!oldAccount.isShared;
                 
-                const oldCardRef = doc(firestore, isOldShared ? `shared/data/bankAccounts/${oldAccountId}` : `users/${oldAccount.userId}/bankAccounts/${oldAccountId}`);
+                const oldCardRef = doc(firestore, isOldShared ? `shared/data/bankAccounts/${oldAccount.id}` : `users/${oldAccount.userId}/bankAccounts/${oldAccount.id}`);
 
                 // 1. Revert previous transaction
                 if (editingExpense.bankAccountId === expenseData.bankAccountId) {
@@ -173,12 +132,11 @@ export default function ExpensesPage() {
         await runTransaction(firestore, async (transaction) => {
             const expenseRef = doc(firestore, 'users', expense.userId, 'expenses', expense.id);
             
-            const isShared = expense.bankAccountId.startsWith('shared-');
-            const accountId = isShared ? expense.bankAccountId.replace('shared-', '') : expense.bankAccountId;
             const account = allBankAccounts.find(acc => acc.id === expense.bankAccountId);
             if(!account) throw new Error("کارت بانکی یافت نشد");
+            const isShared = !!account.isShared;
             
-            const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${accountId}` : `users/${account.userId}/bankAccounts/${accountId}`);
+            const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${account.id}` : `users/${account.userId}/bankAccounts/${account.id}`);
 
             const cardDoc = await transaction.get(cardRef);
             if (cardDoc.exists()) {
@@ -220,7 +178,7 @@ export default function ExpensesPage() {
     setIsFormOpen(true);
   };
   
-  const isLoading = isUserLoading || isLoadingData;
+  const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">

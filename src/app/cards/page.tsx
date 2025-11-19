@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, runTransaction } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
 import { CardForm } from '@/components/cards/card-form';
@@ -12,56 +12,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 export default function CardsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
-  const [allUsers, setAllUsers] = React.useState<UserProfile[]>([]);
-
-  React.useEffect(() => {
-    if (!firestore) return;
-    const fetchUsers = async () => {
-      const usersSnapshot = await getDocs(collection(firestore, 'users'));
-      const users = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
-      setAllUsers(users);
-    };
-    fetchUsers();
-  }, [firestore]);
-
-
-  const bankAccountsQuery = useMemoFirebase(
-    () => (allUsers.length > 0 ? query(collection(firestore, 'users', allUsers[0].id, 'bankAccounts')) : null),
-    [firestore, allUsers]
-  );
-  const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   
-  const sharedBankAccountsQuery = useMemoFirebase(
-    () => (user?.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
-    [firestore, user]
-  );
-  const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
-
-   const allBankAccounts = React.useMemo(() => {
-    if (!user || !bankAccounts || !sharedBankAccounts) return [];
-
-    const personalAccounts = bankAccounts.map(acc => ({...acc, isShared: false}));
-    const shared = sharedBankAccounts.map(acc => ({...acc, isShared: true, id: acc.id}));
-    
-    // We need to fetch the other user's personal accounts as well to show a complete list for transfers, etc.
-    // For now, this logic will suffice for the card list itself. A more robust solution would be a cloud function
-    // or more complex client-side fetching if full visibility is needed everywhere.
-    // This is a simplified approach for the current view.
-    
-    const combined = [...personalAccounts, ...shared];
-    // Create a map to ensure uniqueness by ID
-    const uniqueAccountsMap = new Map(combined.map(item => [item.id, item]));
-    
-    return Array.from(uniqueAccountsMap.values());
-}, [bankAccounts, sharedBankAccounts, user]);
+  const { bankAccounts: allBankAccounts, users: allUsers } = allData;
 
 
   const handleFormSubmit = async (values: Omit<BankAccount, 'id' | 'balance'>) => {
@@ -215,7 +178,7 @@ export default function CardsPage() {
     setIsFormOpen(true);
   };
   
-  const isLoading = isUserLoading || isLoadingBankAccounts || isLoadingSharedBankAccounts || allUsers.length === 0;
+  const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">

@@ -215,7 +215,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="savings">پس‌انداز / کوتاه مدت</SelectItem>
-                        <SelectItem value="checking">جاری / با دسته‌چک</SelectItem>
+                        <SelectItem value="checking">جاری / دسته‌چک دار</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -281,7 +281,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="me">{USER_DETAILS.ali.firstName} (من)</SelectItem>
-                        <SelectItem value="other">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                        {otherUser && <SelectItem value="other">{USER_DETAILS.fatemeh.firstName}</SelectItem>}
                       </SelectContent>
                     </Select>
                     <FormMessage />

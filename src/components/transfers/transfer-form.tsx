@@ -96,7 +96,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFo
                       <SelectContent>
                         {bankAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.name} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
+                            {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -125,7 +125,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFo
                       <SelectContent>
                         {bankAccounts.filter(acc => acc.id !== fromAccountId).map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.name} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
+                            {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
