@@ -2,15 +2,15 @@
   "placeholderImages": [
     {
       "id": "fatemeh-avatar",
-      "description": "Avatar for Fatemeh's user profile in the sidebar.",
-      "imageUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwZXJzb24lMjBmYWNlfGVufDB8fHx8MTc2MzUyNTAyMnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "woman face"
+      "description": "Avatar for Fatemeh's user profile in the sidebar, inspired by Judy Hopps.",
+      "imageUrl": "https://images.unsplash.com/photo-1759664809407-6ac782fbae97?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjYXJ0b29uJTIwcmFiYml0fGVufDB8fHx8MTc2MzU3MjA0NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cartoon rabbit"
     },
     {
       "id": "ali-avatar",
-      "description": "Avatar for Ali's user profile in the sidebar.",
-      "imageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtYWxlJTIwZmFjZXxlbnwwfHx8fDE3NjM1MjUxNDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "man face"
+      "description": "Avatar for Ali's user profile in the sidebar, inspired by Nick Wilde.",
+      "imageUrl": "https://images.unsplash.com/photo-1727891521863-ba8c598bad4e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXJ0b29uJTIwZm94fGVufDB8fHx8MTc2MzU3MjA0NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cartoon fox"
     }
   ]
 }
