@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -36,6 +35,7 @@ import {
   FolderKanban,
   Target,
   Landmark,
+  Bell,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -66,6 +66,7 @@ function Menu() {
   const { setOpenMobile } = useSidebar();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+    { href: '/due-dates', label: 'سررسیدها', icon: Bell },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },
     { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft },
