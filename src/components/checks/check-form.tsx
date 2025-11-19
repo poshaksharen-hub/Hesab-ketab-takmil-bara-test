@@ -73,7 +73,8 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
       form.reset({
         ...initialData,
         issueDate: new Date(initialData.issueDate),
-        dueDate: new Date(initialData.dueDate)
+        dueDate: new Date(initialData.dueDate),
+        description: initialData.description || '',
       });
     } else {
       form.reset({

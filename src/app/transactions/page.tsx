@@ -10,6 +10,8 @@ import { ExpenseForm } from '@/components/transactions/expense-form';
 import type { Expense, BankAccount, Category, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 export default function ExpensesPage() {
   const { user, isUserLoading } = useUser();
@@ -29,38 +31,39 @@ export default function ExpensesPage() {
     if (!user || !firestore) return;
     const fetchData = async () => {
       setIsLoadingData(true);
-      
-      const usersSnapshot = await getDocs(collection(firestore, 'users'));
-      const userProfiles = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id } as UserProfile));
-      const userIds = userProfiles.map(u => u.id);
-      setAllUsers(userProfiles);
+      try {
+        const usersSnapshot = await getDocs(collection(firestore, 'users'));
+        const userProfiles = usersSnapshot.docs.map(doc => ({...doc.data(), id: doc.id } as UserProfile));
+        const userIds = userProfiles.map(u => u.id);
+        setAllUsers(userProfiles);
 
-      const expensePromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'expenses')));
-      const bankAccountPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'bankAccounts')));
-      const categoryPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'categories')));
-      
-      const [expenseSnapshots, bankAccountSnapshots, categorySnapshots] = await Promise.all([
-        Promise.all(expensePromises),
-        Promise.all(bankAccountPromises),
-        Promise.all(categoryPromises)
-      ]);
+        const [expenseSnapshots, bankAccountSnapshots, categorySnapshots] = await Promise.all([
+          Promise.all(userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'expenses')))),
+          Promise.all(userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'bankAccounts')))),
+          Promise.all(userIds.map(uid => getDocs(collection(firestore, 'users', uid, 'categories'))))
+        ]);
 
-      const expenses = expenseSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Expense))).flat();
-      const personalBankAccounts = bankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
-      const categories = categorySnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Category))).flat();
+        const expenses = expenseSnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Expense))).flat();
+        const personalBankAccounts = bankAccountSnapshots.flat().map((snap, index) => snap.docs.map(doc => ({...doc.data(), id: doc.id, userId: userIds[index]} as BankAccount))).flat();
+        const categories = categorySnapshots.flat().map(snap => snap.docs.map(doc => ({...doc.data(), id: doc.id} as Category))).flat();
 
-      const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
-      const sharedAccountsSnapshot = sharedAccountsQuery ? await getDocs(sharedAccountsQuery) : null;
-      const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: `shared-${doc.id}`, isShared: true}) as BankAccount) : [];
+        const sharedAccountsQuery = user.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null;
+        const sharedAccountsSnapshot = sharedAccountsQuery ? await getDocs(sharedAccountsQuery) : null;
+        const sharedBankAccounts = sharedAccountsSnapshot ? sharedAccountsSnapshot.docs.map(doc => ({...doc.data(), id: doc.id, isShared: true}) as BankAccount) : [];
 
-      setAllExpenses(expenses);
-      setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);
-      setAllCategories(categories);
-      setIsLoadingData(false);
+        setAllExpenses(expenses);
+        setAllBankAccounts([...personalBankAccounts, ...sharedBankAccounts]);
+        setAllCategories(categories);
+      } catch (error) {
+        console.error("Failed to fetch expense page data:", error);
+        toast({ variant: "destructive", title: "خطا در بارگذاری اطلاعات" });
+      } finally {
+        setIsLoadingData(false);
+      }
     };
 
     fetchData();
-  }, [user, firestore]);
+  }, [user, firestore, toast]);
 
   const handleFormSubmit = async (values: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'type' | 'registeredByUserId'>) => {
     if (!user || !firestore) return;
@@ -71,16 +74,10 @@ export default function ExpensesPage() {
             const isSharedAccount = expenseData.bankAccountId.startsWith('shared-');
             const accountId = isSharedAccount ? expenseData.bankAccountId.replace('shared-', '') : expenseData.bankAccountId;
             
-            let ownerId = '';
-            if(isSharedAccount){
-               ownerId = user.uid; // Not really an owner, but needed for path
-            } else {
-                 const account = allBankAccounts.find(acc => acc.id === accountId);
-                 if(!account) throw new Error("کارت بانکی یافت نشد");
-                 ownerId = account.userId;
-            }
+            const account = allBankAccounts.find(acc => acc.id === expenseData.bankAccountId);
+            if (!account) throw new Error("کارت بانکی یافت نشد");
 
-            const fromCardRef = doc(firestore, isSharedAccount ? `shared/data/bankAccounts/${accountId}` : `users/${ownerId}/bankAccounts/${accountId}`);
+            const fromCardRef = doc(firestore, isSharedAccount ? `shared/data/bankAccounts/${accountId}` : `users/${account.userId}/bankAccounts/${accountId}`);
             const fromCardDoc = await transaction.get(fromCardRef);
 
             if (!fromCardDoc.exists()) {
@@ -94,15 +91,10 @@ export default function ExpensesPage() {
                 
                 const isOldShared = editingExpense.bankAccountId.startsWith('shared-');
                 const oldAccountId = isOldShared ? editingExpense.bankAccountId.replace('shared-', '') : editingExpense.bankAccountId;
-                let oldOwnerId = '';
-                 if(isOldShared) {
-                    oldOwnerId = user.uid;
-                } else {
-                    const oldAccount = allBankAccounts.find(acc => acc.id === oldAccountId);
-                    if(!oldAccount) throw new Error("کارت بانکی قدیمی یافت نشد.");
-                    oldOwnerId = oldAccount.userId;
-                }
-                const oldCardRef = doc(firestore, isOldShared ? `shared/data/bankAccounts/${oldAccountId}` : `users/${oldOwnerId}/bankAccounts/${oldAccountId}`);
+                const oldAccount = allBankAccounts.find(acc => acc.id === editingExpense.bankAccountId);
+                if(!oldAccount) throw new Error("کارت بانکی قدیمی یافت نشد.");
+                
+                const oldCardRef = doc(firestore, isOldShared ? `shared/data/bankAccounts/${oldAccountId}` : `users/${oldAccount.userId}/bankAccounts/${oldAccountId}`);
 
                 // 1. Revert previous transaction
                 if (editingExpense.bankAccountId === expenseData.bankAccountId) {
@@ -141,7 +133,7 @@ export default function ExpensesPage() {
                 transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
 
                 // 2. Create new expense document in the account owner's collection
-                const expenseOwnerId = ownerId;
+                const expenseOwnerId = account.userId;
                 const newExpenseRef = doc(collection(firestore, 'users', expenseOwnerId, 'expenses'));
                 transaction.set(newExpenseRef, {
                     ...expenseData,
@@ -158,12 +150,15 @@ export default function ExpensesPage() {
         setEditingExpense(null);
 
     } catch (error: any) {
-        console.error("Transaction Error: ", error);
-        toast({
+        if (error instanceof FirestorePermissionError) {
+          errorEmitter.emit('permission-error', error);
+        } else {
+          toast({
             variant: "destructive",
             title: "خطا در ثبت تراکنش",
             description: error.message || "مشکلی در ثبت هزینه پیش آمد.",
-        });
+          });
+        }
     }
   };
 
@@ -176,15 +171,10 @@ export default function ExpensesPage() {
             
             const isShared = expense.bankAccountId.startsWith('shared-');
             const accountId = isShared ? expense.bankAccountId.replace('shared-', '') : expense.bankAccountId;
-            let ownerId = '';
-            if(isShared){
-                ownerId = user.uid;
-            } else {
-                const account = allBankAccounts.find(acc => acc.id === accountId);
-                if(!account) throw new Error("کارت بانکی یافت نشد");
-                ownerId = account.userId;
-            }
-            const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${accountId}` : `users/${ownerId}/bankAccounts/${accountId}`);
+            const account = allBankAccounts.find(acc => acc.id === expense.bankAccountId);
+            if(!account) throw new Error("کارت بانکی یافت نشد");
+            
+            const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${accountId}` : `users/${account.userId}/bankAccounts/${accountId}`);
 
             const cardDoc = await transaction.get(cardRef);
             if (cardDoc.exists()) {
@@ -196,12 +186,15 @@ export default function ExpensesPage() {
         });
         toast({ title: "موفقیت", description: "هزینه با موفقیت حذف شد." });
     } catch (error: any) {
-        console.error("Delete Error:", error);
-        toast({
+       if (error instanceof FirestorePermissionError) {
+          errorEmitter.emit('permission-error', error);
+        } else {
+          toast({
             variant: "destructive",
             title: "خطا در حذف هزینه",
             description: error.message || "مشکلی در حذف هزینه پیش آمد.",
-        });
+          });
+        }
     }
   };
 

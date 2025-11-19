@@ -4,15 +4,14 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, runTransaction, getDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, runTransaction } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
 import { CardForm } from '@/components/cards/card-form';
-import type { BankAccount, Check, LoanPayment, UserProfile } from '@/lib/types';
+import type { BankAccount, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { USER_DETAILS } from '@/lib/constants';
 
 export default function CardsPage() {
   const { user, isUserLoading } = useUser();
@@ -41,30 +40,27 @@ export default function CardsPage() {
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } = useCollection<BankAccount>(bankAccountsQuery);
   
   const sharedBankAccountsQuery = useMemoFirebase(
-    () => (user?.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '!=', undefined)) : null),
+    () => (user?.uid ? query(collection(firestore, 'shared', 'data', 'bankAccounts'), where(`members.${user.uid}`, '==', true)) : null),
     [firestore, user]
   );
   const { data: sharedBankAccounts, isLoading: isLoadingSharedBankAccounts } = useCollection<BankAccount>(sharedBankAccountsQuery);
 
    const allBankAccounts = React.useMemo(() => {
     if (!user || !bankAccounts || !sharedBankAccounts) return [];
-    
-    // Combine personal accounts from all users. In a real scenario, you'd fetch all users' accounts if needed.
-    // For this app, let's assume we primarily show the current user's personal accounts and all shared accounts.
-    const personal = bankAccounts.map(acc => ({...acc, userId: user.uid, isShared: false}));
-    
-    // Add shared accounts
+
+    const personalAccounts = bankAccounts.map(acc => ({...acc, isShared: false}));
     const shared = sharedBankAccounts.map(acc => ({...acc, isShared: true, id: acc.id}));
     
-    // To get a truly complete list including the *other* user's personal accounts,
-    // we would need another query, but that complicates things. For now, let's just
-    // display the current user's personal accounts and the shared ones.
-    // A better approach is to fetch all accounts that the user has access to.
+    // We need to fetch the other user's personal accounts as well to show a complete list for transfers, etc.
+    // For now, this logic will suffice for the card list itself. A more robust solution would be a cloud function
+    // or more complex client-side fetching if full visibility is needed everywhere.
+    // This is a simplified approach for the current view.
     
-    const combined = [...personal, ...shared];
-    const uniqueAccounts = Array.from(new Map(combined.map(item => [item.id, item])).values());
+    const combined = [...personalAccounts, ...shared];
+    // Create a map to ensure uniqueness by ID
+    const uniqueAccountsMap = new Map(combined.map(item => [item.id, item]));
     
-    return uniqueAccounts;
+    return Array.from(uniqueAccountsMap.values());
 }, [bankAccounts, sharedBankAccounts, user]);
 
 
@@ -157,11 +153,12 @@ export default function CardsPage() {
         await runTransaction(firestore, async (transaction) => {
             const realCardId = cardId;
             let cardToDeleteRef;
-
+            
+            // Comprehensive check across all users' collections
             for (const userId of userIds) {
                 const checksRef = collection(firestore, 'users', userId, 'checks');
                 const pendingChecksQuery = query(checksRef, where('bankAccountId', '==', realCardId), where('status', '==', 'pending'));
-                const pendingChecksSnapshot = await getDocs(pendingChecksQuery);
+                const pendingChecksSnapshot = await transaction.get(pendingChecksQuery);
 
                 if (!pendingChecksSnapshot.empty) {
                     throw new Error("امکان حذف وجود ندارد. این کارت در یک یا چند چک پاس نشده استفاده شده است.");
@@ -169,20 +166,23 @@ export default function CardsPage() {
 
                 const loanPaymentsRef = collection(firestore, 'users', userId, 'loanPayments');
                 const loanPaymentsQuery = query(loanPaymentsRef, where('bankAccountId', '==', realCardId));
-                const loanPaymentsSnapshot = await getDocs(loanPaymentsQuery);
+                const loanPaymentsSnapshot = await transaction.get(loanPaymentsQuery);
                 
                 if(!loanPaymentsSnapshot.empty) {
                     throw new Error("امکان حذف وجود ندارد. از این کارت برای پرداخت اقساط وام استفاده شده است.");
                 }
             }
-
+            
+            let ownerId;
             if (isShared) {
                 cardToDeleteRef = doc(firestore, 'shared', 'data', 'bankAccounts', realCardId);
             } else {
-                const cardOwner = allBankAccounts.find(c => c.id === cardId)?.userId;
-                const ownerId = cardOwner || user.uid; // Fallback, though cardOwner should exist
+                const cardOwner = allBankAccounts.find(c => c.id === cardId && !c.isShared);
+                ownerId = cardOwner?.userId;
+                if (!ownerId) throw new Error("مالک کارت شخصی برای حذف یافت نشد.");
                 cardToDeleteRef = doc(firestore, `users/${ownerId}/bankAccounts/${cardId}`);
             }
+
              const cardDoc = await transaction.get(cardToDeleteRef);
              if (!cardDoc.exists()) {
                  throw new Error("کارت بانکی برای حذف یافت نشد.");

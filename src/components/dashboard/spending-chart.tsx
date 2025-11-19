@@ -28,7 +28,9 @@ type SpendingChartProps = {
 export function SpendingChart({ transactions, categories }: SpendingChartProps) {
   
   const chartData = React.useMemo(() => {
-    const getCategoryName = (id: string) => categories?.find(c => c.id === id)?.name || 'متفرقه';
+    if (!categories || categories.length === 0) return [];
+    
+    const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'متفرقه';
 
     const expenseByCategory = transactions
       .filter((t): t is Expense => 'categoryId' in t)

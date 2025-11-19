@@ -66,21 +66,22 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   
   const getOwnerName = (account: BankAccount) => {
     if (account.isShared) return "(مشترک)";
-    const ownerDetails = Object.values(USER_DETAILS).find(detail => {
-        // This is a proxy for matching. In a real app, you'd have a more direct link.
-        // For this app, we assume the `userId` on the account tells us who the owner is.
-        const userWithAccount = bankAccounts.find(ba => ba.userId === account.userId);
-        return !!userWithAccount;
-    });
+    if (!account.userId || !user) return "";
 
-    if (account.userId === user?.uid) {
+    const allUsers = Object.entries(USER_DETAILS).map(([key, value]) => ({
+      ...value,
+      emailKey: key,
+    }));
+
+    if (account.userId === user.uid) {
         const currentUserKey = user.email?.split('@')[0] as keyof typeof USER_DETAILS;
         return `(${USER_DETAILS[currentUserKey]?.firstName || 'من'})`;
     } else {
-        const otherUserKey = Object.keys(USER_DETAILS).find(key => key !== user?.email?.split('@')[0]) as keyof typeof USER_DETAILS;
-        return `(${USER_DETAILS[otherUserKey]?.firstName || 'دیگری'})`;
+        // Find the user detail that doesn't match the current user's email
+        const otherUser = allUsers.find(u => u.emailKey !== user.email?.split('@')[0]);
+        return `(${otherUser?.firstName || 'دیگری'})`;
     }
-};
+  };
 
 
   React.useEffect(() => {
