@@ -15,6 +15,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -60,14 +61,9 @@ const useSimpleTheme = () => {
   return { theme, toggleTheme };
 };
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+function Menu() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { theme, toggleTheme } = useSimpleTheme();
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  const userAvatar = getPlaceholderImage('user-avatar');
-
+  const { setOpenMobile } = useSidebar();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
@@ -78,9 +74,37 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy },
     { href: '/loans', label: 'وام‌ها', icon: Landmark },
-    { href: '/sharing', label: 'اهداف مالی', icon: Target },
+    { href: '/goals', label: 'اهداف مالی', icon: Target },
     { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
   ];
+
+  return (
+    <SidebarMenu>
+      {menuItems.map((item) => (
+        <SidebarMenuItem key={item.href}>
+          <Link href={item.href} passHref>
+            <SidebarMenuButton
+              isActive={pathname === item.href}
+              tooltip={item.label}
+              onClick={() => setOpenMobile(false)}
+            >
+              <item.icon />
+              <span>{item.label}</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+}
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { theme, toggleTheme } = useSimpleTheme();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const userAvatar = getPlaceholderImage('user-avatar');
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -119,21 +143,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href}>
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    tooltip={item.label}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+          <Menu />
         </SidebarContent>
         <SidebarFooter>
           {isUserLoading ? (
