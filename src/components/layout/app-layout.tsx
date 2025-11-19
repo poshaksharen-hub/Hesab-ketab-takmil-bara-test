@@ -25,9 +25,11 @@ import {
   PanelLeft,
   Sun,
   Moon,
+  LogIn,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
+import { useUser } from '@/firebase';
 
 const useSimpleTheme = () => {
     const [theme, setTheme] = React.useState('light');
@@ -50,22 +52,28 @@ const useSimpleTheme = () => {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useSimpleTheme();
+  const { user, isUserLoading } = useUser();
   const userAvatar = getPlaceholderImage('user-avatar');
 
   const menuItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/transactions', label: 'Transactions', icon: ArrowRightLeft },
-    { href: '/insights', label: 'Insights', icon: Sparkles },
-    { href: '/sharing', label: 'Sharing', icon: Users },
+    { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+    { href: '/transactions', label: 'تراکنش ها', icon: ArrowRightLeft },
+    { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
+    { href: '/sharing', label: 'اشتراک گذاری', icon: Users },
   ];
+  
+  if (pathname === '/login' || pathname === '/signup') {
+    return <>{children}</>;
+  }
+
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar side="right">
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <HesabKetabLogo className="size-8 text-primary" />
-            <span className="font-headline text-2xl font-bold">Hesab Ketab</span>
+            <span className="font-headline text-2xl font-bold">حساب کتاب</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -86,6 +94,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
+         {isUserLoading ? (
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+              </div>
+            </div>
+          ) : user ? (
           <div className="flex items-center justify-between gap-2">
              <div className="flex items-center gap-2 overflow-hidden">
                 <Avatar>
@@ -93,21 +110,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <AvatarFallback>HK</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col truncate">
-                  <span className="truncate text-sm font-semibold">User One</span>
-                  <span className="truncate text-xs text-muted-foreground">user.one@email.com</span>
+                  <span className="truncate text-sm font-semibold">کاربر</span>
+                  <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
                   {theme === 'light' ? <Moon /> : <Sun />}
               </Button>
           </div>
+          ) : (
+            <Link href="/login" className="w-full">
+              <Button className="w-full">
+                <LogIn className="mr-2" />
+                ورود / ثبت‌نام
+              </Button>
+            </Link>
+          )}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
           <Link href="/" className="flex items-center gap-2">
             <HesabKetabLogo className="size-7 text-primary" />
-            <span className="font-headline text-xl font-bold">Hesab Ketab</span>
+            <span className="font-headline text-xl font-bold">حساب کتاب</span>
           </Link>
           <SidebarTrigger>
             <PanelLeft />

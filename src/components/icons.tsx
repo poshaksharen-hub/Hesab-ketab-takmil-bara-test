@@ -11,8 +11,13 @@ export const HesabKetabLogo = (props: React.SVGProps<SVGSVGElement>) => (
     strokeLinejoin="round"
     {...props}
   >
-    <path d="M8 6h8c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2z" />
-    <path d="M12 18V6" />
-    <path d="M16 12H8" />
+    <path d="M4 7V4h16v3" />
+    <path d="M9 20h6" />
+    <path d="M12 4v16" />
+    <path d="M17 20h-2" />
+    <path d="M17 4h-2" />
+    <path d="M9 4H7" />
+    <path d="M9 20H7" />
+    <path d="M21 12H3" />
   </svg>
 );
