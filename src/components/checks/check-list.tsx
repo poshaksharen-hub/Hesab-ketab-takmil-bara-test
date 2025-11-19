@@ -68,8 +68,8 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
             <TableRow>
               <TableHead>طرف حساب</TableHead>
               <TableHead>مبلغ</TableHead>
-              <TableHead className="hidden md:table-cell">تاریخ سررسید</TableHead>
-              <TableHead className="hidden sm:table-cell">وضعیت</TableHead>
+              <TableHead>تاریخ سررسید</TableHead>
+              <TableHead>وضعیت</TableHead>
               <TableHead className="text-left">عملیات</TableHead>
             </TableRow>
           </TableHeader>
@@ -78,8 +78,8 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
               <TableRow key={check.id} className={cn(check.status === 'cleared' && 'text-muted-foreground opacity-70')}>
                 <TableCell className="font-medium">{getPayeeName(check.payeeId)}</TableCell>
                 <TableCell>{formatCurrency(check.amount, 'IRT')}</TableCell>
-                <TableCell className="hidden md:table-cell">{formatJalaliDate(new Date(check.dueDate))}</TableCell>
-                <TableCell className="hidden sm:table-cell">{getStatusBadge(check.status, check.dueDate)}</TableCell>
+                <TableCell>{formatJalaliDate(new Date(check.dueDate))}</TableCell>
+                <TableCell>{getStatusBadge(check.status, check.dueDate)}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex gap-1 justify-end'>
                         {check.status === 'pending' && (

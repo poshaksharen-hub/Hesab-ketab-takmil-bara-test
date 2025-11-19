@@ -16,7 +16,7 @@ interface TransferListProps {
 export function TransferList({ transfers, bankAccounts }: TransferListProps) {
   const getBankAccountName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
-    return account ? account.name : 'نامشخص';
+    return account ? account.bankName : 'نامشخص';
   };
   
   if (transfers.length === 0) {
@@ -43,20 +43,20 @@ export function TransferList({ transfers, bankAccounts }: TransferListProps) {
           <TableHeader>
             <TableRow>
               <TableHead>مبلغ</TableHead>
-              <TableHead className="hidden sm:table-cell">از حساب</TableHead>
-              <TableHead className="hidden sm:table-cell"></TableHead>
-              <TableHead className="hidden sm:table-cell">به حساب</TableHead>
-              <TableHead className="hidden md:table-cell">تاریخ</TableHead>
+              <TableHead>از حساب</TableHead>
+              <TableHead></TableHead>
+              <TableHead>به حساب</TableHead>
+              <TableHead>تاریخ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {transfers.sort((a,b) => new Date(b.transferDate).getTime() - new Date(a.transferDate).getTime()).map((transfer) => (
               <TableRow key={transfer.id}>
                 <TableCell className="font-medium font-mono">{formatCurrency(transfer.amount, 'IRT')}</TableCell>
-                <TableCell className="hidden sm:table-cell text-muted-foreground">{getBankAccountName(transfer.fromBankAccountId)}</TableCell>
-                <TableCell className="hidden sm:table-cell"><ArrowLeftRight className="w-4 h-4 text-muted-foreground" /></TableCell>
-                <TableCell className="hidden sm:table-cell text-muted-foreground">{getBankAccountName(transfer.toBankAccountId)}</TableCell>
-                <TableCell className="hidden md:table-cell">{formatJalaliDate(new Date(transfer.transferDate))}</TableCell>
+                <TableCell className="text-muted-foreground">{getBankAccountName(transfer.fromBankAccountId)}</TableCell>
+                <TableCell><ArrowLeftRight className="w-4 h-4 text-muted-foreground" /></TableCell>
+                <TableCell className="text-muted-foreground">{getBankAccountName(transfer.toBankAccountId)}</TableCell>
+                <TableCell>{formatJalaliDate(new Date(transfer.transferDate))}</TableCell>
               </TableRow>
             ))}
           </TableBody>

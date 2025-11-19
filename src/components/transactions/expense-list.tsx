@@ -62,9 +62,9 @@ export function ExpenseList({ expenses, bankAccounts, categories, users, onEdit,
             <TableRow>
               <TableHead>شرح</TableHead>
               <TableHead>مبلغ</TableHead>
-              <TableHead className="hidden md:table-cell">تاریخ</TableHead>
-              <TableHead className="hidden sm:table-cell">دسته‌بندی</TableHead>
-              <TableHead className="hidden md:table-cell">ثبت توسط</TableHead>
+              <TableHead>تاریخ</TableHead>
+              <TableHead>دسته‌بندی</TableHead>
+              <TableHead>ثبت توسط</TableHead>
               <TableHead className="text-left">عملیات</TableHead>
             </TableRow>
           </TableHeader>
@@ -73,11 +73,11 @@ export function ExpenseList({ expenses, bankAccounts, categories, users, onEdit,
               <TableRow key={expense.id}>
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell>{formatCurrency(expense.amount, 'IRT')}</TableCell>
-                <TableCell className="hidden md:table-cell">{formatJalaliDate(new Date(expense.date))}</TableCell>
-                <TableCell className="hidden sm:table-cell">
+                <TableCell>{formatJalaliDate(new Date(expense.date))}</TableCell>
+                <TableCell>
                     <Badge variant="outline">{getCategoryName(expense.categoryId)}</Badge>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">{getUserName(expense.registeredByUserId)}</TableCell>
+                <TableCell>{getUserName(expense.registeredByUserId)}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex gap-2 justify-end'>
                         <Tooltip>

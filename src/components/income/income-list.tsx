@@ -63,9 +63,9 @@ export function IncomeList({ incomes, bankAccounts, users, onEdit, onDelete }: I
             <TableRow>
               <TableHead>شرح</TableHead>
               <TableHead>مبلغ</TableHead>
-              <TableHead className="hidden md:table-cell">تاریخ</TableHead>
-              <TableHead className="hidden md:table-cell">واریز به</TableHead>
-              <TableHead className="hidden sm:table-cell">ثبت توسط</TableHead>
+              <TableHead>تاریخ</TableHead>
+              <TableHead>واریز به</TableHead>
+              <TableHead>ثبت توسط</TableHead>
               <TableHead className="text-left">عملیات</TableHead>
             </TableRow>
           </TableHeader>
@@ -74,9 +74,9 @@ export function IncomeList({ incomes, bankAccounts, users, onEdit, onDelete }: I
               <TableRow key={income.id}>
                 <TableCell className="font-medium">{income.description}</TableCell>
                 <TableCell className='text-emerald-500 dark:text-emerald-400 font-semibold'>{formatCurrency(income.amount, 'IRT')}</TableCell>
-                <TableCell className="hidden md:table-cell">{formatJalaliDate(new Date(income.date))}</TableCell>
-                <TableCell className="hidden md:table-cell">{getBankAccountName(income.bankAccountId)}</TableCell>
-                <TableCell className="hidden sm:table-cell">{getUserName(income.registeredByUserId)}</TableCell>
+                <TableCell>{formatJalaliDate(new Date(income.date))}</TableCell>
+                <TableCell>{getBankAccountName(income.bankAccountId)}</TableCell>
+                <TableCell>{getUserName(income.registeredByUserId)}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex gap-2 justify-end'>
                         <Button variant="ghost" size="icon" onClick={() => onEdit(income)}>
