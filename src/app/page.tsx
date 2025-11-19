@@ -79,7 +79,7 @@ export default function DashboardPage() {
                 <SelectContent>
                     <SelectItem value="all">همه</SelectItem>
                     {aliId && <SelectItem value={aliId}>{USER_DETAILS.ali.firstName}</SelectItem>}
-                    {fatemehId && <SelectItem value={fatemehId}>{USER_DEtails.fatemeh.firstName}</SelectItem>}
+                    {fatemehId && <SelectItem value={fatemehId}>{USER_DETAILS.fatemeh.firstName}</SelectItem>}
                     <SelectItem value="shared">مشترک</SelectItem>
                 </SelectContent>
             </Select>
