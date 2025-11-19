@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OverviewCards } from '@/components/dashboard/overview-cards';
@@ -76,7 +76,7 @@ export default function DashboardPage() {
 
 
   useEffect(() => {
-    if (userIds.length > 0) {
+    if (userIds.length > 0 && user) {
       fetchData(); // Initial fetch
 
       // Set up listeners
