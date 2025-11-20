@@ -14,6 +14,7 @@ import { LoanForm } from '@/components/loans/loan-form';
 import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
+const FAMILY_DATA_DOC = 'shared-data';
 
 export default function LoansPage() {
   const { user, isUserLoading } = useUser();
@@ -44,22 +45,20 @@ export default function LoansPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const loanOwnerId = user.uid; // Loans are personal to the creator
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
 
             if (editingLoan) {
                 // Edit loan
-                const loanRef = doc(firestore, 'users', loanOwnerId, 'loans', editingLoan.id);
-                // Note: Logic for changing loan amount after creation can be complex.
-                // For simplicity, we are just updating the description/title here.
+                const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
                 transaction.update(loanRef, loanData);
                 toast({ title: "موفقیت", description: "وام با موفقیت ویرایش شد." });
             } else {
                 // Create loan
-                const newLoanRef = doc(collection(firestore, 'users', loanOwnerId, 'loans'));
+                const newLoanRef = doc(collection(familyDataRef, 'loans'));
                 transaction.set(newLoanRef, {
                     ...loanData,
                     id: newLoanRef.id,
-                    userId: loanOwnerId,
+                    registeredByUserId: user.uid,
                     paidInstallments: 0,
                     remainingAmount: loanData.amount,
                 });
@@ -68,13 +67,9 @@ export default function LoansPage() {
                 if (depositOnCreate && depositToAccountId) {
                     const accountToDeposit = bankAccounts.find(acc => acc.id === depositToAccountId);
                     if (!accountToDeposit) throw new Error("حساب بانکی برای واریز مبلغ وام یافت نشد.");
-
-                    const isShared = !!accountToDeposit.isShared;
-                    const ownerId = accountToDeposit.userId;
-
-                    const bankAccountRef = doc(firestore, isShared ? `shared/data/bankAccounts/${depositToAccountId}` : `users/${ownerId}/bankAccounts/${depositToAccountId}`);
-                    const incomeOwnerId = ownerId; // Income belongs to the account owner
-                    const incomeRef = doc(collection(firestore, 'users', incomeOwnerId, 'incomes'));
+                    
+                    const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
+                    const incomeRef = doc(collection(familyDataRef, 'incomes'));
                     
                     const bankAccountDoc = await transaction.get(bankAccountRef);
                     if (!bankAccountDoc.exists()) throw new Error("حساب بانکی برای واریز یافت نشد.");
@@ -82,7 +77,7 @@ export default function LoansPage() {
                     transaction.update(bankAccountRef, { balance: bankAccountDoc.data().balance + loanData.amount });
                     transaction.set(incomeRef, {
                         id: incomeRef.id,
-                        userId: incomeOwnerId,
+                        ownerId: accountToDeposit.ownerId,
                         registeredByUserId: user.uid,
                         amount: loanData.amount,
                         bankAccountId: depositToAccountId,
@@ -113,15 +108,13 @@ export default function LoansPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const loanRef = doc(firestore, 'users', loan.userId, 'loans', loan.id);
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const loanRef = doc(familyDataRef, 'loans', loan.id);
             
             const accountToPayFrom = bankAccounts.find(acc => acc.id === paymentBankAccountId);
             if (!accountToPayFrom) throw new Error("کارت بانکی برای پرداخت یافت نشد.");
-
-            const isShared = !!accountToPayFrom.isShared;
-            const ownerId = accountToPayFrom.userId;
-
-            const bankAccountRef = doc(firestore, isShared ? `shared/data/bankAccounts/${paymentBankAccountId}` : `users/${ownerId}/bankAccounts/${paymentBankAccountId}`);
+            
+            const bankAccountRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
             
             const bankAccountDoc = await transaction.get(bankAccountRef);
             const availableBalance = bankAccountDoc.data()!.balance - (bankAccountDoc.data()!.blockedBalance || 0);
@@ -131,7 +124,9 @@ export default function LoansPage() {
             }
 
             // 1. Deduct from bank account
-            transaction.update(bankAccountRef, { balance: bankAccountDoc.data()!.balance - installmentAmount });
+            const balanceBefore = bankAccountDoc.data()!.balance;
+            const balanceAfter = balanceBefore - installmentAmount;
+            transaction.update(bankAccountRef, { balance: balanceAfter });
 
             // 2. Update loan document
             const newPaidInstallments = (loan.paidInstallments || 0) + 1;
@@ -142,23 +137,22 @@ export default function LoansPage() {
             });
 
             // 3. Create a loan payment record
-            const paymentRef = doc(collection(firestore, 'users', loan.userId, 'loanPayments'));
+            const paymentRef = doc(collection(familyDataRef, 'loanPayments'));
             transaction.set(paymentRef, {
                 id: paymentRef.id,
                 loanId: loan.id,
                 bankAccountId: paymentBankAccountId,
                 amount: installmentAmount,
                 paymentDate: new Date().toISOString(),
-                userId: loan.userId,
+                registeredByUserId: user.uid,
             });
 
             // 4. Create a corresponding expense
-            const expenseOwnerId = ownerId;
-            const expenseRef = doc(collection(firestore, 'users', expenseOwnerId, 'expenses'));
+            const expenseRef = doc(collection(familyDataRef, 'expenses'));
             const expenseCategory = categories?.find(c => c.name.includes('قسط')) || categories?.[0];
             transaction.set(expenseRef, {
                 id: expenseRef.id,
-                userId: expenseOwnerId,
+                ownerId: accountToPayFrom.ownerId,
                 registeredByUserId: user.uid,
                 amount: installmentAmount,
                 bankAccountId: paymentBankAccountId,
@@ -168,6 +162,8 @@ export default function LoansPage() {
                 type: 'expense',
                 loanPaymentId: paymentRef.id,
                 createdAt: serverTimestamp(),
+                balanceBefore: balanceBefore,
+                balanceAfter: balanceAfter,
             });
         });
         toast({ title: "موفقیت", description: "قسط با موفقیت پرداخت و به عنوان هزینه ثبت شد." });
@@ -189,25 +185,23 @@ export default function LoansPage() {
 
     try {
         const batch = writeBatch(firestore);
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
         
         // Find and delete all payments for this loan
-        const paymentsQuery = query(collection(firestore, 'users', loanToDelete.userId, 'loanPayments'), where('loanId', '==', loanId));
+        const paymentsQuery = query(collection(familyDataRef, 'loanPayments'), where('loanId', '==', loanId));
         const paymentsSnapshot = await getDocs(paymentsQuery);
         const paymentIds = paymentsSnapshot.docs.map(d => d.id);
         paymentsSnapshot.forEach(doc => batch.delete(doc.ref));
 
-        // Find and delete all expenses associated with those payments across ALL users
-        for (const u of users) {
-             if (paymentIds.length > 0) {
-                const expensesQuery = query(collection(firestore, 'users', u.id, 'expenses'), where('loanPaymentId', 'in', paymentIds));
-                const expensesSnapshot = await getDocs(expensesQuery);
-                expensesSnapshot.forEach(doc => batch.delete(doc.ref));
-            }
+        // Find and delete all expenses associated with those payments
+        if (paymentIds.length > 0) {
+            const expensesQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', 'in', paymentIds));
+            const expensesSnapshot = await getDocs(expensesQuery);
+            expensesSnapshot.forEach(doc => batch.delete(doc.ref));
         }
        
-
         // Delete the main loan document
-        const loanRef = doc(firestore, 'users', loanToDelete.userId, 'loans', loanId);
+        const loanRef = doc(familyDataRef, 'loans', loanId);
         batch.delete(loanRef);
 
         await batch.commit();

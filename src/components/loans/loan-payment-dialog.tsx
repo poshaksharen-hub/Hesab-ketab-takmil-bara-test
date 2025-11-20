@@ -64,6 +64,15 @@ export function LoanPaymentDialog({
       installmentAmount: loan.installmentAmount,
     },
   });
+  
+  React.useEffect(() => {
+    // Reset form with default installment amount when a new loan is selected
+    form.reset({
+        paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
+        installmentAmount: loan.installmentAmount,
+    });
+  }, [loan, bankAccounts, form]);
+
 
   function handleFormSubmit(data: LoanPaymentFormValues) {
     onSubmit({
@@ -78,7 +87,7 @@ export function LoanPaymentDialog({
         <DialogHeader>
           <DialogTitle className="font-headline">پرداخت قسط وام: {loan.title}</DialogTitle>
           <DialogDescription>
-            اطلاعات پرداخت قسط را وارد و تایید کنید.
+            مبلغ قسط پرداختی را وارد و تایید کنید.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -88,7 +97,7 @@ export function LoanPaymentDialog({
               <AlertTitle className="font-bold">اطلاعات وام</AlertTitle>
               <AlertDescription className="space-y-1 text-sm">
                 <div className="flex justify-between"><span>مبلغ کل وام:</span> <span className="font-mono">{formatCurrency(loan.amount, 'IRT')}</span></div>
-                <div className="flex justify-between"><span>مبلغ قسط:</span> <span className="font-mono">{formatCurrency(loan.installmentAmount, 'IRT')}</span></div>
+                <div className="flex justify-between"><span>مبلغ پیشنهادی قسط:</span> <span className="font-mono">{formatCurrency(loan.installmentAmount, 'IRT')}</span></div>
                 <div className="flex justify-between font-bold"><span>مبلغ باقی‌مانده:</span> <span className="font-mono">{formatCurrency(loan.remainingAmount, 'IRT')}</span></div>
               </AlertDescription>
             </Alert>
