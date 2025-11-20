@@ -14,6 +14,7 @@ import { LoanList } from '@/components/loans/loan-list';
 import { LoanForm } from '@/components/loans/loan-form';
 import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { formatCurrency } from '@/lib/utils';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -44,95 +45,105 @@ export default function LoansPage() {
     if (!user || !firestore) return;
 
     const {
-      title,
-      amount,
-      installmentAmount,
-      numberOfInstallments,
-      startDate,
-      paymentDay,
-      payeeId,
-      depositOnCreate,
-      depositToAccountId,
+        title,
+        amount,
+        installmentAmount,
+        numberOfInstallments,
+        startDate,
+        paymentDay,
+        payeeId,
+        depositOnCreate,
+        depositToAccountId,
     } = values;
 
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        
-        const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' | 'payeeId' | 'depositToAccountId'> & { payeeId?: string, depositToAccountId?: string } = {
-          title,
-          amount,
-          installmentAmount: installmentAmount || 0,
-          numberOfInstallments: numberOfInstallments || 0,
-          startDate: startDate, // Already a string from the form
-          paymentDay: paymentDay || 1,
-        };
-        
-        if (payeeId) loanData.payeeId = payeeId;
-        if (depositOnCreate && depositToAccountId) loanData.depositToAccountId = depositToAccountId;
-
-
-        if (editingLoan) {
-          const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
-          transaction.update(loanRef, loanData);
-          toast({ title: 'موفقیت', description: 'وام با موفقیت ویرایش شد.' });
-
-        } else {
-          // --- CREATE ---
-          const newLoanRef = doc(collection(familyDataRef, 'loans'));
-          transaction.set(newLoanRef, {
-            ...loanData,
-            id: newLoanRef.id,
-            registeredByUserId: user.uid,
-            paidInstallments: 0,
-            remainingAmount: loanData.amount,
-          });
-
-          // Handle the optional deposit logic
-          if (depositOnCreate && depositToAccountId) {
-            const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
-            const bankAccountDoc = await transaction.get(bankAccountRef);
-
-            if (!bankAccountDoc.exists()) {
-              throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
-            }
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            const accountData = bankAccountDoc.data() as BankAccount;
+            // --- Step 1: READS ---
+            // If we are creating a loan with a deposit, we must read the bank account document first.
+            let bankAccountDoc = null;
+            let bankAccountData: BankAccount | null = null;
+            if (!editingLoan && depositOnCreate && depositToAccountId) {
+                const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
+                bankAccountDoc = await transaction.get(bankAccountRef);
 
-            // 1. Update bank balance
-            transaction.update(bankAccountRef, { balance: accountData.balance + loanData.amount });
+                if (!bankAccountDoc.exists()) {
+                    throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
+                }
+                bankAccountData = bankAccountDoc.data() as BankAccount;
+            }
 
-            // 2. Create corresponding income record
-            const incomeRef = doc(collection(familyDataRef, 'incomes'));
-            transaction.set(incomeRef, {
-              id: incomeRef.id,
-              ownerId: accountData.ownerId,
-              registeredByUserId: user.uid,
-              amount: loanData.amount,
-              bankAccountId: depositToAccountId,
-              date: loanData.startDate,
-              description: `دریافت وام: ${loanData.title}`,
-              type: 'income',
-              category: 'درآمد',
-              source: payeeId ? (payees.find(p => p.id === payeeId)?.name || 'وام') : 'وام',
-              createdAt: serverTimestamp(),
-            });
-          }
-          toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
-        }
-      });
+            // --- Step 2: WRITES ---
+            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' | 'payeeId' | 'depositToAccountId'> & { payeeId?: string, depositToAccountId?: string } = {
+                title,
+                amount,
+                installmentAmount: installmentAmount || 0,
+                numberOfInstallments: numberOfInstallments || 0,
+                startDate: startDate,
+                paymentDay: paymentDay || 1,
+            };
 
-      setIsFormOpen(false);
-      setEditingLoan(null);
+            if (payeeId) loanData.payeeId = payeeId;
+            if (depositOnCreate && depositToAccountId) loanData.depositToAccountId = depositToAccountId;
+
+
+            if (editingLoan) {
+                const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
+                // Note: Editing logic does not currently support changing deposit info, so no read is needed here.
+                transaction.update(loanRef, loanData);
+                toast({ title: 'موفقیت', description: 'وام با موفقیت ویرایش شد.' });
+
+            } else {
+                // CREATE new loan
+                const newLoanRef = doc(collection(familyDataRef, 'loans'));
+                transaction.set(newLoanRef, {
+                    ...loanData,
+                    id: newLoanRef.id,
+                    registeredByUserId: user.uid,
+                    paidInstallments: 0,
+                    remainingAmount: loanData.amount,
+                });
+
+                // Handle the optional deposit logic (writes only)
+                if (depositOnCreate && depositToAccountId && bankAccountDoc && bankAccountData) {
+                    const bankAccountRef = bankAccountDoc.ref;
+                    
+                    // 1. Update bank balance
+                    transaction.update(bankAccountRef, { balance: bankAccountData.balance + loanData.amount });
+
+                    // 2. Create corresponding income record
+                    const incomeRef = doc(collection(familyDataRef, 'incomes'));
+                    transaction.set(incomeRef, {
+                        id: incomeRef.id,
+                        ownerId: bankAccountData.ownerId,
+                        registeredByUserId: user.uid,
+                        amount: loanData.amount,
+                        bankAccountId: depositToAccountId,
+                        date: loanData.startDate,
+                        description: `دریافت وام: ${loanData.title}`,
+                        type: 'income',
+                        category: 'درآمد',
+                        source: payeeId ? (payees.find(p => p.id === payeeId)?.name || 'وام') : 'وام',
+                        createdAt: serverTimestamp(),
+                    });
+                }
+                toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
+            }
+        });
+
+        setIsFormOpen(false);
+        setEditingLoan(null);
 
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'خطا در ثبت وام',
-        description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
-      });
+        console.error("Error creating loan:", error);
+        toast({
+            variant: 'destructive',
+            title: 'خطا در ثبت وام',
+            description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
+        });
     }
-  }, [user, firestore, editingLoan, toast, payees]);
+}, [user, firestore, editingLoan, toast, payees]);
 
 
   const handlePayInstallment = React.useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
@@ -147,34 +158,37 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const loanRef = doc(familyDataRef, 'loans', loan.id);
+            const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
+            
+            // --- Step 1: READS ---
             const loanDoc = await transaction.get(loanRef);
+            const accountToPayFromDoc = await transaction.get(accountToPayFromRef);
 
             if (!loanDoc.exists()) throw new Error("وام مورد نظر یافت نشد.");
+            if (!accountToPayFromDoc.exists()) throw new Error("کارت بانکی پرداخت یافت نشد.");
+            
             const currentLoanData = loanDoc.data() as Loan;
+            const accountData = accountToPayFromDoc.data() as BankAccount;
+            const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
 
             if (installmentAmount > currentLoanData.remainingAmount) {
                 throw new Error(`مبلغ پرداختی (${formatCurrency(installmentAmount, 'IRT')}) نمی‌تواند از مبلغ باقی‌مانده وام (${formatCurrency(currentLoanData.remainingAmount, 'IRT')}) بیشتر باشد.`);
             }
-            
-            const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
-            const accountToPayFromDoc = await transaction.get(accountToPayFromRef);
-            
-            if (!accountToPayFromDoc.exists()) throw new Error("کارت بانکی پرداخت یافت نشد.");
-            const accountData = accountToPayFromDoc.data() as BankAccount;
-            const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
 
             if (availableBalance < installmentAmount) {
                 throw new Error("موجودی حساب برای پرداخت قسط کافی نیست.");
             }
 
-            // 1. Deduct from bank account
+            // --- Step 2: WRITES ---
             const balanceBefore = accountData.balance;
             const balanceAfter = balanceBefore - installmentAmount;
+            const newPaidInstallments = currentLoanData.paidInstallments + 1;
+            const newRemainingAmount = currentLoanData.remainingAmount - installmentAmount;
+
+            // 1. Deduct from bank account
             transaction.update(accountToPayFromRef, { balance: balanceAfter });
 
             // 2. Update loan document
-            const newPaidInstallments = currentLoanData.paidInstallments + 1;
-            const newRemainingAmount = currentLoanData.remainingAmount - installmentAmount;
             transaction.update(loanRef, {
                 paidInstallments: newPaidInstallments,
                 remainingAmount: newRemainingAmount,
