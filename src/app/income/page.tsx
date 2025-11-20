@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { USER_DETAILS } from '@/lib/constants';
 
 export default function IncomePage() {
   const { user, isUserLoading } = useUser();
@@ -25,15 +26,15 @@ export default function IncomePage() {
 
   const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
 
-  const handleFormSubmit = async (values: Omit<Income, 'id' | 'userId' | 'createdAt' | 'registeredByUserId'>) => {
+  const handleFormSubmit = async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!user || !firestore) return;
 
     try {
       await runTransaction(firestore, async (transaction) => {
         const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
         if(!account) throw new Error("کارت بانکی یافت نشد");
-        const isSharedAccount = !!account.isShared;
         
+        const isSharedAccount = !!account.isShared;
         const targetCardRef = doc(firestore, isSharedAccount ? `shared/data/bankAccounts/${account.id}` : `users/${account.userId}/bankAccounts/${account.id}`);
         const targetCardDoc = await transaction.get(targetCardRef);
         
@@ -63,7 +64,7 @@ export default function IncomePage() {
           transaction.update(targetCardRef, { balance: targetCardData.balance + values.amount });
 
           // 3. Update income document
-          transaction.update(oldIncomeRef, { ...values, registeredByUserId: user.uid, updatedAt: serverTimestamp() });
+          transaction.update(oldIncomeRef, { ...values, updatedAt: serverTimestamp() });
           toast({ title: "موفقیت", description: "درآمد با موفقیت ویرایش شد." });
 
         } else {
@@ -71,17 +72,14 @@ export default function IncomePage() {
           // 1. Increase balance
           transaction.update(targetCardRef, { balance: targetCardData.balance + values.amount });
 
-          // 2. Create new income document in the bank account owner's collection
-          const incomeOwnerId = account.userId;
+          // 2. Create new income document in the correct user's collection
+          const incomeOwnerId = values.source === 'shared' ? USER_DETAILS.ali.id : values.source;
           const newIncomeRef = doc(collection(firestore, 'users', incomeOwnerId, 'incomes'));
           transaction.set(newIncomeRef, {
             ...values,
             id: newIncomeRef.id,
             userId: incomeOwnerId,
-            registeredByUserId: user.uid,
             createdAt: serverTimestamp(),
-            category: 'درآمد',
-            type: 'income',
           });
           toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
         }
@@ -178,6 +176,7 @@ export default function IncomePage() {
           initialData={editingIncome}
           bankAccounts={allBankAccounts}
           user={user}
+          users={allUsers}
         />
       ) : (
         <IncomeList

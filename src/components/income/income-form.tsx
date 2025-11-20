@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,9 +48,10 @@ interface IncomeFormProps {
   initialData: Income | null;
   bankAccounts: BankAccount[];
   user: User | null;
+  users: UserProfile[];
 }
 
-export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user }: IncomeFormProps) {
+export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user, users }: IncomeFormProps) {
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -66,8 +67,8 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   
   const getOwnerName = (account: BankAccount) => {
     if (account.isShared) return "(مشترک)";
-    const userDetail = Object.values(USER_DETAILS).find(u => u.id === account.userId);
-    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+    const owner = users.find(u => u.id === account.userId);
+    return owner ? `(${owner.firstName})` : "(ناشناس)";
   };
 
 
@@ -89,29 +90,39 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   function handleFormSubmit(data: IncomeFormValues) {
     if (!user) return;
     
-    const account = bankAccounts.find(acc => acc.id === data.bankAccountId);
-    if (!account) return;
-
-    let ownerId;
-    if (account.isShared) {
-        // For shared accounts, there's no single owner. We can assign it to the person registering,
-        // or a default/shared owner concept if one exists.
-        // Assigning to registering user for now.
-        ownerId = user.uid;
-    } else {
-        ownerId = account.userId;
-    }
+    // Determine the owner of the income based on the source
+    const incomeOwnerId = data.source === 'shared' ? USER_DETAILS.ali.id : data.source;
 
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
         type: 'income' as 'income',
         category: 'درآمد',
-        userId: ownerId,
+        userId: incomeOwnerId, // This is now correctly set based on source
         registeredByUserId: user.uid,
     };
     onSubmit(submissionData);
   }
+
+  const selectedSource = form.watch('source');
+  
+  const availableAccounts = React.useMemo(() => {
+    if (!selectedSource) return [];
+    if (selectedSource === 'shared') {
+      return bankAccounts.filter(acc => acc.isShared);
+    }
+    // If source is a user ID, show only that user's personal accounts
+    return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
+  }, [selectedSource, bankAccounts]);
+
+  // Effect to reset bank account if the available accounts change
+  useEffect(() => {
+    const selectedAccountStillExists = availableAccounts.some(acc => acc.id === form.getValues('bankAccountId'));
+    if (!selectedAccountStillExists) {
+        form.setValue('bankAccountId', '');
+    }
+  }, [availableAccounts, form]);
+
 
   return (
       <Card>
@@ -200,10 +211,9 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="شغل مشترک">شغل مشترک</SelectItem>
-                        <SelectItem value={USER_DETAILS.ali.firstName}>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
-                        <SelectItem value={USER_DETAILS.fatemeh.firstName}>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
-                        <SelectItem value="سایر">سایر</SelectItem>
+                        <SelectItem value="shared">شغل مشترک</SelectItem>
+                        <SelectItem value={USER_DETAILS.ali.id}>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
+                        <SelectItem value={USER_DETAILS.fatemeh.id}>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -219,14 +229,15 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
+                      disabled={!selectedSource || availableAccounts.length === 0}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
+                          <SelectValue placeholder={!selectedSource ? "ابتدا منبع درآمد را انتخاب کنید" : "یک کارت بانکی انتخاب کنید"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {bankAccounts.map((account) => (
+                        {availableAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {`${account.bankName} ${getOwnerName(account)}`}
                           </SelectItem>
