@@ -15,7 +15,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
@@ -58,43 +57,18 @@ const formatCardNumber = (cardNumber?: string) => {
     return cardNumber.replace(/(\d{4})/g, '$1 ').trim();
 };
 
+function CardItem({ card, onEdit, onDelete, users }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; users: UserProfile[]}) {
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
-export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
-  const { user } = useUser();
+    const getOwnerName = (card: BankAccount) => {
+        if (card.isShared) return "حساب مشترک";
+        const owner = users.find(u => u.id === card.userId);
+        return owner ? `${owner.firstName} ${owner.lastName}` : "ناشناس";
+    };
 
-  const getOwnerName = (card: BankAccount) => {
-    if (card.isShared) return "حساب مشترک";
-    const owner = users.find(u => u.id === card.userId);
-    return owner ? `${owner.firstName} ${owner.lastName}` : "ناشناس";
-  };
-  
-  const sortedCards = [...(cards || [])].sort((a, b) => {
-    if (a.isShared && !b.isShared) return 1;
-    if (!a.isShared && b.isShared) return -1;
-    const ownerA = users.find(u => u.id === a.userId)?.firstName || '';
-    const ownerB = users.find(u => u.id === b.userId)?.firstName || '';
-    if (ownerA < ownerB) return -1;
-    if (ownerA > ownerB) return 1;
-    return 0;
-  });
-
-  if (cards.length === 0) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">لیست کارت‌ها</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className='text-center text-muted-foreground py-8'>هیچ کارتی برای نمایش وجود ندارد.</p>
-            </CardContent>
-        </Card>
-    )
-  }
-
-  return (
-    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        {sortedCards.map((card) => (
-            <div key={card.id} className={cn("relative rounded-xl p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-all hover:scale-[1.02]", themeClasses[card.theme || 'blue'])}>
+        <>
+            <div className={cn("relative rounded-xl p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-all hover:scale-[1.02]", themeClasses[card.theme || 'blue'])}>
                 <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
                 <div className='relative z-10 flex justify-between items-start'>
                     <span className="font-bold text-lg tracking-wider">{card.bankName}</span>
@@ -109,32 +83,14 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                                 <Edit className="ml-2 h-4 w-4" />
                                 ویرایش
                             </DropdownMenuItem>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem
-                                        onSelect={(e) => e.preventDefault()}
-                                        className="text-destructive focus:text-destructive"
-                                        data-cy="delete-card-trigger"
-                                    >
-                                        <Trash2 className="ml-2 h-4 w-4" />
-                                        حذف
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>آیا از حذف این کارت مطمئن هستید؟</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            این عمل قابل بازگشت نیست. این کارت برای همیشه حذف خواهد شد.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => onDelete(card.id)}>
-                                            بله، حذف کن
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            <DropdownMenuItem
+                                onSelect={() => setIsDeleteDialogOpen(true)}
+                                className="text-destructive focus:text-destructive"
+                                data-cy="delete-card-trigger"
+                            >
+                                <Trash2 className="ml-2 h-4 w-4" />
+                                حذف
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -169,6 +125,56 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                     </div>
                 </div>
             </div>
+             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>آیا از حذف این کارت مطمئن هستید؟</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            این عمل قابل بازگشت نیست. این کارت برای همیشه حذف خواهد شد.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>انصراف</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDelete(card.id)}>
+                            بله، حذف کن
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+}
+
+export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
+  const { user } = useUser();
+
+  const sortedCards = [...(cards || [])].sort((a, b) => {
+    if (a.isShared && !b.isShared) return 1;
+    if (!a.isShared && b.isShared) return -1;
+    const ownerA = users.find(u => u.id === a.userId)?.firstName || '';
+    const ownerB = users.find(u => u.id === b.userId)?.firstName || '';
+    if (ownerA < ownerB) return -1;
+    if (ownerA > ownerB) return 1;
+    return 0;
+  });
+
+  if (cards.length === 0) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">لیست کارت‌ها</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className='text-center text-muted-foreground py-8'>هیچ کارتی برای نمایش وجود ندارد.</p>
+            </CardContent>
+        </Card>
+    )
+  }
+
+  return (
+    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+        {sortedCards.map((card) => (
+            <CardItem key={card.id} card={card} onEdit={onEdit} onDelete={onDelete} users={users} />
         ))}
     </div>
   );
