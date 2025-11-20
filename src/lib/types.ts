@@ -86,8 +86,8 @@ export type Check = {
     status: 'pending' | 'cleared';
     clearedDate?: string;
     description?: string;
-    sayadId?: string;
-    checkSerialNumber?: string;
+    sayadId: string;
+    checkSerialNumber: string;
 }
 
 export type FinancialGoal = {

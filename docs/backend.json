@@ -142,7 +142,7 @@
         "sayadId": { "type": "string", "description": "The Sayad ID of the check." },
         "checkSerialNumber": { "type": "string", "description": "The serial number of the check." }
       },
-      "required": ["id", "registeredByUserId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status"]
+      "required": ["id", "registeredByUserId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
     },
     "FinancialGoal": {
         "$schema": "http://json-schema.org/draft-07/schema#",

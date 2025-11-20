@@ -35,8 +35,8 @@ const formSchema = z.object({
   dueDate: z.date({ required_error: 'لطفا تاریخ سررسید را انتخاب کنید.' }),
   status: z.enum(['pending', 'cleared']).default('pending'),
   description: z.string().optional(),
-  sayadId: z.string().optional(),
-  checkSerialNumber: z.string().optional(),
+  sayadId: z.string().min(1, { message: 'شماره صیادی الزامی است.' }),
+  checkSerialNumber: z.string().min(1, { message: 'شماره سری چک الزامی است.' }),
 });
 
 type CheckFormValues = z.infer<typeof formSchema>;
@@ -165,7 +165,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                     name="sayadId"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>شماره صیادی (اختیاری)</FormLabel>
+                        <FormLabel>شماره صیادی</FormLabel>
                         <FormControl>
                           <NumericInput dir="ltr" {...field} />
                         </FormControl>
@@ -178,7 +178,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                     name="checkSerialNumber"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>شماره سری چک (اختیاری)</FormLabel>
+                        <FormLabel>شماره سری چک</FormLabel>
                         <FormControl>
                           <Input dir="ltr" {...field} />
                         </FormControl>
@@ -194,7 +194,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>از حساب</FormLabel>
-                        <Select onValuechange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="یک حساب دارای دسته‌چک انتخاب کنید" />
