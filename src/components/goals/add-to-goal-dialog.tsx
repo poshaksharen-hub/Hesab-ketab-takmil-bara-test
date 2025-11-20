@@ -34,13 +34,18 @@ import { CurrencyInput } from '@/components/ui/input';
 import type { FinancialGoal, BankAccount } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Info } from 'lucide-react';
 
-const formSchema = z.object({
+
+const createFormSchema = (maxAmount: number) => z.object({
   bankAccountId: z.string().min(1, { message: 'لطفا یک کارت برای برداشت انتخاب کنید.' }),
-  amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
+  amount: z.coerce
+    .number()
+    .positive({ message: 'مبلغ باید یک عدد مثبت باشد.' })
+    .max(maxAmount, { message: `مبلغ نمی‌تواند از مبلغ باقی‌مانده بیشتر باشد.`}),
 });
 
-type AddToGoalFormValues = z.infer<typeof formSchema>;
 
 interface AddToGoalDialogProps {
   goal: FinancialGoal;
@@ -57,6 +62,10 @@ export function AddToGoalDialog({
   onOpenChange,
   onSubmit,
 }: AddToGoalDialogProps) {
+    
+  const remainingAmount = goal.targetAmount - goal.currentAmount;
+  const formSchema = createFormSchema(remainingAmount);
+  type AddToGoalFormValues = z.infer<typeof formSchema>;
 
   const form = useForm<AddToGoalFormValues>({
     resolver: zodResolver(formSchema),
@@ -102,6 +111,12 @@ export function AddToGoalDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+             <Alert variant="default" className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-700 dark:text-blue-300">
+                    مبلغ باقی‌مانده تا رسیدن به هدف: <span className="font-bold font-mono">{formatCurrency(remainingAmount, 'IRT')}</span>
+                </AlertDescription>
+             </Alert>
             
             <FormField
               control={form.control}
