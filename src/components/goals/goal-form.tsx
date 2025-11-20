@@ -27,6 +27,7 @@ import { Info } from 'lucide-react';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription } from '../ui/alert';
+import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'نام هدف باید حداقل ۲ حرف داشته باشد.' }),
@@ -76,6 +77,12 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
       });
     }
   }, [initialData, form]);
+
+  const getOwnerName = (account: BankAccount) => {
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+  };
 
   const selectedBankAccountId = form.watch('savedFromBankAccountId');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
@@ -181,9 +188,14 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>{account.bankName}</SelectItem>
-                                ))}
+                                {bankAccounts.map((account) => {
+                                  const availableBalance = account.balance - (account.blockedBalance || 0);
+                                  return (
+                                    <SelectItem key={account.id} value={account.id}>
+                                        {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(availableBalance, 'IRT')}`}
+                                    </SelectItem>
+                                  )
+                                })}
                             </SelectContent>
                             </Select>
                             {selectedBankAccount && (
