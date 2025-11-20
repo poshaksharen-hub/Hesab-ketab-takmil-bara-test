@@ -111,18 +111,21 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     if (selectedSource === 'shared') {
       return bankAccounts.filter(acc => acc.isShared);
     }
-    // If source is a user ID, show only that user's personal accounts
     if (selectedSource && selectedSource !== 'shared') {
         return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
     }
     return [];
   }, [selectedSource, bankAccounts]);
 
-  // Effect to reset bank account if the available accounts change
+  // Effect to auto-select bank account if there's only one option
   useEffect(() => {
-    const selectedAccountStillExists = availableAccounts.some(acc => acc.id === form.getValues('bankAccountId'));
-    if (!selectedAccountStillExists) {
-        form.setValue('bankAccountId', '');
+    if (availableAccounts.length === 1) {
+        form.setValue('bankAccountId', availableAccounts[0].id);
+    } else {
+        const selectedAccountStillExists = availableAccounts.some(acc => acc.id === form.getValues('bankAccountId'));
+        if (!selectedAccountStillExists) {
+            form.setValue('bankAccountId', '');
+        }
     }
   }, [availableAccounts, form]);
 
@@ -214,9 +217,9 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="shared">شغل مشترک</SelectItem>
                         <SelectItem value={USER_DETAILS.ali.id}>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
                         <SelectItem value={USER_DETAILS.fatemeh.id}>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
+                         <SelectItem value="shared">شغل مشترک</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -229,6 +232,11 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>واریز به کارت</FormLabel>
+                    {selectedSource === 'shared' && availableAccounts.length === 1 ? (
+                        <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
+                            <span>{`${availableAccounts[0].bankName} ${getOwnerName(availableAccounts[0])}`}</span>
+                        </div>
+                    ) : (
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
@@ -236,7 +244,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={!selectedSource ? "ابتدا منبع درآمد را انتخاب کنید" : "یک کارت بانکی انتخاب کنید"} />
+                          <SelectValue placeholder={!selectedSource ? "ابتدا منبع درآمد را انتخاب کنید" : (availableAccounts.length === 0 ? "کارتی برای این منبع یافت نشد" : "یک کارت بانکی انتخاب کنید")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -247,6 +255,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                         ))}
                       </SelectContent>
                     </Select>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
