@@ -24,11 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, User, Users } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns-jalali';
+import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import type { User as AuthUser } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
 
@@ -168,34 +164,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>تاریخ</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 pr-4 text-right font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>یک تاریخ انتخاب کنید</span>
-                            )}
-                            <CalendarIcon className="mr-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <JalaliDatePicker value={field.value} onChange={field.onChange} />
                     <FormMessage />
                   </FormItem>
                 )}
