@@ -91,7 +91,8 @@ const useAllCollections = () => {
                 return onSnapshot(q, (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, userId: uid }));
                     setAllData(prev => {
-                        const otherUserData = (prev as any)[colName].filter((item: any) => item.userId !== uid);
+                        const currentCollection = (prev as any)[colName] || [];
+                        const otherUserData = currentCollection.filter((item: any) => item.userId !== uid);
                         const updatedCollection = [...otherUserData, ...data];
                         
                         if(colName === 'bankAccounts') {
