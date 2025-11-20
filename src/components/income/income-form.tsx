@@ -192,8 +192,8 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="شغل مشترک">شغل مشترک</SelectItem>
-                        <SelectItem value={USER_DETAILS.ali.firstName}>درآمد علی</SelectItem>
-                        <SelectItem value={USER_DETAILS.fatemeh.firstName}>درآمد فاطمه</SelectItem>
+                        <SelectItem value={USER_DETAILS.ali.firstName}>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
+                        <SelectItem value={USER_DETAILS.fatemeh.firstName}>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

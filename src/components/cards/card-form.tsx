@@ -66,13 +66,14 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
       cvv2: '',
       accountType: 'savings',
       initialBalance: 0,
-      owner: 'me',
+      owner: user?.uid, // Default to current user
       isShared: false,
       theme: 'blue'
     },
   });
   
-  const otherUser = users.find(u => u.id !== user?.uid);
+  const aliUser = users.find(u => u.email.startsWith('ali'));
+  const fatemehUser = users.find(u => u.email.startsWith('fatemeh'));
 
   React.useEffect(() => {
     if (initialData) {
@@ -84,7 +85,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
          cvv2: initialData.cvv2,
          accountType: initialData.accountType,
          initialBalance: initialData.initialBalance,
-         owner: initialData.isShared ? 'shared' : (initialData.userId === user?.uid ? 'me' : 'other'),
+         owner: initialData.isShared ? 'shared' : initialData.userId,
          isShared: !!initialData.isShared,
          theme: initialData.theme || 'blue',
         });
@@ -97,7 +98,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         cvv2: '',
         accountType: 'savings',
         initialBalance: 0,
-        owner: 'me',
+        owner: user?.uid,
         isShared: false,
         theme: 'blue',
       });
@@ -260,7 +261,14 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                     <FormControl>
                       <Switch
                         checked={field.value}
-                        onCheckedChange={field.onChange}
+                        onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            if (checked) {
+                                form.setValue('owner', 'shared');
+                            } else {
+                                form.setValue('owner', user?.uid || '');
+                            }
+                        }}
                         disabled={!!initialData}
                       />
                     </FormControl>
@@ -280,8 +288,8 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="me">{USER_DETAILS.ali.firstName} (من)</SelectItem>
-                        {otherUser && <SelectItem value="other">{USER_DETAILS.fatemeh.firstName}</SelectItem>}
+                        {aliUser && <SelectItem value={aliUser.id}>{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>}
+                        {fatemehUser && <SelectItem value={fatemehUser.id}>{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>}
                       </SelectContent>
                     </Select>
                     <FormMessage />

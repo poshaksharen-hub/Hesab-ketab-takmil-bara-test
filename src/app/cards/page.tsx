@@ -56,7 +56,6 @@ export default function CardsPage() {
       const { isShared, owner, ...cardData } = values as any;
       const newCardBase = {
         ...cardData,
-        isShared: isShared,
         balance: values.initialBalance,
       };
 
@@ -66,7 +65,7 @@ export default function CardsPage() {
             members[u.id] = true;
         });
 
-        const newSharedCard = { ...newCardBase, members, userId: null };
+        const newSharedCard = { ...newCardBase, members, userId: null, isShared: true };
         const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
         addDoc(sharedColRef, newSharedCard)
           .then(() => {
@@ -81,14 +80,13 @@ export default function CardsPage() {
             errorEmitter.emit('permission-error', permissionError);
           });
       } else {
-        const otherUser = allUsers.find(u => u.id !== user.uid);
-        const ownerId = owner === 'me' ? user.uid : otherUser?.id;
-        if (!ownerId) {
-            toast({ variant: 'destructive', title: 'خطا', description: 'کاربر دیگر یافت نشد.' });
+        const ownerId = owner;
+        if (!ownerId || !allUsers.find(u => u.id === ownerId)) {
+            toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
             return;
         }
 
-        const newCard = { ...newCardBase, userId: ownerId };
+        const newCard = { ...newCardBase, userId: ownerId, isShared: false };
         const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
         addDoc(userColRef, newCard)
           .then(() => {
