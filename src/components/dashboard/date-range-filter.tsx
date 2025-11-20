@@ -7,6 +7,7 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns-jalali';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { faIR } from "date-fns/locale";
 
 interface CustomDateRangePickerProps {
   date: DateRange | undefined;
@@ -35,11 +36,11 @@ export function CustomDateRangePicker({
             {date?.from ? (
               date.to ? (
                 <>
-                  {format(date.from, 'LLL dd, y')} -{' '}
-                  {format(date.to, 'LLL dd, y')}
+                  {format(date.from, 'PPP', { locale: faIR })} -{' '}
+                  {format(date.to, 'PPP', { locale: faIR })}
                 </>
               ) : (
-                format(date.from, 'LLL dd, y')
+                format(date.from, 'PPP', { locale: faIR })
               )
             ) : (
               <span>یک بازه زمانی انتخاب کنید</span>
