@@ -18,7 +18,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Separator } from '../ui/separator';
 import { USER_DETAILS } from '@/lib/constants';
 import { numberToWords } from '@persian-tools/persian-tools';
@@ -58,7 +57,6 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, u
   }
 
   return (
-    <TooltipProvider>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {checks.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime()).map((check) => {
           const { payee, category, bankAccount, ownerName } = getDetails(check);
@@ -165,6 +163,5 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, u
           )
         })}
       </div>
-    </TooltipProvider>
   );
 }
