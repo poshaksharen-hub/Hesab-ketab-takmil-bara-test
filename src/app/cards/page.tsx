@@ -30,16 +30,17 @@ export default function CardsPage() {
 
   const handleFormSubmit = async (values: Omit<BankAccount, 'id' | 'balance'>) => {
     if (!user || !firestore || allUsers.length === 0) return;
-
+  
     if (editingCard) {
       // --- Edit ---
       const isShared = !!editingCard.isShared;
       const cardId = editingCard.id;
       const ownerId = editingCard.userId;
-      
+  
       const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${cardId}` : `users/${ownerId}/bankAccounts/${cardId}`);
-      const { initialBalance, isShared: isSharedVal, owner, ...updateData } = values as any; 
-      
+      // initialBalance, isShared, and owner should not be part of the update data.
+      const { initialBalance, isShared: isSharedVal, owner, ...updateData } = values as any;
+  
       updateDoc(cardRef, updateData)
         .then(() => {
           toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
@@ -62,21 +63,23 @@ export default function CardsPage() {
         });
         return;
       }
-      
+  
+      // Explicitly handle owner from the form values
       const { owner, ...cardData } = values as any;
       const newCardBase = {
         ...cardData,
         balance: cardData.initialBalance,
       };
-
+  
       if (values.isShared) {
         const members: { [key: string]: boolean } = {};
         allUsers.forEach(u => {
-            members[u.id] = true;
+          members[u.id] = true;
         });
-
-        const newSharedCard = { ...newCardBase, members, userId: null };
+  
+        const newSharedCard = { ...newCardBase, members, userId: null }; // Set userId to null for shared accounts
         const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
+        
         addDoc(sharedColRef, newSharedCard)
           .then((docRef) => {
             updateDoc(docRef, { id: docRef.id }); // Add the id to the document
@@ -90,18 +93,20 @@ export default function CardsPage() {
             });
             errorEmitter.emit('permission-error', permissionError);
           });
+  
       } else {
-        const ownerId = owner;
+        const ownerId = owner; // Get ownerId from the destructured 'owner'
         if (!ownerId || !allUsers.find(u => u.id === ownerId)) {
-            toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
-            return;
+          toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
+          return;
         }
-
+  
         const newCard = { ...newCardBase, userId: ownerId };
         const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
+        
         addDoc(userColRef, newCard)
           .then((docRef) => {
-             updateDoc(docRef, { id: docRef.id }); // Add the id to the document
+            updateDoc(docRef, { id: docRef.id }); // Add the id to the document
             toast({ title: "موفقیت", description: "کارت بانکی جدید با موفقیت اضافه شد." });
           })
           .catch(async (serverError) => {
