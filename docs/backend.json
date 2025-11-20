@@ -69,10 +69,11 @@
         "description": { "type": "string" },
         "source": { "type": "string" },
         "type": { "type": "string", "enum": ["income"] },
+        "isShared": { "type": "boolean" },
         "category": { "type": "string", "description": "Always 'درآمد'" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "registeredByUserId", "bankAccountId", "amount", "date", "description", "source", "type", "category", "createdAt"]
+      "required": ["id", "registeredByUserId", "bankAccountId", "amount", "date", "description", "source", "type", "category", "createdAt"]
     },
     "Expense": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -89,12 +90,13 @@
         "date": { "type": "string", "format": "date-time" },
         "description": { "type": "string" },
         "type": { "type": "string", "enum": ["expense"] },
+        "isShared": { "type": "boolean" },
         "checkId": { "type": "string" },
         "goalId": { "type": "string" },
         "loanPaymentId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt"]
+      "required": ["id", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt"]
     },
     "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -239,11 +241,16 @@
         ]
       },
       {
-        "path": "/shared/data/bankAccounts/{accountId}",
+        "path": "/shared/data",
         "definition": {
-          "schema": { "$ref": "#/entities/BankAccount" },
-          "description": "Shared bank accounts accessible by multiple users."
-        }
+            "schema": {},
+            "description": "A document to hold shared subcollections."
+        },
+        "subcollections": [
+            { "name": "bankAccounts", "schema": { "$ref": "#/entities/BankAccount" }, "description": "Shared bank accounts accessible by multiple users." },
+            { "name": "incomes", "schema": { "$ref": "#/entities/Income" }, "description": "Shared income records." },
+            { "name": "expenses", "schema": { "$ref": "#/entities/Expense" }, "description": "Shared expense records." }
+        ]
       }
     ]
   }

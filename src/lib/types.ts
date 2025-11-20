@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 
 export type Transaction = {
@@ -19,7 +20,8 @@ export type Income = {
   type: 'income';
   source: string;
   category: string; // This is 'درآمد' for all incomes
-  userId: string;
+  userId?: string; // Optional: personal incomes have a userId
+  isShared?: boolean;
   registeredByUserId: string;
   bankAccountId: string;
   createdAt: any;
@@ -28,7 +30,8 @@ export type Income = {
 
 export type Expense = {
   id: string;
-  userId: string;
+  userId?: string; // Optional: personal expenses have a userId
+  isShared?: boolean;
   registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;

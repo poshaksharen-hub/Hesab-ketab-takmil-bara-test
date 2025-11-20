@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -90,16 +91,11 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   function handleFormSubmit(data: IncomeFormValues) {
     if (!user) return;
     
-    const incomeOwnerId = data.source === 'shared' 
-        ? (Object.values(USER_DETAILS).find(u => u.email.startsWith('ali')))?.id || user.uid
-        : data.source;
-
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
         type: 'income' as 'income',
         category: 'درآمد',
-        userId: incomeOwnerId,
         registeredByUserId: user.uid,
     };
     onSubmit(submissionData);
@@ -114,12 +110,12 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     if (selectedSource && selectedSource !== 'shared') {
         return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
     }
-    return [];
+    return bankAccounts;
   }, [selectedSource, bankAccounts]);
 
   // Effect to auto-select bank account if there's only one option
   useEffect(() => {
-    if (availableAccounts.length === 1) {
+    if (availableAccounts.length === 1 && selectedSource) {
         form.setValue('bankAccountId', availableAccounts[0].id);
     } else {
         const selectedAccountStillExists = availableAccounts.some(acc => acc.id === form.getValues('bankAccountId'));
@@ -127,7 +123,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
             form.setValue('bankAccountId', '');
         }
     }
-  }, [availableAccounts, form]);
+  }, [availableAccounts, form, selectedSource]);
 
 
   return (
@@ -232,11 +228,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>واریز به کارت</FormLabel>
-                    {selectedSource === 'shared' && availableAccounts.length === 1 ? (
-                        <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
-                            <span>{`${availableAccounts[0].bankName} ${getOwnerName(availableAccounts[0])}`}</span>
-                        </div>
-                    ) : (
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
@@ -255,7 +246,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                         ))}
                       </SelectContent>
                     </Select>
-                    )}
                     <FormMessage />
                   </FormItem>
                 )}

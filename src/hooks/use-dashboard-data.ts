@@ -57,21 +57,31 @@ const useAllCollections = () => {
         [firestore, isAuthLoading, user]
     );
     const { data: sharedAccounts, isLoading: isLoadingSharedAccounts } = useCollection<BankAccount>(sharedAccountsQuery);
+
+    const sharedIncomesQuery = useMemoFirebase(
+        () => (firestore && !isAuthLoading && user ? collection(firestore, 'shared', 'data', 'incomes') : null),
+        [firestore, isAuthLoading, user]
+    );
+    const { data: sharedIncomes, isLoading: isLoadingSharedIncomes } = useCollection<Income>(sharedIncomesQuery);
+
+    const sharedExpensesQuery = useMemoFirebase(
+        () => (firestore && !isAuthLoading && user ? collection(firestore, 'shared', 'data', 'expenses') : null),
+        [firestore, isAuthLoading, user]
+    );
+    const { data: sharedExpenses, isLoading: isLoadingSharedExpenses } = useCollection<Expense>(sharedExpensesQuery);
+    
     
     // Effect for fetching all user-specific sub-collections
     useEffect(() => {
         if (!firestore || !user) return;
     
-        // If users have been loaded and there are none, we can stop loading user-specific data.
         if (!isLoadingUsers && userIds.length === 0) {
-            // We still need to wait for shared accounts to load.
-            if (!isLoadingSharedAccounts) {
+            if (!isLoadingSharedAccounts && !isLoadingSharedIncomes && !isLoadingSharedExpenses) {
                 setIsLoading(false);
             }
             return;
         }
     
-        // If there are no userIds yet, but users are still loading, just wait.
         if (userIds.length === 0) {
             return;
         }
@@ -102,13 +112,13 @@ const useAllCollections = () => {
                     setAllData(prev => ({ ...prev, [colName]: combinedCollectionData }));
                     
                     collectionsLoadedCount++;
-                    if (collectionsLoadedCount >= totalCollectionsToLoad && !isLoadingSharedAccounts) {
+                    if (collectionsLoadedCount >= totalCollectionsToLoad && !isLoadingSharedAccounts && !isLoadingSharedIncomes && !isLoadingSharedExpenses) {
                          setIsLoading(false);
                     }
                 }, (error) => {
                     console.error(`Error fetching ${colName} for user ${uid}:`, error);
                     collectionsLoadedCount++;
-                     if (collectionsLoadedCount >= totalCollectionsToLoad && !isLoadingSharedAccounts) {
+                     if (collectionsLoadedCount >= totalCollectionsToLoad && !isLoadingSharedAccounts && !isLoadingSharedIncomes && !isLoadingSharedExpenses) {
                          setIsLoading(false);
                     }
                 });
@@ -119,17 +129,15 @@ const useAllCollections = () => {
         return () => {
             unsubs.forEach(unsub => unsub());
         };
-    }, [firestore, user, userIds, isLoadingUsers, isLoadingSharedAccounts]);
+    }, [firestore, user, userIds, isLoadingUsers, isLoadingSharedAccounts, isLoadingSharedIncomes, isLoadingSharedExpenses]);
 
 
-    // This effect combines personal and shared bank accounts once they are both loaded.
+    // This effect combines personal and shared data once they are all loaded.
     useEffect(() => {
-        // Wait until both user data and shared account data are no longer loading
-        if (isAuthLoading || (user && (isLoadingUsers || isLoadingSharedAccounts))) {
+        if (isAuthLoading || (user && (isLoadingUsers || isLoadingSharedAccounts || isLoadingSharedIncomes || isLoadingSharedExpenses))) {
             return;
         }
         
-        // If there's no user, we are done loading
         if (!user) {
             setIsLoading(false);
             setAllData({
@@ -140,30 +148,48 @@ const useAllCollections = () => {
         }
 
         setAllData(prev => {
+            // Combine Bank Accounts
             const personalAccounts = prev.bankAccounts || [];
-            const combined = [
+            const combinedAccounts = [
                 ...personalAccounts,
                 ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
             ];
-            
-            const uniqueAccounts = Array.from(new Map(combined.map(item => [item.id, item])).values());
+            const uniqueAccounts = Array.from(new Map(combinedAccounts.map(item => [item.id, item])).values());
+
+            // Combine Incomes
+            const personalIncomes = prev.incomes || [];
+            const combinedIncomes = [
+                ...personalIncomes,
+                ...(sharedIncomes || []).map(si => ({ ...si, isShared: true }))
+            ];
+
+             // Combine Expenses
+            const personalExpenses = prev.expenses || [];
+            const combinedExpenses = [
+                ...personalExpenses,
+                ...(sharedExpenses || []).map(se => ({ ...se, isShared: true }))
+            ];
 
             return {
                 ...prev,
                 users: users || [],
                 bankAccounts: uniqueAccounts,
+                incomes: combinedIncomes,
+                expenses: combinedExpenses,
             };
         });
 
-        // Final loading state check
         if (userIds.length > 0) {
-            // if we have users, the other effect will set loading to false.
+            // Other effect will handle loading state
         } else {
-            // if no users are found (but auth is loaded), we are done loading
             setIsLoading(false);
         }
 
-    }, [user, users, sharedAccounts, isAuthLoading, isLoadingUsers, isLoadingSharedAccounts, userIds.length]);
+    }, [
+        user, users, sharedAccounts, sharedIncomes, sharedExpenses, 
+        isAuthLoading, isLoadingUsers, isLoadingSharedAccounts, isLoadingSharedIncomes, isLoadingSharedExpenses, 
+        userIds.length
+    ]);
 
 
     return { isLoading, allData };
@@ -198,7 +224,7 @@ export function useDashboardData() {
         
         const account = allData.bankAccounts.find(ba => ba.id === item.bankAccountId);
         if (ownerFilter === 'shared') {
-            return account?.isShared;
+            return !!account?.isShared;
         }
         if (ownerFilter === aliId) {
             return account?.userId === aliId && !account.isShared;
