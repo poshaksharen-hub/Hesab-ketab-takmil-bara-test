@@ -135,9 +135,9 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert }: GoalListP
                     </CardContent>
                     <CardFooter className="grid grid-cols-2 gap-2">
                         {isAchieved ? (
-                            <div className="col-span-2 flex items-center justify-center text-emerald-600 gap-2">
+                            <div className="col-span-2 flex items-center justify-center text-emerald-600 gap-2 font-bold">
                                 <CheckCircle className="h-5 w-5" />
-                                <span className='font-bold'>هدف محقق شد!</span>
+                                <span>هدف محقق شد!</span>
                             </div>
                         ) : (
                             <>
