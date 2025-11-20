@@ -32,16 +32,12 @@ export default function IncomePage() {
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' >) => {
     if (!user || !firestore || !allBankAccounts) return;
   
-    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-    const incomesColRef = collection(familyDataRef, 'incomes');
-    const bankAccountsColRef = collection(familyDataRef, 'bankAccounts');
-
     try {
       await runTransaction(firestore, async (transaction) => {
         const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
         if (!account) throw new Error("کارت بانکی یافت نشد");
   
-        const targetCardRef = doc(bankAccountsColRef, account.id);
+        const targetCardRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', account.id);
         const targetCardDoc = await transaction.get(targetCardRef);
   
         if (!targetCardDoc.exists()) {
@@ -50,34 +46,14 @@ export default function IncomePage() {
         const targetCardData = targetCardDoc.data() as BankAccount;
   
         if (editingIncome) {
-          // --- Edit Mode ---
-          const oldIncomeRef = doc(incomesColRef, editingIncome.id);
-          const oldAccount = allBankAccounts.find(acc => acc.id === editingIncome.bankAccountId);
-          if(!oldAccount) throw new Error("کارت بانکی قدیمی یافت نشد.");
-
-          const oldCardRef = doc(bankAccountsColRef, oldAccount.id);
-          
-          // 1. Revert previous transaction
-          const oldCardDoc = await transaction.get(oldCardRef);
-          if (oldCardDoc.exists()) {
-              const oldCardData = oldCardDoc.data() as BankAccount;
-              transaction.update(oldCardRef, { balance: oldCardData.balance - editingIncome.amount });
-          }
-  
-          // 2. Apply new transaction
-          transaction.update(targetCardRef, { balance: targetCardData.balance + values.amount });
-  
-          // 3. Update income document
-          const newIncomeData = { ...values, updatedAt: serverTimestamp() };
-          transaction.update(oldIncomeRef, newIncomeData);
-          toast({ title: "موفقیت", description: "درآمد با موفقیت ویرایش شد." });
-  
+          // Editing is disabled per user request
         } else {
           // --- Create Mode ---
           // 1. Increase balance
           transaction.update(targetCardRef, { balance: targetCardData.balance + values.amount });
   
           // 2. Create new income document
+          const incomesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'incomes');
           const newIncomeRef = doc(incomesColRef);
           transaction.set(newIncomeRef, {
             ...values,
@@ -106,47 +82,14 @@ export default function IncomePage() {
   
 
   const handleDelete = React.useCallback(async (income: Income) => {
-    if (!user || !firestore || !allBankAccounts) return;
-    
-    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-    const incomesColRef = collection(familyDataRef, 'incomes');
-    const bankAccountsColRef = collection(familyDataRef, 'bankAccounts');
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const incomeRef = doc(incomesColRef, income.id);
-            const account = allBankAccounts.find(acc => acc.id === income.bankAccountId);
-            if(!account) throw new Error("کارت بانکی یافت نشد");
-
-            const cardRef = doc(bankAccountsColRef, account.id);
-
-            const cardDoc = await transaction.get(cardRef);
-            if (cardDoc.exists()) {
-                const cardData = cardDoc.data() as BankAccount;
-                // Deduct income amount from balance on delete
-                transaction.update(cardRef, { balance: cardData.balance - income.amount });
-            }
-            
-            transaction.delete(incomeRef);
-        });
-        toast({ title: "موفقیت", description: "درآمد با موفقیت حذف شد." });
-    } catch (error: any) {
-        if (error instanceof FirestorePermissionError) {
-          errorEmitter.emit('permission-error', error);
-        } else {
-          toast({
-            variant: "destructive",
-            title: "خطا در حذف درآمد",
-            description: error.message || "مشکلی در حذف اطلاعات پیش آمد.",
-          });
-        }
-    }
-  }, [user, firestore, allBankAccounts, toast]);
+    // Deleting is disabled per user request
+    return;
+  }, []);
 
 
   const handleEdit = React.useCallback((income: Income) => {
-    setEditingIncome(income);
-    setIsFormOpen(true);
+    // Editing is disabled per user request
+    return;
   }, []);
   
   const handleAddNew = React.useCallback(() => {

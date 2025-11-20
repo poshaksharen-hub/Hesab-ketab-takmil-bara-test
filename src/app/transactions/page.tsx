@@ -31,18 +31,17 @@ export default function ExpensesPage() {
     users: allUsers,
   } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'type' | 'registeredByUserId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId'>) => {
     if (!user || !firestore || !allBankAccounts) return;
     
     try {
         await runTransaction(firestore, async (transaction) => {
-            const expenseData = { ...values, type: 'expense' as 'expense' };
+            const expenseData = { ...values };
             
             const account = allBankAccounts.find(acc => acc.id === expenseData.bankAccountId);
             if (!account) throw new Error("کارت بانکی یافت نشد");
-            const isSharedAccount = !!account.isShared;
 
-            const fromCardRef = doc(firestore, isSharedAccount ? `shared/data/bankAccounts/${account.id}` : `users/${account.userId}/bankAccounts/${account.id}`);
+            const fromCardRef = doc(firestore, `family-data/shared-data/bankAccounts`, account.id);
             const fromCardDoc = await transaction.get(fromCardRef);
 
             if (!fromCardDoc.exists()) {
@@ -51,52 +50,8 @@ export default function ExpensesPage() {
             const fromCardData = fromCardDoc.data() as BankAccount;
 
             if (editingExpense) {
-                // --- Edit Mode ---
-                const oldExpenseRef = editingExpense.isShared 
-                    ? doc(firestore, `shared/data/expenses/${editingExpense.id}`)
-                    : doc(firestore, `users/${editingExpense.userId}/expenses/${editingExpense.id}`);
-
-                
-                const oldAccount = allBankAccounts.find(acc => acc.id === editingExpense.bankAccountId);
-                if(!oldAccount) throw new Error("کارت بانکی قدیمی یافت نشد.");
-                const isOldShared = !!oldAccount.isShared;
-                
-                const oldCardRef = doc(firestore, isOldShared ? `shared/data/bankAccounts/${oldAccount.id}` : `users/${oldAccount.userId}/bankAccounts/${oldAccount.id}`);
-
-                // 1. Revert previous transaction
-                if (editingExpense.bankAccountId === expenseData.bankAccountId) {
-                    // Card is the same, just adjust balance
-                    const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
-                    if (availableBalance + editingExpense.amount < expenseData.amount) {
-                        throw new Error("موجودی حساب کافی نیست.");
-                    }
-                    const adjustedBalance = fromCardData.balance + editingExpense.amount - expenseData.amount;
-                    transaction.update(fromCardRef, { balance: adjustedBalance });
-                } else {
-                    // Card has changed, revert old and apply new
-                    const oldCardDoc = await transaction.get(oldCardRef);
-                    if (oldCardDoc.exists()) {
-                        const oldCardData = oldCardDoc.data() as BankAccount;
-                        transaction.update(oldCardRef, { balance: oldCardData.balance + editingExpense.amount });
-                    }
-                    const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
-                    if (availableBalance < expenseData.amount) {
-                         throw new Error("موجودی حساب جدید کافی نیست.");
-                    }
-                    transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
-                }
-
-                // 2. Update expense document
-                const newExpenseOwnerId = isSharedAccount ? undefined : account.userId;
-                transaction.update(oldExpenseRef, { 
-                    ...expenseData, 
-                    userId: newExpenseOwnerId,
-                    isShared: isSharedAccount,
-                    registeredByUserId: user.uid, 
-                    updatedAt: serverTimestamp() 
-                });
-                toast({ title: "موفقیت", description: "هزینه با موفقیت ویرایش شد." });
-
+                // Edit is disabled for now based on user request.
+                // This logic is kept for future reference if needed.
             } else {
                 // --- Create Mode ---
                 const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
@@ -107,28 +62,16 @@ export default function ExpensesPage() {
                 transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
 
                 // 2. Create new expense document
-                 if(isSharedAccount) {
-                    const newExpenseRef = doc(collection(firestore, 'shared/data/expenses'));
-                    transaction.set(newExpenseRef, {
-                        ...expenseData,
-                        id: newExpenseRef.id,
-                        userId: undefined,
-                        isShared: true,
-                        registeredByUserId: user.uid,
-                        createdAt: serverTimestamp(),
-                    });
-                } else {
-                    const expenseOwnerId = account.userId;
-                    const newExpenseRef = doc(collection(firestore, 'users', expenseOwnerId, 'expenses'));
-                    transaction.set(newExpenseRef, {
-                        ...expenseData,
-                        id: newExpenseRef.id,
-                        userId: expenseOwnerId,
-                        isShared: false,
-                        registeredByUserId: user.uid,
-                        createdAt: serverTimestamp(),
-                    });
-                }
+                const expensesColRef = collection(firestore, 'family-data/shared-data/expenses');
+                const newExpenseRef = doc(expensesColRef);
+                transaction.set(newExpenseRef, {
+                    ...expenseData,
+                    id: newExpenseRef.id,
+                    ownerId: account.ownerId,
+                    type: 'expense',
+                    registeredByUserId: user.uid,
+                    createdAt: serverTimestamp(),
+                });
                 toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
             }
         });
@@ -154,16 +97,12 @@ export default function ExpensesPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-             const expenseRef = expense.isShared
-                ? doc(firestore, `shared/data/expenses/${expense.id}`)
-                : doc(firestore, `users/${expense.userId}/expenses/${expense.id}`);
-
+            const expenseRef = doc(firestore, `family-data/shared-data/expenses`, expense.id);
             
             const account = allBankAccounts.find(acc => acc.id === expense.bankAccountId);
             if(!account) throw new Error("کارت بانکی یافت نشد");
-            const isShared = !!account.isShared;
             
-            const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${account.id}` : `users/${account.userId}/bankAccounts/${account.id}`);
+            const cardRef = doc(firestore, `family-data/shared-data/bankAccounts`, account.id);
 
             const cardDoc = await transaction.get(cardRef);
             if (cardDoc.exists()) {
@@ -188,17 +127,9 @@ export default function ExpensesPage() {
   }, [user, firestore, allBankAccounts, toast]);
 
   const handleEdit = React.useCallback((expense: Expense) => {
-    if (expense.checkId || expense.loanPaymentId) {
-        toast({
-            variant: "destructive",
-            title: "امکان ویرایش وجود ندارد",
-            description: "این هزینه به صورت خودکار (بابت چک یا قسط وام) ثبت شده و قابل ویرایش نیست.",
-        });
-        return;
-    }
-    setEditingExpense(expense);
-    setIsFormOpen(true);
-  }, [toast]);
+    // Per user request, editing is disabled.
+    return;
+  }, []);
   
   const handleAddNew = React.useCallback(() => {
     setEditingExpense(null);
