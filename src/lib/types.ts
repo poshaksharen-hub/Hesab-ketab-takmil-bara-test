@@ -1,4 +1,5 @@
 
+
 import type { LucideIcon } from 'lucide-react';
 
 export type OwnerId = 'ali' | 'fatemeh' | 'shared';
@@ -116,6 +117,7 @@ export type Loan = {
     paymentDay: number; // Day of the month
     numberOfInstallments: number;
     paidInstallments: number;
+    depositToAccountId?: string;
 }
 
 export type LoanPayment = {

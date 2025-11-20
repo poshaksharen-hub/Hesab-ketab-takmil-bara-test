@@ -93,7 +93,9 @@
         "checkId": { "type": "string" },
         "goalId": { "type": "string" },
         "loanPaymentId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "balanceBefore": { "type": "number" },
+        "balanceAfter": { "type": "number" }
       },
       "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt"]
     },
@@ -136,9 +138,11 @@
         "issueDate": { "type": "string", "format": "date-time" },
         "dueDate": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["pending", "cleared"] },
-        "description": { "type": "string" }
+        "description": { "type": "string" },
+        "sayadId": { "type": "string", "description": "The Sayad ID of the check." },
+        "checkSerialNumber": { "type": "string", "description": "The serial number of the check." }
       },
-      "required": ["id", "registeredByUserId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status"]
+      "required": ["id", "registeredByUserId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
     },
     "FinancialGoal": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -175,7 +179,8 @@
             "startDate": { "type": "string", "format": "date-time" },
             "paymentDay": { "type": "number" },
             "numberOfInstallments": { "type": "number" },
-            "paidInstallments": { "type": "number" }
+            "paidInstallments": { "type": "number" },
+            "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." }
         },
         "required": ["id", "registeredByUserId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "paymentDay", "numberOfInstallments", "paidInstallments"]
     },

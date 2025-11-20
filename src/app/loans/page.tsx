@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState } from 'react';
@@ -41,7 +42,39 @@ export default function LoansPage() {
 
   const handleFormSubmit = React.useCallback(async (values: any) => {
     if (!user || !firestore || !bankAccounts) return;
-    const { depositOnCreate, depositToAccountId, ...loanData } = values;
+    
+    // Explicitly separate the form values to avoid passing extra fields to the database.
+    const { 
+        title,
+        amount,
+        installmentAmount,
+        numberOfInstallments,
+        startDate,
+        paymentDay,
+        payeeId,
+        depositOnCreate,
+        depositToAccountId
+    } = values;
+
+    const loanData: Partial<Loan> = {
+        title,
+        amount,
+        installmentAmount,
+        numberOfInstallments,
+        startDate,
+        paymentDay,
+    };
+    
+    // Only include payeeId if it's provided
+    if (payeeId) {
+        loanData.payeeId = payeeId;
+    }
+    
+    // Only include depositToAccountId if depositOnCreate is true
+    if (depositOnCreate && depositToAccountId) {
+        loanData.depositToAccountId = depositToAccountId;
+    }
+
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -110,6 +143,10 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const loanRef = doc(familyDataRef, 'loans', loan.id);
+            const loanDoc = await transaction.get(loanRef);
+            if (!loanDoc.exists()) throw new Error("وام مورد نظر یافت نشد.");
+
+            const currentLoanData = loanDoc.data() as Loan;
             
             const accountToPayFrom = bankAccounts.find(acc => acc.id === paymentBankAccountId);
             if (!accountToPayFrom) throw new Error("کارت بانکی برای پرداخت یافت نشد.");
@@ -117,10 +154,15 @@ export default function LoansPage() {
             const bankAccountRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
             
             const bankAccountDoc = await transaction.get(bankAccountRef);
+            if (!bankAccountDoc.exists()) throw new Error("کارت بانکی پرداخت یافت نشد.");
+            
             const availableBalance = bankAccountDoc.data()!.balance - (bankAccountDoc.data()!.blockedBalance || 0);
 
-            if (!bankAccountDoc.exists() || availableBalance < installmentAmount) {
+            if (availableBalance < installmentAmount) {
                 throw new Error("موجودی حساب برای پرداخت قسط کافی نیست.");
+            }
+             if (installmentAmount > currentLoanData.remainingAmount) {
+                throw new Error("مبلغ پرداختی نمی‌تواند از مبلغ باقی‌مانده وام بیشتر باشد.");
             }
 
             // 1. Deduct from bank account
@@ -129,8 +171,8 @@ export default function LoansPage() {
             transaction.update(bankAccountRef, { balance: balanceAfter });
 
             // 2. Update loan document
-            const newPaidInstallments = (loan.paidInstallments || 0) + 1;
-            const newRemainingAmount = Math.max(0, loan.remainingAmount - installmentAmount);
+            const newPaidInstallments = (currentLoanData.paidInstallments || 0) + 1;
+            const newRemainingAmount = Math.max(0, currentLoanData.remainingAmount - installmentAmount);
             transaction.update(loanRef, {
                 paidInstallments: newPaidInstallments,
                 remainingAmount: newRemainingAmount,
@@ -263,6 +305,7 @@ export default function LoansPage() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
+                bankAccounts={bankAccounts || []}
             />
             {payingLoan && (
                 <LoanPaymentDialog

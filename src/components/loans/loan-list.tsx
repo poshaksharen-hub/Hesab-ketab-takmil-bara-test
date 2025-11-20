@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CalendarCheck2, ArrowLeft, CheckCircle } from 'lucide-react';
-import type { Loan, LoanPayment, Payee } from '@/lib/types';
+import { Edit, Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark } from 'lucide-react';
+import type { Loan, LoanPayment, Payee, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -23,22 +24,32 @@ import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { getNextDueDate } from '@/lib/date-utils';
 import Link from 'next/link';
+import { USER_DETAILS } from '@/lib/constants';
 
 
 interface LoanListProps {
   loans: Loan[];
   loanPayments: LoanPayment[];
   payees: Payee[];
+  bankAccounts: BankAccount[];
   onEdit: (loan: Loan) => void;
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
 }
 
-export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay }: LoanListProps) {
+export function LoanList({ loans, loanPayments, payees, bankAccounts, onEdit, onDelete, onPay }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+  };
+
+  const getAccountInfo = (accountId?: string) => {
+    if (!accountId) return null;
+    const account = bankAccounts.find(acc => acc.id === accountId);
+    if (!account) return null;
+    const ownerName = account.ownerId === 'shared' ? 'حساب مشترک' : USER_DETAILS[account.ownerId]?.firstName || '';
+    return { bankName: account.bankName, ownerName };
   };
 
   if (loans.length === 0) {
@@ -73,6 +84,7 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
         {loans.sort((a, b) => a.paidInstallments - b.paidInstallments).map((loan) => {
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
+            const depositAccountInfo = getAccountInfo(loan.depositToAccountId);
 
             return (
              <div key={loan.id} className="relative group">
@@ -82,10 +94,16 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
                         <div className='flex justify-between items-start'>
                             <div className="space-y-1">
                                 <CardTitle className={cn("font-headline", isCompleted && "text-muted-foreground line-through")}>{loan.title}</CardTitle>
-                                <CardDescription>
+                                <CardDescription className='flex items-center gap-2'>
                                     {getLoanStatus(loan)}
-                                    {loan.payeeId && <span className="mr-2 text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
+                                    {loan.payeeId && <span className="text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
                                 </CardDescription>
+                                {depositAccountInfo && (
+                                     <CardDescription className="flex items-center gap-2 text-xs text-primary pt-1">
+                                        <Landmark className="h-3 w-3" />
+                                        <span>واریز شده به: {depositAccountInfo.bankName} ({depositAccountInfo.ownerName})</span>
+                                     </CardDescription>
+                                )}
                             </div>
                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
                                 <ArrowLeft className="h-4 w-4" />
