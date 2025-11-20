@@ -180,7 +180,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                     <FormItem>
                         <FormLabel>شماره سری چک</FormLabel>
                         <FormControl>
-                          <Input dir="ltr" {...field} />
+                          <NumericInput dir="ltr" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
