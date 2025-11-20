@@ -7,13 +7,15 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, TrendingDown, TrendingUp } from 'lucide-react';
-import type { Income, Expense, BankAccount } from '@/lib/types';
+import { ArrowRight, TrendingDown, TrendingUp, ArrowRightLeft } from 'lucide-react';
+import type { Income, Expense, BankAccount, Transfer } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-type TransactionWithBalances = (Income | Expense) & {
+type Transaction = (Income | Expense | Transfer) & { type: 'income' | 'expense' | 'transfer' };
+
+type TransactionWithBalances = Transaction & {
   balanceBefore: number;
   balanceAfter: number;
 };
@@ -57,7 +59,7 @@ export default function CardTransactionsPage() {
   const cardId = params.cardId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { incomes, expenses, bankAccounts, categories, users } = allData;
+  const { incomes, expenses, transfers, bankAccounts, categories, users } = allData;
 
   const { card, ledger } = useMemo(() => {
     if (isLoading || !cardId) {
@@ -68,16 +70,56 @@ export default function CardTransactionsPage() {
     if (!cardAccount) {
       return { card: null, ledger: [] };
     }
+    
+    // Standardize transfers to look like transactions for this card
+    const cardTransfers = transfers
+      .filter(t => t.fromBankAccountId === cardId || t.toBankAccountId === cardId)
+      .map(t => {
+          const isDebit = t.fromBankAccountId === cardId; // Money is leaving
+          const toAccount = bankAccounts.find(b => b.id === t.toBankAccountId);
+          const fromAccount = bankAccounts.find(b => b.id === t.fromBankAccountId);
 
-    const cardTransactions = [
-      ...incomes.filter((t) => t.bankAccountId === cardId),
-      ...expenses.filter((t) => t.bankAccountId === cardId),
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          return {
+              ...t,
+              type: 'transfer' as 'transfer',
+              date: t.transferDate,
+              amount: t.amount,
+              description: isDebit 
+                ? `انتقال به ${toAccount?.bankName || 'ناشناس'}`
+                : `دریافت از ${fromAccount?.bankName || 'ناشناس'}`,
+              balanceBefore: isDebit ? t.fromAccountBalanceBefore : t.toAccountBalanceBefore,
+              balanceAfter: isDebit ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter,
+          };
+      });
+
+    const cardIncomes = incomes
+        .filter(t => t.bankAccountId === cardId)
+        .map(i => ({...i, type: 'income' as 'income'}));
+
+    const cardExpenses = expenses
+        .filter(t => t.bankAccountId === cardId)
+        .map(e => ({...e, type: 'expense' as 'expense'}));
+
+    const allTransactions = [
+      ...cardIncomes,
+      ...cardExpenses,
+      ...cardTransfers,
+    ].sort((a, b) => {
+        const dateA = a.type === 'transfer' ? new Date(a.transferDate) : new Date(a.date);
+        const dateB = b.type === 'transfer' ? new Date(b.transferDate) : new Date(b.date);
+        return dateB.getTime() - dateA.getTime();
+    });
 
     let currentBalance = cardAccount.balance;
     const ledgerWithBalances: TransactionWithBalances[] = [];
 
-    for (const tx of cardTransactions) {
+    for (const tx of allTransactions) {
+      if (tx.type === 'transfer') {
+          // Balances are pre-calculated for transfers
+          ledgerWithBalances.push(tx as TransactionWithBalances);
+          continue;
+      }
+      
       const balanceAfter = currentBalance;
       let balanceBefore: number;
 
@@ -91,8 +133,8 @@ export default function CardTransactionsPage() {
       currentBalance = balanceBefore;
     }
 
-    return { card: cardAccount, ledger: ledgerWithBalances };
-  }, [isLoading, cardId, incomes, expenses, bankAccounts]);
+    return { card: cardAccount, ledger: ledgerWithBalances.sort((a, b) => b.balanceAfter - a.balanceAfter) };
+  }, [isLoading, cardId, incomes, expenses, transfers, bankAccounts]);
 
   if (isLoading) {
     return <TransactionLedgerSkeleton />;
@@ -116,11 +158,44 @@ export default function CardTransactionsPage() {
     );
   }
   
-  const getCategoryName = (id?: string) => {
-    if (!id) return 'متفرقه';
-    if (id === 'درآمد') return 'درآمد';
-    return categories?.find(c => c.id === id)?.name || 'متفرقه';
+  const getCategoryName = (tx: Transaction) => {
+    if (tx.type === 'income') return 'درآمد';
+    if (tx.type === 'transfer') return 'انتقال داخلی';
+    if (tx.type === 'expense' && tx.categoryId) {
+        return categories?.find(c => c.id === tx.categoryId)?.name || 'متفرقه';
+    }
+    return 'متفرقه';
   }
+
+  const getTransactionIcon = (tx: Transaction) => {
+      const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
+      const isCredit = tx.type === 'income' || (tx.type === 'transfer' && tx.toBankAccountId === cardId);
+
+      if (isCredit) {
+          return <div className="p-2 rounded-full bg-opacity-10 bg-emerald-500"><TrendingUp className="h-5 w-5 text-emerald-500" /></div>;
+      }
+      if (isDebit) {
+          return <div className="p-2 rounded-full bg-opacity-10 bg-red-500"><TrendingDown className="h-5 w-5 text-red-500" /></div>;
+      }
+      return <div className="p-2 rounded-full bg-opacity-10 bg-gray-500"><ArrowRightLeft className="h-5 w-5 text-gray-500" /></div>;
+  };
+
+  const getTransactionAmountClass = (tx: Transaction) => {
+      const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
+      const isCredit = tx.type === 'income' || (tx.type === 'transfer' && tx.toBankAccountId === cardId);
+      if (isCredit) return 'text-emerald-600';
+      if (isDebit) return 'text-red-600';
+      return '';
+  }
+
+  const getTransactionAmountPrefix = (tx: Transaction) => {
+      const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
+      const isCredit = tx.type === 'income' || (tx.type === 'transfer' && tx.toBankAccountId === cardId);
+      if (isCredit) return '+';
+      if (isDebit) return '-';
+      return '';
+  }
+
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -149,19 +224,17 @@ export default function CardTransactionsPage() {
         ) : (
         ledger.map((tx) => (
           <Card key={tx.id} className="overflow-hidden">
-            <div className={cn("border-l-4 h-full absolute left-0 top-0", tx.type === 'income' ? 'border-emerald-500' : 'border-red-500')}></div>
+            <div className={cn("border-l-4 h-full absolute left-0 top-0", getTransactionAmountClass(tx))}></div>
             <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 items-center gap-4">
                 {/* Transaction Details */}
                 <div className="md:col-span-2 flex items-center gap-4">
-                     <div className={cn("p-2 rounded-full bg-opacity-10", tx.type === 'income' ? 'bg-emerald-500' : 'bg-red-500')}>
-                        {tx.type === 'income' ? <TrendingUp className="h-5 w-5 text-emerald-500" /> : <TrendingDown className="h-5 w-5 text-red-500" />}
-                     </div>
+                     {getTransactionIcon(tx)}
                      <div className="flex-grow">
                         <p className="font-bold">{tx.description}</p>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
                             <span>{formatJalaliDate(new Date(tx.date))}</span>
                             <Separator orientation="vertical" className="h-3" />
-                            <Badge variant="outline">{getCategoryName('categoryId' in tx ? tx.categoryId : 'درآمد')}</Badge>
+                            <Badge variant="outline">{getCategoryName(tx)}</Badge>
                         </div>
                      </div>
                 </div>
@@ -173,9 +246,9 @@ export default function CardTransactionsPage() {
                         <p className="font-mono font-semibold">{formatCurrency(tx.balanceBefore, 'IRT').replace(' تومان', '')}</p>
                     </div>
                      <div className="space-y-1 p-2 rounded-md bg-muted/50">
-                        <p className={cn("text-xs font-bold", tx.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>مبلغ تراکنش</p>
-                        <p className={cn("font-mono font-semibold", tx.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>
-                            {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount, 'IRT').replace(' تومان', '')}
+                        <p className={cn("text-xs font-bold", getTransactionAmountClass(tx))}>مبلغ تراکنش</p>
+                        <p className={cn("font-mono font-semibold", getTransactionAmountClass(tx))}>
+                            {getTransactionAmountPrefix(tx)} {formatCurrency(tx.amount, 'IRT').replace(' تومان', '')}
                         </p>
                     </div>
                      <div className="space-y-1 p-2 rounded-md bg-muted/50">
