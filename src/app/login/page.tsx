@@ -9,8 +9,9 @@ import { useRouter } from 'next/navigation';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  User,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -76,43 +77,23 @@ export default function LoginPage() {
     }
   }, [currentUser, isUserLoading, router]);
 
-  async function onSubmit(values: LoginFormValues) {
-    setIsLoading(true);
-    const { email, password } = values;
+  // Helper function to create user profile if it doesn't exist
+  const ensureUserProfile = async (user: User) => {
+    if (!firestore) return;
+    const userProfileRef = doc(firestore, 'users', user.uid);
+    const userProfileSnap = await getDoc(userProfileRef);
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: 'ورود موفق',
-        description: 'شما با موفقیت وارد شدید.',
-      });
-       await seedInitialData(userCredential.user.uid);
-      router.push('/');
-
-    } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
-        try {
-          const userCredential = await createUserWithEmailAndPassword(
-            auth,
-            email,
-            password
-          );
-          const user = userCredential.user;
-
-          const userDetailKey = email.split('@')[0] as 'ali' | 'fatemeh';
-          const userDetail = USER_DETAILS[userDetailKey];
-
-          if (userDetail) {
-            const userProfileRef = doc(firestore, 'users', user.uid);
-            const profileData = {
+    if (!userProfileSnap.exists()) {
+        const userDetailKey = user.email!.split('@')[0] as 'ali' | 'fatemeh';
+        const userDetail = USER_DETAILS[userDetailKey];
+        if (userDetail) {
+             const profileData = {
               id: user.uid,
               email: user.email,
               firstName: userDetail.firstName,
               lastName: userDetail.lastName,
             };
-            
-            await setDoc(userProfileRef, profileData)
-              .catch(async (serverError) => {
+            await setDoc(userProfileRef, profileData).catch((serverError) => {
                 const permissionError = new FirestorePermissionError({
                   path: userProfileRef.path,
                   operation: 'create',
@@ -120,14 +101,48 @@ export default function LoginPage() {
                 });
                 errorEmitter.emit('permission-error', permissionError);
                 throw permissionError;
-              });
-             await seedInitialData(user.uid);
-          }
+            });
+        }
+    }
+  };
+
+
+  async function onSubmit(values: LoginFormValues) {
+    setIsLoading(true);
+    const { email, password } = values;
+
+    try {
+      // Try to sign in first
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      toast({
+        title: 'ورود موفق',
+        description: 'شما با موفقیت وارد شدید. در حال بررسی اطلاعات...',
+      });
+
+      // Ensure profile and data exists, then redirect
+      await ensureUserProfile(user);
+      await seedInitialData(user.uid);
+      router.push('/');
+
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        // If user does not exist in Auth, create them
+        try {
+          const newUserCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const newUser = newUserCredential.user;
+          
           toast({
             title: 'حساب کاربری ایجاد شد',
             description: 'حساب شما با موفقیت ایجاد و وارد شدید.',
           });
+          
+          // Create profile and seed data for the new user
+          await ensureUserProfile(newUser);
+          await seedInitialData(newUser.uid);
           router.push('/');
+
         } catch (creationError: any) {
            toast({
             variant: 'destructive',
@@ -137,6 +152,7 @@ export default function LoginPage() {
           });
         }
       } else {
+        // Handle other sign-in errors
         toast({
           variant: 'destructive',
           title: 'خطا در ورود',
