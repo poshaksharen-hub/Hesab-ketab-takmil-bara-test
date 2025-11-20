@@ -167,62 +167,62 @@ export default function GoalsPage() {
             const categoriesRef = collection(familyDataRef, 'categories');
             const expensesRef = collection(familyDataRef, 'expenses');
             
-            // --- Step 1: READS ---
-            const contributionAccountRefs = (goal.contributions || []).map(c => doc(familyDataRef, 'bankAccounts', c.bankAccountId));
-            const paymentAccountRef = paymentCardId ? doc(familyDataRef, 'bankAccounts', paymentCardId) : null;
-            
-            const allRefsToRead = [...contributionAccountRefs];
-            if (paymentAccountRef && !allRefsToRead.find(ref => ref.path === paymentAccountRef.path)) {
-                allRefsToRead.push(paymentAccountRef);
-            }
-            const accountDocs = await Promise.all(allRefsToRead.map(ref => transaction.get(ref)));
-
-            // Find or create 'Goals' category
+            // Step 1: Find or create the 'Goals' category BEFORE any other reads
             let goalsCategory: Category | null = null;
             const categoryQuery = query(categoriesRef, where('name', '==', 'اهداف مالی'));
-            const categorySnapshot = await getDocs(categoryQuery); // Use getDocs outside transaction for this read
+            const categorySnapshot = await getDocs(categoryQuery); // Firestore allows this specific read before a transaction
              if (!categorySnapshot.empty) {
                 goalsCategory = categorySnapshot.docs[0].data() as Category;
+            } else {
+                const newCategoryRef = doc(categoriesRef);
+                goalsCategory = {
+                    id: newCategoryRef.id,
+                    name: 'اهداف مالی',
+                    description: 'هزینه‌های مربوط به تحقق اهداف مالی'
+                };
+                transaction.set(newCategoryRef, goalsCategory);
             }
+            const categoryId = goalsCategory.id;
 
-            const accountsData: { [key: string]: BankAccount } = {};
-            for (const doc of accountDocs) {
-                if (!doc.exists()) throw new Error(`حساب بانکی با شناسه ${doc.id} یافت نشد.`);
-                accountsData[doc.id] = doc.data() as BankAccount;
+
+            // Step 2: Perform all READS for accounts
+            const accountDocsMap = new Map<string, BankAccount>();
+            const contributionAccountRefs = (goal.contributions || []).map(c => doc(familyDataRef, 'bankAccounts', c.bankAccountId));
+            if (paymentCardId) {
+                contributionAccountRefs.push(doc(familyDataRef, 'bankAccounts', paymentCardId));
+            }
+            const uniqueRefs = [...new Set(contributionAccountRefs.map(r => r.path))].map(path => doc(firestore, path));
+            
+            for (const ref of uniqueRefs) {
+                const docSnap = await transaction.get(ref);
+                if (!docSnap.exists()) throw new Error(`حساب بانکی با شناسه ${ref.id} یافت نشد.`);
+                accountDocsMap.set(ref.id, docSnap.data() as BankAccount);
             }
             
             const cashPaymentNeeded = Math.max(0, actualCost - goal.currentAmount);
+
             if (cashPaymentNeeded > 0 && paymentCardId) {
-                const paymentAccountData = accountsData[paymentCardId];
+                const paymentAccountData = accountDocsMap.get(paymentCardId)!;
                 const availableBalance = paymentAccountData.balance - (paymentAccountData.blockedBalance || 0);
                 if(availableBalance < cashPaymentNeeded) throw new Error(`موجودی کارت پرداخت (${formatCurrency(availableBalance, 'IRT')}) برای پرداخت مابقی (${formatCurrency(cashPaymentNeeded, 'IRT')}) کافی نیست.`);
             }
 
-            // --- Step 2: WRITES ---
+            // Step 3: Perform all WRITES
+            const nowISO = new Date().toISOString();
             
-            // Create goals category if it doesn't exist
-            let categoryId = goalsCategory?.id;
-            if (!goalsCategory) {
-                const newCategoryRef = doc(categoriesRef);
-                categoryId = newCategoryRef.id;
-                transaction.set(newCategoryRef, {
-                    id: categoryId,
-                    name: 'اهداف مالی',
-                    description: 'هزینه‌های مربوط به تحقق اهداف مالی'
-                });
-            }
-
-            // Create expenses for each contribution
+            // Create expenses for each contribution & update accounts
             for(const contribution of (goal.contributions || [])) {
                 const expenseRef = doc(expensesRef);
+                const accountData = accountDocsMap.get(contribution.bankAccountId)!;
+
                 transaction.set(expenseRef, {
                     id: expenseRef.id,
-                    ownerId: accountsData[contribution.bankAccountId].ownerId,
+                    ownerId: accountData.ownerId,
                     registeredByUserId: user.uid,
                     amount: contribution.amount,
                     bankAccountId: contribution.bankAccountId,
                     categoryId: categoryId,
-                    date: new Date().toISOString(),
+                    date: nowISO,
                     description: `تحقق هدف (بخش پس‌انداز): ${goal.name}`,
                     type: 'expense',
                     subType: 'goal_saved_portion',
@@ -231,7 +231,6 @@ export default function GoalsPage() {
                 
                 // Unblock and deduct balance
                 const accountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
-                const accountData = accountsData[contribution.bankAccountId];
                 transaction.update(accountRef, { 
                     blockedBalance: (accountData.blockedBalance || 0) - contribution.amount,
                     balance: accountData.balance - contribution.amount,
@@ -241,14 +240,16 @@ export default function GoalsPage() {
             // Create expense for the cash portion
             if (cashPaymentNeeded > 0 && paymentCardId) {
                  const expenseRef = doc(expensesRef);
+                 const paymentAccountData = accountDocsMap.get(paymentCardId)!;
+                 
                  transaction.set(expenseRef, {
                     id: expenseRef.id,
-                    ownerId: accountsData[paymentCardId].ownerId,
+                    ownerId: paymentAccountData.ownerId,
                     registeredByUserId: user.uid,
                     amount: cashPaymentNeeded,
                     bankAccountId: paymentCardId,
                     categoryId: categoryId,
-                    date: new Date().toISOString(),
+                    date: nowISO,
                     description: `تحقق هدف (بخش نقدی): ${goal.name}`,
                     type: 'expense',
                     subType: 'goal_cash_portion',
@@ -257,7 +258,6 @@ export default function GoalsPage() {
                  
                  // Deduct cash payment from the payment card
                  const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
-                 const paymentAccountData = accountsData[paymentCardId];
                  transaction.update(paymentAccountRef, { 
                     balance: paymentAccountData.balance - cashPaymentNeeded 
                  });
