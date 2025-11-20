@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -66,7 +67,7 @@ export function AchieveGoalDialog({
   const form = useForm<AchieveGoalFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      paymentCardId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
+      paymentCardId: '',
       categoryId: '',
     },
   });
