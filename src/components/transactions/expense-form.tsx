@@ -26,7 +26,7 @@ import type { Expense, BankAccount, Category } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns-jalali';
 import { USER_DETAILS } from '@/lib/constants';
 import type { User } from 'firebase/auth';
@@ -186,7 +186,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                         <SelectContent>
                             {bankAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
-                                {`${account.bankName} ${getOwnerName(account)}`}
+                                {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
                             </SelectItem>
                             ))}
                         </SelectContent>
