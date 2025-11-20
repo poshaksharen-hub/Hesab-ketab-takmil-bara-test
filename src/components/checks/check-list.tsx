@@ -105,41 +105,6 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
                             </AlertDialogContent>
                         </AlertDialog>
                         )}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <Button variant="ghost" size="icon" onClick={() => onEdit(check)} disabled={check.status === 'cleared'}>
-                                  <Edit className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TooltipTrigger>
-                          {check.status === 'cleared' && (
-                            <TooltipContent>
-                              <p>چک پاس شده قابل ویرایش نیست.</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، با حذف آن مبلغ به حساب شما بازگردانده شده و هزینه مرتبط نیز حذف خواهد شد.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(check)}>
-                                    بله، حذف کن
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
                     </div>
                 </TableCell>
               </TableRow>
