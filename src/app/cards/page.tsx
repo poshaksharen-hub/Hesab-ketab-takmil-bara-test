@@ -30,7 +30,7 @@ export default function CardsPage() {
   const hasSharedAccount = allBankAccounts.some(acc => acc.isShared);
 
 
-  const handleFormSubmit = async (values: Omit<BankAccount, 'id' | 'balance'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance'>) => {
     if (!user || !firestore || allUsers.length === 0) return;
   
     if (editingCard) {
@@ -118,9 +118,9 @@ export default function CardsPage() {
     }
     setIsFormOpen(false);
     setEditingCard(null);
-  };
+  }, [user, firestore, allUsers, editingCard, toast]);
 
-  const handleDelete = async (cardId: string) => {
+  const handleDelete = React.useCallback(async (cardId: string) => {
     if (!user || !firestore || allUsers.length === 0) return;
     
     const userIds = allUsers.map(u => u.id);
@@ -186,18 +186,18 @@ export default function CardsPage() {
             });
         }
     }
-  };
+  }, [user, firestore, allUsers, allBankAccounts, toast]);
 
 
-  const handleEdit = (card: BankAccount) => {
+  const handleEdit = React.useCallback((card: BankAccount) => {
     setEditingCard(card);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleAddNew = () => {
+  const handleAddNew = React.useCallback(() => {
     setEditingCard(null);
     setIsFormOpen(true);
-  };
+  }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
 
