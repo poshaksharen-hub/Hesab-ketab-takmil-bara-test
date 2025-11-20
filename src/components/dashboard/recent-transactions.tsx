@@ -4,7 +4,8 @@ import { type Income, type Expense, type UserProfile, type Category, BankAccount
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Briefcase, ShoppingCart } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns-jalali';
+import { formatDistanceToNow } from 'date-fns';
+import { faIR } from 'date-fns/locale';
 import { Badge } from '../ui/badge';
 
 
@@ -39,7 +40,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
   const formatDate = (date: any) => {
     try {
       const d = date.toDate ? date.toDate() : new Date(date);
-      return formatDistanceToNow(d, { addSuffix: true });
+      return formatDistanceToNow(d, { addSuffix: true, locale: faIR });
     } catch {
       return "تاریخ نامشخص"
     }
@@ -47,7 +48,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
 
   const isShared = (transaction: Income | Expense) => {
       const account = bankAccounts.find(acc => acc.id === transaction.bankAccountId);
-      return account?.isShared;
+      return account?.ownerId === 'shared';
   }
 
   return (
@@ -56,7 +57,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
         const isIncome = 'source' in transaction;
         const categoryId = 'categoryId' in transaction ? transaction.categoryId : 'درآمد';
         const categoryName = getCategoryName(categoryId);
-        const registeredById = 'registeredByUserId' in transaction ? transaction.registeredByUserId : transaction.userId;
+        const registeredById = 'registeredByUserId' in transaction ? (transaction as any).registeredByUserId : (transaction as any).userId;
         const transactionDate = 'createdAt' in transaction && transaction.createdAt ? transaction.createdAt : transaction.date;
         
         return (
