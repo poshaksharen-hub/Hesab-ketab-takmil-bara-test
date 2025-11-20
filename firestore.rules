@@ -3,14 +3,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if the user is one of the two family members.
+    // Helper function to check if the user is one of the two family members based on email.
     function isFamilyMember() {
-      // The UIDs for Ali and Fatemeh.
-      let familyUIDs = [
-          "gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2", // Ali's UID
-          "iwXrEC4MPze90eK0BExOdqMdTZ43"  // Fatemeh's UID
+      // The allowed emails for Ali and Fatemeh.
+      let familyEmails = [
+          'ali@khanevadati.app',
+          'fatemeh@khanevadati.app'
       ];
-      return request.auth != null && request.auth.uid in familyUIDs;
+      return request.auth != null && request.auth.token.email in familyEmails;
     }
     
     // Grant full read/write access to all collections and documents
