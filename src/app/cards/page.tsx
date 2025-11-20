@@ -78,7 +78,8 @@ export default function CardsPage() {
         const newSharedCard = { ...newCardBase, members, userId: null };
         const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
         addDoc(sharedColRef, newSharedCard)
-          .then(() => {
+          .then((docRef) => {
+            updateDoc(docRef, { id: docRef.id }); // Add the id to the document
             toast({ title: "موفقیت", description: "کارت بانکی مشترک جدید با موفقیت اضافه شد." });
           })
           .catch(async (serverError) => {
@@ -99,7 +100,8 @@ export default function CardsPage() {
         const newCard = { ...newCardBase, userId: ownerId };
         const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
         addDoc(userColRef, newCard)
-          .then(() => {
+          .then((docRef) => {
+             updateDoc(docRef, { id: docRef.id }); // Add the id to the document
             toast({ title: "موفقیت", description: "کارت بانکی جدید با موفقیت اضافه شد." });
           })
           .catch(async (serverError) => {
