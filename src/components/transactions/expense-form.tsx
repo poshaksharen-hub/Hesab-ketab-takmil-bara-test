@@ -67,10 +67,8 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
   });
 
   const getOwnerName = (account: BankAccount) => {
-    if (account.isShared) return "(مشترک)";
-    if (!account.userId) return "(ناشناس)";
-    
-    const userDetail = Object.values(USER_DETAILS).find(u => u.id === account.userId);
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
