@@ -70,6 +70,28 @@ export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFo
   const fromAccountId = form.watch('fromBankAccountId');
   const fromAccount = bankAccounts.find(acc => acc.id === fromAccountId);
 
+  // Filter destination accounts based on the source account
+  const availableToAccounts = React.useMemo(() => {
+    if (!fromAccount) {
+      return bankAccounts;
+    }
+    // If transferring FROM shared account, you can transfer to any personal account.
+    if (fromAccount.ownerId === 'shared') {
+      return bankAccounts.filter(acc => acc.ownerId !== 'shared');
+    }
+    // If transferring FROM a personal account, you can NOT transfer to the shared account.
+    return bankAccounts.filter(acc => acc.id !== fromAccountId && acc.ownerId !== 'shared');
+  }, [fromAccountId, fromAccount, bankAccounts]);
+
+  // Reset 'to' account if it becomes invalid
+  React.useEffect(() => {
+    const toAccountId = form.getValues('toBankAccountId');
+    if (toAccountId && !availableToAccounts.some(acc => acc.id === toAccountId)) {
+      form.setValue('toBankAccountId', '');
+    }
+  }, [fromAccountId, availableToAccounts, form]);
+
+
   return (
       <Card className="shadow-lg">
         <CardHeader>
@@ -116,14 +138,14 @@ export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFo
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>به حساب</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!fromAccountId}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="یک حساب بانکی به عنوان مقصد انتخاب کنید" />
+                          <SelectValue placeholder={!fromAccountId ? "ابتدا حساب مبدا را انتخاب کنید" : "یک حساب بانکی به عنوان مقصد انتخاب کنید"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {bankAccounts.filter(acc => acc.id !== fromAccountId).map((account) => (
+                        {availableToAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
                           </SelectItem>
