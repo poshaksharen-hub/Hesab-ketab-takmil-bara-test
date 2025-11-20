@@ -63,7 +63,7 @@ export default function GoalsPage() {
   );
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
 
-  const handleFormSubmit = async (values: any) => {
+  const handleFormSubmit = React.useCallback(async (values: any) => {
     if (!user || !firestore) return;
     const { savedAmount, savedFromBankAccountId, ...goalData } = values;
 
@@ -157,9 +157,9 @@ export default function GoalsPage() {
         });
       }
     }
-  };
+  }, [user, firestore, editingGoal, toast]);
 
-   const handleAchieveGoal = async ({ paymentAmount, paymentCardId, categoryId }: { paymentAmount: number, paymentCardId: string, categoryId: string }) => {
+   const handleAchieveGoal = React.useCallback(async ({ paymentAmount, paymentCardId, categoryId }: { paymentAmount: number, paymentCardId: string, categoryId: string }) => {
     if (!user || !firestore || !achievingGoal) return;
     const goal = achievingGoal;
 
@@ -225,11 +225,11 @@ export default function GoalsPage() {
             });
         }
     }
-  };
+  }, [user, firestore, achievingGoal, toast]);
 
 
-   const handleRevertGoal = async (goal: FinancialGoal) => {
-    if (!user || !firestore) return;
+   const handleRevertGoal = React.useCallback(async (goal: FinancialGoal) => {
+    if (!user || !firestore || !bankAccounts) return;
     try {
       const batch = writeBatch(firestore);
       const goalRef = doc(firestore, 'users', user.uid, 'financialGoals', goal.id);
@@ -280,9 +280,9 @@ export default function GoalsPage() {
          toast({ variant: 'destructive', title: 'خطا', description: error.message });
        }
     }
-  };
+  }, [user, firestore, bankAccounts, toast]);
 
-  const handleDelete = async (goal: FinancialGoal) => {
+  const handleDelete = React.useCallback(async (goal: FinancialGoal) => {
     if (!user || !firestore) return;
     const goalRef = doc(firestore, 'users', user.uid, 'financialGoals', goal.id);
 
@@ -316,21 +316,21 @@ export default function GoalsPage() {
             });
         }
     }
-  };
+  }, [user, firestore, toast]);
 
-  const handleAddNew = () => {
+  const handleAddNew = React.useCallback(() => {
     setEditingGoal(null);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (goal: FinancialGoal) => {
+  const handleEdit = React.useCallback((goal: FinancialGoal) => {
     setEditingGoal(goal);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleOpenAchieveDialog = (goal: FinancialGoal) => {
+  const handleOpenAchieveDialog = React.useCallback((goal: FinancialGoal) => {
     setAchievingGoal(goal);
-  };
+  }, []);
 
   const isLoading =
     isUserLoading || isLoadingGoals || isLoadingBankAccounts || isLoadingCategories;

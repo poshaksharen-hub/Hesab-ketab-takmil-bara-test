@@ -28,7 +28,7 @@ export default function PayeesPage() {
   );
   const { data: payees, isLoading: isLoadingPayees } = useCollection<Payee>(payeesQuery);
 
-  const handleFormSubmit = async (values: Omit<Payee, 'id' | 'userId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Payee, 'id' | 'userId'>) => {
     if (!user || !firestore) return;
 
     if (editingPayee) {
@@ -66,9 +66,9 @@ export default function PayeesPage() {
     }
     setIsFormOpen(false);
     setEditingPayee(null);
-  };
+  }, [user, firestore, editingPayee, toast]);
 
-  const handleDelete = async (payeeId: string) => {
+  const handleDelete = React.useCallback(async (payeeId: string) => {
     if (!user || !firestore) return;
     const payeeRef = doc(firestore, 'users', user.uid, 'payees', payeeId);
 
@@ -101,17 +101,17 @@ export default function PayeesPage() {
             });
         }
     }
-  };
+  }, [user, firestore, toast]);
 
-  const handleEdit = (payee: Payee) => {
+  const handleEdit = React.useCallback((payee: Payee) => {
     setEditingPayee(payee);
     setIsFormOpen(true);
-  };
+  }, []);
   
-  const handleAddNew = () => {
+  const handleAddNew = React.useCallback(() => {
     setEditingPayee(null);
     setIsFormOpen(true);
-  };
+  }, []);
 
   const isLoading = isUserLoading || isLoadingPayees;
 

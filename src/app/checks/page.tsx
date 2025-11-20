@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -26,7 +27,7 @@ export default function ChecksPage() {
   
   const { checks, bankAccounts, payees, categories, users } = allData;
 
-  const handleFormSubmit = async (values: Omit<Check, 'id' | 'userId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'userId'>) => {
     if (!user || !firestore) return;
 
     if (editingCheck) {
@@ -65,9 +66,9 @@ export default function ChecksPage() {
     }
     setIsFormOpen(false);
     setEditingCheck(null);
-  };
+  }, [user, firestore, editingCheck, toast]);
 
-  const handleClearCheck = async (check: Check) => {
+  const handleClearCheck = React.useCallback(async (check: Check) => {
     if (!user || !firestore || check.status === 'cleared') return;
     
     const checkRef = doc(firestore, 'users', check.userId, 'checks', check.id);
@@ -127,9 +128,9 @@ export default function ChecksPage() {
             });
        }
     }
-  };
+  }, [user, firestore, bankAccounts, payees, toast]);
 
-  const handleDelete = async (check: Check) => {
+  const handleDelete = React.useCallback(async (check: Check) => {
     if (!user || !firestore) return;
     const checkRef = doc(firestore, 'users', check.userId, 'checks', check.id);
     try {
@@ -175,9 +176,9 @@ export default function ChecksPage() {
             });
         }
     }
-  };
+  }, [user, firestore, bankAccounts, toast]);
 
-  const handleEdit = (check: Check) => {
+  const handleEdit = React.useCallback((check: Check) => {
     if (check.status === 'cleared') {
       toast({
         variant: "destructive",
@@ -188,12 +189,12 @@ export default function ChecksPage() {
     }
     setEditingCheck(check);
     setIsFormOpen(true);
-  };
+  }, [toast]);
   
-  const handleAddNew = () => {
+  const handleAddNew = React.useCallback(() => {
     setEditingCheck(null);
     setIsFormOpen(true);
-  };
+  }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
   

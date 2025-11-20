@@ -27,8 +27,8 @@ export default function IncomePage() {
 
   const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
 
-  const handleFormSubmit = async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user || !firestore) return;
+  const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!user || !firestore || !allBankAccounts) return;
   
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -121,17 +121,17 @@ export default function IncomePage() {
           });
         }
     }
-  };
+  }, [user, firestore, allBankAccounts, editingIncome, toast]);
   
 
-  const handleDelete = async (income: Income) => {
-    if (!user || !firestore || !allIncomes) return;
+  const handleDelete = React.useCallback(async (income: Income) => {
+    if (!user || !firestore || !allIncomes || !allBankAccounts) return;
     
     try {
         await runTransaction(firestore, async (transaction) => {
             const incomeRef = income.isShared
                 ? doc(firestore, 'shared/data/incomes', income.id)
-                : doc(firestore, 'users', income.userId, 'incomes', income.id);
+                : doc(firestore, `users/${income.userId}/incomes/${income.id}`);
             
             const account = allBankAccounts.find(acc => acc.id === income.bankAccountId);
             if(!account) throw new Error("کارت بانکی یافت نشد");
@@ -160,18 +160,18 @@ export default function IncomePage() {
           });
         }
     }
-  };
+  }, [user, firestore, allIncomes, allBankAccounts, toast]);
 
 
-  const handleEdit = (income: Income) => {
+  const handleEdit = React.useCallback((income: Income) => {
     setEditingIncome(income);
     setIsFormOpen(true);
-  };
+  }, []);
   
-  const handleAddNew = () => {
+  const handleAddNew = React.useCallback(() => {
     setEditingIncome(null);
     setIsFormOpen(true);
-  };
+  }, []);
 
   const isLoading = isUserLoading || isDashboardLoading;
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -30,8 +31,8 @@ export default function ExpensesPage() {
     users: allUsers,
   } = allData;
 
-  const handleFormSubmit = async (values: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'type' | 'registeredByUserId'>) => {
-    if (!user || !firestore) return;
+  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'type' | 'registeredByUserId'>) => {
+    if (!user || !firestore || !allBankAccounts) return;
     
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -51,7 +52,10 @@ export default function ExpensesPage() {
 
             if (editingExpense) {
                 // --- Edit Mode ---
-                const oldExpenseRef = doc(firestore, 'users', editingExpense.userId, 'expenses', editingExpense.id);
+                const oldExpenseRef = editingExpense.isShared 
+                    ? doc(firestore, `shared/data/expenses/${editingExpense.id}`)
+                    : doc(firestore, `users/${editingExpense.userId}/expenses/${editingExpense.id}`);
+
                 
                 const oldAccount = allBankAccounts.find(acc => acc.id === editingExpense.bankAccountId);
                 if(!oldAccount) throw new Error("کارت بانکی قدیمی یافت نشد.");
@@ -83,7 +87,14 @@ export default function ExpensesPage() {
                 }
 
                 // 2. Update expense document
-                transaction.update(oldExpenseRef, { ...expenseData, registeredByUserId: user.uid, updatedAt: serverTimestamp() });
+                const newExpenseOwnerId = isSharedAccount ? undefined : account.userId;
+                transaction.update(oldExpenseRef, { 
+                    ...expenseData, 
+                    userId: newExpenseOwnerId,
+                    isShared: isSharedAccount,
+                    registeredByUserId: user.uid, 
+                    updatedAt: serverTimestamp() 
+                });
                 toast({ title: "موفقیت", description: "هزینه با موفقیت ویرایش شد." });
 
             } else {
@@ -95,16 +106,29 @@ export default function ExpensesPage() {
                 // 1. Deduct from balance
                 transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
 
-                // 2. Create new expense document in the account owner's collection
-                const expenseOwnerId = account.userId;
-                const newExpenseRef = doc(collection(firestore, 'users', expenseOwnerId, 'expenses'));
-                transaction.set(newExpenseRef, {
-                    ...expenseData,
-                    id: newExpenseRef.id,
-                    userId: expenseOwnerId,
-                    registeredByUserId: user.uid,
-                    createdAt: serverTimestamp(),
-                });
+                // 2. Create new expense document
+                 if(isSharedAccount) {
+                    const newExpenseRef = doc(collection(firestore, 'shared/data/expenses'));
+                    transaction.set(newExpenseRef, {
+                        ...expenseData,
+                        id: newExpenseRef.id,
+                        userId: undefined,
+                        isShared: true,
+                        registeredByUserId: user.uid,
+                        createdAt: serverTimestamp(),
+                    });
+                } else {
+                    const expenseOwnerId = account.userId;
+                    const newExpenseRef = doc(collection(firestore, 'users', expenseOwnerId, 'expenses'));
+                    transaction.set(newExpenseRef, {
+                        ...expenseData,
+                        id: newExpenseRef.id,
+                        userId: expenseOwnerId,
+                        isShared: false,
+                        registeredByUserId: user.uid,
+                        createdAt: serverTimestamp(),
+                    });
+                }
                 toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
             }
         });
@@ -123,14 +147,17 @@ export default function ExpensesPage() {
           });
         }
     }
-  };
+  }, [user, firestore, allBankAccounts, editingExpense, toast]);
 
-  const handleDelete = async (expense: Expense) => {
-    if (!user || !firestore) return;
+  const handleDelete = React.useCallback(async (expense: Expense) => {
+    if (!user || !firestore || !allBankAccounts) return;
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const expenseRef = doc(firestore, 'users', expense.userId, 'expenses', expense.id);
+             const expenseRef = expense.isShared
+                ? doc(firestore, `shared/data/expenses/${expense.id}`)
+                : doc(firestore, `users/${expense.userId}/expenses/${expense.id}`);
+
             
             const account = allBankAccounts.find(acc => acc.id === expense.bankAccountId);
             if(!account) throw new Error("کارت بانکی یافت نشد");
@@ -158,9 +185,9 @@ export default function ExpensesPage() {
           });
         }
     }
-  };
+  }, [user, firestore, allBankAccounts, toast]);
 
-  const handleEdit = (expense: Expense) => {
+  const handleEdit = React.useCallback((expense: Expense) => {
     if (expense.checkId || expense.loanPaymentId) {
         toast({
             variant: "destructive",
@@ -171,12 +198,12 @@ export default function ExpensesPage() {
     }
     setEditingExpense(expense);
     setIsFormOpen(true);
-  };
+  }, [toast]);
   
-  const handleAddNew = () => {
+  const handleAddNew = React.useCallback(() => {
     setEditingExpense(null);
     setIsFormOpen(true);
-  };
+  }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
 

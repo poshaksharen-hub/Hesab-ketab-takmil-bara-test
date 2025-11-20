@@ -28,7 +28,7 @@ export default function CategoriesPage() {
   );
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
 
-  const handleFormSubmit = async (values: Omit<Category, 'id' | 'userId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Category, 'id' | 'userId'>) => {
     if (!user || !firestore) return;
 
     if (editingCategory) {
@@ -66,9 +66,9 @@ export default function CategoriesPage() {
     }
     setIsFormOpen(false);
     setEditingCategory(null);
-  };
+  }, [user, firestore, editingCategory, toast]);
 
-  const handleDelete = async (categoryId: string) => {
+  const handleDelete = React.useCallback(async (categoryId: string) => {
     if (!user || !firestore) return;
     const categoryRef = doc(firestore, 'users', user.uid, 'categories', categoryId);
 
@@ -109,17 +109,17 @@ export default function CategoriesPage() {
             });
         }
     }
-  };
+  }, [user, firestore, toast]);
 
-  const handleEdit = (category: Category) => {
+  const handleEdit = React.useCallback((category: Category) => {
     setEditingCategory(category);
     setIsFormOpen(true);
-  };
+  }, []);
   
-  const handleAddNew = () => {
+  const handleAddNew = React.useCallback(() => {
     setEditingCategory(null);
     setIsFormOpen(true);
-  };
+  }, []);
 
   const isLoading = isUserLoading || isLoadingCategories;
 

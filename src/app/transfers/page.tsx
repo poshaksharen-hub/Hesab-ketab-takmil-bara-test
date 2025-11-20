@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -20,8 +21,8 @@ export default function TransfersPage() {
   const { bankAccounts: allBankAccounts, users: allUsers, transfers } = allData;
 
 
-  const handleTransferSubmit = async (values: Omit<Transfer, 'id' | 'userId' | 'transferDate'>) => {
-    if (!user || !firestore) return;
+  const handleTransferSubmit = React.useCallback(async (values: Omit<Transfer, 'id' | 'userId' | 'transferDate'>) => {
+    if (!user || !firestore || !allBankAccounts) return;
 
     if (values.fromBankAccountId === values.toBankAccountId) {
       toast({
@@ -94,7 +95,7 @@ export default function TransfersPage() {
         description: error.message || "مشکلی در انجام عملیات پیش آمد. لطفا دوباره تلاش کنید.",
       });
     }
-  };
+  }, [user, firestore, allBankAccounts, toast]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -37,8 +38,8 @@ export default function LoansPage() {
     expenses
   } = allData;
 
-  const handleFormSubmit = async (values: any) => {
-    if (!user || !firestore) return;
+  const handleFormSubmit = React.useCallback(async (values: any) => {
+    if (!user || !firestore || !bankAccounts) return;
     const { depositOnCreate, depositToAccountId, ...loanData } = values;
 
     try {
@@ -105,10 +106,10 @@ export default function LoansPage() {
             description: error.message || "مشکلی در ثبت اطلاعات پیش آمد.",
         });
     }
-  };
+  }, [user, firestore, bankAccounts, editingLoan, toast]);
 
-  const handlePayInstallment = async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
-    if (!user || !firestore) return;
+  const handlePayInstallment = React.useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
+    if (!user || !firestore || !bankAccounts || !categories) return;
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -178,10 +179,10 @@ export default function LoansPage() {
             description: error.message,
         });
     }
-  };
+  }, [user, firestore, bankAccounts, categories, toast]);
 
-  const handleDelete = async (loanId: string) => {
-    if (!user || !firestore || !loans) return;
+  const handleDelete = React.useCallback(async (loanId: string) => {
+    if (!user || !firestore || !loans || !users) return;
 
     const loanToDelete = loans.find(l => l.id === loanId);
     if (!loanToDelete) return;
@@ -220,18 +221,18 @@ export default function LoansPage() {
             description: error.message || "مشکلی در حذف وام و سوابق آن پیش آمد.",
         });
     }
-  };
+  }, [user, firestore, loans, users, toast]);
 
 
-  const handleAddNew = () => {
+  const handleAddNew = React.useCallback(() => {
     setEditingLoan(null);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (loan: Loan) => {
+  const handleEdit = React.useCallback((loan: Loan) => {
     setEditingLoan(loan);
     setIsFormOpen(true);
-  };
+  }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
 
