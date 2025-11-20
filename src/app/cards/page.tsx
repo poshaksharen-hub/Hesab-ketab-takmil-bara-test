@@ -118,10 +118,19 @@ export default function CardsPage() {
         return;
     }
 
+    let cardToDeleteRef;
+    if (cardToDelete.isShared) {
+        cardToDeleteRef = doc(firestore, 'shared', 'data', 'bankAccounts', cardId);
+    } else {
+        if (!cardToDelete.userId) {
+            toast({ variant: 'destructive', title: 'خطا', description: 'مالک کارت شخصی برای حذف یافت نشد.' });
+            return;
+        }
+        cardToDeleteRef = doc(firestore, `users/${cardToDelete.userId}/bankAccounts/${cardId}`);
+    }
+
     try {
         await runTransaction(firestore, async (transaction) => {
-            let cardToDeleteRef;
-            
             // Check for dependencies across all users first
             for (const userId of userIds) {
                 const checksRef = collection(firestore, 'users', userId, 'checks');
@@ -141,16 +150,6 @@ export default function CardsPage() {
                 }
             }
             
-            // Determine the correct path to the card document
-            if (cardToDelete.isShared) {
-                cardToDeleteRef = doc(firestore, 'shared', 'data', 'bankAccounts', cardId);
-            } else {
-                if (!cardToDelete.userId) {
-                    throw new Error("مالک کارت شخصی برای حذف یافت نشد.");
-                }
-                cardToDeleteRef = doc(firestore, `users/${cardToDelete.userId}/bankAccounts/${cardId}`);
-            }
-
              const cardDoc = await transaction.get(cardToDeleteRef);
              if (!cardDoc.exists()) {
                  throw new Error("کارت بانکی برای حذف در پایگاه داده یافت نشد.");
@@ -160,8 +159,12 @@ export default function CardsPage() {
 
         toast({ title: "موفقیت", description: "کارت بانکی با موفقیت حذف شد." });
     } catch (error: any) {
-        if (error instanceof FirestorePermissionError) {
-             errorEmitter.emit('permission-error', error);
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: cardToDeleteRef.path,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",
