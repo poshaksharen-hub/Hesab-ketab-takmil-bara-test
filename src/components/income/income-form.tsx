@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -55,38 +55,14 @@ interface IncomeFormProps {
 export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user, users }: IncomeFormProps) {
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData
-      ? {
-          ...initialData,
-          date: new Date(initialData.date),
-          source: initialData.isShared ? 'shared' : initialData.userId || '',
-        }
-      : {
+    defaultValues: {
         description: '',
         amount: 0,
         date: new Date(),
         source: '',
         bankAccountId: '',
-      },
+    },
   });
-
-  const selectedSource = form.watch('source');
-  
-  const getOwnerName = (account: BankAccount) => {
-    if (account.isShared) return "(مشترک)";
-    const owner = users.find(u => u.id === account.userId);
-    return owner ? `(${owner.firstName})` : "(ناشناس)";
-  };
-
-  const availableAccounts = useMemo(() => {
-    if (selectedSource === 'shared') {
-      return bankAccounts.filter(acc => acc.isShared);
-    }
-    if (selectedSource) { // It's a personal source (userId)
-      return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
-    }
-    return [];
-  }, [selectedSource, bankAccounts]);
 
   useEffect(() => {
     if (initialData) {
@@ -107,17 +83,37 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     }
   }, [initialData, form]);
 
-  const handleSourceChange = (value: string) => {
+  const selectedSource = form.watch('source');
+  
+  const getOwnerName = (account: BankAccount) => {
+    if (account.isShared) return "(مشترک)";
+    const owner = users.find(u => u.id === account.userId);
+    return owner ? `(${owner.firstName})` : "(ناشناس)";
+  };
+
+  const availableAccounts = useMemo(() => {
+    if (selectedSource === 'shared') {
+      return bankAccounts.filter(acc => acc.isShared);
+    }
+    if (selectedSource) { // It's a personal source (userId)
+      return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
+    }
+    return [];
+  }, [selectedSource, bankAccounts]);
+
+  const handleSourceChange = useCallback((value: string) => {
     form.setValue('source', value);
     form.setValue('bankAccountId', ''); // Reset account selection
-    // Auto-select if only one option is available
+    
+    // Recalculate based on the new value directly.
     const newAvailableAccounts = bankAccounts.filter(acc => 
       value === 'shared' ? acc.isShared : (acc.userId === value && !acc.isShared)
     );
+
     if (newAvailableAccounts.length === 1) {
         form.setValue('bankAccountId', newAvailableAccounts[0].id);
     }
-  }
+  }, [form, bankAccounts]);
 
 
   function handleFormSubmit(data: IncomeFormValues) {
