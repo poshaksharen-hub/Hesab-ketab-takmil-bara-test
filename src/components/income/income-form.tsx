@@ -66,16 +66,8 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   
   const getOwnerName = (account: BankAccount) => {
     if (account.isShared) return "(مشترک)";
-    if (!account.userId || !user) return "";
-
-    const userDetailsValues = Object.values(USER_DETAILS);
-    const ownerDetail = userDetailsValues.find(u => u.id === account.userId);
-
-    if (ownerDetail) {
-      return `(${ownerDetail.firstName})`;
-    }
-    
-    return "(ناشناس)";
+    const userDetail = Object.values(USER_DETAILS).find(u => u.id === account.userId);
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
 
@@ -194,6 +186,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                         <SelectItem value="شغل مشترک">شغل مشترک</SelectItem>
                         <SelectItem value={USER_DETAILS.ali.firstName}>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
                         <SelectItem value={USER_DETAILS.fatemeh.firstName}>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
+                        <SelectItem value="سایر">سایر</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

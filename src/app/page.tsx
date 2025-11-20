@@ -5,15 +5,13 @@ import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns';
-import { useDashboardData, OwnerFilter } from '@/hooks/use-dashboard-data';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { CategorySpending } from '@/components/dashboard/category-spending';
 import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
-import { USER_DETAILS } from '@/lib/constants';
 import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
 import { AccountBalanceCards } from '@/components/dashboard/account-balance-cards';
 
@@ -23,7 +21,6 @@ function DashboardSkeleton() {
       <div className="flex items-center justify-between space-y-2">
         <Skeleton className="h-8 w-48" />
         <div className="flex gap-2">
-          <Skeleton className="h-10 w-32" />
           <Skeleton className="h-10 w-72" />
         </div>
       </div>
@@ -51,15 +48,12 @@ export default function DashboardPage() {
     from: subDays(new Date(), 29),
     to: new Date(),
   });
-  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('all');
   
   const { isLoading, getFilteredData, allData } = useDashboardData();
 
-  const { summary, details } = getFilteredData(date, ownerFilter);
+  const { summary, details } = getFilteredData(date);
   
   const effectiveLoading = isUserLoading || isLoading;
-  const aliId = allData.users.find(u => u.email.startsWith('ali'))?.id;
-  const fatemehId = allData.users.find(u => u.email.startsWith('fatemeh'))?.id;
 
   if (effectiveLoading) {
     return <DashboardSkeleton />;
@@ -72,17 +66,6 @@ export default function DashboardPage() {
           مرکز تحلیل مالی
         </h1>
         <div className="flex flex-col items-stretch gap-2 sm:flex-row">
-            <Select value={ownerFilter} onValueChange={(value) => setOwnerFilter(value as OwnerFilter)}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="فیلتر مالکیت" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">همه</SelectItem>
-                    {aliId && <SelectItem value={aliId}>{USER_DETAILS.ali.firstName}</SelectItem>}
-                    {fatemehId && <SelectItem value={fatemehId}>{USER_DETAILS.fatemeh.firstName}</SelectItem>}
-                    <SelectItem value="shared">مشترک</SelectItem>
-                </SelectContent>
-            </Select>
             <CustomDateRangePicker date={date} setDate={setDate} />
         </div>
       </div>
