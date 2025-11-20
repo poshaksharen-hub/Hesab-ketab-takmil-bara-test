@@ -118,7 +118,7 @@ export function AddToGoalDialog({
                     <SelectContent>
                       {bankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                           {`${account.bankName} ${getOwnerName(account)}`}
+                           {`${account.bankName} ${getOwnerName(account)} (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                         </SelectItem>
                       ))}
                     </SelectContent>

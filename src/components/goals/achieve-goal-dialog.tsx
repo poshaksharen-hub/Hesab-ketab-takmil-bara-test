@@ -38,7 +38,6 @@ import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   paymentCardId: z.string().optional(),
-  categoryId: z.string().min(1, { message: 'لطفا یک دسته‌بندی برای این هزینه انتخاب کنید.' }),
 });
 
 type AchieveGoalFormValues = z.infer<typeof formSchema>;
@@ -46,16 +45,14 @@ type AchieveGoalFormValues = z.infer<typeof formSchema>;
 interface AchieveGoalDialogProps {
   goal: FinancialGoal;
   bankAccounts: BankAccount[];
-  categories: Category[];
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { paymentAmount: number; paymentCardId: string; categoryId: string }) => void;
+  onSubmit: (data: { paymentAmount: number; paymentCardId: string; }) => void;
 }
 
 export function AchieveGoalDialog({
   goal,
   bankAccounts,
-  categories,
   isOpen,
   onOpenChange,
   onSubmit,
@@ -71,16 +68,13 @@ export function AchieveGoalDialog({
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
-  // Filter out accounts that have contributed to this goal already
   const contributionAccountIds = new Set((goal.contributions || []).map(c => c.bankAccountId));
   const availablePaymentAccounts = bankAccounts.filter(acc => !contributionAccountIds.has(acc.id));
-
 
   const form = useForm<AchieveGoalFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       paymentCardId: availablePaymentAccounts.length > 0 ? availablePaymentAccounts[0].id : '',
-      categoryId: '',
     },
   });
 
@@ -89,7 +83,6 @@ export function AchieveGoalDialog({
     onSubmit({
       paymentAmount: remainingAmount,
       paymentCardId: data.paymentCardId || '',
-      categoryId: data.categoryId,
     });
   }
 
@@ -102,8 +95,8 @@ export function AchieveGoalDialog({
             شما در یک قدمی رسیدن به این هدف هستید. اطلاعات زیر را برای نهایی کردن آن تکمیل کنید.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4" key={goal.id}>
+        <Form {...form} key={goal.id}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
             <Alert>
               <Info className="h-4 w-4" />
               <AlertTitle className="font-bold">اطلاعات مالی</AlertTitle>
@@ -140,29 +133,6 @@ export function AchieveGoalDialog({
                 )}
                 />
             )}
-
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>دسته‌بندی هزینه</FormLabel>
-                   <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="یک دسته‌بندی برای این هزینه انتخاب کنید" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <p className="text-xs text-muted-foreground">
                 پس از تایید، یک هزینه به مبلغ کل هدف در سیستم ثبت خواهد شد و موجودی شما به‌روز می‌شود.
             </p>
