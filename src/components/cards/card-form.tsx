@@ -49,13 +49,14 @@ type CardFormValues = z.infer<typeof formSchema>;
 interface CardFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: CardFormValues) => void;
   initialData: BankAccount | null;
   user: User | null;
   users: UserProfile[];
+  hasSharedAccount: boolean;
 }
 
-export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users }: CardFormProps) {
+export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users, hasSharedAccount }: CardFormProps) {
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -269,7 +270,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                                 form.setValue('owner', user?.uid || '');
                             }
                         }}
-                        disabled={!!initialData}
+                        disabled={!!initialData || hasSharedAccount}
                       />
                     </FormControl>
                   </FormItem>

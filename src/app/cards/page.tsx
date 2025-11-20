@@ -24,7 +24,8 @@ export default function CardsPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   
-  const { bankAccounts: allBankAccounts, users: allUsers } = allData;
+  const { bankAccounts: allBankAccounts = [], users: allUsers = [] } = allData;
+  const hasSharedAccount = allBankAccounts.some(acc => acc.isShared);
 
 
   const handleFormSubmit = async (values: Omit<BankAccount, 'id' | 'balance'>) => {
@@ -53,11 +54,19 @@ export default function CardsPage() {
         });
     } else {
       // --- Create ---
+      if (values.isShared && hasSharedAccount) {
+        toast({
+          variant: 'destructive',
+          title: 'خطا',
+          description: 'امکان افزودن بیش از یک حساب مشترک وجود ندارد.',
+        });
+        return;
+      }
+      
       const { owner, ...cardData } = values as any;
       const newCardBase = {
         ...cardData,
-        balance: values.initialBalance,
-        isShared: values.isShared
+        balance: cardData.initialBalance,
       };
 
       if (values.isShared) {
@@ -213,6 +222,7 @@ export default function CardsPage() {
           initialData={editingCard}
           user={user}
           users={allUsers}
+          hasSharedAccount={hasSharedAccount}
         />
       ) : (
         <CardList
