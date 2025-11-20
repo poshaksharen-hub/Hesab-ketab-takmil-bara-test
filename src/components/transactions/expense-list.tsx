@@ -16,6 +16,7 @@ import {
   Users,
   User,
   FolderKanban,
+  Wallet,
 } from 'lucide-react';
 import type { Expense, BankAccount, Category, UserProfile, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
@@ -78,6 +79,13 @@ export function ExpenseList({
         case 'shared': return 'مشترک';
     }
   }
+   const getAccountOwnerName = (account?: BankAccount) => {
+    if (!account) return '';
+    if (account.ownerId === 'shared') return ' (مشترک)';
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? ` (حساب ${userDetail.firstName})` : '';
+  };
+
 
   if (expenses.length === 0) {
     return (
@@ -139,7 +147,7 @@ export function ExpenseList({
                             <DetailItem
                                 icon={Landmark}
                                 label="برداشت از"
-                                value={bankAccount?.bankName || 'نامشخص'}
+                                value={bankAccount ? `${bankAccount.bankName}${getAccountOwnerName(bankAccount)}` : 'نامشخص'}
                             />
                             <DetailItem
                                 icon={FolderKanban}
@@ -155,6 +163,12 @@ export function ExpenseList({
                                 icon={PenSquare}
                                 label="ثبت توسط"
                                 value={getUserName(expense.registeredByUserId)}
+                            />
+                            <DetailItem
+                                icon={Wallet}
+                                label="موجودی پس از تراکنش"
+                                value={bankAccount ? formatCurrency(bankAccount.balance, 'IRT') : 'نامشخص'}
+                                className="text-primary font-mono"
                             />
                         </div>
                     </CardContent>
