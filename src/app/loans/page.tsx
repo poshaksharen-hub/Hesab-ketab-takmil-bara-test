@@ -130,7 +130,7 @@ export default function LoansPage() {
 
             // 2. Update loan document
             const newPaidInstallments = (loan.paidInstallments || 0) + 1;
-            const newRemainingAmount = loan.remainingAmount - installmentAmount;
+            const newRemainingAmount = Math.max(0, loan.remainingAmount - installmentAmount);
             transaction.update(loanRef, {
                 paidInstallments: newPaidInstallments,
                 remainingAmount: newRemainingAmount,

@@ -1,9 +1,10 @@
+
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CalendarCheck2, ArrowLeft } from 'lucide-react';
+import { Edit, Trash2, CalendarCheck2, ArrowLeft, CheckCircle } from 'lucide-react';
 import type { Loan, LoanPayment, Payee } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -54,8 +55,8 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
   }
 
   const getLoanStatus = (loan: Loan) => {
-    if (loan.paidInstallments >= loan.numberOfInstallments && loan.numberOfInstallments > 0) {
-      return <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">تکمیل شده</Badge>;
+    if (loan.remainingAmount <= 0) {
+      return <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">تسویه شده</Badge>;
     }
     const nextDueDate = getNextDueDate(loan.startDate, loan.paymentDay);
     const today = new Date();
@@ -70,8 +71,8 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {loans.sort((a, b) => a.paidInstallments - b.paidInstallments).map((loan) => {
-            const progress = (loan.paidInstallments / loan.numberOfInstallments) * 100;
-            const isCompleted = loan.numberOfInstallments > 0 && loan.paidInstallments >= loan.numberOfInstallments;
+            const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
+            const isCompleted = loan.remainingAmount <= 0;
 
             return (
              <div key={loan.id} className="relative group">
@@ -97,23 +98,28 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
                                 <span>{formatCurrency(loan.remainingAmount, 'IRT')}</span>
                                 <span>{formatCurrency(loan.amount, 'IRT')}</span>
                             </div>
-                            <Progress value={100 - (loan.remainingAmount / loan.amount) * 100} className="h-2" />
+                            <Progress value={progress} className="h-2" />
                             <div className="flex justify-between text-xs text-muted-foreground text-center">
                                 <span>{`${loan.numberOfInstallments - loan.paidInstallments} قسط باقی‌مانده`}</span>
                                 <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments} قسط پرداخت شده`}</span>
                             </div>
                         </div>
                     </CardContent>
-                    {!isCompleted && (
-                        <CardFooter>
+                     <CardFooter>
+                        {isCompleted ? (
+                            <div className="w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
+                                <CheckCircle className="h-5 w-5" />
+                                <span>وام تسویه شد!</span>
+                            </div>
+                        ) : (
                             <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}} className="w-full">
                                 <Button className="w-full">
                                     <CalendarCheck2 className="ml-2 h-4 w-4" />
                                     پرداخت قسط
                                 </Button>
                             </div>
-                        </CardFooter>
-                    )}
+                        )}
+                    </CardFooter>
                 </Card>
               </Link>
              </div>

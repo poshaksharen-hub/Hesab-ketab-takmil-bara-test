@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -34,12 +35,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Input, CurrencyInput } from '../ui/input';
 
-const formSchema = z.object({
+const createFormSchema = (remainingAmount: number) => z.object({
   paymentBankAccountId: z.string().min(1, { message: 'لطفا یک کارت برای پرداخت انتخاب کنید.' }),
-  installmentAmount: z.coerce.number().positive('مبلغ قسط باید مثبت باشد.')
+  installmentAmount: z.coerce
+    .number()
+    .positive('مبلغ قسط باید مثبت باشد.')
+    .max(remainingAmount, `مبلغ نمی‌تواند از مبلغ باقی‌مانده (${formatCurrency(remainingAmount, 'IRT')}) بیشتر باشد.`),
 });
 
-type LoanPaymentFormValues = z.infer<typeof formSchema>;
 
 interface LoanPaymentDialogProps {
   loan: Loan;
@@ -56,12 +59,15 @@ export function LoanPaymentDialog({
   onOpenChange,
   onSubmit,
 }: LoanPaymentDialogProps) {
+  
+  const formSchema = createFormSchema(loan.remainingAmount);
+  type LoanPaymentFormValues = z.infer<typeof formSchema>;
 
   const form = useForm<LoanPaymentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
-      installmentAmount: loan.installmentAmount,
+      installmentAmount: Math.min(loan.installmentAmount, loan.remainingAmount),
     },
   });
   
@@ -69,7 +75,7 @@ export function LoanPaymentDialog({
     // Reset form with default installment amount when a new loan is selected
     form.reset({
         paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
-        installmentAmount: loan.installmentAmount,
+        installmentAmount: Math.min(loan.installmentAmount > 0 ? loan.installmentAmount : loan.remainingAmount, loan.remainingAmount),
     });
   }, [loan, bankAccounts, form]);
 
