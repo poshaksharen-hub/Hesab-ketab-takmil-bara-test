@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -22,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Expense, BankAccount, Category } from '@/lib/types';
+import type { Expense, BankAccount, Category, Payee } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -39,6 +40,7 @@ const formSchema = z.object({
   bankAccountId: z.string().min(1, { message: 'لطفا کارت برداشت را انتخاب کنید.' }),
   categoryId: z.string().min(1, { message: 'لطفا دسته‌بندی را انتخاب کنید.' }),
   expenseFor: z.enum(['ali', 'fatemeh', 'shared']).default('shared'),
+  payeeId: z.string().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof formSchema>;
@@ -50,10 +52,11 @@ interface ExpenseFormProps {
   initialData: Expense | null;
   bankAccounts: BankAccount[];
   categories: Category[];
+  payees: Payee[];
   user: User | null;
 }
 
-export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, user }: ExpenseFormProps) {
+export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees, user }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -65,6 +68,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
           bankAccountId: '',
           categoryId: '',
           expenseFor: 'shared',
+          payeeId: '',
         },
   });
 
@@ -85,6 +89,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
           bankAccountId: '',
           categoryId: '',
           expenseFor: 'shared',
+          payeeId: '',
       });
     }
   }, [initialData, form]);
@@ -221,6 +226,29 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                     )}
                 />
               </div>
+                <FormField
+                    control={form.control}
+                    name="payeeId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>طرف حساب (اختیاری)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                             <SelectItem value=""><em>هیچکدام</em></SelectItem>
+                            {payees.map((payee) => (
+                            <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
                <FormField
                 control={form.control}
                 name="expenseFor"

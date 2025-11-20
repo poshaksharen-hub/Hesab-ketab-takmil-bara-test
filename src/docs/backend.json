@@ -84,6 +84,7 @@
         "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
         "bankAccountId": { "type": "string" },
         "categoryId": { "type": "string" },
+        "payeeId": { "type": "string", "description": "Optional ID of the payee for this expense." },
         "amount": { "type": "number" },
         "date": { "type": "string", "format": "date-time" },
         "description": { "type": "string" },

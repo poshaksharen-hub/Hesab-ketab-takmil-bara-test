@@ -31,6 +31,7 @@ export default function ExpensesPage() {
     expenses: allExpenses,
     bankAccounts: allBankAccounts,
     categories: allCategories,
+    payees: allPayees,
     users: allUsers,
   } = allData;
 
@@ -136,6 +137,7 @@ export default function ExpensesPage() {
           initialData={editingExpense}
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
+          payees={allPayees || []}
           user={user}
         />
       ) : (

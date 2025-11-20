@@ -24,6 +24,7 @@ export type Expense = {
   registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;
+  payeeId?: string; // Optional payee for direct expenses
   amount: number;
   date: string;
   description: string;

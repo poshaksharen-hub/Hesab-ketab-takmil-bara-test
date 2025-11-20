@@ -5,7 +5,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, ArrowLeft } from 'lucide-react';
 import type { Payee } from '@/lib/types';
 import {
   AlertDialog,
@@ -17,7 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import Link from 'next/link';
 
 interface PayeeListProps {
   payees: Payee[];
@@ -44,7 +45,7 @@ export function PayeeList({ payees, onEdit, onDelete }: PayeeListProps) {
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">لیست طرف حساب‌ها</CardTitle>
-        <CardDescription>طرف حساب‌های شما در اینجا نمایش داده می‌شوند.</CardDescription>
+        <CardDescription>طرف حساب‌های شما در اینجا نمایش داده می‌شوند. برای مشاهده جزئیات روی هر مورد کلیک کنید.</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
@@ -57,11 +58,20 @@ export function PayeeList({ payees, onEdit, onDelete }: PayeeListProps) {
           </TableHeader>
           <TableBody>
             {payees.map((payee) => (
-              <TableRow key={payee.id}>
-                <TableCell className="font-medium">{payee.name}</TableCell>
+              <TableRow key={payee.id} className="cursor-pointer hover:bg-muted/50">
+                <TableCell className="font-medium">
+                    <Link href={`/payees/${payee.id}`} className="flex items-center gap-2">
+                        {payee.name}
+                    </Link>
+                </TableCell>
                 <TableCell className="hidden sm:table-cell">{payee.phoneNumber || '-'}</TableCell>
                 <TableCell className="text-left">
-                    <div className='flex gap-2 justify-end'>
+                    <div className='flex items-center gap-2 justify-end'>
+                         <Button variant="ghost" size="icon" asChild>
+                           <Link href={`/payees/${payee.id}`}>
+                            <ArrowLeft className="h-4 w-4" />
+                           </Link>
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => onEdit(payee)} aria-label="Edit">
                             <Edit className="h-4 w-4" />
                         </Button>

@@ -1,0 +1,244 @@
+
+'use client';
+
+import React, { useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle } from 'lucide-react';
+import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+
+type CombinedTransaction = {
+  date: Date;
+  description: string;
+  type: 'expense' | 'check' | 'loan';
+  amount: number;
+  status?: 'pending' | 'cleared';
+  original: any;
+};
+
+function PayeeDetailSkeleton() {
+  return (
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-10 w-24" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+      </div>
+      <Card>
+        <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+        <CardContent>
+            <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+
+export default function PayeeDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const payeeId = params.payeeId as string;
+
+  const { isLoading, allData } = useDashboardData();
+  const { expenses, checks, loans, payees } = allData;
+
+  const { payee, summary, combinedHistory } = useMemo(() => {
+    if (isLoading || !payeeId) {
+      return { payee: null, summary: {}, combinedHistory: [] };
+    }
+
+    const currentPayee = payees.find((p) => p.id === payeeId);
+    if (!currentPayee) return { payee: null, summary: {}, combinedHistory: [] };
+
+    const relatedExpenses = expenses.filter(e => e.payeeId === payeeId);
+    const relatedChecks = checks.filter(c => c.payeeId === payeeId);
+    const relatedLoans = loans.filter(l => l.payeeId === payeeId);
+
+    const totalCashPayment = relatedExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const pendingChecks = relatedChecks.filter(c => c.status === 'pending');
+    const totalPendingChecksAmount = pendingChecks.reduce((sum, c) => sum + c.amount, 0);
+    const totalLoanAmount = relatedLoans.reduce((sum, l) => sum + l.remainingAmount, 0);
+    const totalDebt = totalPendingChecksAmount + totalLoanAmount;
+
+    const expenseHistory: CombinedTransaction[] = relatedExpenses.map(e => ({
+      date: new Date(e.date),
+      description: e.description,
+      type: 'expense',
+      amount: e.amount,
+      original: e,
+    }));
+    
+    const checkHistory: CombinedTransaction[] = relatedChecks.map(c => ({
+      date: new Date(c.issueDate),
+      description: c.description || `چک شماره`,
+      type: 'check',
+      amount: c.amount,
+      status: c.status,
+      original: c,
+    }));
+
+     const loanHistory: CombinedTransaction[] = relatedLoans.map(l => ({
+      date: new Date(l.startDate),
+      description: `دریافت وام: ${l.title}`,
+      type: 'loan',
+      amount: l.amount,
+      original: l
+    }));
+
+
+    const allHistory = [...expenseHistory, ...checkHistory, ...loanHistory].sort((a,b) => b.date.getTime() - a.date.getTime());
+
+    return {
+      payee: currentPayee,
+      summary: {
+        totalDebt,
+        totalCashPayment,
+        pendingChecksCount: pendingChecks.length,
+        totalPendingChecksAmount,
+      },
+      combinedHistory: allHistory,
+    };
+  }, [isLoading, payeeId, payees, expenses, checks, loans]);
+
+  if (isLoading) {
+    return <PayeeDetailSkeleton />;
+  }
+
+  if (!payee) {
+    return (
+      <main className="flex-1 p-4 pt-6 md:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>طرف حساب یافت نشد</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>متاسفانه طرف حسابی با این مشخصات در سیستم وجود ندارد.</p>
+            <Button onClick={() => router.push('/payees')} className="mt-4">
+              بازگشت به لیست
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  const getTypeBadge = (type: 'expense' | 'check' | 'loan') => {
+      switch(type) {
+          case 'expense': return <Badge variant="default" className="bg-fuchsia-600 hover:bg-fuchsia-700">پرداخت نقدی</Badge>;
+          case 'check': return <Badge variant="default" className="bg-amber-600 hover:bg-amber-700">چک</Badge>;
+          case 'loan': return <Badge variant="default" className="bg-sky-600 hover:bg-sky-700">وام دریافتی</Badge>;
+      }
+  }
+  
+  const getStatusBadge = (tx: CombinedTransaction) => {
+    if (tx.type === 'check') {
+       if(tx.status === 'cleared') return <Badge className="bg-emerald-500">پاس شده</Badge>;
+       return <Badge variant="secondary">در انتظار</Badge>;
+    }
+    return null;
+  }
+
+  return (
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="font-headline text-3xl font-bold tracking-tight">
+            دفتر حساب: {payee.name}
+          </h1>
+          <p className="text-muted-foreground">
+            خلاصه و تاریخچه تمام تعاملات مالی با این طرف حساب.
+          </p>
+        </div>
+        <Button onClick={() => router.push('/payees')} variant="outline">
+          <ArrowRight className="ml-2 h-4 w-4" />
+          بازگشت به لیست
+        </Button>
+      </div>
+
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="border-l-4 border-destructive">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">کل بدهی شما</CardTitle>
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold text-destructive">{formatCurrency(summary.totalDebt || 0, 'IRT')}</div>
+                <p className="text-xs text-muted-foreground">مجموع چک‌های پاس‌نشده و وام‌های باقی‌مانده</p>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">کل پرداخت نقدی</CardTitle>
+                <HandCoins className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(summary.totalCashPayment || 0, 'IRT')}</div>
+                <p className="text-xs text-muted-foreground">مجموع هزینه‌های ثبت شده برای این شخص</p>
+            </CardContent>
+        </Card>
+         <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">چک‌های در انتظار</CardTitle>
+                <BookCopy className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(summary.totalPendingChecksAmount || 0, 'IRT')}</div>
+                <p className="text-xs text-muted-foreground">{summary.pendingChecksCount} فقره چک در انتظار پاس شدن</p>
+            </CardContent>
+        </Card>
+      </div>
+      
+      <Card>
+          <CardHeader>
+              <CardTitle>تاریخچه تراکنش‌ها</CardTitle>
+          </CardHeader>
+          <CardContent>
+               <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>تاریخ</TableHead>
+                    <TableHead>شرح</TableHead>
+                    <TableHead>نوع</TableHead>
+                    <TableHead>وضعیت</TableHead>
+                    <TableHead className="text-left">مبلغ</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {combinedHistory.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center">
+                                هیچ تراکنشی برای این طرف حساب ثبت نشده است.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                    combinedHistory.map((tx, index) => (
+                    <TableRow key={index}>
+                        <TableCell>{formatJalaliDate(tx.date)}</TableCell>
+                        <TableCell className="font-medium">{tx.description}</TableCell>
+                        <TableCell>{getTypeBadge(tx.type)}</TableCell>
+                        <TableCell>{getStatusBadge(tx)}</TableCell>
+                        <TableCell className={cn("text-left font-mono", tx.type === 'loan' ? 'text-emerald-600' : 'text-destructive')}>
+                          {tx.type === 'loan' ? '+' : '-'}{formatCurrency(tx.amount, 'IRT')}
+                        </TableCell>
+                    </TableRow>
+                    )))}
+                </TableBody>
+                </Table>
+          </CardContent>
+      </Card>
+    </main>
+  );
+}
