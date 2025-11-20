@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns';
@@ -22,15 +22,32 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { USER_DETAILS } from '@/lib/constants';
+import { Button } from '@/components/ui/button';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { LogOut } from 'lucide-react';
 
 function DashboardSkeleton() {
+  const auth = useAuth();
+  const router = useRouter();
+  const handleSignOut = async () => {
+    if (auth) {
+      await signOut(auth);
+    }
+    router.push('/login');
+  };
+
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <Skeleton className="h-8 w-48" />
-        <div className="flex gap-2">
-          <Skeleton className="h-10 w-40" />
-          <Skeleton className="h-10 w-72" />
+        <div className="flex items-center gap-2">
+            <Button variant="destructive" onClick={handleSignOut}>
+                <LogOut className="ml-2 h-4 w-4" />
+                خروج اضطراری
+            </Button>
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-72" />
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
