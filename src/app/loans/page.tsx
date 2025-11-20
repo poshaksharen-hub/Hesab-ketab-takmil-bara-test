@@ -43,7 +43,6 @@ export default function LoansPage() {
   const handleFormSubmit = React.useCallback(async (values: any) => {
     if (!user || !firestore || !bankAccounts) return;
     
-    // Explicitly separate the form values to avoid passing extra fields to the database.
     const { 
         title,
         amount,
@@ -56,37 +55,36 @@ export default function LoansPage() {
         depositToAccountId
     } = values;
 
-    const loanData: Partial<Loan> = {
-        title,
-        amount,
-        installmentAmount,
-        numberOfInstallments,
-        startDate,
-        paymentDay,
-    };
-    
-    // Only include payeeId if it's provided
-    if (payeeId) {
-        loanData.payeeId = payeeId;
-    }
-    
-    // Only include depositToAccountId if depositOnCreate is true
-    if (depositOnCreate && depositToAccountId) {
-        loanData.depositToAccountId = depositToAccountId;
-    }
-
-
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            
+            // Prepare the core loan data
+            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount'> & { payeeId?: string } = {
+                title,
+                amount,
+                installmentAmount: installmentAmount || 0,
+                numberOfInstallments: numberOfInstallments || 0,
+                startDate: startDate.toISOString(),
+                paymentDay: paymentDay || 1,
+            };
+
+            if (payeeId) {
+                loanData.payeeId = payeeId;
+            }
+             if (depositOnCreate && depositToAccountId) {
+                loanData.depositToAccountId = depositToAccountId;
+            }
 
             if (editingLoan) {
-                // Edit loan
+                // Edit loan logic
                 const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
+                // In edit mode, we generally don't re-deposit the amount, just update info.
                 transaction.update(loanRef, loanData);
                 toast({ title: "موفقیت", description: "وام با موفقیت ویرایش شد." });
+
             } else {
-                // Create loan
+                // Create new loan logic
                 const newLoanRef = doc(collection(familyDataRef, 'loans'));
                 transaction.set(newLoanRef, {
                     ...loanData,
@@ -95,8 +93,8 @@ export default function LoansPage() {
                     paidInstallments: 0,
                     remainingAmount: loanData.amount,
                 });
-                
-                // Optional: Deposit loan amount as an income
+
+                // Handle the optional deposit logic ONLY if selected
                 if (depositOnCreate && depositToAccountId) {
                     const accountToDeposit = bankAccounts.find(acc => acc.id === depositToAccountId);
                     if (!accountToDeposit) throw new Error("حساب بانکی برای واریز مبلغ وام یافت نشد.");
@@ -105,9 +103,14 @@ export default function LoansPage() {
                     const incomeRef = doc(collection(familyDataRef, 'incomes'));
                     
                     const bankAccountDoc = await transaction.get(bankAccountRef);
-                    if (!bankAccountDoc.exists()) throw new Error("حساب بانکی برای واریز یافت نشد.");
+                    if (!bankAccountDoc.exists()) {
+                        throw new Error("سند حساب بانکی برای واریز در پایگاه داده یافت نشد.");
+                    }
                     
+                    // 1. Update bank balance
                     transaction.update(bankAccountRef, { balance: bankAccountDoc.data().balance + loanData.amount });
+                    
+                    // 2. Create corresponding income record
                     transaction.set(incomeRef, {
                         id: incomeRef.id,
                         ownerId: accountToDeposit.ownerId,
@@ -135,6 +138,7 @@ export default function LoansPage() {
         });
     }
   }, [user, firestore, bankAccounts, editingLoan, toast]);
+
 
   const handlePayInstallment = React.useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
     if (!user || !firestore || !bankAccounts || !categories) return;
