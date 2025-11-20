@@ -75,13 +75,13 @@ export default function CardTransactionsPage() {
     const cardTransfers = transfers
       .filter(t => t.fromBankAccountId === cardId || t.toBankAccountId === cardId)
       .map(t => {
-          const isDebit = t.fromBankAccountId === cardId; // Money is leaving
+          const isDebit = t.fromBankAccountId === cardId; // Money is leaving from the current card
           const toAccount = bankAccounts.find(b => b.id === t.toBankAccountId);
           const fromAccount = bankAccounts.find(b => b.id === t.fromBankAccountId);
 
           return {
               ...t,
-              type: 'transfer' as 'transfer',
+              type: 'transfer' as const,
               date: t.transferDate,
               amount: t.amount,
               description: isDebit 
@@ -100,47 +100,39 @@ export default function CardTransactionsPage() {
         .filter(t => t.bankAccountId === cardId)
         .map(e => ({...e, type: 'expense' as 'expense'}));
 
-    const allTransactions = [
+    const allTransactions: (Transaction | TransactionWithBalances)[] = [
       ...cardIncomes,
       ...cardExpenses,
       ...cardTransfers,
-    ].sort((a, b) => {
-        const dateA = a.type === 'transfer' ? new Date(a.transferDate) : new Date(a.date);
-        const dateB = b.type === 'transfer' ? new Date(b.transferDate) : new Date(b.date);
-        if (dateA.getTime() === dateB.getTime()) {
-            // If dates are identical, we need a tie-breaker.
-            // Let's assume transfers happen 'after' income/expense for ordering purposes.
-            if (a.type === 'transfer' && b.type !== 'transfer') return -1;
-            if (a.type !== 'transfer' && b.type === 'transfer') return 1;
-        }
-        return dateB.getTime() - dateA.getTime();
-    });
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    let currentBalance = cardAccount.balance;
+    let runningBalance = cardAccount.balance;
     const ledgerWithBalances: TransactionWithBalances[] = [];
-
+    
     for (const tx of allTransactions) {
-      if (tx.type === 'transfer' || (tx.type === 'expense' && tx.balanceAfter !== undefined && tx.balanceBefore !== undefined)) {
-          // Balances are pre-calculated for transfers and check-related expenses
-          ledgerWithBalances.push(tx as TransactionWithBalances);
-          continue;
+      // For transfers and some specific expenses, balances are pre-calculated and reliable
+      if (tx.type === 'transfer' || ('balanceAfter' in tx && tx.balanceAfter !== undefined)) {
+        ledgerWithBalances.push(tx as TransactionWithBalances);
+        continue;
       }
       
-      const balanceAfter = currentBalance;
-      let balanceBefore: number;
+      // For older transactions without pre-calculated balances, we calculate them retroactively
+      const balanceAfter = runningBalance;
+      let balanceBefore;
 
       if (tx.type === 'income') {
-        balanceBefore = currentBalance - tx.amount;
-      } else { // expense
-        balanceBefore = currentBalance + tx.amount;
+        balanceBefore = runningBalance - tx.amount;
+        runningBalance = balanceBefore;
+      } else { // 'expense'
+        balanceBefore = runningBalance + tx.amount;
+        runningBalance = balanceBefore;
       }
-
+      
       ledgerWithBalances.push({ ...tx, balanceBefore, balanceAfter });
-      currentBalance = balanceBefore;
     }
     
-    // Final sort by after-balance to ensure chronological accuracy
-    return { card: cardAccount, ledger: ledgerWithBalances.sort((a, b) => b.balanceAfter - a.balanceAfter) };
+    // Final sort by after-balance to ensure chronological accuracy, as date might not have time information
+    return { card: cardAccount, ledger: ledgerWithBalances.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) };
   }, [isLoading, cardId, incomes, expenses, transfers, bankAccounts]);
 
   if (isLoading) {
@@ -176,31 +168,24 @@ export default function CardTransactionsPage() {
 
   const getTransactionIcon = (tx: Transaction) => {
       const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
-      const isCredit = tx.type === 'income' || (tx.type === 'transfer' && tx.toBankAccountId === cardId);
-
-      if (isCredit) {
-          return <div className="p-2 rounded-full bg-opacity-10 bg-emerald-500"><TrendingUp className="h-5 w-5 text-emerald-500" /></div>;
-      }
+      
       if (isDebit) {
           return <div className="p-2 rounded-full bg-opacity-10 bg-red-500"><TrendingDown className="h-5 w-5 text-red-500" /></div>;
+      } else { // isCredit
+          return <div className="p-2 rounded-full bg-opacity-10 bg-emerald-500"><TrendingUp className="h-5 w-5 text-emerald-500" /></div>;
       }
-      return <div className="p-2 rounded-full bg-opacity-10 bg-gray-500"><ArrowRightLeft className="h-5 w-5 text-gray-500" /></div>;
   };
 
   const getTransactionAmountClass = (tx: Transaction) => {
       const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
-      const isCredit = tx.type === 'income' || (tx.type === 'transfer' && tx.toBankAccountId === cardId);
-      if (isCredit) return 'text-emerald-600';
       if (isDebit) return 'text-red-600';
-      return '';
+      return 'text-emerald-600';
   }
 
   const getTransactionAmountPrefix = (tx: Transaction) => {
       const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
-      const isCredit = tx.type === 'income' || (tx.type === 'transfer' && tx.toBankAccountId === cardId);
-      if (isCredit) return '+';
       if (isDebit) return '-';
-      return '';
+      return '+';
   }
 
 
@@ -230,7 +215,7 @@ export default function CardTransactionsPage() {
             </Card>
         ) : (
         ledger.map((tx) => (
-          <Card key={tx.id} className="overflow-hidden">
+          <Card key={`${tx.id}-${tx.type}`} className="overflow-hidden">
             <div className={cn("border-l-4 h-full absolute left-0 top-0", getTransactionAmountClass(tx))}></div>
             <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 items-center gap-4">
                 {/* Transaction Details */}
