@@ -1,7 +1,7 @@
 
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, onSnapshot, DocumentData, Unsubscribe, query } from 'firebase/firestore';
 import type {
   Income,
@@ -37,6 +37,7 @@ type AllData = {
 
 const useAllCollections = () => {
     const firestore = useFirestore();
+    const { user, isUserLoading: isAuthLoading } = useUser();
     const [allData, setAllData] = useState<AllData>({
         users: [], incomes: [], expenses: [], bankAccounts: [], categories: [], checks: [], 
         goals: [], loans: [], payees: [], transfers: [], loanPayments: []
@@ -44,22 +45,22 @@ const useAllCollections = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     const usersQuery = useMemoFirebase(
-        () => (firestore ? collection(firestore, 'users') : null),
-        [firestore]
+        () => (firestore && !isAuthLoading && user ? collection(firestore, 'users') : null),
+        [firestore, isAuthLoading, user]
     );
     const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
 
     const userIds = useMemo(() => (users || []).map(u => u.id), [users]);
 
      const sharedAccountsQuery = useMemoFirebase(
-        () => (firestore ? query(collection(firestore, 'shared', 'data', 'bankAccounts')) : null),
-        [firestore]
+        () => (firestore && !isAuthLoading && user ? collection(firestore, 'shared', 'data', 'bankAccounts') : null),
+        [firestore, isAuthLoading, user]
     );
     const { data: sharedAccounts, isLoading: isLoadingSharedAccounts } = useCollection<BankAccount>(sharedAccountsQuery);
     
     // Effect for fetching all user-specific sub-collections
     useEffect(() => {
-        if (!firestore) return;
+        if (!firestore || !user) return;
     
         // If users have been loaded and there are none, we can stop loading user-specific data.
         if (!isLoadingUsers && userIds.length === 0) {
@@ -118,12 +119,23 @@ const useAllCollections = () => {
         return () => {
             unsubs.forEach(unsub => unsub());
         };
-    }, [firestore, userIds, isLoadingUsers, isLoadingSharedAccounts]);
+    }, [firestore, user, userIds, isLoadingUsers, isLoadingSharedAccounts]);
 
 
     // This effect combines personal and shared bank accounts once they are both loaded.
     useEffect(() => {
-        if (isLoadingUsers || isLoadingSharedAccounts) {
+        // Wait until both user data and shared account data are no longer loading
+        if (isAuthLoading || (user && (isLoadingUsers || isLoadingSharedAccounts))) {
+            return;
+        }
+        
+        // If there's no user, we are done loading
+        if (!user) {
+            setIsLoading(false);
+            setAllData({
+                 users: [], incomes: [], expenses: [], bankAccounts: [], categories: [], checks: [], 
+                 goals: [], loans: [], payees: [], transfers: [], loanPayments: []
+            });
             return;
         }
 
@@ -143,15 +155,15 @@ const useAllCollections = () => {
             };
         });
 
-        // If all data sources are done loading, ensure main loading is false
+        // Final loading state check
         if (userIds.length > 0) {
-            // If there are users, the other effect handles loading state
+            // if we have users, the other effect will set loading to false.
         } else {
-            // If no users, loading depends only on users and shared accounts
+            // if no users are found (but auth is loaded), we are done loading
             setIsLoading(false);
         }
 
-    }, [users, sharedAccounts, isLoadingUsers, isLoadingSharedAccounts, userIds.length]);
+    }, [user, users, sharedAccounts, isAuthLoading, isLoadingUsers, isLoadingSharedAccounts, userIds.length]);
 
 
     return { isLoading, allData };
