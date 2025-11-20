@@ -58,7 +58,6 @@ export default function CardsPage() {
     } else {
         // --- Create ---
         const { isShared, owner, ...cardData } = values as any;
-        const ownerId = values.owner;
        
         if (isShared) {
             // Create Shared Account
@@ -88,6 +87,7 @@ export default function CardsPage() {
 
         } else {
             // Create Personal Account
+            const ownerId = values.owner;
             if (!ownerId || !allUsers.find(u => u.id === ownerId)) {
                 toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
                 return;

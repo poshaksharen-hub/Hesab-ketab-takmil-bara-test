@@ -38,19 +38,6 @@ export const getInitialBankAccounts = (userId: string): Omit<BankAccount, 'id' |
                 isShared: false,
                 theme: 'orange',
             },
-             {
-                userId: USER_DETAILS.ali.id,
-                bankName: 'بانک سامان',
-                accountNumber: '80111234567890',
-                cardNumber: '6219861012345678',
-                expiryDate: '11/29',
-                cvv2: '987',
-                accountType: 'checking',
-                initialBalance: 10000000,
-                blockedBalance: 0,
-                isShared: false,
-                theme: 'green',
-            },
         ];
     }
     // No default personal account for Fatemeh
@@ -59,20 +46,5 @@ export const getInitialBankAccounts = (userId: string): Omit<BankAccount, 'id' |
 
 
 export const getSharedBankAccounts = (): Omit<BankAccount, 'id' | 'balance' | 'userId'>[] => [
-    {
-        bankName: 'بانک تجارت',
-        accountNumber: '0150589246896',
-        cardNumber: '5859831058110015',
-        expiryDate: '08/05',
-        cvv2: '1643',
-        accountType: 'savings',
-        initialBalance: 0,
-        blockedBalance: 0,
-        isShared: true,
-        members: {
-            [USER_DETAILS.ali.id]: true,
-            [USER_DETAILS.fatemeh.id]: true,
-        },
-        theme: 'blue',
-    }
+    // This is now empty by default, user creates it via the UI.
 ];
