@@ -35,7 +35,6 @@ import { HesabKetabLogo } from '@/components/icons';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { ALLOWED_USERS, USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
-import { useInitialData } from '@/hooks/use-initial-data';
 import { Loader2 } from 'lucide-react';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -60,7 +59,6 @@ export default function LoginPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const { seedInitialData, isSeeding } = useInitialData();
   const { user: currentUser, isUserLoading } = useUser();
 
   const form = useForm<LoginFormValues>({
@@ -118,12 +116,11 @@ export default function LoginPage() {
       
       toast({
         title: 'ورود موفق',
-        description: 'شما با موفقیت وارد شدید. در حال بررسی اطلاعات...',
+        description: 'شما با موفقیت وارد شدید.',
       });
 
-      // Ensure profile and data exists, then redirect
+      // Ensure profile exists, then redirect
       await ensureUserProfile(user);
-      await seedInitialData(user.uid);
       router.push('/');
 
     } catch (error: any) {
@@ -138,9 +135,8 @@ export default function LoginPage() {
             description: 'حساب شما با موفقیت ایجاد و وارد شدید.',
           });
           
-          // Create profile and seed data for the new user
+          // Create profile for the new user
           await ensureUserProfile(newUser);
-          await seedInitialData(newUser.uid);
           router.push('/');
 
         } catch (creationError: any) {
@@ -164,7 +160,7 @@ export default function LoginPage() {
     }
   }
   
-  const totalLoading = isLoading || isSeeding || isUserLoading;
+  const totalLoading = isLoading || isUserLoading;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -176,7 +172,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="font-headline">ورود به حساب کاربری</CardTitle>
           <CardDescription>
-             {isSeeding ? 'در حال آماده‌سازی حساب شما...' : 'برای ادامه ایمیل و رمز عبور خود را وارد کنید.'}
+             برای ادامه ایمیل و رمز عبور خود را وارد کنید.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -223,7 +219,7 @@ export default function LoginPage() {
                 {totalLoading && (
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 )}
-                {isSeeding ? 'در حال آماده سازی...' : 'ورود'}
+                ورود
               </Button>
             </CardFooter>
           </form>
