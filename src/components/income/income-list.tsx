@@ -178,45 +178,6 @@ export function IncomeList({
                     />
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2 bg-muted/50 p-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEdit(income)}
-                  >
-                    <Edit className="ml-2 h-4 w-4" />
-                    ویرایش
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        aria-label="Delete"
-                      >
-                        <Trash2 className="ml-2 h-4 w-4" />
-                        حذف
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          آیا از حذف این درآمد مطمئن هستید؟
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          این عمل قابل بازگشت نیست. با حذف این درآمد، مبلغ آن از
-                          موجودی حساب شما کسر خواهد شد.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>انصراف</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(income)}>
-                          بله، حذف کن
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </CardFooter>
               </Card>
             );
           })}
