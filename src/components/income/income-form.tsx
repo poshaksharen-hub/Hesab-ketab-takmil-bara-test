@@ -105,16 +105,37 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     if (selectedSource === 'shared') {
       return bankAccounts.filter(acc => acc.isShared);
     }
-    const targetUserId = selectedSource === 'ali' ? USER_DETAILS.ali.id : USER_DETAILS.fatemeh.id;
-    return bankAccounts.filter(acc => acc.userId === targetUserId && !acc.isShared);
+    if (selectedSource === 'ali') {
+      return bankAccounts.filter(acc => acc.userId === USER_DETAILS.ali.id && !acc.isShared);
+    }
+    if (selectedSource === 'fatemeh') {
+        return bankAccounts.filter(acc => acc.userId === USER_DETAILS.fatemeh.id && !acc.isShared);
+    }
+    return [];
   }, [selectedSource, bankAccounts]);
+  
+  const handleSourceChange = useCallback((value: string) => {
+      form.setValue('source', value);
+      const newAvailableAccounts = bankAccounts.filter(acc => {
+          if (value === 'shared') return acc.isShared;
+          if (value === 'ali') return acc.userId === USER_DETAILS.ali.id && !acc.isShared;
+          if (value === 'fatemeh') return acc.userId === USER_DETAILS.fatemeh.id && !acc.isShared;
+          return false;
+      });
+      if (newAvailableAccounts.length > 0) {
+          form.setValue('bankAccountId', newAvailableAccounts[0].id);
+      } else {
+          form.setValue('bankAccountId', '');
+      }
+  }, [form, bankAccounts]);
+
 
   useEffect(() => {
     const currentBankAccountId = form.getValues('bankAccountId');
     const isCurrentAccountValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
 
     if (!isCurrentAccountValid) {
-        if (availableAccounts.length === 1) {
+        if (availableAccounts.length > 0) {
             form.setValue('bankAccountId', availableAccounts[0].id);
         } else {
             form.setValue('bankAccountId', '');
@@ -223,7 +244,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>منبع درآمد</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={handleSourceChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="یک منبع انتخاب کنید" />

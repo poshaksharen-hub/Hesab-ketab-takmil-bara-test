@@ -17,6 +17,7 @@ import type {
   LoanPayment,
 } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
+import { USER_DETAILS } from '@/lib/constants';
 
 export type OwnerFilter = 'all' | string | 'shared';
 
@@ -40,14 +41,11 @@ const useAllCollections = () => {
 
     // 1. Fetch all users first
     const usersQuery = useMemoFirebase(
-        () => (firestore && !isAuthLoading && user ? collection(firestore, 'users') : null),
-        [firestore, isAuthLoading, user]
+        () => (firestore ? collection(firestore, 'users') : null),
+        [firestore]
     );
     const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
     
-    const aliId = useMemo(() => users?.find(u => u.email.startsWith('ali'))?.id, [users]);
-    const fatemehId = useMemo(() => users?.find(u => u.email.startsWith('fatemeh'))?.id, [users]);
-
     // 2. Fetch all shared collections
     const sharedAccountsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'shared', 'data', 'bankAccounts') : null), [firestore]);
     const { data: sharedAccounts, isLoading: isLoadingSharedAccounts } = useCollection<BankAccount>(sharedAccountsQuery);
@@ -59,7 +57,7 @@ const useAllCollections = () => {
     const { data: sharedExpenses, isLoading: isLoadingSharedExpenses } = useCollection<Expense>(sharedExpensesQuery);
 
     // 3. Fetch all personal collections for each user
-    const usePersonalCollections = (userId?: string) => {
+    const usePersonalCollections = (userId: string) => {
         const firestore = useFirestore();
         const enabled = !!userId && !!firestore;
 
@@ -91,8 +89,8 @@ const useAllCollections = () => {
         };
     };
     
-    const { data: aliData, isLoading: isLoadingAliData } = usePersonalCollections(aliId);
-    const { data: fatemehData, isLoading: isLoadingFatemehData } = usePersonalCollections(fatemehId);
+    const { data: aliData, isLoading: isLoadingAliData } = usePersonalCollections(USER_DETAILS.ali.id);
+    const { data: fatemehData, isLoading: isLoadingFatemehData } = usePersonalCollections(USER_DETAILS.fatemeh.id);
 
     // 4. Combine all data once everything is loaded using useMemo for referential stability
     const allData = useMemo<AllData>(() => {
