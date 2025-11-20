@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,9 +31,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { HesabKetabLogo } from '@/components/icons';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { ALLOWED_USERS, USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
+import { useInitialData } from '@/hooks/use-initial-data';
 import { Loader2 } from 'lucide-react';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -57,6 +59,8 @@ export default function LoginPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const { seedInitialData, isSeeding } = useInitialData();
+  const { user: currentUser, isUserLoading } = useUser();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
@@ -66,17 +70,25 @@ export default function LoginPage() {
     },
   });
 
+  useEffect(() => {
+    if (!isUserLoading && currentUser) {
+      router.push('/');
+    }
+  }, [currentUser, isUserLoading, router]);
+
   async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
     const { email, password } = values;
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'ورود موفق',
         description: 'شما با موفقیت وارد شدید.',
       });
+       await seedInitialData(userCredential.user.uid);
       router.push('/');
+
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         try {
@@ -99,8 +111,6 @@ export default function LoginPage() {
               lastName: userDetail.lastName,
             };
             
-            // This is a critical step, if it fails, the user is created but profile is not.
-            // We'll add custom error handling here.
             await setDoc(userProfileRef, profileData)
               .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({
@@ -109,9 +119,9 @@ export default function LoginPage() {
                   requestResourceData: profileData,
                 });
                 errorEmitter.emit('permission-error', permissionError);
-                // Re-throw to be caught by the outer catch block
                 throw permissionError;
               });
+             await seedInitialData(user.uid);
           }
           toast({
             title: 'حساب کاربری ایجاد شد',
@@ -127,7 +137,6 @@ export default function LoginPage() {
           });
         }
       } else {
-        // Handle other auth errors like wrong password
         toast({
           variant: 'destructive',
           title: 'خطا در ورود',
@@ -138,6 +147,8 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   }
+  
+  const totalLoading = isLoading || isSeeding || isUserLoading;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -149,7 +160,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="font-headline">ورود به حساب کاربری</CardTitle>
           <CardDescription>
-            برای ادامه ایمیل و رمز عبور خود را وارد کنید.
+             {isSeeding ? 'در حال آماده‌سازی حساب شما...' : 'برای ادامه ایمیل و رمز عبور خود را وارد کنید.'}
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -166,7 +177,7 @@ export default function LoginPage() {
                         type="email"
                         placeholder="user@example.com"
                         {...field}
-                        disabled={isLoading}
+                        disabled={totalLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -183,7 +194,7 @@ export default function LoginPage() {
                       <Input
                         type="password"
                         {...field}
-                        disabled={isLoading}
+                        disabled={totalLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -192,11 +203,11 @@ export default function LoginPage() {
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && (
+              <Button type="submit" className="w-full" disabled={totalLoading}>
+                {totalLoading && (
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 )}
-                ورود
+                {isSeeding ? 'در حال آماده سازی...' : 'ورود'}
               </Button>
             </CardFooter>
           </form>
