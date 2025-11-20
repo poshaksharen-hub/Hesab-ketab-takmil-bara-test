@@ -67,15 +67,6 @@ export function AchieveGoalDialog({
     },
   });
 
-  // Reset form when goal changes using the key on the Form component
-  useEffect(() => {
-    form.reset({
-      paymentCardId: '',
-      actualCost: goal.targetAmount,
-    });
-  }, [goal, isOpen, form]);
-
-  
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId];
@@ -84,6 +75,10 @@ export function AchieveGoalDialog({
   
   const actualCost = form.watch('actualCost');
   const cashPaymentNeeded = Math.max(0, actualCost - goal.currentAmount);
+  
+  const contributionAccountIds = new Set((goal.contributions || []).map(c => c.bankAccountId));
+  const availablePaymentAccounts = bankAccounts.filter(acc => !contributionAccountIds.has(acc.id));
+
 
   function handleFormSubmit(data: AchieveGoalFormValues) {
     if (cashPaymentNeeded > 0 && !data.paymentCardId) {
@@ -158,7 +153,7 @@ export function AchieveGoalDialog({
                 />
             )}
             <p className="text-xs text-muted-foreground">
-                پس از تایید، دو تراکنش هزینه مجزا (یکی برای بخش پس‌انداز و دیگری برای بخش نقدی) در سیستم ثبت خواهد شد.
+              پس از تایید، هزینه(ها) در سیستم ثبت و موجودی حساب(های) شما به روز خواهد شد.
             </p>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
