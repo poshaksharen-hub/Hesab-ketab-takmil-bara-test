@@ -15,11 +15,12 @@ import type {
   Payee,
   Transfer,
   LoanPayment,
+  OwnerId
 } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 import { USER_DETAILS } from '@/lib/constants';
 
-export type OwnerFilter = 'all' | string | 'shared';
+const FAMILY_DATA_DOC = 'shared-data';
 
 type AllData = {
   users: UserProfile[];
@@ -35,104 +36,56 @@ type AllData = {
   loanPayments: LoanPayment[];
 };
 
-// Custom hook to fetch all collections for a specific user
-const usePersonalCollections = (userId: string | undefined) => {
-    const firestore = useFirestore();
-    const enabled = !!userId && !!firestore;
-
-    const incomesQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/incomes`) : null), [enabled, userId]);
-    const expensesQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/expenses`) : null), [enabled, userId]);
-    const bankAccountsQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/bankAccounts`) : null), [enabled, userId]);
-    const categoriesQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/categories`) : null), [enabled, userId]);
-    const checksQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/checks`) : null), [enabled, userId]);
-    const goalsQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/financialGoals`) : null), [enabled, userId]);
-    const loansQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/loans`) : null), [enabled, userId]);
-    const loanPaymentsQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/loanPayments`) : null), [enabled, userId]);
-    const payeesQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/payees`) : null), [enabled, userId]);
-    const transfersQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/transfers`) : null), [enabled, userId]);
-
-    const { data: incomes, isLoading: il } = useCollection<Income>(incomesQuery);
-    const { data: expenses, isLoading: el } = useCollection<Expense>(expensesQuery);
-    const { data: bankAccounts, isLoading: bl } = useCollection<BankAccount>(bankAccountsQuery);
-    const { data: categories, isLoading: cl } = useCollection<Category>(categoriesQuery);
-    const { data: checks, isLoading: chl } = useCollection<Check>(checksQuery);
-    const { data: goals, isLoading: gl } = useCollection<FinancialGoal>(goalsQuery);
-    const { data: loans, isLoading: ll } = useCollection<Loan>(loansQuery);
-    const { data: loanPayments, isLoading: lpl } = useCollection<LoanPayment>(loanPaymentsQuery);
-    const { data: payees, isLoading: pl } = useCollection<Payee>(payeesQuery);
-    const { data: transfers, isLoading: tl } = useCollection<Transfer>(transfersQuery);
-
-    return {
-        isLoading: il || el || bl || cl || chl || gl || ll || lpl || pl || tl,
-        data: { incomes, expenses, bankAccounts, categories, checks, goals, loans, loanPayments, payees, transfers },
-    };
-};
-
-const useAllCollections = () => {
-    const { isUserLoading: isAuthLoading } = useUser();
+export function useDashboardData() {
+    const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
     const collectionsEnabled = !isAuthLoading && !!firestore;
 
     // Fetch all users
-    const usersQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'users') : null), [collectionsEnabled]);
+    const usersQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'users') : null), [collectionsEnabled, firestore]);
     const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
 
-    // Fetch all shared collections
-    const sharedAccountsQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'shared', 'data', 'bankAccounts') : null), [collectionsEnabled]);
-    const { data: sharedAccounts, isLoading: isLoadingSharedAccounts } = useCollection<BankAccount>(sharedAccountsQuery);
-    const sharedIncomesQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'shared', 'data', 'incomes') : null), [collectionsEnabled]);
-    const { data: sharedIncomes, isLoading: isLoadingSharedIncomes } = useCollection<Income>(sharedIncomesQuery);
-    const sharedExpensesQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'shared', 'data', 'expenses') : null), [collectionsEnabled]);
-    const { data: sharedExpenses, isLoading: isLoadingSharedExpenses } = useCollection<Expense>(sharedExpensesQuery);
+    // Fetch all family-level data from the central location
+    const bankAccountsQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts') : null), [collectionsEnabled, firestore]);
+    const incomesQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'incomes') : null), [collectionsEnabled, firestore]);
+    const expensesQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'expenses') : null), [collectionsEnabled, firestore]);
+    const categoriesQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'categories') : null), [collectionsEnabled, firestore]);
+    const checksQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks') : null), [collectionsEnabled, firestore]);
+    const goalsQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'financialGoals') : null), [collectionsEnabled, firestore]);
+    const loansQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'loans') : null), [collectionsEnabled, firestore]);
+    const loanPaymentsQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'loanPayments') : null), [collectionsEnabled, firestore]);
+    const payeesQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'payees') : null), [collectionsEnabled, firestore]);
+    const transfersQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'transfers') : null), [collectionsEnabled, firestore]);
+    
+    const { data: bankAccounts, isLoading: ilba } = useCollection<BankAccount>(bankAccountsQuery);
+    const { data: incomes, isLoading: ili } = useCollection<Income>(incomesQuery);
+    const { data: expenses, isLoading: ile } = useCollection<Expense>(expensesQuery);
+    const { data: categories, isLoading: ilc } = useCollection<Category>(categoriesQuery);
+    const { data: checks, isLoading: ilch } = useCollection<Check>(checksQuery);
+    const { data: goals, isLoading: ilg } = useCollection<FinancialGoal>(goalsQuery);
+    const { data: loans, isLoading: ill } = useCollection<Loan>(loansQuery);
+    const { data: loanPayments, isLoading: illp } = useCollection<LoanPayment>(loanPaymentsQuery);
+    const { data: payees, isLoading: ilp } = useCollection<Payee>(payeesQuery);
+    const { data: transfers, isLoading: ilt } = useCollection<Transfer>(transfersQuery);
 
-    // Fetch personal collections for Ali and Fatemeh
-    const { data: aliData, isLoading: isLoadingAliData } = usePersonalCollections(USER_DETAILS.ali.id);
-    const { data: fatemehData, isLoading: isLoadingFatemehData } = usePersonalCollections(USER_DETAILS.fatemeh.id);
+    const isLoading = isAuthLoading || isLoadingUsers || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt;
 
-    // Combine all data using useMemo for stability
-    const allData = useMemo<AllData>(() => {
-        const combinePersonal = <T>(d1: T[] | null | undefined, d2: T[] | null | undefined): T[] => [
-            ...(d1 || []),
-            ...(d2 || []),
-        ];
-
-        return {
-            users: users || [],
-            bankAccounts: [
-                ...(aliData.bankAccounts || []),
-                ...(fatemehData.bankAccounts || []),
-                ...(sharedAccounts || []),
-            ],
-            incomes: [
-                ...(aliData.incomes || []),
-                ...(fatemehData.incomes || []),
-                ...(sharedIncomes || []),
-            ],
-            expenses: [
-                ...(aliData.expenses || []),
-                ...(fatemehData.expenses || []),
-                ...(sharedExpenses || []),
-            ],
-            categories: combinePersonal(aliData.categories, fatemehData.categories),
-            checks: combinePersonal(aliData.checks, fatemehData.checks),
-            goals: combinePersonal(aliData.goals, fatemehData.goals),
-            loans: combinePersonal(aliData.loans, fatemehData.loans),
-            loanPayments: combinePersonal(aliData.loanPayments, fatemehData.loanPayments),
-            payees: combinePersonal(aliData.payees, fatemehData.payees),
-            transfers: combinePersonal(aliData.transfers, fatemehData.transfers),
-        };
-    }, [users, sharedAccounts, sharedIncomes, sharedExpenses, aliData, fatemehData]);
-
-    const isLoading = isAuthLoading || isLoadingUsers || isLoadingSharedAccounts || isLoadingSharedIncomes || isLoadingSharedExpenses || isLoadingAliData || isLoadingFatemehData;
-
-    return { isLoading, allData };
-};
+    const allData = useMemo<AllData>(() => ({
+        users: users || [],
+        incomes: incomes || [],
+        expenses: expenses || [],
+        bankAccounts: bankAccounts || [],
+        categories: categories || [],
+        checks: checks || [],
+        goals: goals || [],
+        loans: loans || [],
+        payees: payees || [],
+        transfers: transfers || [],
+        loanPayments: loanPayments || [],
+    }), [users, bankAccounts, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments]);
 
 
-export function useDashboardData() {
-  const { isLoading, allData } = useAllCollections();
-  
-  const getFilteredData = (ownerFilter: OwnerFilter, dateRange?: DateRange) => {
+  const getFilteredData = (ownerFilter: OwnerId | 'all', dateRange?: DateRange) => {
     
     const dateMatches = (dateStr: string) => {
         if (!dateRange || !dateRange.from || !dateRange.to) return true;
@@ -140,23 +93,9 @@ export function useDashboardData() {
         return itemDate >= dateRange.from && itemDate <= dateRange.to;
     };
     
-    const aliId = allData.users.find(u => u.email.startsWith('ali'))?.id;
-    const fatemehId = allData.users.find(u => u.email.startsWith('fatemeh'))?.id;
-    
     const filterByOwner = (item: Income | Expense) => {
         if (ownerFilter === 'all') return true;
-        
-        const account = allData.bankAccounts.find(ba => ba.id === item.bankAccountId);
-        if (ownerFilter === 'shared') {
-            return !!account?.isShared;
-        }
-        if (ownerFilter === aliId) {
-            return account?.userId === aliId && !account.isShared;
-        }
-        if (ownerFilter === fatemehId) {
-            return account?.userId === fatemehId && !account.isShared;
-        }
-        return false;
+        return item.ownerId === ownerFilter;
     }
 
     const filteredIncomes = allData.incomes.filter(i => dateMatches(i.date) && filterByOwner(i));
@@ -165,7 +104,6 @@ export function useDashboardData() {
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
     
-    // Global summaries should not be filtered by date/owner
     const totalAssets = allData.bankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
     const pendingChecksAmount = allData.checks
@@ -182,9 +120,9 @@ export function useDashboardData() {
         return dateB.getTime() - dateA.getTime();
     });
 
-    const aliBalance = allData.bankAccounts.filter(b => b.userId === aliId && !b.isShared).reduce((sum, acc) => sum + acc.balance, 0);
-    const fatemehBalance = allData.bankAccounts.filter(b => b.userId === fatemehId && !b.isShared).reduce((sum, acc) => sum + acc.balance, 0);
-    const sharedBalance = allData.bankAccounts.filter(b => b.isShared).reduce((sum, acc) => sum + acc.balance, 0);
+    const aliBalance = allData.bankAccounts.filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0);
+    const fatemehBalance = allData.bankAccounts.filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0);
+    const sharedBalance = allData.bankAccounts.filter(b => b.ownerId === 'shared').reduce((sum, acc) => sum + acc.balance, 0);
 
     return {
       summary: {
@@ -212,5 +150,3 @@ export function useDashboardData() {
     allData
   };
 }
-
-    

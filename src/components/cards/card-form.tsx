@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { z } from 'zod';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,8 +24,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import type { BankAccount, UserProfile } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
@@ -40,8 +38,7 @@ const formSchema = z.object({
   cvv2: z.string().min(3, { message: 'CVV2 حداقل ۳ رقم است.' }).max(4, { message: 'CVV2 حداکثر ۴ رقم است.' }),
   accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
-  owner: z.string().optional(),
-  isShared: z.boolean().default(false),
+  ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا صاحب حساب را مشخص کنید.' }),
   theme: z.enum(['blue', 'green', 'purple', 'orange', 'gray']).default('blue'),
 });
 
@@ -50,7 +47,7 @@ type CardFormValues = z.infer<typeof formSchema>;
 interface CardFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: CardFormValues) => void;
+  onSubmit: (data: Omit<CardFormValues, 'isShared' | 'owner'> & { ownerId: 'ali' | 'fatemeh' | 'shared' }) => void;
   initialData: BankAccount | null;
   user: User | null;
   users: UserProfile[];
@@ -68,30 +65,17 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
       cvv2: '',
       accountType: 'savings',
       initialBalance: 0,
-      owner: user?.uid, // Default to current user
-      isShared: false,
+      ownerId: 'ali',
       theme: 'blue'
     },
   });
   
-  const aliUser = users.find(u => u.email.startsWith('ali'));
-  const fatemehUser = users.find(u => u.email.startsWith('fatemeh'));
-  const isSharedSwitch = form.watch('isShared');
-
+  const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
 
   React.useEffect(() => {
     if (initialData) {
       form.reset({
-         bankName: initialData.bankName,
-         accountNumber: initialData.accountNumber,
-         cardNumber: initialData.cardNumber,
-         expiryDate: initialData.expiryDate,
-         cvv2: initialData.cvv2,
-         accountType: initialData.accountType,
-         initialBalance: initialData.initialBalance,
-         owner: initialData.isShared ? 'shared' : initialData.userId,
-         isShared: initialData.isShared || false,
-         theme: initialData.theme || 'blue',
+         ...initialData,
         });
     } else {
       form.reset({
@@ -102,12 +86,11 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         cvv2: '',
         accountType: 'savings',
         initialBalance: 0,
-        owner: user?.uid || '',
-        isShared: false,
+        ownerId: loggedInUserOwnerId,
         theme: 'blue',
       });
     }
-  }, [initialData, form, user]);
+  }, [initialData, form, loggedInUserOwnerId]);
 
   function handleFormSubmit(data: CardFormValues) {
     // Reformat expiry date before submission to ensure it's always MM/YY
@@ -127,28 +110,31 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)}>
             <CardContent className="space-y-6">
-               {!initialData && !hasSharedAccount && (
                 <FormField
                     control={form.control}
-                    name="isShared"
+                    name="ownerId"
                     render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <FormLabel>حساب مشترک</FormLabel>
-                            <FormDescription>
-                                با فعال کردن این گزینه، این حساب برای هر دو نفر قابل استفاده خواهد بود.
-                            </FormDescription>
-                        </div>
+                    <FormItem>
+                        <FormLabel>صاحب حساب</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
                         <FormControl>
-                            <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            />
+                            <SelectTrigger>
+                            <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
+                            </SelectTrigger>
                         </FormControl>
-                        </FormItem>
+                        <SelectContent>
+                            <SelectItem value="ali">{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>
+                            <SelectItem value="fatemeh">{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>
+                            <SelectItem value="shared" disabled={hasSharedAccount && !initialData}>حساب مشترک</SelectItem>
+                        </SelectContent>
+                        </Select>
+                         <FormDescription>
+                           مالکیت حساب را مشخص کنید. امکان ایجاد فقط یک حساب مشترک وجود دارد.
+                        </FormDescription>
+                        <FormMessage />
+                    </FormItem>
                     )}
                 />
-               )}
                <FormField
                 control={form.control}
                 name="bankName"
@@ -275,29 +261,6 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                   </FormItem>
                 )}
               />
-               {!isSharedSwitch && (
-                <FormField
-                    control={form.control}
-                    name="owner"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>صاحب حساب</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData || isSharedSwitch}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {aliUser && <SelectItem value={aliUser.id}>{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>}
-                            {fatemehUser && <SelectItem value={fatemehUser.id}>{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                )}
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>

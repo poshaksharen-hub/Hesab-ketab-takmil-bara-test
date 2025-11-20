@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns';
-import { useDashboardData, type OwnerFilter } from '@/hooks/use-dashboard-data';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
+import { OwnerId } from '@/lib/types';
 
 function DashboardSkeleton() {
   const auth = useAuth();
@@ -67,7 +69,7 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const { isUserLoading } = useUser();
-  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('all');
+  const [ownerFilter, setOwnerFilter] = useState<OwnerId | 'all'>('all');
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
@@ -100,14 +102,14 @@ export default function DashboardPage() {
           مرکز تحلیل مالی
         </h1>
         <div className="flex flex-col items-stretch gap-2 sm:flex-row">
-           <Select onValueChange={(value) => setOwnerFilter(value as OwnerFilter)} defaultValue="all">
+           <Select onValueChange={(value) => setOwnerFilter(value as OwnerId | 'all')} defaultValue="all">
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="نمایش داده‌های..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">همه</SelectItem>
-                <SelectItem value={USER_DETAILS.ali.id}>{USER_DETAILS.ali.firstName}</SelectItem>
-                <SelectItem value={USER_DETAILS.fatemeh.id}>{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                <SelectItem value='ali'>{USER_DETAILS.ali.firstName}</SelectItem>
+                <SelectItem value='fatemeh'>{USER_DETAILS.fatemeh.firstName}</SelectItem>
                 <SelectItem value="shared">مشترک</SelectItem>
               </SelectContent>
             </Select>

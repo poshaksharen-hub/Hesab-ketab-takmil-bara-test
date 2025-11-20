@@ -23,21 +23,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Income, BankAccount, UserProfile } from '@/lib/types';
+import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, User, Users } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns-jalali';
-import type { User } from 'firebase/auth';
+import type { User as AuthUser } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
   description: z.string().min(2, { message: 'شرح باید حداقل ۲ حرف داشته باشد.' }),
   date: z.date({ required_error: 'لطفا تاریخ را انتخاب کنید.' }),
-  source: z.string().min(1, { message: 'لطفا منبع درآمد را انتخاب کنید.' }),
+  ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا منبع درآمد را مشخص کنید.' }),
   bankAccountId: z.string().min(1, { message: 'لطفا کارت مقصد را انتخاب کنید.' }),
+  source: z.string().optional(), // Original source text
 });
 
 type IncomeFormValues = z.infer<typeof formSchema>;
@@ -48,7 +49,7 @@ interface IncomeFormProps {
   onSubmit: (data: Omit<Income, 'id' | 'createdAt' | 'updatedAt' >) => void;
   initialData: Income | null;
   bankAccounts: BankAccount[];
-  user: User | null;
+  user: AuthUser | null;
   users: UserProfile[];
 }
 
@@ -59,101 +60,60 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         description: '',
         amount: 0,
         date: new Date(),
-        source: '',
+        ownerId: 'ali',
         bankAccountId: '',
+        source: ''
     },
   });
 
   useEffect(() => {
     if (initialData) {
-        let source;
-        if (initialData.isShared) {
-            source = 'shared';
-        } else if (initialData.userId === USER_DETAILS.ali.id) {
-            source = 'ali';
-        } else if (initialData.userId === USER_DETAILS.fatemeh.id) {
-            source = 'fatemeh';
-        }
-
         form.reset({ 
             ...initialData, 
             date: new Date(initialData.date),
-            source: source || '',
         });
     } else {
       form.reset({
         description: '',
         amount: 0,
         date: new Date(),
-        source: '',
+        ownerId: user?.email?.startsWith('ali') ? 'ali' : 'fatemeh',
         bankAccountId: '',
+        source: ''
       });
     }
-  }, [initialData, form]);
+  }, [initialData, form, user]);
 
-  const selectedSource = form.watch('source');
+  const selectedOwnerId = form.watch('ownerId');
   
   const getOwnerName = useCallback((account: BankAccount) => {
-    if (account.isShared) return "(مشترک)";
-    if (!users || users.length === 0) return "(ناشناس)";
-    const owner = users.find(u => u.id === account.userId);
-    return owner ? `(${owner.firstName})` : "(ناشناس)";
-  }, [users]);
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+  }, []);
 
   const availableAccounts = useMemo(() => {
-    if (!selectedSource || !bankAccounts) return [];
-    if (selectedSource === 'shared') {
-      return bankAccounts.filter(acc => acc.isShared);
-    }
-    if (selectedSource === 'ali') {
-      return bankAccounts.filter(acc => acc.userId === USER_DETAILS.ali.id && !acc.isShared);
-    }
-    if (selectedSource === 'fatemeh') {
-        return bankAccounts.filter(acc => acc.userId === USER_DETAILS.fatemeh.id && !acc.isShared);
-    }
-    return [];
-  }, [selectedSource, bankAccounts]);
-  
-  const handleSourceChange = useCallback((value: string) => {
-      form.setValue('source', value);
-      
-      const newAvailableAccounts = bankAccounts.filter(acc => {
-          if (value === 'shared') return acc.isShared;
-          if (value === 'ali') return acc.userId === USER_DETAILS.ali.id && !acc.isShared;
-          if (value === 'fatemeh') return acc.userId === USER_DETAILS.fatemeh.id && !acc.isShared;
-          return false;
-      });
+    if (!selectedOwnerId || !bankAccounts) return [];
+    return bankAccounts.filter(acc => acc.ownerId === selectedOwnerId);
+  }, [selectedOwnerId, bankAccounts]);
 
-      if (newAvailableAccounts.length > 0) {
-          form.setValue('bankAccountId', newAvailableAccounts[0].id);
-      } else {
-          form.setValue('bankAccountId', '');
-      }
-  }, [form, bankAccounts]);
-
-
+  // Effect to auto-select bank account if only one is available for the selected owner
   useEffect(() => {
-    const currentBankAccountId = form.getValues('bankAccountId');
-    const isCurrentAccountValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
+      const currentBankAccountId = form.getValues('bankAccountId');
+      const isCurrentAccountStillValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
 
-    if (!isCurrentAccountValid) {
-        if (availableAccounts.length === 1) {
-            form.setValue('bankAccountId', availableAccounts[0].id);
-        } else if (availableAccounts.length > 1) {
-            // Keep it empty for user to choose
-            form.setValue('bankAccountId', '');
-        } else {
-            form.setValue('bankAccountId', '');
-        }
-    }
-  }, [selectedSource, availableAccounts, form]);
+      if (!isCurrentAccountStillValid) {
+          if (availableAccounts.length > 0) {
+              form.setValue('bankAccountId', availableAccounts[0].id);
+          } else {
+              form.setValue('bankAccountId', '');
+          }
+      }
+  }, [selectedOwnerId, availableAccounts, form]);
 
 
   function handleFormSubmit(data: IncomeFormValues) {
     if (!user) return;
-    
-    const isSharedIncome = data.source === 'shared';
-    const incomeOwnerId = isSharedIncome ? undefined : (data.source === 'ali' ? USER_DETAILS.ali.id : USER_DETAILS.fatemeh.id);
 
     const submissionData = {
         ...data,
@@ -161,14 +121,11 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         type: 'income' as 'income',
         category: 'درآمد',
         registeredByUserId: user.uid,
-        isShared: isSharedIncome,
-        userId: incomeOwnerId,
+        source: data.source || data.description, // Fallback to description if source not provided
     };
     onSubmit(submissionData);
   }
   
-  const isBankAccountDisabled = selectedSource === 'shared' && availableAccounts.length === 1;
-
   return (
       <Card>
         <CardHeader>
@@ -245,7 +202,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
               />
               <FormField
                 control={form.control}
-                name="source"
+                name="ownerId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>منبع درآمد</FormLabel>
@@ -274,11 +231,11 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
-                      disabled={!selectedSource || availableAccounts.length === 0 || isBankAccountDisabled}
+                      disabled={!selectedOwnerId || availableAccounts.length === 0}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={!selectedSource ? "ابتدا منبع درآمد را انتخاب کنید" : (availableAccounts.length === 0 ? "کارتی برای این منبع یافت نشد" : "یک کارت بانکی انتخاب کنید")} />
+                          <SelectValue placeholder={!selectedOwnerId ? "ابتدا منبع درآمد را انتخاب کنید" : (availableAccounts.length === 0 ? "کارتی برای این منبع یافت نشد" : "یک کارت بانکی انتخاب کنید")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -293,6 +250,19 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                   </FormItem>
                 )}
               />
+                 <FormField
+                    control={form.control}
+                    name="source"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>نام واریز کننده (اختیاری)</FormLabel>
+                        <FormControl>
+                        <Input placeholder="مثال: شرکت راهیان کار" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
@@ -303,5 +273,3 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
       </Card>
   );
 }
-
-    

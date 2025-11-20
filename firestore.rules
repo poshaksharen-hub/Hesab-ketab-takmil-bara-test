@@ -12,13 +12,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email in familyEmails;
     }
     
-    // Rule for user-specific data
-    match /users/{userId}/{path=**} {
+    // Rule for user-specific data (profiles)
+    match /users/{userId} {
       allow read, write: if isFamilyMember();
     }
 
-    // Explicit rule for the shared data collection
-    match /shared/{path=**} {
+    // Rule for all shared family data
+    match /family-data/{docId}/{path=**} {
        allow read, write: if isFamilyMember();
     }
   }

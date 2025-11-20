@@ -16,6 +16,8 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 
+const FAMILY_DATA_DOC = 'shared-data';
+
 export default function CardsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -27,21 +29,19 @@ export default function CardsPage() {
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   
   const { bankAccounts: allBankAccounts = [], users: allUsers = [] } = allData;
-  const hasSharedAccount = allBankAccounts.some(acc => acc.isShared);
+  const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared');
 
 
   const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance'>) => {
-    if (!user || !firestore || allUsers.length === 0) return;
+    if (!user || !firestore) return;
+    
+    const collectionRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts');
   
     if (editingCard) {
       // --- Edit ---
-      const isShared = !!editingCard.isShared;
-      const cardId = editingCard.id;
-      const ownerId = editingCard.userId;
-  
-      const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${cardId}` : `users/${ownerId}/bankAccounts/${cardId}`);
-      // initialBalance, isShared, and owner should not be part of the update data.
-      const { initialBalance, isShared: isSharedVal, owner, ...updateData } = values as any;
+      const cardRef = doc(collectionRef, editingCard.id);
+      // initialBalance should not be part of the update data.
+      const { initialBalance, ...updateData } = values as any;
   
       updateDoc(cardRef, updateData)
         .then(() => {
@@ -57,110 +57,56 @@ export default function CardsPage() {
         });
     } else {
         // --- Create ---
-        const { isShared, owner, ...cardData } = values as any;
-       
-        if (isShared) {
-            // Create Shared Account
-            const members: { [key: string]: boolean } = {};
-            allUsers.forEach(u => members[u.id] = true);
-
-            const newSharedCard = {
-                ...cardData,
-                balance: cardData.initialBalance,
-                isShared: true,
-                members,
-            };
-            const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
-            addDoc(sharedColRef, newSharedCard)
-              .then((docRef) => {
-                updateDoc(docRef, { id: docRef.id });
-                toast({ title: "موفقیت", description: "کارت بانکی مشترک جدید با موفقیت اضافه شد." });
-              })
-              .catch(async (serverError) => {
-                 const permissionError = new FirestorePermissionError({
-                    path: sharedColRef.path,
-                    operation: 'create',
-                    requestResourceData: newSharedCard,
-                 });
-                 errorEmitter.emit('permission-error', permissionError);
-              });
-
-        } else {
-            // Create Personal Account
-            const ownerId = values.owner;
-            if (!ownerId || !allUsers.find(u => u.id === ownerId)) {
-                toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
-                return;
-            }
-    
-            const newCard = { 
-                ...cardData,
-                balance: cardData.initialBalance,
-                userId: ownerId,
-                isShared: false,
-            };
-            const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
-            
-            addDoc(userColRef, newCard)
-              .then((docRef) => {
-                updateDoc(docRef, { id: docRef.id });
-                toast({ title: "موفقیت", description: "کارت بانکی جدید با موفقیت اضافه شد." });
-              })
-              .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
-                  path: userColRef.path,
-                  operation: 'create',
-                  requestResourceData: newCard,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-              });
-        }
+        const newCard = { 
+            ...values,
+            balance: values.initialBalance,
+        };
+        
+        addDoc(collectionRef, newCard)
+            .then((docRef) => {
+            updateDoc(docRef, { id: docRef.id });
+            toast({ title: "موفقیت", description: `کارت بانکی جدید برای ${values.ownerId === 'shared' ? 'حساب مشترک' : USER_DETAILS[values.ownerId].firstName} با موفقیت اضافه شد.` });
+            })
+            .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: collectionRef.path,
+                operation: 'create',
+                requestResourceData: newCard,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            });
     }
     setIsFormOpen(false);
     setEditingCard(null);
-  }, [user, firestore, allUsers, editingCard, toast]);
+  }, [user, firestore, editingCard, toast]);
 
   const handleDelete = React.useCallback(async (cardId: string) => {
-    if (!user || !firestore || allUsers.length === 0) return;
+    if (!user || !firestore || !allBankAccounts) return;
     
-    const userIds = allUsers.map(u => u.id);
     const cardToDelete = allBankAccounts.find(c => c.id === cardId);
-
     if (!cardToDelete) {
         toast({ variant: 'destructive', title: 'خطا', description: 'کارت مورد نظر برای حذف یافت نشد.'});
         return;
     }
 
-    let cardToDeleteRef;
-    if (cardToDelete.isShared) {
-        cardToDeleteRef = doc(firestore, 'shared', 'data', 'bankAccounts', cardId);
-    } else {
-        if (!cardToDelete.userId) {
-            toast({ variant: 'destructive', title: 'خطا', description: 'مالک کارت شخصی برای حذف یافت نشد.' });
-            return;
-        }
-        cardToDeleteRef = doc(firestore, `users/${cardToDelete.userId}/bankAccounts/${cardId}`);
-    }
+    const cardToDeleteRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', cardId);
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            // Check for dependencies across all users first
-            for (const userId of userIds) {
-                const checksRef = collection(firestore, 'users', userId, 'checks');
-                const pendingChecksQuery = query(checksRef, where('bankAccountId', '==', cardId), where('status', '==', 'pending'));
-                const pendingChecksSnapshot = await transaction.get(pendingChecksQuery);
+            const checksRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
+            const pendingChecksQuery = query(checksRef, where('bankAccountId', '==', cardId), where('status', '==', 'pending'));
+            const pendingChecksSnapshot = await transaction.get(pendingChecksQuery);
 
-                if (!pendingChecksSnapshot.empty) {
-                    throw new Error("امکان حذف وجود ندارد. این کارت در یک یا چند چک پاس نشده استفاده شده است.");
-                }
+            if (!pendingChecksSnapshot.empty) {
+                throw new Error("امکان حذف وجود ندارد. این کارت در یک یا چند چک پاس نشده استفاده شده است.");
+            }
 
-                const loanPaymentsRef = collection(firestore, 'users', userId, 'loanPayments');
-                const loanPaymentsQuery = query(loanPaymentsRef, where('bankAccountId', '==', cardId));
-                const loanPaymentsSnapshot = await transaction.get(loanPaymentsQuery);
-                
-                if(!loanPaymentsSnapshot.empty) {
-                    throw new Error("امکان حذف وجود ندارد. از این کارت برای پرداخت اقساط وام استفاده شده است.");
-                }
+            const loanPaymentsRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'loanPayments');
+            const loanPaymentsQuery = query(loanPaymentsRef, where('bankAccountId', '==', cardId));
+            const loanPaymentsSnapshot = await transaction.get(loanPaymentsQuery);
+            
+            if(!loanPaymentsSnapshot.empty) {
+                throw new Error("امکان حذف وجود ندارد. از این کارت برای پرداخت اقساط وام استفاده شده است.");
             }
             
              const cardDoc = await transaction.get(cardToDeleteRef);
@@ -186,7 +132,7 @@ export default function CardsPage() {
             });
         }
     }
-  }, [user, firestore, allUsers, allBankAccounts, toast]);
+  }, [user, firestore, allBankAccounts, toast]);
 
 
   const handleEdit = React.useCallback((card: BankAccount) => {

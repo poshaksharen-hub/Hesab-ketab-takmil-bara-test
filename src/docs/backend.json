@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -35,10 +36,10 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BankAccount",
       "type": "object",
-      "description": "Represents a bank account, which can be personal or shared.",
+      "description": "Represents a bank account. Ownership is determined by the userId field.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string", "description": "Owner of the account if personal. Null if shared." },
+        "ownerId": { "type": "string", "description": "The ID of the user who owns this account. Can be 'ali', 'fatemeh', or 'shared'." },
         "bankName": { "type": "string" },
         "accountNumber": { "type": "string" },
         "cardNumber": { "type": "string" },
@@ -48,11 +49,9 @@
         "balance": { "type": "number" },
         "initialBalance": { "type": "number" },
         "blockedBalance": { "type": "number", "description": "Amount blocked for financial goals."},
-        "isShared": { "type": "boolean" },
-        "members": { "type": "object", "description": "Map of user IDs who are members of this shared account." },
         "theme": { "type": "string", "enum": ["blue", "green", "purple", "orange", "gray"] }
       },
-      "required": ["id", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance"]
+      "required": ["id", "ownerId", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance"]
     },
     "Income": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -61,7 +60,7 @@
       "description": "Represents an income transaction.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string", "description": "The user account this income belongs to (owner of the bank account)." },
+        "ownerId": { "type": "string", "description": "The ownership category of the income source ('ali', 'fatemeh', or 'shared')." },
         "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
         "bankAccountId": { "type": "string" },
         "amount": { "type": "number" },
@@ -72,7 +71,7 @@
         "category": { "type": "string", "description": "Always 'درآمد'" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "registeredByUserId", "bankAccountId", "amount", "date", "description", "source", "type", "category", "createdAt"]
+      "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "amount", "date", "description", "source", "type", "category", "createdAt"]
     },
     "Expense": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -81,7 +80,7 @@
       "description": "Represents an expense transaction.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string", "description": "The user account this expense belongs to (owner of the bank account)." },
+        "ownerId": { "type": "string", "description": "The owner of the bank account from which the expense was made." },
         "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
         "bankAccountId": { "type": "string" },
         "categoryId": { "type": "string" },
@@ -94,33 +93,31 @@
         "loanPaymentId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt"]
+      "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt"]
     },
     "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
-      "description": "Represents a category for expenses.",
+      "description": "Represents a category for expenses, shared by all users.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string" },
         "name": { "type": "string" },
         "description": { "type": "string" }
       },
-      "required": ["id", "userId", "name"]
+      "required": ["id", "name"]
     },
     "Payee": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payee",
       "type": "object",
-      "description": "Represents a payee for checks.",
+      "description": "Represents a payee, shared by all users.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string" },
         "name": { "type": "string" },
         "phoneNumber": { "type": "string" }
       },
-      "required": ["id", "userId", "name"]
+      "required": ["id", "name"]
     },
     "Check": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -129,7 +126,7 @@
       "description": "Represents a financial check.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string" },
+        "registeredByUserId": { "type": "string" },
         "bankAccountId": { "type": "string" },
         "payeeId": { "type": "string" },
         "categoryId": { "type": "string" },
@@ -139,7 +136,7 @@
         "status": { "type": "string", "enum": ["pending", "cleared"] },
         "description": { "type": "string" }
       },
-      "required": ["id", "userId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status"]
+      "required": ["id", "registeredByUserId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status"]
     },
     "FinancialGoal": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -148,7 +145,7 @@
         "description": "Represents a financial savings goal.",
         "properties": {
             "id": { "type": "string" },
-            "userId": { "type": "string" },
+            "registeredByUserId": { "type": "string" },
             "name": { "type": "string" },
             "targetAmount": { "type": "number" },
             "currentAmount": { "type": "number" },
@@ -158,7 +155,7 @@
             "savedFromBankAccountId": { "type": "string" },
             "savedAmount": { "type": "number" }
         },
-        "required": ["id", "userId", "name", "targetAmount", "currentAmount", "targetDate", "isAchieved", "priority"]
+        "required": ["id", "registeredByUserId", "name", "targetAmount", "currentAmount", "targetDate", "isAchieved", "priority"]
     },
     "Loan": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -167,7 +164,7 @@
         "description": "Represents a loan.",
         "properties": {
             "id": { "type": "string" },
-            "userId": { "type": "string" },
+            "registeredByUserId": { "type": "string" },
             "payeeId": { "type": "string" },
             "title": { "type": "string" },
             "amount": { "type": "number" },
@@ -178,7 +175,7 @@
             "numberOfInstallments": { "type": "number" },
             "paidInstallments": { "type": "number" }
         },
-        "required": ["id", "userId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "paymentDay", "numberOfInstallments", "paidInstallments"]
+        "required": ["id", "registeredByUserId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "paymentDay", "numberOfInstallments", "paidInstallments"]
     },
     "LoanPayment": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -187,13 +184,13 @@
         "description": "Represents a payment towards a loan.",
         "properties": {
             "id": { "type": "string" },
-            "userId": { "type": "string" },
+            "registeredByUserId": { "type": "string" },
             "loanId": { "type": "string" },
             "bankAccountId": { "type": "string" },
             "amount": { "type": "number" },
             "paymentDate": { "type": "string", "format": "date-time" }
         },
-        "required": ["id", "userId", "loanId", "bankAccountId", "amount", "paymentDate"]
+        "required": ["id", "registeredByUserId", "loanId", "bankAccountId", "amount", "paymentDate"]
     },
     "Transfer": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -202,14 +199,14 @@
         "description": "Represents an internal transfer between accounts.",
         "properties": {
             "id": { "type": "string" },
-            "userId": { "type": "string", "description": "The user who initiated the transfer." },
+            "registeredByUserId": { "type": "string", "description": "The user who initiated the transfer." },
             "fromBankAccountId": { "type": "string" },
             "toBankAccountId": { "type": "string" },
             "amount": { "type": "number" },
             "transferDate": { "type": "string", "format": "date-time" },
             "description": { "type": "string" }
         },
-        "required": ["id", "userId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate"]
+        "required": ["id", "registeredByUserId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate"]
     }
   },
   "auth": {
@@ -224,26 +221,26 @@
         "definition": {
           "schema": { "$ref": "#/entities/User" },
           "description": "Stores user profiles."
-        },
-        "subcollections": [
-            { "name": "bankAccounts", "schema": { "$ref": "#/entities/BankAccount" }, "description": "Personal bank accounts for the user." },
-            { "name": "incomes", "schema": { "$ref": "#/entities/Income" }, "description": "Income records for the user." },
-            { "name": "expenses", "schema": { "$ref": "#/entities/Expense" }, "description": "Expense records for the user." },
-            { "name": "categories", "schema": { "$ref": "#/entities/Category" }, "description": "Personal expense categories for the user." },
-            { "name": "payees", "schema": { "$ref": "#/entities/Payee" }, "description": "Personal payees for the user." },
-            { "name": "checks", "schema": { "$ref": "#/entities/Check" }, "description": "Checks issued by the user." },
-            { "name": "financialGoals", "schema": { "$ref": "#/entities/FinancialGoal" }, "description": "Financial goals for the user." },
-            { "name": "loans", "schema": { "$ref": "#/entities/Loan" }, "description": "Loans taken by the user." },
-            { "name": "loanPayments", "schema": { "$ref": "#/entities/LoanPayment" }, "description": "Payments made by the user for their loans." },
-            { "name": "transfers", "schema": { "$ref": "#/entities/Transfer" }, "description": "Transfers initiated by the user." }
-        ]
+        }
       },
       {
-        "path": "/shared/data/bankAccounts/{accountId}",
+        "path": "/family-data/{docId}",
         "definition": {
-          "schema": { "$ref": "#/entities/BankAccount" },
-          "description": "Shared bank accounts accessible by multiple users."
-        }
+          "schema": {},
+          "description": "A document to hold all shared family subcollections."
+        },
+        "subcollections": [
+            { "name": "bankAccounts", "schema": { "$ref": "#/entities/BankAccount" }, "description": "All bank accounts for the family." },
+            { "name": "incomes", "schema": { "$ref": "#/entities/Income" }, "description": "All income records for the family." },
+            { "name": "expenses", "schema": { "$ref": "#/entities/Expense" }, "description": "All expense records for the family." },
+            { "name": "categories", "schema": { "$ref": "#/entities/Category" }, "description": "All expense categories for the family." },
+            { "name": "payees", "schema": { "$ref": "#/entities/Payee" }, "description": "All payees for the family." },
+            { "name": "checks", "schema": { "$ref": "#/entities/Check" }, "description": "All checks for the family." },
+            { "name": "financialGoals", "schema": { "$ref": "#/entities/FinancialGoal" }, "description": "All financial goals for the family." },
+            { "name": "loans", "schema": { "$ref": "#/entities/Loan" }, "description": "All loans for the family." },
+            { "name": "loanPayments", "schema": { "$ref": "#/entities/LoanPayment" }, "description": "All loan payments for the family." },
+            { "name": "transfers", "schema": { "$ref": "#/entities/Transfer" }, "description": "All internal transfers for the family." }
+        ]
       }
     ]
   }

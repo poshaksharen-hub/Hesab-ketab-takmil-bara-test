@@ -1,10 +1,11 @@
+
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, MoreVertical, Wifi } from 'lucide-react';
-import type { BankAccount, UserProfile } from '@/lib/types';
+import { Edit, Trash2, MoreVertical, Wifi, Users, User } from 'lucide-react';
+import type { BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -22,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from '@/firebase';
+import { USER_DETAILS } from '@/lib/constants';
 
 const themeClasses = {
     blue: 'from-blue-500 to-blue-700',
@@ -52,11 +53,13 @@ const formatCardNumber = (cardNumber?: string) => {
 function CardItem({ card, onEdit, onDelete, users }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; users: UserProfile[]}) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
-    const getOwnerName = (card: BankAccount) => {
-        if (card.isShared) return "حساب مشترک";
-        const owner = users.find(u => u.id === card.userId);
-        return owner ? `${owner.firstName} ${owner.lastName}` : "ناشناس";
+    const getOwnerDetails = (ownerId: OwnerId) => {
+        if (ownerId === 'shared') return { name: "حساب مشترک", Icon: Users };
+        const userDetail = USER_DETAILS[ownerId];
+        return { name: `${userDetail.firstName} ${userDetail.lastName}`, Icon: User };
     };
+    
+    const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(card.ownerId);
 
     return (
         <>
@@ -109,7 +112,10 @@ function CardItem({ card, onEdit, onDelete, users }: { card: BankAccount; onEdit
                     </div>
 
                     <div className="flex justify-between items-end pt-2">
-                        <span className="font-mono text-sm tracking-wider uppercase">{getOwnerName(card)}</span>
+                        <span className="font-mono text-sm tracking-wider uppercase flex items-center gap-1">
+                            <OwnerIcon className="w-4 h-4" />
+                            {ownerName}
+                        </span>
                         <div className='text-left'>
                             <p className="text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
                             <p className="text-xs opacity-80">موجودی</p>
@@ -137,16 +143,20 @@ function CardItem({ card, onEdit, onDelete, users }: { card: BankAccount; onEdit
     );
 }
 
+interface CardListProps {
+  cards: BankAccount[];
+  onEdit: (card: BankAccount) => void;
+  onDelete: (cardId: string) => void;
+  users: UserProfile[];
+}
+
 export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
-  const { user } = useUser();
 
   const sortedCards = [...(cards || [])].sort((a, b) => {
-    if (a.isShared && !b.isShared) return -1;
-    if (!a.isShared && b.isShared) return 1;
-    const ownerA = users.find(u => u.id === a.userId)?.firstName || '';
-    const ownerB = users.find(u => u.id === b.userId)?.firstName || '';
-    if (ownerA < ownerB) return -1;
-    if (ownerA > ownerB) return 1;
+    if (a.ownerId === 'shared' && b.ownerId !== 'shared') return -1;
+    if (a.ownerId !== 'shared' && b.ownerId === 'shared') return 1;
+    if (a.ownerId < b.ownerId) return -1;
+    if (a.ownerId > b.ownerId) return 1;
     return 0;
   });
 

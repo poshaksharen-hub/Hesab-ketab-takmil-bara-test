@@ -1,16 +1,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 
-export type Transaction = {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  type: 'income' | 'expense';
-  category: string;
-  userId: string;
-  bankAccountId: string;
-};
+export type OwnerId = 'ali' | 'fatemeh' | 'shared';
 
 export type Income = {
   id: string;
@@ -18,10 +9,9 @@ export type Income = {
   description:string;
   amount: number;
   type: 'income';
-  source: string;
+  source: string; // The original source of income text
+  ownerId: OwnerId; // 'ali', 'fatemeh', or 'shared'
   category: string; // This is 'درآمد' for all incomes
-  userId?: string; // Optional: personal incomes have a userId
-  isShared?: boolean;
   registeredByUserId: string;
   bankAccountId: string;
   createdAt: any;
@@ -30,8 +20,7 @@ export type Income = {
 
 export type Expense = {
   id: string;
-  userId?: string; // Optional: personal expenses have a userId
-  isShared?: boolean;
+  ownerId: OwnerId; // Owner of the bank account used
   registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;
@@ -39,9 +28,9 @@ export type Expense = {
   date: string;
   description: string;
   type: 'expense';
-  checkId?: string; // Optional: to link expense to a cleared check
-  goalId?: string; // Optional: to link expense to an achieved goal
-  loanPaymentId?: string; // Optional: to link expense to a loan payment
+  checkId?: string;
+  goalId?: string;
+  loanPaymentId?: string;
   createdAt: any;
   updatedAt?: any;
 };
@@ -49,7 +38,7 @@ export type Expense = {
 
 export type BankAccount = {
     id: string;
-    userId: string;
+    ownerId: OwnerId;
     bankName: string;
     accountNumber: string;
     cardNumber: string;
@@ -59,14 +48,11 @@ export type BankAccount = {
     balance: number;
     initialBalance: number;
     blockedBalance?: number;
-    isShared?: boolean;
-    members?: { [key: string]: boolean };
     theme: 'blue' | 'green' | 'purple' | 'orange' | 'gray';
 }
 
 export type Category = {
   id: string;
-  userId: string;
   name: string;
   description?: string;
 };
@@ -80,14 +66,13 @@ export type UserProfile = {
 
 export type Payee = {
     id: string;
-    userId: string;
     name: string;
     phoneNumber?: string;
 }
 
 export type Check = {
     id: string;
-    userId: string;
+    registeredByUserId: string;
     bankAccountId: string;
     payeeId: string;
     categoryId: string;
@@ -100,7 +85,7 @@ export type Check = {
 
 export type FinancialGoal = {
     id: string;
-    userId: string;
+    registeredByUserId: string;
     name: string;
     targetAmount: number;
     currentAmount: number;
@@ -114,7 +99,7 @@ export type FinancialGoal = {
 
 export type Loan = {
     id: string;
-    userId: string;
+    registeredByUserId: string;
     payeeId?: string;
     title: string;
     amount: number;
@@ -128,7 +113,7 @@ export type Loan = {
 
 export type LoanPayment = {
     id: string;
-    userId: string;
+    registeredByUserId: string;
     loanId: string;
     bankAccountId: string;
     amount: number;
@@ -137,7 +122,7 @@ export type LoanPayment = {
 
 export type Transfer = {
     id: string;
-    userId: string;
+    registeredByUserId: string;
     fromBankAccountId: string;
     toBankAccountId: string;
     amount: number;
