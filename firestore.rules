@@ -17,8 +17,8 @@ service cloud.firestore {
       allow read, write: if isFamilyMember();
     }
 
-    // Rule for all shared family data
-    match /family-data/{docId}/{path=**} {
+    // Rule for all shared family data, living under a single document.
+    match /family-data/shared-data/{path=**} {
        allow read, write: if isFamilyMember();
     }
   }
