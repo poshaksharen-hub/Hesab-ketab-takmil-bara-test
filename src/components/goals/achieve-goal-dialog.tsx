@@ -63,7 +63,7 @@ export function AchieveGoalDialog({
   const remainingAmount = useMemo(() => {
     const remaining = goal.targetAmount - goal.currentAmount;
     return remaining < 0 ? 0 : remaining;
-  }, [goal]);
+  }, [goal.targetAmount, goal.currentAmount]);
   
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
@@ -79,17 +79,10 @@ export function AchieveGoalDialog({
   const form = useForm<AchieveGoalFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      paymentCardId: '',
+      paymentCardId: availablePaymentAccounts.length > 0 ? availablePaymentAccounts[0].id : '',
       categoryId: '',
     },
   });
-
-  React.useEffect(() => {
-    form.reset({
-      paymentCardId: availablePaymentAccounts.length > 0 ? availablePaymentAccounts[0].id : '',
-      categoryId: '',
-    });
-  }, [goal, availablePaymentAccounts, form]);
 
 
   function handleFormSubmit(data: AchieveGoalFormValues) {
@@ -110,7 +103,7 @@ export function AchieveGoalDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4" key={goal.id}>
             <Alert>
               <Info className="h-4 w-4" />
               <AlertTitle className="font-bold">اطلاعات مالی</AlertTitle>
