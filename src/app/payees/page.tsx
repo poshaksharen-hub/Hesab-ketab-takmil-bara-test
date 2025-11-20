@@ -4,7 +4,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, getDocs, query, where } from 'firebase/firestore';
 import { PayeeList } from '@/components/payees/payee-list';
 import { PayeeForm } from '@/components/payees/payee-form';
@@ -13,26 +13,29 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+
+const FAMILY_DATA_DOC = 'shared-data';
 
 export default function PayeesPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingPayee, setEditingPayee] = React.useState<Payee | null>(null);
 
-  const payeesQuery = useMemoFirebase(
-    () => (user && firestore ? collection(firestore, 'users', user.uid, 'payees') : null),
-    [firestore, user]
-  );
-  const { data: payees, isLoading: isLoadingPayees } = useCollection<Payee>(payeesQuery);
+  const { payees, checks } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Payee, 'id' | 'userId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Payee, 'id'>) => {
     if (!user || !firestore) return;
+    
+    const payeesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'payees');
 
     if (editingPayee) {
-        const payeeRef = doc(firestore, 'users', user.uid, 'payees', editingPayee.id);
+        const payeeRef = doc(payeesColRef, editingPayee.id);
         updateDoc(payeeRef, values)
             .then(() => {
                 toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
@@ -46,20 +49,16 @@ export default function PayeesPage() {
                 errorEmitter.emit('permission-error', permissionError);
             });
     } else {
-        const newPayee = {
-            ...values,
-            userId: user.uid,
-        };
-        const payeesColRef = collection(firestore, 'users', user.uid, 'payees');
-        addDoc(payeesColRef, newPayee)
-            .then(() => {
+        addDoc(payeesColRef, values)
+            .then((docRef) => {
+                updateDoc(docRef, { id: docRef.id });
                 toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
             })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({
                     path: payeesColRef.path,
                     operation: 'create',
-                    requestResourceData: newPayee,
+                    requestResourceData: values,
                 });
                 errorEmitter.emit('permission-error', permissionError);
             });
@@ -70,15 +69,12 @@ export default function PayeesPage() {
 
   const handleDelete = React.useCallback(async (payeeId: string) => {
     if (!user || !firestore) return;
-    const payeeRef = doc(firestore, 'users', user.uid, 'payees', payeeId);
+    const payeeRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'payees', payeeId);
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const checksRef = collection(firestore, 'users', user.uid, 'checks');
-            const checksQuery = query(checksRef, where('payeeId', '==', payeeId));
-            const checksSnapshot = await getDocs(checksQuery);
-
-            if (!checksSnapshot.empty) {
+            const isUsedInChecks = checks.some(c => c.payeeId === payeeId);
+            if (isUsedInChecks) {
                 throw new Error("امکان حذف وجود ندارد. این طرف حساب در یک یا چند چک استفاده شده است.");
             }
             
@@ -101,7 +97,7 @@ export default function PayeesPage() {
             });
         }
     }
-  }, [user, firestore, toast]);
+  }, [user, firestore, toast, checks]);
 
   const handleEdit = React.useCallback((payee: Payee) => {
     setEditingPayee(payee);
@@ -113,7 +109,7 @@ export default function PayeesPage() {
     setIsFormOpen(true);
   }, []);
 
-  const isLoading = isUserLoading || isLoadingPayees;
+  const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">

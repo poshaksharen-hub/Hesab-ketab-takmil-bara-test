@@ -36,7 +36,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BankAccount",
       "type": "object",
-      "description": "Represents a bank account. Ownership is determined by the userId field.",
+      "description": "Represents a bank account. Ownership is determined by the ownerId field.",
       "properties": {
         "id": { "type": "string" },
         "ownerId": { "type": "string", "description": "The ID of the user who owns this account. Can be 'ali', 'fatemeh', or 'shared'." },
@@ -224,7 +224,7 @@
         }
       },
       {
-        "path": "/family-data/{docId}",
+        "path": "/family-data/shared-data",
         "definition": {
           "schema": {},
           "description": "A document to hold all shared family subcollections."

@@ -15,6 +15,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
+const FAMILY_DATA_DOC = 'shared-data';
+
 
 export default function ChecksPage() {
   const { user, isUserLoading } = useUser();
@@ -27,11 +29,13 @@ export default function ChecksPage() {
   
   const { checks, bankAccounts, payees, categories, users } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'userId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId'>) => {
     if (!user || !firestore) return;
 
+    const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
+
     if (editingCheck) {
-      const checkRef = doc(firestore, 'users', user.uid, 'checks', editingCheck.id);
+      const checkRef = doc(checksColRef, editingCheck.id);
       updateDoc(checkRef, values)
         .then(() => {
           toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
@@ -47,13 +51,13 @@ export default function ChecksPage() {
     } else {
       const newCheck = {
         ...values,
-        userId: user.uid,
+        registeredByUserId: user.uid,
         status: 'pending' as 'pending',
       };
-      const checksColRef = collection(firestore, 'users', user.uid, 'checks');
       addDoc(checksColRef, newCheck)
-        .then(() => {
-          toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
+        .then((docRef) => {
+            updateDoc(docRef, { id: docRef.id });
+            toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
         })
         .catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({
@@ -71,24 +75,25 @@ export default function ChecksPage() {
   const handleClearCheck = React.useCallback(async (check: Check) => {
     if (!user || !firestore || check.status === 'cleared') return;
     
-    const checkRef = doc(firestore, 'users', check.userId, 'checks', check.id);
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+    const checkRef = doc(familyDataRef, 'checks', check.id);
     
     const account = bankAccounts.find(acc => acc.id === check.bankAccountId);
     if (!account) {
         toast({ variant: 'destructive', title: "خطا", description: "حساب بانکی چک یافت نشد." });
         return;
     }
-    const isShared = !!account.isShared;
-    const ownerId = account.userId;
-    
-    const bankAccountRef = doc(firestore, isShared ? `shared/data/bankAccounts/${account.id}` : `users/${ownerId}/bankAccounts/${account.id}`);
+    const bankAccountRef = doc(familyDataRef, 'bankAccounts', account.id);
+    const expensesColRef = collection(familyDataRef, 'expenses');
 
     try {
       await runTransaction(firestore, async (transaction) => {
         const bankAccountDoc = await transaction.get(bankAccountRef);
+        if (!bankAccountDoc.exists()) throw new Error("حساب بانکی یافت نشد.");
+
         const availableBalance = bankAccountDoc.data()!.balance - (bankAccountDoc.data()!.blockedBalance || 0);
 
-        if (!bankAccountDoc.exists() || availableBalance < check.amount) {
+        if (availableBalance < check.amount) {
           throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
         }
 
@@ -96,11 +101,10 @@ export default function ChecksPage() {
         const newBalance = bankAccountDoc.data()!.balance - check.amount;
         transaction.update(bankAccountRef, { balance: newBalance });
 
-        const expenseOwnerId = ownerId;
-        const expenseRef = doc(collection(firestore, 'users', expenseOwnerId, 'expenses'));
+        const expenseRef = doc(expensesColRef);
         transaction.set(expenseRef, {
             id: expenseRef.id,
-            userId: expenseOwnerId,
+            ownerId: account.ownerId,
             registeredByUserId: user.uid,
             amount: check.amount,
             bankAccountId: check.bankAccountId,
@@ -132,25 +136,22 @@ export default function ChecksPage() {
 
   const handleDelete = React.useCallback(async (check: Check) => {
     if (!user || !firestore) return;
-    const checkRef = doc(firestore, 'users', check.userId, 'checks', check.id);
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+    const checkRef = doc(familyDataRef, 'checks', check.id);
     try {
         await runTransaction(firestore, async (transaction) => {
             if (check.status === 'cleared') {
                 const account = bankAccounts.find(acc => acc.id === check.bankAccountId);
                  if (account) {
-                    const isShared = !!account.isShared;
-                    const ownerId = account.userId;
-                    const bankAccountRef = doc(firestore, isShared ? `shared/data/bankAccounts/${account.id}` : `users/${ownerId}/bankAccounts/${account.id}`);
-
+                    const bankAccountRef = doc(familyDataRef, 'bankAccounts', account.id);
                     const bankAccountDoc = await transaction.get(bankAccountRef);
                     if(bankAccountDoc.exists()){
                         const currentBalance = bankAccountDoc.data().balance;
                         transaction.update(bankAccountRef, { balance: currentBalance + check.amount });
                     }
                 }
-
-                // Delete the expense from the correct user's collection
-                const expenseToDeleteQuery = query(collection(firestore, 'users', account!.userId, 'expenses'), where("checkId", "==", check.id));
+                const expensesColRef = collection(familyDataRef, 'expenses');
+                const expenseToDeleteQuery = query(expensesColRef, where("checkId", "==", check.id));
                 const expenseSnapshot = await getDocs(expenseToDeleteQuery);
                 expenseSnapshot.forEach((doc) => {
                     transaction.delete(doc.ref);
@@ -197,9 +198,6 @@ export default function ChecksPage() {
   }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
-  
-  const userPayees = payees.filter(p => p.userId === user?.uid);
-  const userCategories = categories.filter(c => c.userId === user?.uid);
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -226,8 +224,8 @@ export default function ChecksPage() {
           onSubmit={handleFormSubmit}
           initialData={editingCheck}
           bankAccounts={bankAccounts || []}
-          payees={userPayees || []}
-          categories={userCategories || []}
+          payees={payees || []}
+          categories={categories || []}
           users={users}
         />
       ) : (

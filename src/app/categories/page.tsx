@@ -4,35 +4,38 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, getDocs, query, where } from 'firebase/firestore';
 import { CategoryList } from '@/components/categories/category-list';
 import { CategoryForm } from '@/components/categories/category-form';
-import type { Category } from '@/lib/types';
+import type { Category, Expense, Check } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+
+const FAMILY_DATA_DOC = 'shared-data';
 
 export default function CategoriesPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
 
-  const categoriesQuery = useMemoFirebase(
-    () => (user && firestore ? collection(firestore, 'users', user.uid, 'categories') : null),
-    [firestore, user]
-  );
-  const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
+  const { categories, expenses, checks } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Category, 'id' | 'userId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Category, 'id'>) => {
     if (!user || !firestore) return;
 
+    const categoriesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'categories');
+
     if (editingCategory) {
-        const categoryRef = doc(firestore, 'users', user.uid, 'categories', editingCategory.id);
+        const categoryRef = doc(categoriesColRef, editingCategory.id);
         updateDoc(categoryRef, values)
         .then(() => {
             toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." });
@@ -46,20 +49,16 @@ export default function CategoriesPage() {
             errorEmitter.emit('permission-error', permissionError);
         });
     } else {
-        const newCategory = {
-            ...values,
-            userId: user.uid,
-        };
-        const categoriesColRef = collection(firestore, 'users', user.uid, 'categories');
-        addDoc(categoriesColRef, newCategory)
-        .then(() => {
+        addDoc(categoriesColRef, values)
+        .then((docRef) => {
+            updateDoc(docRef, { id: docRef.id });
             toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
         })
         .catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({
                 path: categoriesColRef.path,
                 operation: 'create',
-                requestResourceData: newCategory,
+                requestResourceData: values,
             });
             errorEmitter.emit('permission-error', permissionError);
         });
@@ -70,23 +69,19 @@ export default function CategoriesPage() {
 
   const handleDelete = React.useCallback(async (categoryId: string) => {
     if (!user || !firestore) return;
-    const categoryRef = doc(firestore, 'users', user.uid, 'categories', categoryId);
+    const categoryRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'categories', categoryId);
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const expensesRef = collection(firestore, 'users', user.uid, 'expenses');
-            const expensesQuery = query(expensesRef, where('categoryId', '==', categoryId));
-            const expensesSnapshot = await getDocs(expensesQuery);
-
-            if (!expensesSnapshot.empty) {
+            // Check for usage in expenses
+            const isUsedInExpenses = expenses.some(e => e.categoryId === categoryId);
+            if (isUsedInExpenses) {
                 throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند هزینه استفاده شده است.");
             }
             
-            const checksRef = collection(firestore, 'users', user.uid, 'checks');
-            const checksQuery = query(checksRef, where('categoryId', '==', categoryId));
-            const checksSnapshot = await getDocs(checksQuery);
-
-            if (!checksSnapshot.empty) {
+            // Check for usage in checks
+            const isUsedInChecks = checks.some(c => c.categoryId === categoryId);
+            if (isUsedInChecks) {
                 throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند چک استفاده شده است.");
             }
             
@@ -109,7 +104,7 @@ export default function CategoriesPage() {
             });
         }
     }
-  }, [user, firestore, toast]);
+  }, [user, firestore, toast, expenses, checks]);
 
   const handleEdit = React.useCallback((category: Category) => {
     setEditingCategory(category);
@@ -121,7 +116,7 @@ export default function CategoriesPage() {
     setIsFormOpen(true);
   }, []);
 
-  const isLoading = isUserLoading || isLoadingCategories;
+  const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
