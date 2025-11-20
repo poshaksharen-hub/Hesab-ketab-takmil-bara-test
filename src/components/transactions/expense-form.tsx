@@ -95,10 +95,13 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
   }, [initialData, form]);
 
   function handleFormSubmit(data: ExpenseFormValues) {
-    const submissionData = {
+    const submissionData: any = {
         ...data,
         date: data.date.toISOString(),
     };
+    if (submissionData.payeeId === 'none') {
+        delete submissionData.payeeId;
+    }
     onSubmit(submissionData);
   }
 
@@ -239,7 +242,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                             <SelectItem value=""><em>هیچکدام</em></SelectItem>
+                             <SelectItem value="none"><em>هیچکدام</em></SelectItem>
                             {payees.map((payee) => (
                             <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
                             ))}

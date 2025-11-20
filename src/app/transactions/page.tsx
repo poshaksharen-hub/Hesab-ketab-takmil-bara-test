@@ -46,7 +46,7 @@ export default function ExpensesPage() {
             if (!account) throw new Error("کارت بانکی یافت نشد");
             
             const ownerId: OwnerId = account.ownerId;
-            const fromCardRef = doc(firestore, `family-data/shared-data/bankAccounts`, account.id);
+            const fromCardRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/bankAccounts`, account.id);
             const fromCardDoc = await transaction.get(fromCardRef);
 
             if (!fromCardDoc.exists()) {
@@ -63,7 +63,7 @@ export default function ExpensesPage() {
             transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
 
             // 2. Create new expense document
-            const expensesColRef = collection(firestore, `family-data/shared-data/expenses`);
+            const expensesColRef = collection(firestore, `family-data/${FAMILY_DATA_DOC}/expenses`);
             const newExpenseRef = doc(expensesColRef);
             
             transaction.set(newExpenseRef, {
