@@ -68,7 +68,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
     return owner ? `${owner.firstName} ${owner.lastName}` : "ناشناس";
   };
   
-  const sortedCards = [...cards].sort((a, b) => {
+  const sortedCards = [...(cards || [])].sort((a, b) => {
     if (a.isShared && !b.isShared) return 1;
     if (!a.isShared && b.isShared) return -1;
     const ownerA = users.find(u => u.id === a.userId)?.firstName || '';
@@ -109,25 +109,29 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                                 <Edit className="ml-2 h-4 w-4" />
                                 ویرایش
                             </DropdownMenuItem>
-                            <AlertDialog>
+                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                     <div data-cy="delete-card-trigger" className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive">
+                                    <DropdownMenuItem
+                                        onSelect={(e) => e.preventDefault()}
+                                        className="text-destructive focus:text-destructive"
+                                        data-cy="delete-card-trigger"
+                                    >
                                         <Trash2 className="ml-2 h-4 w-4" />
                                         حذف
-                                    </div>
+                                    </DropdownMenuItem>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                    <AlertDialogTitle>آیا از حذف این کارت مطمئن هستید؟</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        این عمل قابل بازگشت نیست. این کارت برای همیشه حذف خواهد شد.
-                                    </AlertDialogDescription>
+                                        <AlertDialogTitle>آیا از حذف این کارت مطمئن هستید؟</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            این عمل قابل بازگشت نیست. این کارت برای همیشه حذف خواهد شد.
+                                        </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                    <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDelete(card.id)}>
-                                        بله، حذف کن
-                                    </AlertDialogAction>
+                                        <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => onDelete(card.id)}>
+                                            بله، حذف کن
+                                        </AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
