@@ -32,7 +32,7 @@ import type { Loan, BankAccount } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
-import { Input } from '../ui/input';
+import { Input, CurrencyInput } from '../ui/input';
 
 const formSchema = z.object({
   paymentBankAccountId: z.string().min(1, { message: 'لطفا یک کارت برای پرداخت انتخاب کنید.' }),
@@ -100,7 +100,7 @@ export function LoanPaymentDialog({
                 <FormItem>
                   <FormLabel>مبلغ پرداخت (تومان)</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <CurrencyInput value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,7 +122,7 @@ export function LoanPaymentDialog({
                     <SelectContent>
                       {bankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.name} (موجودی: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
+                          {account.bankName} (موجودی: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
                         </SelectItem>
                       ))}
                     </SelectContent>

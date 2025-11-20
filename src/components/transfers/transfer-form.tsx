@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Input, CurrencyInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -141,7 +141,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFo
                   <FormItem>
                     <FormLabel>مبلغ انتقال (تومان)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <CurrencyInput value={field.value} onChange={field.onChange} />
                     </FormControl>
                     {fromAccount && (
                         <p className="text-xs text-muted-foreground pt-1">

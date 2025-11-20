@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useEffect } from 'react';
 import { z } from 'zod';
@@ -14,7 +13,7 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Input, CurrencyInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -54,7 +53,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
-      ? { ...initialData, targetDate: new Date(initialData.targetDate) }
+      ? { ...initialData, targetDate: new Date(initialData.targetDate), savedAmount: initialData.savedAmount || 0 }
       : {
           name: '',
           targetAmount: 0,
@@ -67,7 +66,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
 
   useEffect(() => {
     if (initialData) {
-      form.reset({ ...initialData, targetDate: new Date(initialData.targetDate) });
+      form.reset({ ...initialData, targetDate: new Date(initialData.targetDate), savedAmount: initialData.savedAmount || 0 });
     } else {
       form.reset({
         name: '',
@@ -125,7 +124,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                     <FormItem>
                         <FormLabel>مبلغ کل هدف (تومان)</FormLabel>
                         <FormControl>
-                        <Input type="number" {...field} />
+                          <CurrencyInput value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -200,7 +199,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                             </FormControl>
                             <SelectContent>
                                 {bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
+                                <SelectItem key={account.id} value={account.id}>{account.bankName}</SelectItem>
                                 ))}
                             </SelectContent>
                             </Select>
@@ -220,7 +219,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                         <FormItem>
                             <FormLabel>مبلغ پس‌انداز (تومان)</FormLabel>
                             <FormControl>
-                            <Input type="number" {...field} disabled={!selectedBankAccountId} />
+                              <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={!selectedBankAccountId} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

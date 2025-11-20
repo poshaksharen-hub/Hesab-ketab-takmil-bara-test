@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Input, CurrencyInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -127,7 +127,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                     <FormItem>
                         <FormLabel>مبلغ (تومان)</FormLabel>
                         <FormControl>
-                        <Input type="number" {...field} />
+                          <CurrencyInput value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>

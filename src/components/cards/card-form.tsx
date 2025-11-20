@@ -14,7 +14,7 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Input, CurrencyInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -196,7 +196,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                   <FormItem>
                     <FormLabel>موجودی اولیه (تومان)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} disabled={!!initialData} />
+                      <CurrencyInput value={field.value} onChange={field.onChange} disabled={!!initialData} />
                     </FormControl>
                     {!initialData && <FormDescription>این مبلغ فقط یکبار در زمان ایجاد کارت ثبت می‌شود.</FormDescription>}
                     <FormMessage />

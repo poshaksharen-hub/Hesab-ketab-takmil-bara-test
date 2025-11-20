@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Input, CurrencyInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -90,15 +90,16 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   function handleFormSubmit(data: IncomeFormValues) {
     if (!user) return;
     
-    // Determine the owner of the income based on the source
-    const incomeOwnerId = data.source === 'shared' ? USER_DETAILS.ali.id : data.source;
+    const incomeOwnerId = data.source === 'shared' 
+        ? (Object.values(USER_DETAILS).find(u => u.email.startsWith('ali')))?.id || user.uid
+        : data.source;
 
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
         type: 'income' as 'income',
         category: 'درآمد',
-        userId: incomeOwnerId, // This is now correctly set based on source
+        userId: incomeOwnerId,
         registeredByUserId: user.uid,
     };
     onSubmit(submissionData);
@@ -107,12 +108,14 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   const selectedSource = form.watch('source');
   
   const availableAccounts = React.useMemo(() => {
-    if (!selectedSource) return [];
     if (selectedSource === 'shared') {
       return bankAccounts.filter(acc => acc.isShared);
     }
     // If source is a user ID, show only that user's personal accounts
-    return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
+    if (selectedSource && selectedSource !== 'shared') {
+        return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
+    }
+    return [];
   }, [selectedSource, bankAccounts]);
 
   // Effect to reset bank account if the available accounts change
@@ -154,7 +157,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                   <FormItem>
                     <FormLabel>مبلغ (تومان)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <CurrencyInput value={field.value} onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

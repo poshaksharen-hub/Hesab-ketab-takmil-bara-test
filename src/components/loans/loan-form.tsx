@@ -13,7 +13,7 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Input, CurrencyInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -152,7 +152,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                   <FormItem>
                     <FormLabel>مبلغ کل وام (تومان)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <CurrencyInput value={field.value} onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -165,7 +165,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                   <FormItem>
                     <FormLabel>مبلغ هر قسط (تومان)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <CurrencyInput value={field.value} onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -266,7 +266,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                             </FormControl>
                             <SelectContent>
                                 {bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
+                                <SelectItem key={account.id} value={account.id}>{account.bankName}</SelectItem>
                                 ))}
                             </SelectContent>
                             </Select>
