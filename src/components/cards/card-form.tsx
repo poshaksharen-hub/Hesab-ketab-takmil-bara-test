@@ -40,7 +40,8 @@ const formSchema = z.object({
   cvv2: z.string().min(3, { message: 'CVV2 حداقل ۳ رقم است.' }).max(4, { message: 'CVV2 حداکثر ۴ رقم است.' }),
   accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
-  owner: z.string().min(1, { message: 'لطفا صاحب حساب را مشخص کنید.'}),
+  owner: z.string().optional(),
+  isShared: z.boolean().default(false),
   theme: z.enum(['blue', 'green', 'purple', 'orange', 'gray']).default('blue'),
 });
 
@@ -68,12 +69,15 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
       accountType: 'savings',
       initialBalance: 0,
       owner: user?.uid, // Default to current user
+      isShared: false,
       theme: 'blue'
     },
   });
   
   const aliUser = users.find(u => u.email.startsWith('ali'));
   const fatemehUser = users.find(u => u.email.startsWith('fatemeh'));
+  const isSharedSwitch = form.watch('isShared');
+
 
   React.useEffect(() => {
     if (initialData) {
@@ -86,6 +90,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
          accountType: initialData.accountType,
          initialBalance: initialData.initialBalance,
          owner: initialData.isShared ? 'shared' : initialData.userId,
+         isShared: initialData.isShared || false,
          theme: initialData.theme || 'blue',
         });
     } else {
@@ -98,6 +103,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         accountType: 'savings',
         initialBalance: 0,
         owner: user?.uid || '',
+        isShared: false,
         theme: 'blue',
       });
     }
@@ -117,6 +123,28 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)}>
             <CardContent className="space-y-6">
+               {!initialData && !hasSharedAccount && (
+                <FormField
+                    control={form.control}
+                    name="isShared"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <FormLabel>حساب مشترک</FormLabel>
+                            <FormDescription>
+                                با فعال کردن این گزینه، این حساب برای هر دو نفر قابل استفاده خواهد بود.
+                            </FormDescription>
+                        </div>
+                        <FormControl>
+                            <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                        </FormItem>
+                    )}
+                />
+               )}
                <FormField
                 control={form.control}
                 name="bankName"
@@ -243,27 +271,29 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                   </FormItem>
                 )}
               />
-               <FormField
-                control={form.control}
-                name="owner"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>صاحب حساب</FormLabel>
-                     <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {aliUser && <SelectItem value={aliUser.id}>{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>}
-                        {fatemehUser && <SelectItem value={fatemehUser.id}>{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+               {!isSharedSwitch && (
+                <FormField
+                    control={form.control}
+                    name="owner"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>صاحب حساب</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData || isSharedSwitch}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {aliUser && <SelectItem value={aliUser.id}>{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>}
+                            {fatemehUser && <SelectItem value={fatemehUser.id}>{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
                 )}
-              />
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>

@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { USER_DETAILS } from '@/lib/constants';
 
 export default function CardsPage() {
   const { user, isUserLoading } = useUser();
@@ -56,34 +57,64 @@ export default function CardsPage() {
         });
     } else {
         // --- Create ---
-        const { owner, ...cardData } = values as any;
+        const { isShared, owner, ...cardData } = values as any;
         const ownerId = values.owner;
-        if (!ownerId || !allUsers.find(u => u.id === ownerId)) {
-          toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
-          return;
+       
+        if (isShared) {
+            // Create Shared Account
+            const members: { [key: string]: boolean } = {};
+            allUsers.forEach(u => members[u.id] = true);
+
+            const newSharedCard = {
+                ...cardData,
+                balance: cardData.initialBalance,
+                isShared: true,
+                members,
+            };
+            const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
+            addDoc(sharedColRef, newSharedCard)
+              .then((docRef) => {
+                updateDoc(docRef, { id: docRef.id });
+                toast({ title: "موفقیت", description: "کارت بانکی مشترک جدید با موفقیت اضافه شد." });
+              })
+              .catch(async (serverError) => {
+                 const permissionError = new FirestorePermissionError({
+                    path: sharedColRef.path,
+                    operation: 'create',
+                    requestResourceData: newSharedCard,
+                 });
+                 errorEmitter.emit('permission-error', permissionError);
+              });
+
+        } else {
+            // Create Personal Account
+            if (!ownerId || !allUsers.find(u => u.id === ownerId)) {
+                toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
+                return;
+            }
+    
+            const newCard = { 
+                ...cardData,
+                balance: cardData.initialBalance,
+                userId: ownerId,
+                isShared: false,
+            };
+            const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
+            
+            addDoc(userColRef, newCard)
+              .then((docRef) => {
+                updateDoc(docRef, { id: docRef.id });
+                toast({ title: "موفقیت", description: "کارت بانکی جدید با موفقیت اضافه شد." });
+              })
+              .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                  path: userColRef.path,
+                  operation: 'create',
+                  requestResourceData: newCard,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+              });
         }
-  
-        const newCard = { 
-            ...cardData,
-            balance: cardData.initialBalance,
-            userId: ownerId,
-            isShared: false, // Force to personal
-        };
-        const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
-        
-        addDoc(userColRef, newCard)
-          .then((docRef) => {
-            updateDoc(docRef, { id: docRef.id }); // Add the id to the document
-            toast({ title: "موفقیت", description: "کارت بانکی جدید با موفقیت اضافه شد." });
-          })
-          .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: userColRef.path,
-              operation: 'create',
-              requestResourceData: newCard,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-          });
     }
     setIsFormOpen(false);
     setEditingCard(null);
