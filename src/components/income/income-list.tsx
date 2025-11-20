@@ -8,33 +8,17 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
-  Edit,
-  Trash2,
-  User,
-  Users,
   Briefcase,
   Landmark,
   Calendar,
   PenSquare,
   Building,
+  Wallet,
 } from 'lucide-react';
 import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -51,10 +35,12 @@ const DetailItem = ({
   icon: Icon,
   label,
   value,
+  className,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | null | undefined;
+  className?: string;
 }) => {
   if (!value) return null;
   return (
@@ -62,7 +48,7 @@ const DetailItem = ({
       <Icon className="h-5 w-5 text-muted-foreground" />
       <div className="flex flex-col">
         <span className="text-muted-foreground">{label}</span>
-        <span className="font-semibold">{value}</span>
+        <span className={`font-semibold ${className}`}>{value}</span>
       </div>
     </div>
   );
@@ -86,6 +72,7 @@ export function IncomeList({
   };
   
   const getOwnerSourceText = (ownerId: OwnerId) => {
+    if (!ownerId) return 'نامشخص';
     switch (ownerId) {
       case 'ali':
         return `درآمد ${USER_DETAILS.ali.firstName}`;
@@ -140,9 +127,9 @@ export function IncomeList({
                     <p className="text-lg font-bold">{income.description}</p>
                     <div className="text-left">
                       <p className="text-2xl font-bold text-emerald-500">
-                        {formatCurrency(income.amount, 'IRT')}
+                        {`+${formatCurrency(income.amount, 'IRT')}`}
                       </p>
-                      {income.ownerId === 'shared' && (
+                      {bankAccount?.ownerId === 'shared' && (
                         <Badge variant="secondary">مشترک</Badge>
                       )}
                     </div>
@@ -175,6 +162,12 @@ export function IncomeList({
                       icon={PenSquare}
                       label="ثبت توسط"
                       value={getUserName(income.registeredByUserId)}
+                    />
+                     <DetailItem
+                      icon={Wallet}
+                      label="موجودی مقصد پس از تراکنش"
+                      value={bankAccount ? formatCurrency(bankAccount.balance, 'IRT') : 'نامشخص'}
+                      className="text-primary font-mono"
                     />
                   </div>
                 </CardContent>
