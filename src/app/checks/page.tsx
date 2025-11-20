@@ -113,11 +113,13 @@ export default function ChecksPage() {
         // Create a detailed description for the expense
         const expenseDescription = `
           پاس کردن چک به: ${payeeName}
-          - تاریخ صدور: ${formatJalaliDate(new Date(check.issueDate))}
-          - تاریخ سررسید: ${formatJalaliDate(new Date(check.dueDate))}
-          - از بانک: ${account.bankName}
-          - شرح چک: ${check.description || 'ندارد'}
-        `.trim().replace(/  +/g, ' ').replace(/\n\s*/g, '\n');
+- تاریخ صدور: ${formatJalaliDate(new Date(check.issueDate))}
+- تاریخ سررسید: ${formatJalaliDate(new Date(check.dueDate))}
+- از بانک: ${account.bankName}
+- شماره صیادی: ${check.sayadId || 'ندارد'}
+- شماره سری: ${check.checkSerialNumber || 'ندارد'}
+- شرح چک: ${check.description || 'ندارد'}
+        `.trim().replace(/  +/g, ' ').replace(/\\n\\s*/g, '\\n');
 
 
         // Create the corresponding expense

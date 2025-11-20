@@ -137,9 +137,10 @@
         "amount": { "type": "number" },
         "issueDate": { "type": "string", "format": "date-time" },
         "dueDate": { "type": "string", "format": "date-time" },
-        "clearedDate": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["pending", "cleared"] },
-        "description": { "type": "string" }
+        "description": { "type": "string" },
+        "sayadId": { "type": "string", "description": "The Sayad ID of the check." },
+        "checkSerialNumber": { "type": "string", "description": "The serial number of the check." }
       },
       "required": ["id", "registeredByUserId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status"]
     },

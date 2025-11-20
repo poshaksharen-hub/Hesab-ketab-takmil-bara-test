@@ -69,6 +69,7 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
             <TableRow>
               <TableHead>طرف حساب</TableHead>
               <TableHead>مبلغ</TableHead>
+              <TableHead>سریال / صیادی</TableHead>
               <TableHead>تاریخ سررسید</TableHead>
               <TableHead>وضعیت</TableHead>
               <TableHead className="text-left">عملیات</TableHead>
@@ -79,6 +80,10 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
               <TableRow key={check.id} className={cn(check.status === 'cleared' && 'text-muted-foreground opacity-70')}>
                 <TableCell className="font-medium">{getPayeeName(check.payeeId)}</TableCell>
                 <TableCell>{formatCurrency(check.amount, 'IRT')}</TableCell>
+                <TableCell>
+                  {check.checkSerialNumber && <div className='font-mono text-xs'>سریال: {check.checkSerialNumber}</div>}
+                  {check.sayadId && <div className='font-mono text-xs'>صیاد: {check.sayadId}</div>}
+                </TableCell>
                 <TableCell>{formatJalaliDate(new Date(check.dueDate))}</TableCell>
                 <TableCell>{getStatusBadge(check.status, check.dueDate)}</TableCell>
                 <TableCell className="text-left">
@@ -106,6 +111,31 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
                             </AlertDialogContent>
                         </AlertDialog>
                         )}
+                        
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(check)} aria-label="Edit">
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، مبلغ آن به حساب باز نخواهد گشت و هزینه ثبت شده حذف نمی‌شود.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(check)}>
+                                    بله، حذف کن
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </TableCell>
               </TableRow>

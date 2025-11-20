@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input, CurrencyInput } from '@/components/ui/input';
+import { Input, CurrencyInput, NumericInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -35,6 +35,8 @@ const formSchema = z.object({
   dueDate: z.date({ required_error: 'لطفا تاریخ سررسید را انتخاب کنید.' }),
   status: z.enum(['pending', 'cleared']).default('pending'),
   description: z.string().optional(),
+  sayadId: z.string().optional(),
+  checkSerialNumber: z.string().optional(),
 });
 
 type CheckFormValues = z.infer<typeof formSchema>;
@@ -62,6 +64,8 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
       dueDate: new Date(),
       status: 'pending',
       description: '',
+      sayadId: '',
+      checkSerialNumber: '',
     },
   });
 
@@ -72,6 +76,8 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
         issueDate: new Date(initialData.issueDate),
         dueDate: new Date(initialData.dueDate),
         description: initialData.description || '',
+        sayadId: initialData.sayadId || '',
+        checkSerialNumber: initialData.checkSerialNumber || '',
       });
     } else {
       form.reset({
@@ -83,6 +89,8 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
           dueDate: new Date(),
           status: 'pending',
           description: '',
+          sayadId: '',
+          checkSerialNumber: '',
       });
     }
   }, [initialData, form]);
@@ -152,13 +160,41 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <FormField
+                    control={form.control}
+                    name="sayadId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>شماره صیادی (اختیاری)</FormLabel>
+                        <FormControl>
+                          <NumericInput dir="ltr" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="checkSerialNumber"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>شماره سری چک (اختیاری)</FormLabel>
+                        <FormControl>
+                          <Input dir="ltr" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="bankAccountId"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>از حساب</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValuechange={field.onChange} value={field.value}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="یک حساب دارای دسته‌چک انتخاب کنید" />
