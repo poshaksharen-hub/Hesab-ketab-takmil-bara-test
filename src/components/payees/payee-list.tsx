@@ -72,30 +72,6 @@ export function PayeeList({ payees, onEdit, onDelete }: PayeeListProps) {
                             <ArrowLeft className="h-4 w-4" />
                            </Link>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(payee)} aria-label="Edit">
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>آیا از حذف این طرف حساب مطمئن هستید؟</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    این عمل قابل بازگشت نیست. این طرف حساب برای همیشه حذف خواهد شد.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(payee.id)}>
-                                    بله، حذف کن
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
                     </div>
                 </TableCell>
               </TableRow>
