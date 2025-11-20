@@ -82,6 +82,7 @@ const useAllCollections = () => {
 
         subCollections.forEach(colName => {
             let combinedData: any[] = [];
+            let loadedForUsers = 0;
             userIds.forEach(uid => {
                 const q = query(collection(firestore, `users/${uid}/${colName}`));
                 const unsub = onSnapshot(q, (snapshot) => {
@@ -91,10 +92,16 @@ const useAllCollections = () => {
                     combinedData = [...otherUsersData, ...data];
                     tempData[colName] = combinedData;
 
-                    checkLoadingDone();
+                    loadedForUsers++;
+                    if(loadedForUsers === userIds.length) {
+                        checkLoadingDone();
+                    }
                 }, (error) => {
                     console.error(`Error fetching ${colName} for user ${uid}:`, error);
-                    checkLoadingDone();
+                    loadedForUsers++;
+                    if(loadedForUsers === userIds.length) {
+                        checkLoadingDone();
+                    }
                 });
                 unsubs.push(unsub);
             });
@@ -108,26 +115,26 @@ const useAllCollections = () => {
 
     // This effect combines personal and shared bank accounts once they are both loaded.
     useEffect(() => {
-        if (!users || isLoadingSharedAccounts) return;
-
+        if (isLoadingUsers || isLoadingSharedAccounts) return;
+        
         setAllData(prev => {
-             const personalAccounts = prev.bankAccounts || [];
-            const combinedAccounts = [
+            const personalAccounts = prev.bankAccounts || [];
+            const combined = [
                 ...personalAccounts,
                 ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
             ];
-             // Deduplicate accounts
-            const uniqueAccounts = Array.from(new Map(combinedAccounts.map(item => [item.id, item])).values());
+            const uniqueAccounts = Array.from(new Map(combined.map(item => [item.id, item])).values());
             return {
                 ...prev,
-                users: users,
+                users: users || [],
                 bankAccounts: uniqueAccounts
             };
         });
-    }, [users, sharedAccounts, isLoadingSharedAccounts]);
+
+    }, [users, sharedAccounts, isLoadingUsers, isLoadingSharedAccounts]);
 
 
-    return { isLoading, allData };
+    return { isLoading: isLoading || isLoadingUsers || isLoadingSharedAccounts, allData };
 };
 
 
@@ -206,3 +213,5 @@ export function useDashboardData() {
     allData
   };
 }
+
+    

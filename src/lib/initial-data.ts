@@ -92,3 +92,5 @@ export const getSharedBankAccounts = (): Omit<BankAccount, 'id' | 'balance' | 'u
         theme: 'blue',
     }
 ];
+
+    
