@@ -105,25 +105,28 @@ const useAllCollections = () => {
 
     // This effect combines personal and shared bank accounts once they are both loaded.
     useEffect(() => {
-      if (isLoadingUsers || isLoadingSharedAccounts) {
-          setIsLoading(true);
-      } else {
-        const personalAccounts = allData.bankAccounts || [];
-        const combinedAccounts = [
-            ...personalAccounts,
-            ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
-        ];
+        if (isLoadingUsers || isLoadingSharedAccounts) {
+            setIsLoading(true);
+            return;
+        }
+        
+        setAllData(prev => {
+            const personalAccounts = prev.bankAccounts || [];
+            const combinedAccounts = [
+                ...personalAccounts,
+                ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
+            ];
+             // Deduplicate accounts
+            const uniqueAccounts = Array.from(new Map(combinedAccounts.map(item => [item.id, item])).values());
+            
+            return {
+                ...prev,
+                users: users || [],
+                bankAccounts: uniqueAccounts,
+            };
+        });
 
-        setAllData(prev => ({
-            ...prev,
-            users: users || [],
-            bankAccounts: combinedAccounts,
-        }));
-        // If other collections are still loading, isLoading should remain true.
-        // The main useEffect handles the final isLoading state.
-      }
-
-    }, [sharedAccounts, allData.bankAccounts, users, isLoadingUsers, isLoadingSharedAccounts]);
+    }, [sharedAccounts, users, isLoadingUsers, isLoadingSharedAccounts]);
 
     return { isLoading, allData };
 };
