@@ -55,16 +55,16 @@ interface IncomeFormProps {
 export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user, users }: IncomeFormProps) {
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData
-      ? { ...initialData, date: new Date(initialData.date) }
-      : {
-          description: '',
-          amount: 0,
-          date: new Date(),
-          source: '',
-          bankAccountId: '',
-        },
+    defaultValues: {
+        description: '',
+        amount: 0,
+        date: new Date(),
+        source: '',
+        bankAccountId: '',
+      },
   });
+
+  const selectedSource = form.watch('source');
   
   const getOwnerName = (account: BankAccount) => {
     if (account.isShared) return "(مشترک)";
@@ -72,11 +72,30 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     return owner ? `(${owner.firstName})` : "(ناشناس)";
   };
 
+  const availableAccounts = React.useMemo(() => {
+    if (selectedSource === 'shared') {
+      return bankAccounts.filter(acc => acc.isShared);
+    }
+    if (selectedSource) {
+      // It's a personal source (userId)
+      return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
+    }
+    // No source selected yet, show nothing
+    return [];
+  }, [selectedSource, bankAccounts]);
+
 
   React.useEffect(() => {
     if (initialData) {
-      form.reset({ ...initialData, date: new Date(initialData.date) });
+        // When editing, set the source based on the income data
+        const source = initialData.isShared ? 'shared' : initialData.userId;
+        form.reset({ 
+            ...initialData, 
+            date: new Date(initialData.date),
+            source: source || '',
+        });
     } else {
+      // Reset for new entry
       form.reset({
         description: '',
         amount: 0,
@@ -86,6 +105,17 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
       });
     }
   }, [initialData, form]);
+
+  // Effect to manage the bank account selection based on the source
+  useEffect(() => {
+    // If the source changes, reset the bank account ID
+    form.setValue('bankAccountId', '');
+    
+    // If there's only one available account for the selected source, auto-select it
+    if (availableAccounts.length === 1) {
+        form.setValue('bankAccountId', availableAccounts[0].id);
+    }
+  }, [selectedSource, availableAccounts, form]);
 
 
   function handleFormSubmit(data: IncomeFormValues) {
@@ -101,30 +131,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     onSubmit(submissionData);
   }
 
-  const selectedSource = form.watch('source');
-  
-  const availableAccounts = React.useMemo(() => {
-    if (selectedSource === 'shared') {
-      return bankAccounts.filter(acc => acc.isShared);
-    }
-    if (selectedSource && selectedSource !== 'shared') {
-        return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
-    }
-    return bankAccounts;
-  }, [selectedSource, bankAccounts]);
-
-  // Effect to auto-select bank account if there's only one option
-  useEffect(() => {
-    if (availableAccounts.length === 1 && selectedSource) {
-        form.setValue('bankAccountId', availableAccounts[0].id);
-    } else {
-        const selectedAccountStillExists = availableAccounts.some(acc => acc.id === form.getValues('bankAccountId'));
-        if (!selectedAccountStillExists) {
-            form.setValue('bankAccountId', '');
-        }
-    }
-  }, [availableAccounts, form, selectedSource]);
-
+  const isBankAccountDisabled = selectedSource === 'shared' && availableAccounts.length === 1;
 
   return (
       <Card>
@@ -231,7 +238,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
-                      disabled={!selectedSource || availableAccounts.length === 0}
+                      disabled={!selectedSource || isBankAccountDisabled}
                     >
                       <FormControl>
                         <SelectTrigger>

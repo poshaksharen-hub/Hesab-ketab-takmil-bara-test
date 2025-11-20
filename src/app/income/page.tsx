@@ -46,21 +46,17 @@ export default function IncomePage() {
   
         const isSharedIncome = values.source === 'shared';
   
-        // Define paths for income documents
-        const getIncomeRef = (income: Income) => {
-          return income.isShared
-            ? doc(firestore, 'shared/data/incomes', income.id)
-            : doc(firestore, 'users', income.userId, 'incomes', income.id);
-        };
-  
         if (editingIncome) {
           // --- Edit Mode ---
-          const oldIncomeRef = getIncomeRef(editingIncome);
+          const isOldIncomeShared = editingIncome.source === 'shared' || editingIncome.isShared;
+          const oldIncomeRef = isOldIncomeShared
+            ? doc(firestore, 'shared/data/incomes', editingIncome.id)
+            : doc(firestore, `users/${editingIncome.userId}/incomes/${editingIncome.id}`);
           
           const oldAccount = allBankAccounts.find(acc => acc.id === editingIncome.bankAccountId);
           if(!oldAccount) throw new Error("کارت بانکی قدیمی یافت نشد.");
-          const isOldShared = !!oldAccount.isShared;
-          const oldCardRef = doc(firestore, isOldShared ? `shared/data/bankAccounts/${oldAccount.id}` : `users/${oldAccount.userId}/bankAccounts/${oldAccount.id}`);
+          const isOldCardShared = !!oldAccount.isShared;
+          const oldCardRef = doc(firestore, isOldCardShared ? `shared/data/bankAccounts/${oldAccount.id}` : `users/${oldAccount.userId}/bankAccounts/${oldAccount.id}`);
           
           // 1. Revert previous transaction
           const oldCardDoc = await transaction.get(oldCardRef);
@@ -72,9 +68,21 @@ export default function IncomePage() {
           // 2. Apply new transaction
           transaction.update(targetCardRef, { balance: targetCardData.balance + values.amount });
   
-          // 3. Update income document
+          // 3. Update or move income document
           const incomeOwnerId = isSharedIncome ? undefined : values.source;
-          transaction.update(oldIncomeRef, { ...values, userId: incomeOwnerId, isShared: isSharedIncome, updatedAt: serverTimestamp() });
+          const newIncomeData = { ...values, userId: incomeOwnerId, isShared: isSharedIncome, updatedAt: serverTimestamp() };
+          
+          if (isOldIncomeShared !== isSharedIncome) {
+             // If income type changed (personal -> shared or vice versa), delete old and create new
+             transaction.delete(oldIncomeRef);
+             const newIncomeRef = isSharedIncome 
+                ? doc(collection(firestore, 'shared/data/incomes'))
+                : doc(collection(firestore, 'users', incomeOwnerId!, 'incomes'));
+             transaction.set(newIncomeRef, {...newIncomeData, id: newIncomeRef.id});
+          } else {
+             // Just update the existing document
+            transaction.update(oldIncomeRef, newIncomeData);
+          }
           toast({ title: "موفقیت", description: "درآمد با موفقیت ویرایش شد." });
   
         } else {
@@ -90,6 +98,7 @@ export default function IncomePage() {
               id: newIncomeRef.id,
               userId: undefined, // Shared incomes don't have a single owner
               isShared: true,
+              registeredByUserId: user.uid,
               createdAt: serverTimestamp(),
             });
           } else {
@@ -100,6 +109,7 @@ export default function IncomePage() {
               id: newIncomeRef.id,
               userId: incomeOwnerId,
               isShared: false,
+              registeredByUserId: user.uid,
               createdAt: serverTimestamp(),
             });
           }
@@ -129,15 +139,16 @@ export default function IncomePage() {
     
     try {
         await runTransaction(firestore, async (transaction) => {
-            const incomeRef = income.isShared
+            const isIncomeShared = income.source === 'shared' || income.isShared;
+            const incomeRef = isIncomeShared
                 ? doc(firestore, 'shared/data/incomes', income.id)
                 : doc(firestore, `users/${income.userId}/incomes/${income.id}`);
             
             const account = allBankAccounts.find(acc => acc.id === income.bankAccountId);
             if(!account) throw new Error("کارت بانکی یافت نشد");
-            const isShared = !!account.isShared;
+            const isCardShared = !!account.isShared;
 
-            const cardRef = doc(firestore, isShared ? `shared/data/bankAccounts/${account.id}` : `users/${account.userId}/bankAccounts/${account.id}`);
+            const cardRef = doc(firestore, isCardShared ? `shared/data/bankAccounts/${account.id}` : `users/${account.userId}/bankAccounts/${account.id}`);
 
             const cardDoc = await transaction.get(cardRef);
             if (cardDoc.exists()) {
