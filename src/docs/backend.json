@@ -88,6 +88,7 @@
         "date": { "type": "string", "format": "date-time" },
         "description": { "type": "string" },
         "type": { "type": "string", "enum": ["expense"] },
+        "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person this expense was for."},
         "checkId": { "type": "string" },
         "goalId": { "type": "string" },
         "loanPaymentId": { "type": "string" },

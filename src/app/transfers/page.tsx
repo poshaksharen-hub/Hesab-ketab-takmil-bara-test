@@ -4,13 +4,14 @@
 import React from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, runTransaction, serverTimestamp, addDoc, query, where, getDocs } from 'firebase/firestore';
-import type { BankAccount, Transfer, UserProfile } from '@/lib/types';
+import type { BankAccount, Transfer, UserProfile, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TransferForm } from '@/components/transfers/transfer-form';
 import { TransferList } from '@/components/transfers/transfer-list';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
+const FAMILY_DATA_DOC = 'shared-data';
 
 export default function TransfersPage() {
   const { user, isUserLoading } = useUser();
@@ -21,7 +22,7 @@ export default function TransfersPage() {
   const { bankAccounts: allBankAccounts, users: allUsers, transfers } = allData;
 
 
-  const handleTransferSubmit = React.useCallback(async (values: Omit<Transfer, 'id' | 'userId' | 'transferDate'>) => {
+  const handleTransferSubmit = React.useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate'>) => {
     if (!user || !firestore || !allBankAccounts) return;
 
     if (values.fromBankAccountId === values.toBankAccountId) {
@@ -36,25 +37,21 @@ export default function TransfersPage() {
     try {
       await runTransaction(firestore, async (transaction) => {
         
-        const getCardRefAndOwner = (bankAccountId: string) => {
-            const account = allBankAccounts.find(acc => acc.id === bankAccountId);
-            if (!account) throw new Error(`کارت با شناسه ${bankAccountId} یافت نشد`);
-            
-            const isShared = !!account.isShared;
-            const ownerId = account.userId;
-            const ref = doc(firestore, isShared ? `shared/data/bankAccounts/${bankAccountId}` : `users/${ownerId}/bankAccounts/${bankAccountId}`);
-            
-            return ref;
-        };
-        
-        const fromCardRef = getCardRefAndOwner(values.fromBankAccountId);
-        const toCardRef = getCardRefAndOwner(values.toBankAccountId);
+        const fromAccount = allBankAccounts.find(acc => acc.id === values.fromBankAccountId);
+        const toAccount = allBankAccounts.find(acc => acc.id === values.toBankAccountId);
+
+        if (!fromAccount || !toAccount) {
+            throw new Error("یک یا هر دو حساب بانکی یافت نشدند.");
+        }
+
+        const fromCardRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/bankAccounts`, fromAccount.id);
+        const toCardRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/bankAccounts`, toAccount.id);
 
         const fromCardDoc = await transaction.get(fromCardRef);
         const toCardDoc = await transaction.get(toCardRef);
 
         if (!fromCardDoc.exists() || !toCardDoc.exists()) {
-          throw new Error("یک یا هر دو حساب بانکی یافت نشدند.");
+          throw new Error("یک یا هر دو سند حساب بانکی در پایگاه داده یافت نشدند.");
         }
 
         const fromCardData = fromCardDoc.data() as BankAccount;
@@ -71,12 +68,12 @@ export default function TransfersPage() {
         const toCardData = toCardDoc.data() as BankAccount;
         transaction.update(toCardRef, { balance: toCardData.balance + values.amount });
         
-        // Create a record of the transfer in the current user's collection
-        const transferRef = doc(collection(firestore, 'users', user.uid, 'transfers'));
+        // Create a record of the transfer in the central collection
+        const transferRef = doc(collection(firestore, `family-data/${FAMILY_DATA_DOC}/transfers`));
         transaction.set(transferRef, {
             ...values,
             id: transferRef.id,
-            userId: user.uid,
+            registeredByUserId: user.uid,
             transferDate: new Date().toISOString(),
         });
 
