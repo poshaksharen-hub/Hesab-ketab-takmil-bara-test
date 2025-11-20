@@ -170,17 +170,17 @@ export default function CardTransactionsPage() {
                 <div className="md:col-span-1 grid grid-cols-3 gap-2 text-center md:text-left text-sm">
                     <div className="space-y-1 p-2 rounded-md bg-muted/50">
                         <p className="text-xs text-muted-foreground">موجودی قبل</p>
-                        <p className="font-mono font-semibold">{formatCurrency(tx.balanceBefore, 'IRT')}</p>
+                        <p className="font-mono font-semibold">{formatCurrency(tx.balanceBefore, 'IRT').replace(' تومان', '')}</p>
                     </div>
                      <div className="space-y-1 p-2 rounded-md bg-muted/50">
                         <p className={cn("text-xs font-bold", tx.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>مبلغ تراکنش</p>
                         <p className={cn("font-mono font-semibold", tx.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>
-                            {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount, 'IRT')}
+                            {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount, 'IRT').replace(' تومان', '')}
                         </p>
                     </div>
                      <div className="space-y-1 p-2 rounded-md bg-muted/50">
                         <p className="text-xs text-muted-foreground">موجودی بعد</p>
-                        <p className="font-mono font-semibold">{formatCurrency(tx.balanceAfter, 'IRT')}</p>
+                        <p className="font-mono font-semibold">{formatCurrency(tx.balanceAfter, 'IRT').replace(' تومان', '')}</p>
                     </div>
                 </div>
 
