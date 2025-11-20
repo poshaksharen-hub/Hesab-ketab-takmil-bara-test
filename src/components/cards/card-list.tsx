@@ -76,72 +76,70 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
     return (
         <>
             <div className="relative group">
-                <div className={cn("relative rounded-xl p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses[card.theme || 'blue'])}>
-                    <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
-                    <div className='relative z-10 flex justify-between items-start'>
-                        <span className="font-bold text-lg tracking-wider">{card.bankName}</span>
-                        <div onClick={(e) => e.stopPropagation()} className="absolute top-2 left-2 z-20">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 hover:text-white" aria-label="Actions">
-                                        <MoreVertical className="h-5 w-5" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                     <DropdownMenuItem onSelect={() => window.location.href = `/cards/${card.id}`}>
-                                        <ArrowRight className="ml-2 h-4 w-4" />
-                                        مشاهده تاریخچه
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => onEdit(card)}>
-                                        <Edit className="ml-2 h-4 w-4" />
-                                        ویرایش
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onSelect={() => setIsDeleteDialogOpen(true)}
-                                        className="text-destructive focus:text-destructive"
-                                        data-cy="delete-card-trigger"
-                                    >
-                                        <Trash2 className="ml-2 h-4 w-4" />
-                                        حذف
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                    
-                    <div className="relative z-10 space-y-2">
-                        <div className="flex items-center justify-between">
-                           <ChipIcon />
-                           <Wifi className="h-8 w-8 -rotate-45" />
-                        </div>
-
-                        <p className="text-2xl font-mono tracking-widest font-bold text-center" dir="ltr">
-                            {formatCardNumber(card.cardNumber)}
-                        </p>
-
-                         <div className="flex justify-between items-end text-xs font-mono" dir="ltr">
-                            <div>
-                                <p className="opacity-70">CVV2</p>
-                                <p>{card.cvv2}</p>
-                            </div>
-                             <div>
-                                <p className="opacity-70">EXPIRES</p>
-                                <p>{card.expiryDate}</p>
+                <Link href={`/cards/${card.id}`} className="block cursor-pointer">
+                    <div className={cn("relative rounded-xl p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses[card.theme || 'blue'])}>
+                        <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
+                        <div className='relative z-10 flex justify-between items-start'>
+                            <span className="font-bold text-lg tracking-wider">{card.bankName}</span>
+                            <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 hover:text-white" aria-label="Actions">
+                                            <MoreVertical className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => onEdit(card)}>
+                                            <Edit className="ml-2 h-4 w-4" />
+                                            ویرایش
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onSelect={() => setIsDeleteDialogOpen(true)}
+                                            className="text-destructive focus:text-destructive"
+                                            data-cy="delete-card-trigger"
+                                        >
+                                            <Trash2 className="ml-2 h-4 w-4" />
+                                            حذف
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </div>
+                        
+                        <div className="relative z-10 space-y-2">
+                            <div className="flex items-center justify-between">
+                               <ChipIcon />
+                               <Wifi className="h-8 w-8 -rotate-45" />
+                            </div>
 
-                        <div className="flex justify-between items-end pt-2">
-                            <span className="font-mono text-sm tracking-wider uppercase flex items-center gap-1">
-                                <OwnerIcon className="w-4 h-4" />
-                                {ownerName}
-                            </span>
-                            <div className='text-left'>
-                                <p className="text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
-                                <p className="text-xs opacity-80">موجودی کل</p>
+                            <p className="text-2xl font-mono tracking-widest font-bold text-center" dir="ltr">
+                                {formatCardNumber(card.cardNumber)}
+                            </p>
+
+                             <div className="flex justify-between items-end text-xs font-mono" dir="ltr">
+                                <div>
+                                    <p className="opacity-70">CVV2</p>
+                                    <p>{card.cvv2}</p>
+                                </div>
+                                 <div>
+                                    <p className="opacity-70">EXPIRES</p>
+                                    <p>{card.expiryDate}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-end pt-2">
+                                <span className="font-mono text-sm tracking-wider uppercase flex items-center gap-1">
+                                    <OwnerIcon className="w-4 h-4" />
+                                    {ownerName}
+                                </span>
+                                <div className='text-left'>
+                                    <p className="text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
+                                    <p className="text-xs opacity-80">موجودی کل</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Link>
 
                 {blockedForGoals > 0 && (
                     <div className="bg-muted p-4 rounded-b-xl border-t mt-[-2px] space-y-3">
@@ -230,3 +228,5 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
     </div>
   );
 }
+
+    

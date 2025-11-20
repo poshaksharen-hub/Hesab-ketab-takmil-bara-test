@@ -71,11 +71,10 @@ export default function CardTransactionsPage() {
       return { card: null, ledger: [] };
     }
     
-    // Standardize transfers to look like transactions for this card
-    const cardTransfers = transfers
+    const cardTransfers: Transaction[] = transfers
       .filter(t => t.fromBankAccountId === cardId || t.toBankAccountId === cardId)
       .map(t => {
-          const isDebit = t.fromBankAccountId === cardId; // Money is leaving from the current card
+          const isDebit = t.fromBankAccountId === cardId;
           const toAccount = bankAccounts.find(b => b.id === t.toBankAccountId);
           const fromAccount = bankAccounts.find(b => b.id === t.fromBankAccountId);
 
@@ -87,52 +86,40 @@ export default function CardTransactionsPage() {
               description: isDebit 
                 ? `انتقال به ${toAccount?.bankName || 'ناشناس'}`
                 : `دریافت از ${fromAccount?.bankName || 'ناشناس'}`,
-              balanceBefore: isDebit ? t.fromAccountBalanceBefore : t.toAccountBalanceBefore,
-              balanceAfter: isDebit ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter,
           };
       });
 
-    const cardIncomes = incomes
-        .filter(t => t.bankAccountId === cardId)
-        .map(i => ({...i, type: 'income' as 'income'}));
+    const cardIncomes: Transaction[] = incomes.filter(t => t.bankAccountId === cardId);
+    const cardExpenses: Transaction[] = expenses.filter(t => t.bankAccountId === cardId);
 
-    const cardExpenses = expenses
-        .filter(t => t.bankAccountId === cardId)
-        .map(e => ({...e, type: 'expense' as 'expense'}));
-
-    const allTransactions: (Transaction | TransactionWithBalances)[] = [
+    // Combine all transactions and sort them by date descending (most recent first)
+    const allTransactions: Transaction[] = [
       ...cardIncomes,
       ...cardExpenses,
       ...cardTransfers,
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    // Calculate running balance starting from the most recent transaction
     let runningBalance = cardAccount.balance;
     const ledgerWithBalances: TransactionWithBalances[] = [];
     
     for (const tx of allTransactions) {
-      // For transfers and some specific expenses, balances are pre-calculated and reliable
-      if (tx.type === 'transfer' || ('balanceAfter' in tx && tx.balanceAfter !== undefined)) {
-        ledgerWithBalances.push(tx as TransactionWithBalances);
-        continue;
-      }
-      
-      // For older transactions without pre-calculated balances, we calculate them retroactively
       const balanceAfter = runningBalance;
       let balanceBefore;
 
-      if (tx.type === 'income') {
-        balanceBefore = runningBalance - tx.amount;
-        runningBalance = balanceBefore;
-      } else { // 'expense'
-        balanceBefore = runningBalance + tx.amount;
-        runningBalance = balanceBefore;
+      const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
+
+      if (isDebit) {
+          balanceBefore = runningBalance + tx.amount;
+      } else { // isCredit (income or incoming transfer)
+          balanceBefore = runningBalance - tx.amount;
       }
       
       ledgerWithBalances.push({ ...tx, balanceBefore, balanceAfter });
+      runningBalance = balanceBefore; // Update running balance for the next older transaction
     }
     
-    // Final sort by after-balance to ensure chronological accuracy, as date might not have time information
-    return { card: cardAccount, ledger: ledgerWithBalances.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) };
+    return { card: cardAccount, ledger: ledgerWithBalances };
   }, [isLoading, cardId, incomes, expenses, transfers, bankAccounts]);
 
   if (isLoading) {
@@ -169,6 +156,9 @@ export default function CardTransactionsPage() {
   const getTransactionIcon = (tx: Transaction) => {
       const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
       
+      if (tx.type === 'transfer') {
+        return <div className="p-2 rounded-full bg-opacity-10 bg-blue-500"><ArrowRightLeft className="h-5 w-5 text-blue-500" /></div>;
+      }
       if (isDebit) {
           return <div className="p-2 rounded-full bg-opacity-10 bg-red-500"><TrendingDown className="h-5 w-5 text-red-500" /></div>;
       } else { // isCredit
@@ -178,12 +168,14 @@ export default function CardTransactionsPage() {
 
   const getTransactionAmountClass = (tx: Transaction) => {
       const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
+      if (tx.type === 'transfer') return 'text-blue-600';
       if (isDebit) return 'text-red-600';
       return 'text-emerald-600';
   }
 
   const getTransactionAmountPrefix = (tx: Transaction) => {
-      const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
+      if (tx.type === 'transfer') return tx.fromBankAccountId === cardId ? '-' : '+';
+      const isDebit = tx.type === 'expense';
       if (isDebit) return '-';
       return '+';
   }
@@ -215,7 +207,7 @@ export default function CardTransactionsPage() {
             </Card>
         ) : (
         ledger.map((tx) => (
-          <Card key={`${tx.id}-${tx.type}`} className="overflow-hidden">
+          <Card key={`${tx.id}-${tx.type}`} className="overflow-hidden relative">
             <div className={cn("border-l-4 h-full absolute left-0 top-0", getTransactionAmountClass(tx))}></div>
             <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 items-center gap-4">
                 {/* Transaction Details */}
@@ -256,3 +248,5 @@ export default function CardTransactionsPage() {
     </main>
   );
 }
+
+    
