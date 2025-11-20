@@ -24,7 +24,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { FinancialGoal, BankAccount } from '@/lib/types';
 import { Info } from 'lucide-react';
-import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription } from '../ui/alert';
 

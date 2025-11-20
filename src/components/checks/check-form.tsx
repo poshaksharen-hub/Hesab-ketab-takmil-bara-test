@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -24,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
-import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({

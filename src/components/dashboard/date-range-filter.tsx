@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { DateRange } from 'react-day-picker';
-import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 
 interface CustomDateRangePickerProps {
   date: DateRange | undefined;
@@ -14,19 +14,6 @@ export function CustomDateRangePicker({
   setDate,
   className,
 }: CustomDateRangePickerProps) {
-  // This component will now need to be more complex to handle ranges with the new picker
-  // For now, we will simplify and just use a single date picker for simplicity.
-  // A proper range picker would require more state management.
-  
-  // Due to the complexity of adapting the new Jalali picker to a date *range*,
-  // and for the sake of simplicity and ensuring functionality, we will revert
-  // to the previous `react-day-picker` which works correctly with `date-fns-jalali` for localization.
-  // This avoids introducing a complex state management for the range with the new component.
-  
-  // NOTE: After re-evaluating, the best approach is to stick with the original `react-day-picker`
-  // and correctly configure its locale properties, as it has better built-in support for ranges.
-  // The `@hassanmojab/react-modern-calendar-datepicker` is better for single date selections
-  // in this context. Let's use a custom component just for the range.
 
   const { from, to } = date || {};
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useCallback } from 'react';
@@ -24,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
-import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import type { User as AuthUser } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
 

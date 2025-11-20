@@ -82,3 +82,57 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom styles for react-modern-calendar-datepicker */
+.calendar-container .responsive-calendar {
+  font-family: inherit;
+  box-shadow: none;
+  border: none;
+}
+.calendar-container .Calendar__header {
+  background-color: hsl(var(--background));
+}
+.calendar-container .Calendar__header,
+.calendar-container .Calendar__monthYear,
+.calendar-container .Calendar__weekDay {
+  color: hsl(var(--foreground));
+}
+.calendar-container .Calendar__day {
+  color: hsl(var(--foreground));
+  border-radius: var(--radius);
+}
+.calendar-container .Calendar__day:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+.calendar-container .Calendar__day.-selected,
+.calendar-container .Calendar__day.-selectedStart,
+.calendar-container .Calendar__day.-selectedEnd {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.calendar-container .Calendar__day.-today {
+  color: hsl(var(--accent));
+  border: 1px solid hsl(var(--accent));
+}
+.calendar-container .Calendar__day.-weekend {
+  color: hsl(var(--destructive));
+}
+
+.calendar-container .Calendar__monthSelector,
+.calendar-container .Calendar__yearSelector {
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+}
+
+.calendar-container .Calendar__monthSelectorItem:hover,
+.calendar-container .Calendar__yearSelectorItem:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+}
+
+.calendar-container .Calendar__monthSelectorItem.-active,
+.calendar-container .Calendar__yearSelectorItem.-active {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+}
