@@ -20,25 +20,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from '../ui/separator';
 import { USER_DETAILS } from '@/lib/constants';
-import { numberToWords } from '@persian-tools/persian-tools';
 
 interface CheckListProps {
   checks: Check[];
   bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
-  users: UserProfile[];
+  users?: UserProfile[];
   onClear: (check: Check) => void;
 }
 
-export function CheckList({ checks, bankAccounts, payees, categories, onClear, users }: CheckListProps) {
+export function CheckList({ checks, bankAccounts, payees, categories, onClear, users = [] }: CheckListProps) {
   
   const getDetails = (item: Check) => {
     const payee = payees.find(p => p.id === item.payeeId)?.name || 'نامشخص';
     const category = categories.find(c => c.id === item.categoryId)?.name || 'نامشخص';
     const bankAccount = bankAccounts.find(b => b.id === item.bankAccountId);
     const ownerId = bankAccount?.ownerId;
-    const ownerName = ownerId === 'shared' ? 'حساب مشترک' : (ownerId ? `${USER_DETAILS[ownerId].firstName} ${USER_DETAILS[ownerId].lastName}` : 'ناشناس');
+    const ownerName = ownerId === 'shared' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId] ? `${USER_DETAILS[ownerId].firstName} ${USER_DETAILS[ownerId].lastName}` : 'ناشناس');
 
     return { payee, category, bankAccount, ownerName };
   }
@@ -85,7 +84,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, u
 
                 {/* Amount in words */}
                 <div className="text-center bg-muted/50 p-2 rounded-md">
-                    <p className="font-semibold">{numberToWords(check.amount)} تومان</p>
+                    <p className="font-semibold">{formatCurrency(check.amount, 'IRT')}</p>
                 </div>
                 
                  {/* Details Section */}
@@ -137,7 +136,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, u
                 <CardFooter className="bg-muted/50 p-2">
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                           <Button className="w-full" variant="ghost">
+                           <Button className="w-full" variant="ghost" title="پاس کردن چک">
                                 <ShieldCheck className="ml-2 h-5 w-5 text-emerald-500" />
                                 پاس کردن چک
                             </Button>
