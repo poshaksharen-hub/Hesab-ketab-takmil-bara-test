@@ -4,7 +4,7 @@
 import React from 'react';
 import type { Check, Loan } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
-import { differenceInDays, isPast } from 'date-fns';
+import { differenceInDays, isPast, isToday } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, CalendarClock, HandCoins, AlertTriangle } from 'lucide-react';
@@ -47,6 +47,10 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
     const dueDate = new Date(date);
     dueDate.setHours(0, 0, 0, 0);
 
+    if (isToday(dueDate)) {
+      return <span className="font-bold text-amber-600">امروز</span>;
+    }
+    
     const daysDiff = differenceInDays(dueDate, today);
 
     if (daysDiff < 0) {
@@ -57,16 +61,14 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
         </div>
       );
     }
-    if (daysDiff === 0) {
-      return <span className="font-bold text-amber-600">امروز</span>;
-    }
+    
     return <span>{daysDiff} روز دیگر</span>;
   };
 
   return (
     <div className="space-y-4">
       {deadlines.map((item) => {
-        const isOverdue = isPast(item.date) && differenceInDays(item.date, new Date()) < 0;
+        const isOverdue = isPast(item.date) && !isToday(item.date);
         return (
             <Card key={`${item.type}-${item.id}`} className={isOverdue ? 'border-destructive' : ''}>
                 <CardContent className="p-4 flex items-center justify-between">
@@ -102,4 +104,3 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
     </div>
   );
 }
-

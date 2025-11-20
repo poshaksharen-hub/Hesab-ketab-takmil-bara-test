@@ -58,15 +58,39 @@ export function PayeeList({ payees, onEdit, onDelete }: PayeeListProps) {
           </TableHeader>
           <TableBody>
             {payees.map((payee) => (
-              <TableRow key={payee.id} className="cursor-pointer hover:bg-muted/50">
+              <TableRow key={payee.id}>
                 <TableCell className="font-medium">
-                    <Link href={`/payees/${payee.id}`} className="flex items-center gap-2">
+                    <Link href={`/payees/${payee.id}`} className="flex items-center gap-2 hover:underline">
                         {payee.name}
                     </Link>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{payee.phoneNumber || '-'}</TableCell>
                 <TableCell className="text-left">
-                    <div className='flex items-center gap-2 justify-end'>
+                    <div className='flex items-center gap-0 justify-end'>
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(payee)} aria-label="Edit">
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>آیا از حذف این طرف حساب مطمئن هستید؟</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    این عمل قابل بازگشت نیست. این طرف حساب برای همیشه حذف خواهد شد.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(payee.id)}>
+                                    بله، حذف کن
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                          <Button variant="ghost" size="icon" asChild>
                            <Link href={`/payees/${payee.id}`}>
                             <ArrowLeft className="h-4 w-4" />

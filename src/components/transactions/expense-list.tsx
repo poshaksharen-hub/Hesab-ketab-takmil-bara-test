@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -167,7 +168,7 @@ export function ExpenseList({
                             <DetailItem
                                 icon={Wallet}
                                 label="موجودی پس از تراکنش"
-                                value={bankAccount ? formatCurrency(bankAccount.balance, 'IRT') : 'نامشخص'}
+                                value={expense.balanceAfter !== undefined ? formatCurrency(expense.balanceAfter, 'IRT') : 'نامشخص'}
                                 className="text-primary font-mono"
                             />
                         </div>

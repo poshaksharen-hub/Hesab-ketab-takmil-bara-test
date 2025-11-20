@@ -1,3 +1,4 @@
+
 'use client';
 
 import { type Check, type Loan, type Payee } from '@/lib/types';

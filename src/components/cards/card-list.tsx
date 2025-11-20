@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, MoreVertical, Wifi, Users, User } from 'lucide-react';
 import type { BankAccount, UserProfile, OwnerId } from '@/lib/types';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn, formatJalaliDate } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
