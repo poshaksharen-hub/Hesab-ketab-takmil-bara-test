@@ -62,11 +62,11 @@ export const useInitialData = () => {
             
             // Seed shared data (only once, by Ali)
             if (userId === USER_DETAILS.ali.id) {
-                const sharedAccountsSnap = await getDocs(query(collection(firestore, 'shared/data/bankAccounts')));
+                const sharedAccountsSnap = await getDocs(query(collection(firestore, 'shared', 'data', 'bankAccounts')));
                 if (sharedAccountsSnap.empty) {
                     const sharedAccounts = getSharedBankAccounts();
                     sharedAccounts.forEach(account => {
-                         const docRef = doc(collection(firestore, 'shared/data/bankAccounts'));
+                         const docRef = doc(collection(firestore, 'shared', 'data', 'bankAccounts'));
                          batch.set(docRef, { ...account, id: docRef.id, balance: account.initialBalance });
                     });
                 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -54,49 +55,8 @@ export default function CardsPage() {
           errorEmitter.emit('permission-error', permissionError);
         });
     } else {
-      // --- Create ---
-      if (values.isShared && hasSharedAccount) {
-        toast({
-          variant: 'destructive',
-          title: 'خطا',
-          description: 'امکان افزودن بیش از یک حساب مشترک وجود ندارد.',
-        });
-        return;
-      }
-  
-      const { owner, ...cardData } = values as any;
-  
-      if (values.isShared) {
-        const members: { [key: string]: boolean } = {};
-        allUsers.forEach(u => {
-          members[u.id] = true;
-        });
-  
-        const newSharedCard = {
-            ...cardData,
-            balance: cardData.initialBalance,
-            members,
-        };
-        // Ensure userId is not part of the shared card object
-        delete newSharedCard.userId; 
-
-        const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
-        
-        addDoc(sharedColRef, newSharedCard)
-          .then((docRef) => {
-            updateDoc(docRef, { id: docRef.id }); // Add the id to the document
-            toast({ title: "موفقیت", description: "کارت بانکی مشترک جدید با موفقیت اضافه شد." });
-          })
-          .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: sharedColRef.path,
-              operation: 'create',
-              requestResourceData: newSharedCard,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-          });
-  
-      } else {
+        // --- Create ---
+        const { owner, ...cardData } = values as any;
         const ownerId = values.owner;
         if (!ownerId || !allUsers.find(u => u.id === ownerId)) {
           toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
@@ -106,7 +66,8 @@ export default function CardsPage() {
         const newCard = { 
             ...cardData,
             balance: cardData.initialBalance,
-            userId: ownerId
+            userId: ownerId,
+            isShared: false, // Force to personal
         };
         const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
         
@@ -123,7 +84,6 @@ export default function CardsPage() {
             });
             errorEmitter.emit('permission-error', permissionError);
           });
-      }
     }
     setIsFormOpen(false);
     setEditingCard(null);

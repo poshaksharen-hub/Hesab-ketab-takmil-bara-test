@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -248,41 +249,13 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="isShared"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                      <FormLabel>حساب مشترک</FormLabel>
-                      <FormDescription>
-                        این حساب به عنوان کیف پول مشترک در نظر گرفته شود؟
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            if (checked) {
-                                form.setValue('owner', 'shared');
-                            } else {
-                                form.setValue('owner', user?.uid || '');
-                            }
-                        }}
-                        disabled={!!initialData || hasSharedAccount}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
                <FormField
                 control={form.control}
                 name="owner"
                 render={({ field }) => (
-                  <FormItem style={{ display: isShared ? 'none' : 'block' }}>
+                  <FormItem>
                     <FormLabel>صاحب حساب</FormLabel>
-                     <Select onValueChange={field.onChange} value={field.value} disabled={isShared || !!initialData}>
+                     <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="صاحب حساب را انتخاب کنید" />

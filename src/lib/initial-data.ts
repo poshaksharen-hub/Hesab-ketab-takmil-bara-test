@@ -76,8 +76,8 @@ export const getInitialBankAccounts = (userId: string): Omit<BankAccount, 'id' |
 
 export const getSharedBankAccounts = (): Omit<BankAccount, 'id' | 'balance' | 'userId'>[] => [
     {
-        bankName: 'بانک تجارت مشترک',
-        accountNumber: '9150589246896',
+        bankName: 'بانک تجارت',
+        accountNumber: '0150589246896',
         cardNumber: '5859831058110015',
         expiryDate: '08/05',
         cvv2: '1643',
@@ -92,5 +92,3 @@ export const getSharedBankAccounts = (): Omit<BankAccount, 'id' | 'balance' | 'u
         theme: 'blue',
     }
 ];
-
-    
