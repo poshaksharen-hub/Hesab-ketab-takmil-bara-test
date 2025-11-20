@@ -15,8 +15,9 @@ import {
   getDocs,
   getDoc,
   addDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
-import type { FinancialGoal, BankAccount, Category, FinancialGoalContribution, Expense } from '@/lib/types';
+import type { FinancialGoal, BankAccount, Category, FinancialGoalContribution, Expense, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { GoalList } from '@/components/goals/goal-list';
@@ -26,6 +27,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { AddToGoalDialog } from '@/components/goals/add-to-goal-dialog';
+import { formatCurrency } from '@/lib/utils';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -55,7 +57,8 @@ export default function GoalsPage() {
             // --- READS ---
             let initialAccountDoc = null;
             if (initialContributionBankAccountId && initialContributionAmount > 0) {
-                initialAccountDoc = await transaction.get(doc(familyDataRef, 'bankAccounts', initialContributionBankAccountId));
+                const accountRef = doc(familyDataRef, 'bankAccounts', initialContributionBankAccountId);
+                initialAccountDoc = await transaction.get(accountRef);
                 if (!initialAccountDoc.exists()) throw new Error("حساب بانکی انتخاب شده برای پس‌انداز یافت نشد.");
                 
                 const accountData = initialAccountDoc.data();
@@ -66,16 +69,21 @@ export default function GoalsPage() {
             }
 
             // --- WRITES ---
-            const contributions: FinancialGoalContribution[] = [];
-            let currentAmount = 0;
+            const newGoal: Omit<FinancialGoal, 'id'> = {
+                ...goalData,
+                registeredByUserId: user.uid,
+                isAchieved: false,
+                currentAmount: 0,
+                contributions: [],
+            };
 
             if (initialContributionBankAccountId && initialContributionAmount > 0) {
-                contributions.push({
+                newGoal.contributions.push({
                     bankAccountId: initialContributionBankAccountId,
                     amount: initialContributionAmount,
                     date: new Date().toISOString(),
                 });
-                currentAmount = initialContributionAmount;
+                newGoal.currentAmount = initialContributionAmount;
 
                 if (initialAccountDoc) {
                     const accountData = initialAccountDoc.data();
@@ -84,12 +92,8 @@ export default function GoalsPage() {
             }
 
             transaction.set(newGoalRef, {
-                ...goalData,
+                ...newGoal,
                 id: newGoalRef.id,
-                registeredByUserId: user.uid,
-                isAchieved: false,
-                currentAmount: currentAmount,
-                contributions: contributions,
             });
         });
 
@@ -102,7 +106,7 @@ export default function GoalsPage() {
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
         const permissionError = new FirestorePermissionError({
-            path: `family-data/${FAMILY_DATA_DOC}`, // General path for transaction
+            path: `family-data/${FAMILY_DATA_DOC}/financialGoals`,
             operation: 'write',
             requestResourceData: values,
         });
@@ -153,30 +157,31 @@ export default function GoalsPage() {
   }, [user, firestore, toast]);
 
 
-   const handleAchieveGoal = useCallback(async ({ paymentAmount, paymentCardId }: { paymentAmount: number; paymentCardId: string; }) => {
-    if (!user || !firestore || !achievingGoal) return;
-    const goal = achievingGoal;
+   const handleAchieveGoal = useCallback(async ({ goal, actualCost, paymentCardId }: { goal: FinancialGoal; actualCost: number; paymentCardId?: string; }) => {
+    if (!user || !firestore || !categories) return;
 
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const goalRef = doc(familyDataRef, 'financialGoals', goal.id);
             const categoriesRef = collection(familyDataRef, 'categories');
+            const expensesRef = collection(familyDataRef, 'expenses');
             
             // --- Step 1: READS ---
-            const accountRefs = (goal.contributions || []).map(c => doc(familyDataRef, 'bankAccounts', c.bankAccountId));
-            if (paymentAmount > 0 && paymentCardId) {
-                const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
-                if (!accountRefs.find(ref => ref.path === paymentAccountRef.path)) {
-                    accountRefs.push(paymentAccountRef);
-                }
+            const contributionAccountRefs = (goal.contributions || []).map(c => doc(familyDataRef, 'bankAccounts', c.bankAccountId));
+            const paymentAccountRef = paymentCardId ? doc(familyDataRef, 'bankAccounts', paymentCardId) : null;
+            
+            const allRefsToRead = [...contributionAccountRefs];
+            if (paymentAccountRef && !allRefsToRead.find(ref => ref.path === paymentAccountRef.path)) {
+                allRefsToRead.push(paymentAccountRef);
             }
-            const accountDocs = await Promise.all(accountRefs.map(ref => transaction.get(ref)));
+            const accountDocs = await Promise.all(allRefsToRead.map(ref => transaction.get(ref)));
 
+            // Find or create 'Goals' category
             let goalsCategory: Category | null = null;
             const categoryQuery = query(categoriesRef, where('name', '==', 'اهداف مالی'));
-            const categorySnapshot = await getDocs(categoryQuery);
-            if (!categorySnapshot.empty) {
+            const categorySnapshot = await getDocs(categoryQuery); // Use getDocs outside transaction for this read
+             if (!categorySnapshot.empty) {
                 goalsCategory = categorySnapshot.docs[0].data() as Category;
             }
 
@@ -186,10 +191,11 @@ export default function GoalsPage() {
                 accountsData[doc.id] = doc.data() as BankAccount;
             }
             
-            if (paymentAmount > 0 && paymentCardId) {
+            const cashPaymentNeeded = Math.max(0, actualCost - goal.currentAmount);
+            if (cashPaymentNeeded > 0 && paymentCardId) {
                 const paymentAccountData = accountsData[paymentCardId];
                 const availableBalance = paymentAccountData.balance - (paymentAccountData.blockedBalance || 0);
-                if(availableBalance < paymentAmount) throw new Error("موجودی کارت پرداخت کافی نیست.");
+                if(availableBalance < cashPaymentNeeded) throw new Error(`موجودی کارت پرداخت (${formatCurrency(availableBalance, 'IRT')}) برای پرداخت مابقی (${formatCurrency(cashPaymentNeeded, 'IRT')}) کافی نیست.`);
             }
 
             // --- Step 2: WRITES ---
@@ -206,37 +212,58 @@ export default function GoalsPage() {
                 });
             }
 
-            const expenseRef = doc(collection(familyDataRef, 'expenses'));
-            transaction.set(expenseRef, {
-                id: expenseRef.id,
-                ownerId: goal.ownerId, 
-                registeredByUserId: user.uid,
-                amount: goal.targetAmount,
-                bankAccountId: paymentCardId || goal.contributions[0]?.bankAccountId, // Fallback
-                categoryId: categoryId,
-                date: new Date().toISOString(),
-                description: `تحقق هدف: ${goal.name}`,
-                type: 'expense',
-                goalId: goal.id,
-            } as Omit<Expense, 'createdAt' | 'updatedAt'>);
-
+            // Create expenses for each contribution
             for(const contribution of (goal.contributions || [])) {
+                const expenseRef = doc(expensesRef);
+                transaction.set(expenseRef, {
+                    id: expenseRef.id,
+                    ownerId: accountsData[contribution.bankAccountId].ownerId,
+                    registeredByUserId: user.uid,
+                    amount: contribution.amount,
+                    bankAccountId: contribution.bankAccountId,
+                    categoryId: categoryId,
+                    date: new Date().toISOString(),
+                    description: `تحقق هدف (بخش پس‌انداز): ${goal.name}`,
+                    type: 'expense',
+                    subType: 'goal_saved_portion',
+                    goalId: goal.id,
+                } as Omit<Expense, 'createdAt' | 'updatedAt'>);
+                
+                // Unblock and deduct balance
                 const accountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
                 const accountData = accountsData[contribution.bankAccountId];
                 transaction.update(accountRef, { 
                     blockedBalance: (accountData.blockedBalance || 0) - contribution.amount,
+                    balance: accountData.balance - contribution.amount,
                 });
             }
             
-            if (paymentAmount > 0 && paymentCardId) {
+            // Create expense for the cash portion
+            if (cashPaymentNeeded > 0 && paymentCardId) {
+                 const expenseRef = doc(expensesRef);
+                 transaction.set(expenseRef, {
+                    id: expenseRef.id,
+                    ownerId: accountsData[paymentCardId].ownerId,
+                    registeredByUserId: user.uid,
+                    amount: cashPaymentNeeded,
+                    bankAccountId: paymentCardId,
+                    categoryId: categoryId,
+                    date: new Date().toISOString(),
+                    description: `تحقق هدف (بخش نقدی): ${goal.name}`,
+                    type: 'expense',
+                    subType: 'goal_cash_portion',
+                    goalId: goal.id,
+                 } as Omit<Expense, 'createdAt' | 'updatedAt'>);
+                 
+                 // Deduct cash payment from the payment card
                  const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
                  const paymentAccountData = accountsData[paymentCardId];
                  transaction.update(paymentAccountRef, { 
-                    balance: paymentAccountData.balance - paymentAmount 
+                    balance: paymentAccountData.balance - cashPaymentNeeded 
                  });
             }
 
-            transaction.update(goalRef, { isAchieved: true });
+            transaction.update(goalRef, { isAchieved: true, actualCost: actualCost });
         });
 
         toast({ title: "تبریک!", description: `هدف "${goal.name}" با موفقیت محقق شد.` });
@@ -257,47 +284,48 @@ export default function GoalsPage() {
             });
         }
     }
-  }, [user, firestore, achievingGoal, toast]);
+  }, [user, firestore, categories, toast]);
 
 
    const handleRevertGoal = useCallback(async (goal: FinancialGoal) => {
     if (!user || !firestore) return;
     try {
-      const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
       const batch = writeBatch(firestore);
+      const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
       const goalRef = doc(familyDataRef, 'financialGoals', goal.id);
 
+      // Find and delete all expenses for this goal
       const expensesQuery = query(collection(familyDataRef, 'expenses'), where('goalId', '==', goal.id));
       const expensesSnapshot = await getDocs(expensesQuery);
       
-      let associatedExpense: any = null;
+      const expenseRestorations: { [accountId: string]: number } = {};
       expensesSnapshot.forEach(doc => {
-          associatedExpense = doc.data();
+          const expense = doc.data() as Expense;
+          expenseRestorations[expense.bankAccountId] = (expenseRestorations[expense.bankAccountId] || 0) + expense.amount;
           batch.delete(doc.ref);
       });
 
+      // Restore balances for all affected accounts
+      for (const accountId in expenseRestorations) {
+          const accountRef = doc(familyDataRef, 'bankAccounts', accountId);
+          const accountDoc = await getDoc(accountRef);
+           if (accountDoc.exists()) {
+             const accountData = accountDoc.data() as BankAccount;
+             batch.update(accountRef, { 'balance': accountData.balance + expenseRestorations[accountId] });
+           }
+      }
+
+      // Re-block the saved amounts
       for (const contribution of (goal.contributions || [])) {
         const savedAccountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
-        const savedAccountDoc = await getDocs(query(collection(familyDataRef, 'bankAccounts'), where('id', '==', contribution.bankAccountId)));
-        if (!savedAccountDoc.empty) {
-          const accountData = savedAccountDoc.docs[0].data();
+        const savedAccountDoc = await getDoc(savedAccountRef);
+        if (savedAccountDoc.exists()) {
+          const accountData = savedAccountDoc.data() as BankAccount;
           batch.update(savedAccountRef, { 'blockedBalance': (accountData.blockedBalance || 0) + contribution.amount });
         }
       }
-
-      if (associatedExpense) {
-          const paymentAmount = associatedExpense.amount - goal.currentAmount;
-          if (paymentAmount > 0 && associatedExpense.bankAccountId) {
-              const paymentAccountRef = doc(familyDataRef, 'bankAccounts', associatedExpense.bankAccountId);
-              const paymentAccountDoc = await getDocs(query(collection(familyDataRef, 'bankAccounts'), where('id', '==', associatedExpense.bankAccountId)));
-              if (!paymentAccountDoc.empty) {
-                 const accountData = paymentAccountDoc.docs[0].data();
-                 batch.update(paymentAccountRef, { 'balance': accountData.balance + paymentAmount });
-              }
-          }
-      }
-
-      batch.update(goalRef, { isAchieved: false });
+      
+      batch.update(goalRef, { isAchieved: false, actualCost: 0 });
 
       await batch.commit();
       toast({ title: 'موفقیت', description: 'هدف با موفقیت بازگردانی شد.' });

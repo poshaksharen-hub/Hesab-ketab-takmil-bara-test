@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import { Input, CurrencyInput } from '@/components/ui/input';
 import type { FinancialGoal, BankAccount, Category } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -38,6 +38,7 @@ import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   paymentCardId: z.string().optional(),
+  actualCost: z.coerce.number().min(0, { message: 'مبلغ واقعی نمی‌تواند منفی باشد.' }),
 });
 
 type AchieveGoalFormValues = z.infer<typeof formSchema>;
@@ -47,7 +48,7 @@ interface AchieveGoalDialogProps {
   bankAccounts: BankAccount[];
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { paymentAmount: number; paymentCardId: string; }) => void;
+  onSubmit: (data: { goal: FinancialGoal, actualCost: number; paymentCardId?: string; }) => void;
 }
 
 export function AchieveGoalDialog({
@@ -57,32 +58,42 @@ export function AchieveGoalDialog({
   onOpenChange,
   onSubmit,
 }: AchieveGoalDialogProps) {
-  const remainingAmount = useMemo(() => {
-    const remaining = goal.targetAmount - goal.currentAmount;
-    return remaining < 0 ? 0 : remaining;
-  }, [goal.targetAmount, goal.currentAmount]);
+  
+  const form = useForm<AchieveGoalFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      paymentCardId: '',
+      actualCost: goal.targetAmount,
+    },
+  });
+
+  // Reset form when goal changes using the key on the Form component
+  useEffect(() => {
+    form.reset({
+      paymentCardId: '',
+      actualCost: goal.targetAmount,
+    });
+  }, [goal, isOpen, form]);
+
   
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
-
-  const contributionAccountIds = new Set((goal.contributions || []).map(c => c.bankAccountId));
-  const availablePaymentAccounts = bankAccounts.filter(acc => !contributionAccountIds.has(acc.id));
-
-  const form = useForm<AchieveGoalFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      paymentCardId: availablePaymentAccounts.length > 0 ? availablePaymentAccounts[0].id : '',
-    },
-  });
-
+  
+  const actualCost = form.watch('actualCost');
+  const cashPaymentNeeded = Math.max(0, actualCost - goal.currentAmount);
 
   function handleFormSubmit(data: AchieveGoalFormValues) {
+    if (cashPaymentNeeded > 0 && !data.paymentCardId) {
+        form.setError('paymentCardId', { type: 'manual', message: 'برای پرداخت مابقی، انتخاب کارت الزامی است.' });
+        return;
+    }
     onSubmit({
-      paymentAmount: remainingAmount,
-      paymentCardId: data.paymentCardId || '',
+      goal,
+      actualCost: data.actualCost,
+      paymentCardId: data.paymentCardId,
     });
   }
 
@@ -92,22 +103,35 @@ export function AchieveGoalDialog({
         <DialogHeader>
           <DialogTitle className="font-headline">تحقق هدف: {goal.name}</DialogTitle>
           <DialogDescription>
-            شما در یک قدمی رسیدن به این هدف هستید. اطلاعات زیر را برای نهایی کردن آن تکمیل کنید.
+            مبلغ واقعی هزینه شده برای هدف را وارد کرده و در صورت نیاز، کارت پرداخت مابقی را انتخاب کنید.
           </DialogDescription>
         </DialogHeader>
         <Form {...form} key={goal.id}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+             <FormField
+                control={form.control}
+                name="actualCost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>مبلغ واقعی هزینه شده (تومان)</FormLabel>
+                    <FormControl>
+                      <CurrencyInput value={field.value} onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle className="font-bold">اطلاعات مالی</AlertTitle>
+              <AlertTitle className="font-bold">جزئیات مالی</AlertTitle>
               <AlertDescription className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>مبلغ کل هدف:</span> <span className="font-mono">{formatCurrency(goal.targetAmount, 'IRT')}</span></div>
                 <div className="flex justify-between"><span>مبلغ پس‌انداز شده:</span> <span className="font-mono">{formatCurrency(goal.currentAmount, 'IRT')}</span></div>
-                <div className="flex justify-between font-bold"><span>مبلغ مورد نیاز برای پرداخت:</span> <span className="font-mono">{formatCurrency(remainingAmount, 'IRT')}</span></div>
+                <div className="flex justify-between font-bold text-primary"><span>مبلغ نقدی مورد نیاز:</span> <span className="font-mono">{formatCurrency(cashPaymentNeeded, 'IRT')}</span></div>
               </AlertDescription>
             </Alert>
             
-            {remainingAmount > 0 && (
+            {cashPaymentNeeded > 0 && (
                 <FormField
                 control={form.control}
                 name="paymentCardId"
@@ -121,7 +145,7 @@ export function AchieveGoalDialog({
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {availablePaymentAccounts.map((account) => (
+                        {bankAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                                 {account.bankName} {getOwnerName(account)} (قابل استفاده: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
                             </SelectItem>
@@ -134,7 +158,7 @@ export function AchieveGoalDialog({
                 />
             )}
             <p className="text-xs text-muted-foreground">
-                پس از تایید، یک هزینه به مبلغ کل هدف در سیستم ثبت خواهد شد و موجودی شما به‌روز می‌شود.
+                پس از تایید، دو تراکنش هزینه مجزا (یکی برای بخش پس‌انداز و دیگری برای بخش نقدی) در سیستم ثبت خواهد شد.
             </p>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

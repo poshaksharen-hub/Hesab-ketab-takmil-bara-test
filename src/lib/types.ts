@@ -30,6 +30,7 @@ export type Expense = {
   date: string;
   description: string;
   type: 'expense';
+  subType?: 'goal_saved_portion' | 'goal_cash_portion'; // For differentiating goal expenses
   expenseFor?: 'ali' | 'fatemeh' | 'shared'; // The person/entity this expense was for.
   checkId?: string;
   goalId?: string;
@@ -104,6 +105,7 @@ export type FinancialGoal = {
     name: string;
     targetAmount: number;
     currentAmount: number;
+    actualCost?: number; // The real cost when achieved
     targetDate: string;
     isAchieved: boolean;
     priority: 'low' | 'medium' | 'high';
