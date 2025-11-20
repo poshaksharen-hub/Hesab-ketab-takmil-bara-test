@@ -7,8 +7,6 @@ import { PlusCircle } from 'lucide-react';
 import {
   useUser,
   useFirestore,
-  useCollection,
-  useMemoFirebase,
 } from '@/firebase';
 import {
   collection,
@@ -31,6 +29,7 @@ import { GoalForm } from '@/components/goals/goal-form';
 import { AchieveGoalDialog } from '@/components/goals/achieve-goal-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -38,6 +37,8 @@ export default function GoalsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
@@ -45,25 +46,7 @@ export default function GoalsPage() {
     null
   );
 
-  const goalsQuery = useMemoFirebase(
-    () => (user && firestore ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'financialGoals') : null),
-    [firestore, user]
-  );
-  const { data: goals, isLoading: isLoadingGoals } =
-    useCollection<FinancialGoal>(goalsQuery);
-
-  const bankAccountsQuery = useMemoFirebase(
-    () => (user && firestore ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts') : null),
-    [firestore, user]
-  );
-  const { data: bankAccounts, isLoading: isLoadingBankAccounts } =
-    useCollection<BankAccount>(bankAccountsQuery);
-  
-  const categoriesQuery = useMemoFirebase(
-    () => (user && firestore ? collection(firestore, 'family-data', FAMILY_DATA_DOC, 'categories') : null),
-    [firestore, user]
-  );
-  const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
+  const { goals, bankAccounts, categories } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: any) => {
     if (!user || !firestore) return;
@@ -144,7 +127,7 @@ export default function GoalsPage() {
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
         const permissionError = new FirestorePermissionError({
-            path: `family-data/${FAMILY_DATA_DOC}/financialGoals`,
+            path: `family-data/${FAMILY_DATA_DOC}`, // General path for transaction
             operation: 'write',
             requestResourceData: values,
         });
@@ -161,7 +144,7 @@ export default function GoalsPage() {
   }, [user, firestore, editingGoal, toast]);
 
    const handleAchieveGoal = React.useCallback(async ({ paymentAmount, paymentCardId, categoryId }: { paymentAmount: number; paymentCardId: string; categoryId: string }) => {
-    if (!user || !firestore || !achievingGoal) return;
+    if (!user || !firestore || !achievingGoal || !bankAccounts) return;
     const goal = achievingGoal;
 
     try {
@@ -224,7 +207,7 @@ export default function GoalsPage() {
             });
         }
     }
-  }, [user, firestore, achievingGoal, toast]);
+  }, [user, firestore, achievingGoal, toast, bankAccounts]);
 
 
    const handleRevertGoal = React.useCallback(async (goal: FinancialGoal) => {
@@ -325,7 +308,7 @@ export default function GoalsPage() {
   }, []);
 
   const isLoading =
-    isUserLoading || isLoadingGoals || isLoadingBankAccounts || isLoadingCategories;
+    isUserLoading || isDashboardLoading;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
