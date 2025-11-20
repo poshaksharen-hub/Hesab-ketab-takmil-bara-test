@@ -38,28 +38,30 @@ type AllData = {
 const useAllCollections = () => {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
+    
+    const collectionsEnabled = !isAuthLoading && !!firestore;
 
     // 1. Fetch all users first
     const usersQuery = useMemoFirebase(
-        () => (firestore ? collection(firestore, 'users') : null),
-        [firestore]
+        () => (collectionsEnabled ? collection(firestore, 'users') : null),
+        [collectionsEnabled]
     );
     const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
     
     // 2. Fetch all shared collections
-    const sharedAccountsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'shared', 'data', 'bankAccounts') : null), [firestore]);
+    const sharedAccountsQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'shared', 'data', 'bankAccounts') : null), [collectionsEnabled]);
     const { data: sharedAccounts, isLoading: isLoadingSharedAccounts } = useCollection<BankAccount>(sharedAccountsQuery);
 
-    const sharedIncomesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'shared', 'data', 'incomes') : null), [firestore]);
+    const sharedIncomesQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'shared', 'data', 'incomes') : null), [collectionsEnabled]);
     const { data: sharedIncomes, isLoading: isLoadingSharedIncomes } = useCollection<Income>(sharedIncomesQuery);
 
-    const sharedExpensesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'shared', 'data', 'expenses') : null), [firestore]);
+    const sharedExpensesQuery = useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'shared', 'data', 'expenses') : null), [collectionsEnabled]);
     const { data: sharedExpenses, isLoading: isLoadingSharedExpenses } = useCollection<Expense>(sharedExpensesQuery);
 
     // 3. Fetch all personal collections for each user
     const usePersonalCollections = (userId: string) => {
         const firestore = useFirestore();
-        const enabled = !!userId && !!firestore;
+        const enabled = collectionsEnabled && !!userId;
 
         const incomesQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/incomes`) : null), [enabled, userId]);
         const expensesQuery = useMemoFirebase(() => (enabled ? collection(firestore, `users/${userId}/expenses`) : null), [enabled, userId]);
