@@ -5,19 +5,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import type { Payee } from '@/lib/types';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import Link from 'next/link';
 
 interface PayeeListProps {
@@ -67,30 +56,6 @@ export function PayeeList({ payees, onEdit, onDelete }: PayeeListProps) {
                 <TableCell className="hidden sm:table-cell">{payee.phoneNumber || '-'}</TableCell>
                 <TableCell className="text-left">
                     <div className='flex items-center gap-0 justify-end'>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(payee)} aria-label="Edit">
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>آیا از حذف این طرف حساب مطمئن هستید؟</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    این عمل قابل بازگشت نیست. این طرف حساب برای همیشه حذف خواهد شد.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(payee.id)}>
-                                    بله، حذف کن
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
                          <Button variant="ghost" size="icon" asChild>
                            <Link href={`/payees/${payee.id}`}>
                             <ArrowLeft className="h-4 w-4" />
