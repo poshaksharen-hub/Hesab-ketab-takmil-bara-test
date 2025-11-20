@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { format as formatJalali } from "date-fns-jalali"
+import { format } from "date-fns"
+import { faIR } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -39,7 +40,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           )}
         >
           <CalendarIcon className="ml-2 h-4 w-4" />
-          {value ? formatJalali(value, "yyyy/MM/dd") : <span>{placeholder}</span>}
+          {value ? format(value, "yyyy/MM/dd", { locale: faIR }) : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
@@ -48,6 +49,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           selected={value || undefined}
           onSelect={handleDateSelect}
           initialFocus
+          locale={faIR}
         />
       </PopoverContent>
     </Popover>

@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format as formatJalali } from 'date-fns-jalali';
+import { format } from 'date-fns';
+import { faIR } from "date-fns/locale";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -18,5 +19,5 @@ export function formatCurrency(amount: number, currency: 'USD' | 'IRT' = 'USD') 
 }
 
 export function formatJalaliDate(date: Date) {
-    return formatJalali(date, 'yyyy/MM/dd');
+    return format(date, 'yyyy/MM/dd', { locale: faIR });
 }
