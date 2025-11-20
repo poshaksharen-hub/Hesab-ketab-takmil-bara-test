@@ -64,12 +64,7 @@ export default function CardsPage() {
         return;
       }
   
-      // Explicitly handle owner from the form values
       const { owner, ...cardData } = values as any;
-      const newCardBase = {
-        ...cardData,
-        balance: cardData.initialBalance,
-      };
   
       if (values.isShared) {
         const members: { [key: string]: boolean } = {};
@@ -77,7 +72,14 @@ export default function CardsPage() {
           members[u.id] = true;
         });
   
-        const newSharedCard = { ...newCardBase, members, userId: null }; // Set userId to null for shared accounts
+        const newSharedCard = {
+            ...cardData,
+            balance: cardData.initialBalance,
+            members,
+        };
+        // Ensure userId is not part of the shared card object
+        delete newSharedCard.userId; 
+
         const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
         
         addDoc(sharedColRef, newSharedCard)
@@ -95,13 +97,17 @@ export default function CardsPage() {
           });
   
       } else {
-        const ownerId = owner; // Get ownerId from the destructured 'owner'
+        const ownerId = values.owner;
         if (!ownerId || !allUsers.find(u => u.id === ownerId)) {
           toast({ variant: 'destructive', title: 'خطا', description: 'کاربر انتخاب شده معتبر نیست.' });
           return;
         }
   
-        const newCard = { ...newCardBase, userId: ownerId };
+        const newCard = { 
+            ...cardData,
+            balance: cardData.initialBalance,
+            userId: ownerId
+        };
         const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
         
         addDoc(userColRef, newCard)
