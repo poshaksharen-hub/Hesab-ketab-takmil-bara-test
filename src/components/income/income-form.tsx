@@ -44,7 +44,7 @@ type IncomeFormValues = z.infer<typeof formSchema>;
 interface IncomeFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Income, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'registeredByUserId'>) => void;
+  onSubmit: (data: Omit<Income, 'id' | 'createdAt' | 'updatedAt' >) => void;
   initialData: Income | null;
   bankAccounts: BankAccount[];
   user: User | null;
@@ -87,11 +87,28 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
 
 
   function handleFormSubmit(data: IncomeFormValues) {
+    if (!user) return;
+    
+    const account = bankAccounts.find(acc => acc.id === data.bankAccountId);
+    if (!account) return;
+
+    let ownerId;
+    if (account.isShared) {
+        // For shared accounts, there's no single owner. We can assign it to the person registering,
+        // or a default/shared owner concept if one exists.
+        // Assigning to registering user for now.
+        ownerId = user.uid;
+    } else {
+        ownerId = account.userId;
+    }
+
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
         type: 'income' as 'income',
         category: 'درآمد',
+        userId: ownerId,
+        registeredByUserId: user.uid,
     };
     onSubmit(submissionData);
   }

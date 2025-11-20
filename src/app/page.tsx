@@ -5,7 +5,7 @@ import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useDashboardData, type OwnerFilter } from '@/hooks/use-dashboard-data';
 import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +14,14 @@ import { CategorySpending } from '@/components/dashboard/category-spending';
 import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
 import { IncomeExpenseChart } from '@/components/dashboard/income-expense-chart';
 import { AccountBalanceCards } from '@/components/dashboard/account-balance-cards';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { USER_DETAILS } from '@/lib/constants';
 
 function DashboardSkeleton() {
   return (
@@ -21,14 +29,12 @@ function DashboardSkeleton() {
       <div className="flex items-center justify-between space-y-2">
         <Skeleton className="h-8 w-48" />
         <div className="flex gap-2">
+          <Skeleton className="h-10 w-40" />
           <Skeleton className="h-10 w-72" />
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28" />)}
-      </div>
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28" />)}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28" />)}
       </div>
       <Card>
         <CardHeader>
@@ -44,6 +50,7 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const { isUserLoading } = useUser();
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('all');
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
@@ -51,8 +58,18 @@ export default function DashboardPage() {
   
   const { isLoading, getFilteredData, allData } = useDashboardData();
 
-  const { summary, details } = getFilteredData(date);
+  const { summary, details } = getFilteredData(ownerFilter, date);
   
+  const { 
+      totalAssets, 
+      totalLiabilities,
+      netWorth,
+      aliBalance,
+      fatemehBalance,
+      sharedBalance
+   } = getFilteredData('all', undefined).summary; // Global summaries are always 'all'
+
+
   const effectiveLoading = isUserLoading || isLoading;
 
   if (effectiveLoading) {
@@ -66,19 +83,30 @@ export default function DashboardPage() {
           مرکز تحلیل مالی
         </h1>
         <div className="flex flex-col items-stretch gap-2 sm:flex-row">
+           <Select onValueChange={(value) => setOwnerFilter(value as OwnerFilter)} defaultValue="all">
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="نمایش داده‌های..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value={USER_DETAILS.ali.id}>{USER_DETAILS.ali.firstName}</SelectItem>
+                <SelectItem value={USER_DETAILS.fatemeh.id}>{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                <SelectItem value="shared">مشترک</SelectItem>
+              </SelectContent>
+            </Select>
             <CustomDateRangePicker date={date} setDate={setDate} />
         </div>
       </div>
 
       {/* Overall Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <OverallSummary summary={summary} />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <OverallSummary summary={{ netWorth, totalAssets, totalLiabilities, totalIncome: summary.totalIncome, totalExpense: summary.totalExpense }} />
       </div>
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AccountBalanceCards 
-            aliBalance={summary.aliBalance}
-            fatemehBalance={summary.fatemehBalance}
-            sharedBalance={summary.sharedBalance}
+            aliBalance={aliBalance}
+            fatemehBalance={fatemehBalance}
+            sharedBalance={sharedBalance}
         />
       </div>
 
