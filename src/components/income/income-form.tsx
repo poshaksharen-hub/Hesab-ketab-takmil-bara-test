@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -55,7 +55,13 @@ interface IncomeFormProps {
 export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user, users }: IncomeFormProps) {
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          date: new Date(initialData.date),
+          source: initialData.isShared ? 'shared' : initialData.userId || '',
+        }
+      : {
         description: '',
         amount: 0,
         date: new Date(),
@@ -72,22 +78,18 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     return owner ? `(${owner.firstName})` : "(ناشناس)";
   };
 
-  const availableAccounts = React.useMemo(() => {
+  const availableAccounts = useMemo(() => {
     if (selectedSource === 'shared') {
       return bankAccounts.filter(acc => acc.isShared);
     }
-    if (selectedSource) {
-      // It's a personal source (userId)
+    if (selectedSource) { // It's a personal source (userId)
       return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
     }
-    // No source selected yet, show nothing
     return [];
   }, [selectedSource, bankAccounts]);
 
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialData) {
-        // When editing, set the source based on the income data
         const source = initialData.isShared ? 'shared' : initialData.userId;
         form.reset({ 
             ...initialData, 
@@ -95,7 +97,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
             source: source || '',
         });
     } else {
-      // Reset for new entry
       form.reset({
         description: '',
         amount: 0,
@@ -106,31 +107,35 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     }
   }, [initialData, form]);
 
-  // Effect to manage the bank account selection based on the source
-  useEffect(() => {
-    // If the source changes, reset the bank account ID
-    form.setValue('bankAccountId', '');
-    
-    // If there's only one available account for the selected source, auto-select it
-    if (availableAccounts.length === 1) {
-        form.setValue('bankAccountId', availableAccounts[0].id);
+  const handleSourceChange = (value: string) => {
+    form.setValue('source', value);
+    form.setValue('bankAccountId', ''); // Reset account selection
+    // Auto-select if only one option is available
+    const newAvailableAccounts = bankAccounts.filter(acc => 
+      value === 'shared' ? acc.isShared : (acc.userId === value && !acc.isShared)
+    );
+    if (newAvailableAccounts.length === 1) {
+        form.setValue('bankAccountId', newAvailableAccounts[0].id);
     }
-  }, [selectedSource, availableAccounts, form]);
+  }
 
 
   function handleFormSubmit(data: IncomeFormValues) {
     if (!user) return;
     
+    const isSharedIncome = data.source === 'shared';
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
         type: 'income' as 'income',
         category: 'درآمد',
         registeredByUserId: user.uid,
+        isShared: isSharedIncome,
+        userId: isSharedIncome ? undefined : data.source,
     };
     onSubmit(submissionData);
   }
-
+  
   const isBankAccountDisabled = selectedSource === 'shared' && availableAccounts.length === 1;
 
   return (
@@ -213,7 +218,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>منبع درآمد</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={handleSourceChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="یک منبع انتخاب کنید" />
