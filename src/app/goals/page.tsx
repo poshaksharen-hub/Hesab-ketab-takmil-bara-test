@@ -186,32 +186,35 @@ export default function GoalsPage() {
 
 
             // --- Step 2: READS ---
-            const allAccountRefs: { [id: string]: any } = {};
+            const accountRefs: { [id: string]: any } = {};
             (goal.contributions || []).forEach(c => {
-                if (!allAccountRefs[c.bankAccountId]) {
-                    allAccountRefs[c.bankAccountId] = doc(familyDataRef, 'bankAccounts', c.bankAccountId);
+                if (!accountRefs[c.bankAccountId]) {
+                    accountRefs[c.bankAccountId] = doc(familyDataRef, 'bankAccounts', c.bankAccountId);
                 }
             });
-            if (paymentCardId && !allAccountRefs[paymentCardId]) {
-                 allAccountRefs[paymentCardId] = doc(familyDataRef, 'bankAccounts', paymentCardId);
+            if (paymentCardId && !accountRefs[paymentCardId]) {
+                 accountRefs[paymentCardId] = doc(familyDataRef, 'bankAccounts', paymentCardId);
             }
             
-            const accountDocs = await Promise.all(Object.values(allAccountRefs).map(ref => transaction.get(ref)));
+            const accountDocs = await Promise.all(Object.values(accountRefs).map(ref => transaction.get(ref)));
             
             const accountDataMap = new Map<string, BankAccount>();
             accountDocs.forEach(docSnap => {
-                if (!docSnap.exists()) throw new Error(`حساب بانکی با شناسه ${docSnap.id} یافت نشد.`);
-                accountDataMap.set(docSnap.id, docSnap.data() as BankAccount);
+                if (docSnap.exists()) {
+                    accountDataMap.set(docSnap.id, docSnap.data() as BankAccount);
+                } else {
+                    throw new Error(`حساب بانکی با شناسه ${docSnap.id} یافت نشد.`);
+                }
             });
 
             const cashPaymentNeeded = Math.max(0, actualCost - goal.currentAmount);
 
-            if (cashPaymentNeeded > 0 && paymentCardId) {
-                const paymentAccountData = accountDataMap.get(paymentCardId)!;
+            if (cashPaymentNeeded > 0) {
+                if (!paymentCardId) throw new Error("برای پرداخت مابقی هزینه، انتخاب کارت الزامی است.");
+                const paymentAccountData = accountDataMap.get(paymentCardId);
+                if(!paymentAccountData) throw new Error("کارت پرداخت انتخاب شده یافت نشد.")
                 const availableBalance = paymentAccountData.balance - (paymentAccountData.blockedBalance || 0);
                 if(availableBalance < cashPaymentNeeded) throw new Error(`موجودی کارت پرداخت (${formatCurrency(availableBalance, 'IRT')}) برای پرداخت مابقی (${formatCurrency(cashPaymentNeeded, 'IRT')}) کافی نیست.`);
-            } else if (cashPaymentNeeded > 0 && !paymentCardId) {
-                throw new Error("برای پرداخت مابقی هزینه، انتخاب کارت الزامی است.");
             }
 
             // --- Step 3: WRITES ---
@@ -219,9 +222,9 @@ export default function GoalsPage() {
             
             // Create expenses for each contribution & update accounts
             for(const contribution of (goal.contributions || [])) {
-                const expenseRef = doc(expensesRef);
                 const accountData = accountDataMap.get(contribution.bankAccountId)!;
-
+                const expenseRef = doc(expensesRef);
+                
                 transaction.set(expenseRef, {
                     id: expenseRef.id,
                     ownerId: accountData.ownerId,
@@ -246,8 +249,8 @@ export default function GoalsPage() {
             
             // Create expense for the cash portion
             if (cashPaymentNeeded > 0 && paymentCardId) {
-                 const expenseRef = doc(expensesRef);
                  const paymentAccountData = accountDataMap.get(paymentCardId)!;
+                 const expenseRef = doc(expensesRef);
                  
                  transaction.set(expenseRef, {
                     id: expenseRef.id,

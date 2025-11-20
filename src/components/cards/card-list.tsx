@@ -63,10 +63,12 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
     
     const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(card.ownerId);
 
-    const goalContributions = (goals || []).flatMap(g => 
-        (g.contributions || [])
-         .filter(c => c.bankAccountId === card.id)
-         .map(c => ({...c, goalName: g.name, goalOwnerId: g.ownerId}))
+    const goalContributions = (goals || [])
+        .filter(g => !g.isAchieved) // Only consider active goals for blocked balance
+        .flatMap(g => 
+            (g.contributions || [])
+             .filter(c => c.bankAccountId === card.id)
+             .map(c => ({...c, goalName: g.name, goalOwnerId: g.ownerId}))
     );
     const blockedForGoals = goalContributions.reduce((sum, c) => sum + c.amount, 0);
     const availableBalance = card.balance - blockedForGoals;
