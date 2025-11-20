@@ -8,12 +8,15 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import { ExpenseForm } from '@/components/transactions/expense-form';
-import type { Expense, BankAccount, Category, UserProfile } from '@/lib/types';
+import type { Expense, BankAccount, Category, UserProfile, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { USER_DETAILS } from '@/lib/constants';
+
+const FAMILY_DATA_DOC = 'shared-data';
 
 export default function ExpensesPage() {
   const { user, isUserLoading } = useUser();
@@ -40,7 +43,8 @@ export default function ExpensesPage() {
             
             const account = allBankAccounts.find(acc => acc.id === expenseData.bankAccountId);
             if (!account) throw new Error("کارت بانکی یافت نشد");
-
+            
+            const ownerId: OwnerId = account.ownerId;
             const fromCardRef = doc(firestore, `family-data/shared-data/bankAccounts`, account.id);
             const fromCardDoc = await transaction.get(fromCardRef);
 
@@ -48,32 +52,29 @@ export default function ExpensesPage() {
                 throw new Error("کارت بانکی مورد نظر یافت نشد.");
             }
             const fromCardData = fromCardDoc.data() as BankAccount;
-
-            if (editingExpense) {
-                // Edit is disabled for now based on user request.
-                // This logic is kept for future reference if needed.
-            } else {
-                // --- Create Mode ---
-                const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
-                if (availableBalance < expenseData.amount) {
-                    throw new Error("موجودی حساب برای انجام این هزینه کافی نیست.");
-                }
-                // 1. Deduct from balance
-                transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
-
-                // 2. Create new expense document
-                const expensesColRef = collection(firestore, 'family-data/shared-data/expenses');
-                const newExpenseRef = doc(expensesColRef);
-                transaction.set(newExpenseRef, {
-                    ...expenseData,
-                    id: newExpenseRef.id,
-                    ownerId: account.ownerId,
-                    type: 'expense',
-                    registeredByUserId: user.uid,
-                    createdAt: serverTimestamp(),
-                });
-                toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
+            const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
+            
+            if (availableBalance < expenseData.amount) {
+                throw new Error("موجودی حساب برای انجام این هزینه کافی نیست.");
             }
+            
+            // 1. Deduct from balance
+            transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
+
+            // 2. Create new expense document
+            const expensesColRef = collection(firestore, `family-data/shared-data/expenses`);
+            const newExpenseRef = doc(expensesColRef);
+            
+            transaction.set(newExpenseRef, {
+                ...expenseData,
+                id: newExpenseRef.id,
+                ownerId: ownerId, // Set the ownerId based on the bank account's owner
+                type: 'expense',
+                registeredByUserId: user.uid,
+                createdAt: serverTimestamp(),
+            });
+
+            toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         });
         
         setIsFormOpen(false);
@@ -90,41 +91,12 @@ export default function ExpensesPage() {
           });
         }
     }
-  }, [user, firestore, allBankAccounts, editingExpense, toast]);
+  }, [user, firestore, allBankAccounts, toast]);
 
   const handleDelete = React.useCallback(async (expense: Expense) => {
-    if (!user || !firestore || !allBankAccounts) return;
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const expenseRef = doc(firestore, `family-data/shared-data/expenses`, expense.id);
-            
-            const account = allBankAccounts.find(acc => acc.id === expense.bankAccountId);
-            if(!account) throw new Error("کارت بانکی یافت نشد");
-            
-            const cardRef = doc(firestore, `family-data/shared-data/bankAccounts`, account.id);
-
-            const cardDoc = await transaction.get(cardRef);
-            if (cardDoc.exists()) {
-                const cardData = cardDoc.data() as BankAccount;
-                transaction.update(cardRef, { balance: cardData.balance + expense.amount });
-            }
-            
-            transaction.delete(expenseRef);
-        });
-        toast({ title: "موفقیت", description: "هزینه با موفقیت حذف شد." });
-    } catch (error: any) {
-       if (error instanceof FirestorePermissionError) {
-          errorEmitter.emit('permission-error', error);
-        } else {
-          toast({
-            variant: "destructive",
-            title: "خطا در حذف هزینه",
-            description: error.message || "مشکلی در حذف هزینه پیش آمد.",
-          });
-        }
-    }
-  }, [user, firestore, allBankAccounts, toast]);
+    // Deleting is disabled per user request
+    return;
+  }, []);
 
   const handleEdit = React.useCallback((expense: Expense) => {
     // Per user request, editing is disabled.

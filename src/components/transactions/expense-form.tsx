@@ -38,6 +38,7 @@ const formSchema = z.object({
   date: z.date({ required_error: 'لطفا تاریخ را انتخاب کنید.' }),
   bankAccountId: z.string().min(1, { message: 'لطفا کارت برداشت را انتخاب کنید.' }),
   categoryId: z.string().min(1, { message: 'لطفا دسته‌بندی را انتخاب کنید.' }),
+  expenseFor: z.enum(['ali', 'fatemeh', 'shared']).default('shared'),
 });
 
 type ExpenseFormValues = z.infer<typeof formSchema>;
@@ -56,13 +57,14 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
-      ? { ...initialData, date: new Date(initialData.date) }
+      ? { ...initialData, date: new Date(initialData.date), expenseFor: initialData.expenseFor || 'shared' }
       : {
           description: '',
           amount: 0,
           date: new Date(),
           bankAccountId: '',
           categoryId: '',
+          expenseFor: 'shared',
         },
   });
 
@@ -74,7 +76,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
 
   React.useEffect(() => {
     if (initialData) {
-      form.reset({ ...initialData, date: new Date(initialData.date) });
+      form.reset({ ...initialData, date: new Date(initialData.date), expenseFor: initialData.expenseFor || 'shared' });
     } else {
       form.reset({
           description: '',
@@ -82,6 +84,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
           date: new Date(),
           bankAccountId: '',
           categoryId: '',
+          expenseFor: 'shared',
       });
     }
   }, [initialData, form]);
@@ -218,6 +221,28 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                     )}
                 />
               </div>
+               <FormField
+                control={form.control}
+                name="expenseFor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>هزینه برای</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="شخص یا مورد هزینه را انتخاب کنید" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="shared">مشترک</SelectItem>
+                        <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                        <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>

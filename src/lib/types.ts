@@ -28,6 +28,7 @@ export type Expense = {
   date: string;
   description: string;
   type: 'expense';
+  expenseFor?: 'ali' | 'fatemeh' | 'shared'; // The person/entity this expense was for.
   checkId?: string;
   goalId?: string;
   loanPaymentId?: string;
