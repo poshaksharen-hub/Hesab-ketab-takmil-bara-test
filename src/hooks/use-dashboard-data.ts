@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, onSnapshot, DocumentData, Unsubscribe } from 'firebase/firestore';
+import { collection, onSnapshot, DocumentData, Unsubscribe, query } from 'firebase/firestore';
 import type {
   Income,
   Expense,
@@ -33,14 +33,12 @@ type AllData = {
 };
 
 const useAllCollections = () => {
-    const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
-
     const [allData, setAllData] = useState<AllData>({
         users: [], incomes: [], expenses: [], bankAccounts: [], categories: [], checks: [], 
         goals: [], loans: [], payees: [], transfers: [], loanPayments: []
     });
-    const [isLoadingData, setIsLoadingData] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
 
     const usersQuery = useMemoFirebase(
         () => (firestore ? collection(firestore, 'users') : null),
@@ -51,52 +49,46 @@ const useAllCollections = () => {
     const userIds = useMemo(() => (users || []).map(u => u.id), [users]);
 
      const sharedAccountsQuery = useMemoFirebase(
-        () => (firestore ? collection(firestore, 'shared', 'data', 'bankAccounts') : null),
+        () => (firestore ? query(collection(firestore, 'shared', 'data', 'bankAccounts')) : null),
         [firestore]
     );
     const { data: sharedAccounts, isLoading: isLoadingSharedAccounts } = useCollection<BankAccount>(sharedAccountsQuery);
     
+    // Effect for fetching all user-specific sub-collections
     useEffect(() => {
         if (!firestore || userIds.length === 0) {
-            if (!isLoadingUsers) setIsLoadingData(false);
+            if(!isLoadingUsers) setIsLoading(false);
             return;
         }
 
-        setIsLoadingData(true);
+        setIsLoading(true);
         const subCollections = ['incomes', 'expenses', 'categories', 'checks', 'financialGoals', 'loans', 'payees', 'transfers', 'bankAccounts', 'loanPayments'];
-        
-        let activeListeners = 0;
         const unsubs: Unsubscribe[] = [];
 
+        let collectionsLoaded = 0;
+        const totalCollectionsToLoad = subCollections.length * userIds.length;
+
         const checkLoadingDone = () => {
-            if (activeListeners === 0) {
-                // Using a small timeout to prevent flicker and ensure all initial data is processed
-                setTimeout(() => setIsLoadingData(false), 500);
+            if (collectionsLoaded === totalCollectionsToLoad) {
+                setIsLoading(false);
             }
         };
 
         subCollections.forEach(colName => {
             userIds.forEach(uid => {
-                const q = collection(firestore, `users/${uid}/${colName}`);
-                activeListeners++;
+                const q = query(collection(firestore, `users/${uid}/${colName}`));
                 const unsub = onSnapshot(q, (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, userId: uid })) as DocumentData[];
-                    
                     setAllData(prev => {
                         const currentCollection = (prev as any)[colName] || [];
                         const otherUserData = currentCollection.filter((item: any) => item.userId !== uid);
                         return { ...prev, [colName]: [...otherUserData, ...data] };
                     });
-
-                    if (activeListeners > 0) {
-                       activeListeners--;
-                    }
+                    if (unsubs.length > collectionsLoaded) collectionsLoaded++;
                     checkLoadingDone();
                 }, (error) => {
                     console.error(`Error fetching ${colName} for user ${uid}:`, error);
-                    if (activeListeners > 0) {
-                       activeListeners--;
-                    }
+                     if (unsubs.length > collectionsLoaded) collectionsLoaded++;
                     checkLoadingDone();
                 });
                 unsubs.push(unsub);
@@ -108,21 +100,26 @@ const useAllCollections = () => {
         };
     }, [firestore, userIds, isLoadingUsers]);
 
-    // This effect specifically handles combining personal and shared bank accounts
+
+    // This effect combines personal and shared bank accounts once they are both loaded.
     useEffect(() => {
-        // We only proceed if both shared accounts have loaded and the sub-collection loading is complete
-        if (!isLoadingSharedAccounts && !isLoadingData) {
-            const personalAccounts = allData.bankAccounts.filter(b => !b.isShared);
-            const combined = [
-                ...personalAccounts,
-                ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
-            ];
-             setAllData(prev => ({ ...prev, bankAccounts: combined, users: users || [] }));
-        }
-    }, [sharedAccounts, isLoadingSharedAccounts, isLoadingData, users]);
+        if (isLoadingUsers || isLoadingSharedAccounts) return;
+        
+        const personalAccounts = allData.bankAccounts.filter(b => !b.isShared);
+        const combinedAccounts = [
+            ...personalAccounts,
+            ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
+        ];
 
+        setAllData(prev => ({
+            ...prev,
+            users: users || [],
+            bankAccounts: combinedAccounts,
+        }));
 
-    return { isLoading: isLoadingData || isLoadingUsers || isLoadingSharedAccounts, allData };
+    }, [sharedAccounts, allData.bankAccounts, users, isLoadingUsers, isLoadingSharedAccounts]);
+
+    return { isLoading, allData };
 };
 
 
