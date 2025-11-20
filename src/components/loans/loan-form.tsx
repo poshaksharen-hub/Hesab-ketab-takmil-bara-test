@@ -26,6 +26,7 @@ import type { Loan, BankAccount, Payee } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
+import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
@@ -85,6 +86,12 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
       });
     }
   }, [initialData, form]);
+
+  const getOwnerName = (account: BankAccount) => {
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+  };
 
   function handleFormSubmit(data: LoanFormValues) {
     const submissionData = {
@@ -251,7 +258,9 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                             </FormControl>
                             <SelectContent>
                                 {bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>{account.bankName}</SelectItem>
+                                <SelectItem key={account.id} value={account.id}>
+                                    {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
+                                </SelectItem>
                                 ))}
                             </SelectContent>
                             </Select>
