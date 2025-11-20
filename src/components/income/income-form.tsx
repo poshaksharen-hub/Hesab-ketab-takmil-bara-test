@@ -92,28 +92,30 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   };
 
   const availableAccounts = useMemo(() => {
+    if (!selectedSource) return [];
     if (selectedSource === 'shared') {
       return bankAccounts.filter(acc => acc.isShared);
     }
-    if (selectedSource) { // It's a personal source (userId)
-      return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
-    }
-    return [];
+    // Personal source (userId)
+    return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
   }, [selectedSource, bankAccounts]);
 
-  const handleSourceChange = useCallback((value: string) => {
-    form.setValue('source', value);
-    form.setValue('bankAccountId', ''); // Reset account selection
-    
-    // Recalculate based on the new value directly.
-    const newAvailableAccounts = bankAccounts.filter(acc => 
-      value === 'shared' ? acc.isShared : (acc.userId === value && !acc.isShared)
-    );
-
-    if (newAvailableAccounts.length === 1) {
-        form.setValue('bankAccountId', newAvailableAccounts[0].id);
+  useEffect(() => {
+    // When the available accounts change (due to source changing),
+    // check if we should auto-select an account.
+    if(availableAccounts.length === 1) {
+        if(form.getValues('bankAccountId') !== availableAccounts[0].id) {
+            form.setValue('bankAccountId', availableAccounts[0].id);
+        }
+    } else {
+       // If there are multiple options or no options, reset the selection,
+       // but only if the currently selected one is no longer valid.
+       const currentAccountId = form.getValues('bankAccountId');
+       if(currentAccountId && !availableAccounts.some(acc => acc.id === currentAccountId)) {
+           form.setValue('bankAccountId', '');
+       }
     }
-  }, [form, bankAccounts]);
+  }, [availableAccounts, selectedSource, form]);
 
 
   function handleFormSubmit(data: IncomeFormValues) {
@@ -214,7 +216,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>منبع درآمد</FormLabel>
-                    <Select onValueChange={handleSourceChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="یک منبع انتخاب کنید" />
