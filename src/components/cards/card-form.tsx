@@ -98,7 +98,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         cvv2: '',
         accountType: 'savings',
         initialBalance: 0,
-        owner: user?.uid,
+        owner: user?.uid || '',
         isShared: false,
         theme: 'blue',
       });
