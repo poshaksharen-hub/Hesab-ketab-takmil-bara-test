@@ -28,7 +28,7 @@ export default function CardsPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   
-  const { bankAccounts: allBankAccounts = [], users: allUsers = [] } = allData;
+  const { bankAccounts: allBankAccounts = [], users: allUsers = [], goals: allGoals = [] } = allData;
   const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared');
 
 
@@ -180,6 +180,7 @@ export default function CardsPage() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           users={allUsers}
+          goals={allGoals}
         />
       )}
     </main>

@@ -91,17 +91,23 @@ export type Check = {
     checkSerialNumber: string;
 }
 
+export type FinancialGoalContribution = {
+  bankAccountId: string;
+  amount: number;
+  date: string;
+};
+
 export type FinancialGoal = {
     id: string;
     registeredByUserId: string;
+    ownerId: OwnerId; // Who this goal is for
     name: string;
     targetAmount: number;
     currentAmount: number;
     targetDate: string;
     isAchieved: boolean;
     priority: 'low' | 'medium' | 'high';
-    savedFromBankAccountId?: string;
-    savedAmount?: number;
+    contributions: FinancialGoalContribution[];
 }
 
 

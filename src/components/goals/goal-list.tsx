@@ -4,8 +4,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CheckCircle, RotateCcw, Target } from 'lucide-react';
-import type { FinancialGoal } from '@/lib/types';
+import { Edit, Trash2, CheckCircle, RotateCcw, Target, PlusCircle, User, Users } from 'lucide-react';
+import type { FinancialGoal, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -21,17 +21,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { USER_DETAILS } from '@/lib/constants';
 
 interface GoalListProps {
   goals: FinancialGoal[];
-  onEdit: (goal: FinancialGoal) => void;
-  onDelete: (goal: FinancialGoal) => void;
+  onContribute: (goal: FinancialGoal) => void;
   onAchieve: (goal: FinancialGoal) => void;
   onRevert: (goal: FinancialGoal) => void;
 }
 
-export function GoalList({ goals, onEdit, onDelete, onAchieve, onRevert }: GoalListProps) {
+export function GoalList({ goals, onContribute, onAchieve, onRevert }: GoalListProps) {
   
   if (goals.length === 0) {
     return (
@@ -54,27 +53,37 @@ export function GoalList({ goals, onEdit, onDelete, onAchieve, onRevert }: GoalL
       }
   }
 
+  const getOwnerDetails = (ownerId: OwnerId) => {
+    if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
+    const userDetail = USER_DETAILS[ownerId];
+    return { name: userDetail.firstName, Icon: User };
+  };
+
+
   return (
-    <TooltipProvider>
     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {goals.map((goal) => {
             const progress = (goal.currentAmount / goal.targetAmount) * 100;
             const isAchieved = goal.isAchieved;
+            const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(goal.ownerId);
 
             return (
             <Card key={goal.id} className={cn("flex flex-col justify-between shadow-lg", isAchieved && "bg-muted/50")}>
                 <CardHeader>
                     <div className='flex justify-between items-start'>
                         <div className="space-y-1">
-                            <CardTitle className={cn(isAchieved && "text-muted-foreground line-through")}>{goal.name}</CardTitle>
+                            <CardTitle className={cn("flex items-center gap-2", isAchieved && "text-muted-foreground line-through")}>
+                                <OwnerIcon className="h-5 w-5 text-muted-foreground" />
+                                <span>{goal.name}</span>
+                            </CardTitle>
                             <CardDescription>
-                                <span className='ml-2'>تا تاریخ: {formatJalaliDate(new Date(goal.targetDate))}</span>
+                                <span className='ml-2'>هدف برای: {ownerName}</span>
                                 |
                                 <span className='mr-2'>اولویت: {getPriorityBadge(goal.priority)}</span>
                             </CardDescription>
                         </div>
                         <div className="flex gap-1">
-                            {isAchieved ? (
+                            {isAchieved && (
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon" aria-label="بازگردانی هدف">
@@ -96,33 +105,7 @@ export function GoalList({ goals, onEdit, onDelete, onAchieve, onRevert }: GoalL
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                            ) : (
-                                <Button variant="ghost" size="icon" onClick={() => onEdit(goal)} aria-label="ویرایش هدف">
-                                    <Edit className="h-4 w-4" />
-                                </Button>
                             )}
-
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isAchieved} aria-label="حذف هدف">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        این عمل قابل بازگشت نیست. اگر مبلغی برای این هدف مسدود شده باشد، آزاد خواهد شد.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDelete(goal)}>
-                                        بله، حذف کن
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
                         </div>
                     </div>
                 </CardHeader>
@@ -133,27 +116,33 @@ export function GoalList({ goals, onEdit, onDelete, onAchieve, onRevert }: GoalL
                             <span>{formatCurrency(goal.targetAmount, 'IRT')}</span>
                         </div>
                         <Progress value={progress} className="h-2" />
-                         <div className="text-xs text-muted-foreground text-center">
-                            {Math.round(progress)}٪ تکمیل شده
+                         <div className="flex justify-between text-xs text-muted-foreground text-center">
+                            <span>{Math.round(progress)}٪ تکمیل شده</span>
+                            <span>تا تاریخ: {formatJalaliDate(new Date(goal.targetDate))}</span>
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="grid grid-cols-2 gap-2">
                     {isAchieved ? (
-                        <div className="flex items-center text-emerald-600 gap-2">
+                        <div className="col-span-2 flex items-center justify-center text-emerald-600 gap-2">
                             <CheckCircle className="h-5 w-5" />
                             <span className='font-bold'>هدف محقق شد!</span>
                         </div>
                     ) : (
-                        <Button className="w-full" onClick={() => onAchieve(goal)}>
-                            <Target className="ml-2 h-4 w-4" />
-                            رسیدم به هدف!
-                        </Button>
+                        <>
+                            <Button className="w-full" variant="outline" onClick={() => onContribute(goal)}>
+                                <PlusCircle className="ml-2 h-4 w-4" />
+                                افزودن به پس‌انداز
+                            </Button>
+                            <Button className="w-full" onClick={() => onAchieve(goal)}>
+                                <Target className="ml-2 h-4 w-4" />
+                                رسیدم به هدف!
+                            </Button>
+                        </>
                     )}
                 </CardFooter>
             </Card>
         )})}
     </div>
-    </TooltipProvider>
   );
 }

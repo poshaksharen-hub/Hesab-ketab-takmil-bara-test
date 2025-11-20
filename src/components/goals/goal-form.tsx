@@ -23,18 +23,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { FinancialGoal, BankAccount } from '@/lib/types';
+import type { FinancialGoal, BankAccount, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { cn, formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
+import type { User } from 'firebase/auth';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'نام هدف باید حداقل ۲ حرف داشته باشد.' }),
   targetAmount: z.coerce.number().positive({ message: 'مبلغ هدف باید یک عدد مثبت باشد.' }),
   targetDate: z.date({ required_error: 'لطفا تاریخ هدف را انتخاب کنید.' }),
   priority: z.enum(['low', 'medium', 'high'], { required_error: 'لطفا اولویت را مشخص کنید.' }),
-  savedAmount: z.coerce.number().min(0, { message: "مبلغ نمی‌تواند منفی باشد." }).optional(),
-  savedFromBankAccountId: z.string().optional(),
+  ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این هدف برای کیست.' }),
+  initialContributionAmount: z.coerce.number().min(0, { message: "مبلغ نمی‌تواند منفی باشد." }).optional(),
+  initialContributionBankAccountId: z.string().optional(),
 });
 
 type GoalFormValues = z.infer<typeof formSchema>;
@@ -45,37 +47,35 @@ interface GoalFormProps {
   onSubmit: (data: any) => void;
   initialData: FinancialGoal | null;
   bankAccounts: BankAccount[];
+  user: User | null;
 }
 
-export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts }: GoalFormProps) {
+export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user }: GoalFormProps) {
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData
-      ? { ...initialData, targetDate: new Date(initialData.targetDate), savedAmount: initialData.savedAmount || 0 }
-      : {
-          name: '',
-          targetAmount: 0,
-          targetDate: new Date(),
-          priority: 'medium',
-          savedAmount: 0,
-          savedFromBankAccountId: '',
-        },
+    defaultValues: {
+      name: '',
+      targetAmount: 0,
+      targetDate: new Date(),
+      priority: 'medium',
+      ownerId: user?.email?.startsWith('ali') ? 'ali' : 'fatemeh',
+      initialContributionAmount: 0,
+      initialContributionBankAccountId: '',
+    },
   });
 
   useEffect(() => {
-    if (initialData) {
-      form.reset({ ...initialData, targetDate: new Date(initialData.targetDate), savedAmount: initialData.savedAmount || 0, savedFromBankAccountId: initialData.savedFromBankAccountId || '' });
-    } else {
-      form.reset({
-        name: '',
-        targetAmount: 0,
-        targetDate: new Date(),
-        priority: 'medium',
-        savedAmount: 0,
-        savedFromBankAccountId: '',
-      });
-    }
-  }, [initialData, form]);
+    // Editing is disabled, so we only handle the create case.
+    form.reset({
+      name: '',
+      targetAmount: 0,
+      targetDate: new Date(),
+      priority: 'medium',
+      ownerId: user?.email?.startsWith('ali') ? 'ali' : 'fatemeh',
+      initialContributionAmount: 0,
+      initialContributionBankAccountId: '',
+    });
+  }, [form, user]);
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
@@ -83,7 +83,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
-  const selectedBankAccountId = form.watch('savedFromBankAccountId');
+  const selectedBankAccountId = form.watch('initialContributionBankAccountId');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
   const availableBalance = selectedBankAccount ? selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0) : 0;
 
@@ -92,7 +92,6 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     const submissionData = {
       ...data,
       targetDate: data.targetDate.toISOString(),
-      currentAmount: data.savedAmount || 0,
     };
     onSubmit(submissionData);
   }
@@ -123,6 +122,28 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
+                    name="ownerId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>این هدف برای کیست؟</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                            <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                            <SelectItem value="shared">مشترک</SelectItem>
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
                     name="targetAmount"
                     render={({ field }) => (
                     <FormItem>
@@ -130,6 +151,19 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                         <FormControl>
                           <CurrencyInput value={field.value} onChange={field.onChange} />
                         </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <FormField
+                    control={form.control}
+                    name="targetDate"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>تاریخ هدف</FormLabel>
+                        <JalaliDatePicker value={field.value} onChange={field.onChange} />
                         <FormMessage />
                     </FormItem>
                     )}
@@ -157,17 +191,6 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                     )}
                 />
             </div>
-             <FormField
-                control={form.control}
-                name="targetDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>تاریخ هدف</FormLabel>
-                    <JalaliDatePicker value={field.value} onChange={field.onChange} />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             <div className="space-y-2 rounded-lg border p-4">
                 <h3 className="font-semibold">پس‌انداز اولیه (اختیاری)</h3>
                 <p className="text-sm text-muted-foreground">
@@ -176,7 +199,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <FormField
                         control={form.control}
-                        name="savedFromBankAccountId"
+                        name="initialContributionBankAccountId"
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>از کارت</FormLabel>
@@ -189,36 +212,32 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                             <SelectContent>
                                 {bankAccounts.map((account) => {
                                   const currentAvailableBalance = account.balance - (account.blockedBalance || 0);
-                                  // If editing, add back the currently blocked amount for this goal to show the "true" available balance
-                                  const displayBalance = (initialData && initialData.savedFromBankAccountId === account.id) 
-                                      ? currentAvailableBalance + (initialData.savedAmount || 0)
-                                      : currentAvailableBalance;
                                   return (
                                     <SelectItem key={account.id} value={account.id}>
-                                        {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(displayBalance, 'IRT')})`}
+                                        {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(currentAvailableBalance, 'IRT')})`}
                                     </SelectItem>
                                   )
                                 })}
                             </SelectContent>
                             </Select>
-                             {selectedBankAccount && (
-                                <FormDescription>
-                                    موجودی قابل استفاده این حساب: {formatCurrency(availableBalance, 'IRT')}
-                                </FormDescription>
-                            )}
                             <FormMessage />
                         </FormItem>
                         )}
                     />
                      <FormField
                         control={form.control}
-                        name="savedAmount"
+                        name="initialContributionAmount"
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>مبلغ پس‌انداز (تومان)</FormLabel>
                             <FormControl>
                               <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={!selectedBankAccountId} />
                             </FormControl>
+                            {selectedBankAccount && (
+                                <FormDescription className={cn(availableBalance < (field.value || 0) && "text-destructive")}>
+                                    موجودی قابل استفاده: {formatCurrency(availableBalance, 'IRT')}
+                                </FormDescription>
+                            )}
                             <FormMessage />
                         </FormItem>
                         )}
@@ -228,12 +247,10 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
-            <Button type="submit">ذخیره</Button>
+            <Button type="submit" disabled={!!initialData}>ذخیره</Button>
           </CardFooter>
         </form>
       </Form>
     </Card>
   );
 }
-
-    

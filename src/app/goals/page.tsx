@@ -14,7 +14,7 @@ import {
   where,
   getDocs,
 } from 'firebase/firestore';
-import type { FinancialGoal, BankAccount, Category } from '@/lib/types';
+import type { FinancialGoal, BankAccount, Category, FinancialGoalContribution } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { GoalList } from '@/components/goals/goal-list';
@@ -23,6 +23,7 @@ import { AchieveGoalDialog } from '@/components/goals/achieve-goal-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { AddToGoalDialog } from '@/components/goals/add-to-goal-dialog';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -33,108 +34,67 @@ export default function GoalsPage() {
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
+  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null); // This is now unused as editing is disabled.
   const [achievingGoal, setAchievingGoal] = useState<FinancialGoal | null>(null);
+  const [contributingGoal, setContributingGoal] = useState<FinancialGoal | null>(null);
+
 
   const { goals, bankAccounts, categories } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
-    const { savedAmount = 0, savedFromBankAccountId, ...goalData } = values;
+    const { initialContributionAmount = 0, initialContributionBankAccountId, ...goalData } = values;
 
     try {
       await runTransaction(firestore, async (transaction) => {
         const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
         
-        // --- ALL READS MUST HAPPEN BEFORE ALL WRITES ---
-
-        // Reads for both Edit and Create
         let newAccountDoc = null;
-        if (savedFromBankAccountId && savedAmount > 0) {
-            const newAccountRef = doc(familyDataRef, 'bankAccounts', savedFromBankAccountId);
-            newAccountDoc = await transaction.get(newAccountRef);
+        if (initialContributionBankAccountId && initialContributionAmount > 0) {
+            newAccountDoc = await transaction.get(doc(familyDataRef, 'bankAccounts', initialContributionBankAccountId));
             if (!newAccountDoc.exists()) throw new Error("حساب بانکی جدید انتخاب شده برای پس‌انداز یافت نشد.");
-        }
-
-        // Reads for Edit mode
-        let oldAccountDoc = null;
-        let originalBlockedAmount = 0;
-        let originalSavedAccountId: string | null = null;
-        
-        if (editingGoal) {
-            originalBlockedAmount = editingGoal.savedAmount || 0;
-            originalSavedAccountId = editingGoal.savedFromBankAccountId || null;
-            if (originalSavedAccountId) {
-                const oldAccountRef = doc(familyDataRef, 'bankAccounts', originalSavedAccountId);
-                oldAccountDoc = await transaction.get(oldAccountRef);
-                if (!oldAccountDoc.exists()) throw new Error("حساب بانکی قبلی هدف یافت نشد.");
+            
+            const newAccountData = newAccountDoc.data();
+            const availableBalance = newAccountData.balance - (newAccountData.blockedBalance || 0);
+            if (availableBalance < initialContributionAmount) {
+                throw new Error("موجودی حساب برای مسدود کردن مبلغ کافی نیست.");
             }
         }
         
-        // --- ALL WRITES START FROM HERE ---
+        const newGoalRef = doc(collection(familyDataRef, 'financialGoals'));
+        const contributions: FinancialGoalContribution[] = [];
+        let currentAmount = 0;
 
-        if (editingGoal) {
-            // --- EDIT MODE WRITES ---
-            const goalRef = doc(familyDataRef, 'financialGoals', editingGoal.id);
-            transaction.update(goalRef, {
-                ...goalData,
-                currentAmount: savedAmount,
-                savedAmount: savedAmount,
-                savedFromBankAccountId: savedFromBankAccountId || null,
+        if (initialContributionBankAccountId && initialContributionAmount > 0) {
+            contributions.push({
+                bankAccountId: initialContributionBankAccountId,
+                amount: initialContributionAmount,
+                date: new Date().toISOString(),
             });
+            currentAmount = initialContributionAmount;
 
-            // Logic to adjust blocked balances
-            const isSameAccount = originalSavedAccountId === savedFromBankAccountId;
-
-            if (isSameAccount && originalSavedAccountId && oldAccountDoc) {
-                // Account is the same, just adjust the balance
-                const oldBlocked = oldAccountDoc.data()!.blockedBalance || 0;
-                const newBlocked = oldBlocked - originalBlockedAmount + savedAmount;
-                transaction.update(oldAccountDoc.ref, { blockedBalance: newBlocked });
-            } else {
-                // Accounts are different, or one of them is new/removed
-                // 1. Revert old account's blocked balance
-                if (originalSavedAccountId && oldAccountDoc) {
-                    const oldBlocked = oldAccountDoc.data()!.blockedBalance || 0;
-                    transaction.update(oldAccountDoc.ref, { blockedBalance: oldBlocked - originalBlockedAmount });
-                }
-                // 2. Add to new account's blocked balance
-                if (savedFromBankAccountId && newAccountDoc) {
-                    const currentBlocked = newAccountDoc.data()!.blockedBalance || 0;
-                    transaction.update(newAccountDoc.ref, { blockedBalance: currentBlocked + savedAmount });
-                }
-            }
-        } else {
-            // --- CREATE MODE WRITES ---
             if (newAccountDoc) {
-                const newAccountData = newAccountDoc.data()!;
-                const availableBalance = newAccountData.balance - (newAccountData.blockedBalance || 0);
-                if (availableBalance < savedAmount) throw new Error("موجودی حساب برای مسدود کردن مبلغ کافی نیست.");
-                
-                // Update new account's blocked balance
-                transaction.update(newAccountDoc.ref, { blockedBalance: (newAccountData.blockedBalance || 0) + savedAmount });
+                const newAccountData = newAccountDoc.data();
+                transaction.update(newAccountDoc.ref, { blockedBalance: (newAccountData.blockedBalance || 0) + initialContributionAmount });
             }
-
-            // Create the new goal document
-            const newGoalRef = doc(collection(familyDataRef, 'financialGoals'));
-            transaction.set(newGoalRef, {
-                ...goalData,
-                id: newGoalRef.id,
-                registeredByUserId: user.uid,
-                isAchieved: false,
-                currentAmount: savedAmount,
-                savedAmount: savedAmount,
-                savedFromBankAccountId: savedFromBankAccountId || null,
-            });
         }
+
+        transaction.set(newGoalRef, {
+            ...goalData,
+            id: newGoalRef.id,
+            registeredByUserId: user.uid,
+            isAchieved: false,
+            currentAmount: currentAmount,
+            contributions: contributions,
+        });
+
       });
 
       toast({
         title: 'موفقیت',
-        description: `هدف مالی با موفقیت ${editingGoal ? 'ویرایش' : 'ذخیره'} شد.`,
+        description: `هدف مالی جدید با موفقیت ذخیره شد.`,
       });
       setIsFormOpen(false);
-      setEditingGoal(null);
 
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
@@ -152,7 +112,43 @@ export default function GoalsPage() {
         });
       }
     }
-  }, [user, firestore, editingGoal, toast]);
+  }, [user, firestore, toast]);
+
+  const handleAddToGoal = useCallback(async ({ goal, amount, bankAccountId }: { goal: FinancialGoal, amount: number, bankAccountId: string }) => {
+     if (!user || !firestore) return;
+
+     try {
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const goalRef = doc(familyDataRef, 'financialGoals', goal.id);
+            const accountRef = doc(familyDataRef, 'bankAccounts', bankAccountId);
+
+            const accountDoc = await transaction.get(accountRef);
+            if (!accountDoc.exists()) throw new Error("حساب بانکی انتخاب شده یافت نشد.");
+
+            const accountData = accountDoc.data();
+            const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
+            if (availableBalance < amount) throw new Error("موجودی قابل استفاده حساب کافی نیست.");
+
+            const goalDoc = await transaction.get(goalRef);
+            if (!goalDoc.exists()) throw new Error("هدف مالی مورد نظر یافت نشد.");
+            const goalData = goalDoc.data();
+
+            const newContributions = [...goalData.contributions, { amount, bankAccountId, date: new Date().toISOString() }];
+            const newCurrentAmount = goalData.currentAmount + amount;
+
+            transaction.update(accountRef, { blockedBalance: (accountData.blockedBalance || 0) + amount });
+            transaction.update(goalRef, { contributions: newContributions, currentAmount: newCurrentAmount });
+        });
+
+        toast({ title: 'موفقیت', description: `مبلغ با موفقیت به پس‌انداز هدف "${goal.name}" اضافه شد.` });
+        setContributingGoal(null);
+
+     } catch (error: any) {
+        toast({ variant: 'destructive', title: 'خطا در افزودن پس‌انداز', description: error.message || "مشکلی در عملیات پیش آمد." });
+     }
+  }, [user, firestore, toast]);
+
 
    const handleAchieveGoal = useCallback(async ({ paymentAmount, paymentCardId, categoryId }: { paymentAmount: number; paymentCardId: string; categoryId: string }) => {
     if (!user || !firestore || !achievingGoal) return;
@@ -162,34 +158,38 @@ export default function GoalsPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const goalRef = doc(familyDataRef, 'financialGoals', goal.id);
-
+            
             // --- READS ---
-            let savedFromAccountDoc = null;
-            if (goal.savedFromBankAccountId && goal.savedAmount) {
-                const savedFromAccountRef = doc(familyDataRef, 'bankAccounts', goal.savedFromBankAccountId);
-                savedFromAccountDoc = await transaction.get(savedFromAccountRef);
-                if (!savedFromAccountDoc.exists()) throw new Error("حساب پس‌انداز اولیه یافت نشد.");
+            const accountRefs = goal.contributions.map(c => doc(familyDataRef, 'bankAccounts', c.bankAccountId));
+            if (paymentAmount > 0 && paymentCardId) {
+                const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
+                // Avoid duplicates
+                if (!accountRefs.find(ref => ref.path === paymentAccountRef.path)) {
+                    accountRefs.push(paymentAccountRef);
+                }
+            }
+            const accountDocs = await Promise.all(accountRefs.map(ref => transaction.get(ref)));
+
+            const accountsData: { [key: string]: BankAccount } = {};
+            for (const doc of accountDocs) {
+                if (!doc.exists()) throw new Error(`حساب بانکی با شناسه ${doc.id} یافت نشد.`);
+                accountsData[doc.id] = doc.data() as BankAccount;
             }
             
-            let paymentAccountDoc = null;
             if (paymentAmount > 0 && paymentCardId) {
-                 const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
-                 paymentAccountDoc = await transaction.get(paymentAccountRef);
-                 if (!paymentAccountDoc.exists()) throw new Error("کارت پرداخت یافت نشد.");
-                 const availableBalance = paymentAccountDoc.data()!.balance - (paymentAccountDoc.data()!.blockedBalance || 0);
-                 if(availableBalance < paymentAmount) throw new Error("موجودی کارت پرداخت کافی نیست.");
+                const paymentAccountData = accountsData[paymentCardId];
+                const availableBalance = paymentAccountData.balance - (paymentAccountData.blockedBalance || 0);
+                if(availableBalance < paymentAmount) throw new Error("موجودی کارت پرداخت کافی نیست.");
             }
 
             // --- WRITES ---
-
-            // 1. Unblock the saved amount and create the expense
             const expenseRef = doc(collection(familyDataRef, 'expenses'));
             transaction.set(expenseRef, {
                 id: expenseRef.id,
-                ownerId: 'shared', // Goals are shared expenses
+                ownerId: goal.ownerId, 
                 registeredByUserId: user.uid,
                 amount: goal.targetAmount,
-                bankAccountId: paymentCardId || goal.savedFromBankAccountId, // Fallback if no payment card needed
+                bankAccountId: paymentCardId || goal.contributions[0]?.bankAccountId, // Fallback
                 categoryId: categoryId,
                 date: new Date().toISOString(),
                 description: `تحقق هدف: ${goal.name}`,
@@ -197,22 +197,22 @@ export default function GoalsPage() {
                 goalId: goal.id,
             });
 
-            // 2. Unblock the saved amount from the source account
-            if (savedFromAccountDoc) {
-                const savedFromAccountData = savedFromAccountDoc.data()!;
-                transaction.update(savedFromAccountDoc.ref, { 
-                    blockedBalance: (savedFromAccountData.blockedBalance || 0) - goal.savedAmount!,
+            for(const contribution of goal.contributions) {
+                const accountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
+                const accountData = accountsData[contribution.bankAccountId];
+                transaction.update(accountRef, { 
+                    blockedBalance: (accountData.blockedBalance || 0) - contribution.amount,
                 });
             }
             
-            // 3. Deduct the remaining payment from the payment card
-            if (paymentAccountDoc) {
-                 transaction.update(paymentAccountDoc.ref, { 
-                    balance: paymentAccountDoc.data()!.balance - paymentAmount 
+            if (paymentAmount > 0 && paymentCardId) {
+                 const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
+                 const paymentAccountData = accountsData[paymentCardId];
+                 transaction.update(paymentAccountRef, { 
+                    balance: paymentAccountData.balance - paymentAmount 
                  });
             }
 
-            // 4. Mark the goal as achieved
             transaction.update(goalRef, { isAchieved: true });
         });
 
@@ -253,21 +253,19 @@ export default function GoalsPage() {
           batch.delete(doc.ref);
       });
 
-      if (goal.savedFromBankAccountId && goal.savedAmount) {
-          const savedAccountRef = doc(familyDataRef, 'bankAccounts', goal.savedFromBankAccountId);
-          // We need the current account data to correctly revert
-          const savedAccountDoc = await getDocs(query(collection(familyDataRef, 'bankAccounts'), where('id', '==', goal.savedFromBankAccountId)));
-          if(!savedAccountDoc.empty) {
-             const accountData = savedAccountDoc.docs[0].data();
-             batch.update(savedAccountRef, { 'blockedBalance': (accountData.blockedBalance || 0) + goal.savedAmount });
-          }
+      for (const contribution of goal.contributions) {
+        const savedAccountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
+        const savedAccountDoc = await getDocs(query(collection(familyDataRef, 'bankAccounts'), where('id', '==', contribution.bankAccountId)));
+        if (!savedAccountDoc.empty) {
+          const accountData = savedAccountDoc.docs[0].data();
+          batch.update(savedAccountRef, { 'blockedBalance': (accountData.blockedBalance || 0) + contribution.amount });
+        }
       }
 
       if (associatedExpense) {
-          const paymentAmount = associatedExpense.amount - (goal.savedAmount || 0);
+          const paymentAmount = associatedExpense.amount - goal.currentAmount;
           if (paymentAmount > 0 && associatedExpense.bankAccountId) {
               const paymentAccountRef = doc(familyDataRef, 'bankAccounts', associatedExpense.bankAccountId);
-              // We need current account data to revert correctly
               const paymentAccountDoc = await getDocs(query(collection(familyDataRef, 'bankAccounts'), where('id', '==', associatedExpense.bankAccountId)));
               if (!paymentAccountDoc.empty) {
                  const accountData = paymentAccountDoc.docs[0].data();
@@ -293,57 +291,18 @@ export default function GoalsPage() {
     }
   }, [user, firestore, toast]);
 
-  const handleDelete = useCallback(async (goal: FinancialGoal) => {
-    if (!user || !firestore) return;
-    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-    const goalRef = doc(familyDataRef, 'financialGoals', goal.id);
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            if (goal.isAchieved) {
-                throw new Error("امکان حذف هدف محقق شده وجود ندارد. ابتدا آن را بازگردانی کنید.");
-            }
-            if (goal.savedFromBankAccountId && goal.savedAmount) {
-                const accountRef = doc(familyDataRef, 'bankAccounts', goal.savedFromBankAccountId);
-                const accountDoc = await transaction.get(accountRef);
-                if (accountDoc.exists()) {
-                    const currentBlocked = accountDoc.data().blockedBalance || 0;
-                    transaction.update(accountRef, { blockedBalance: currentBlocked - goal.savedAmount });
-                }
-            }
-            transaction.delete(goalRef);
-        });
-
-        toast({ title: "موفقیت", description: "هدف مالی با موفقیت حذف شد." });
-    } catch (error: any) {
-        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
-                path: goalRef.path,
-                operation: 'delete'
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'خطا در حذف هدف',
-                description: error.message || 'مشکلی در حذف هدف پیش آمد.',
-            });
-        }
-    }
-  }, [user, firestore, toast]);
 
   const handleAddNew = useCallback(() => {
-    setEditingGoal(null);
-    setIsFormOpen(true);
-  }, []);
-
-  const handleEdit = useCallback((goal: FinancialGoal) => {
-    setEditingGoal(goal);
+    setEditingGoal(null); // Ensure no initial data for create form
     setIsFormOpen(true);
   }, []);
 
   const handleOpenAchieveDialog = useCallback((goal: FinancialGoal) => {
     setAchievingGoal(goal);
+  }, []);
+  
+  const handleOpenContributeDialog = useCallback((goal: FinancialGoal) => {
+    setContributingGoal(goal);
   }, []);
 
   const isLoading = isUserLoading || isDashboardLoading;
@@ -372,13 +331,13 @@ export default function GoalsPage() {
           onSubmit={handleFormSubmit}
           initialData={editingGoal}
           bankAccounts={bankAccounts || []}
+          user={user}
         />
       ) : (
         <>
           <GoalList
             goals={goals || []}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
+            onContribute={handleOpenContributeDialog}
             onAchieve={handleOpenAchieveDialog}
             onRevert={handleRevertGoal}
           />
@@ -392,10 +351,17 @@ export default function GoalsPage() {
               onSubmit={handleAchieveGoal}
             />
           )}
+          {contributingGoal && (
+             <AddToGoalDialog
+                goal={contributingGoal}
+                bankAccounts={bankAccounts || []}
+                isOpen={!!contributingGoal}
+                onOpenChange={() => setContributingGoal(null)}
+                onSubmit={handleAddToGoal}
+             />
+          )}
         </>
       )}
     </main>
   );
 }
-
-    

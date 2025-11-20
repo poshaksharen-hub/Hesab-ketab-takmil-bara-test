@@ -34,6 +34,7 @@ import type { FinancialGoal, BankAccount, Category } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
   paymentCardId: z.string().optional(),
@@ -63,6 +64,17 @@ export function AchieveGoalDialog({
     const remaining = goal.targetAmount - goal.currentAmount;
     return remaining < 0 ? 0 : remaining;
   }, [goal]);
+  
+  const getOwnerName = (account: BankAccount) => {
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+  };
+
+  // Filter out accounts that have contributed to this goal already
+  const contributionAccountIds = new Set(goal.contributions.map(c => c.bankAccountId));
+  const availablePaymentAccounts = bankAccounts.filter(acc => !contributionAccountIds.has(acc.id));
+
 
   const form = useForm<AchieveGoalFormValues>({
     resolver: zodResolver(formSchema),
@@ -73,12 +85,11 @@ export function AchieveGoalDialog({
   });
 
   React.useEffect(() => {
-    // Reset form when goal changes
     form.reset({
-      paymentCardId: bankAccounts.find(acc => acc.id !== goal.savedFromBankAccountId)?.id || '',
+      paymentCardId: availablePaymentAccounts.length > 0 ? availablePaymentAccounts[0].id : '',
       categoryId: '',
     });
-  }, [goal, bankAccounts, form]);
+  }, [goal, availablePaymentAccounts, form]);
 
 
   function handleFormSubmit(data: AchieveGoalFormValues) {
@@ -124,9 +135,9 @@ export function AchieveGoalDialog({
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {bankAccounts.filter(acc => acc.id !== goal.savedFromBankAccountId).map((account) => (
+                        {availablePaymentAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
-                                {account.bankName} (موجودی: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
+                                {account.bankName} {getOwnerName(account)} (قابل استفاده: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
                             </SelectItem>
                         ))}
                         </SelectContent>

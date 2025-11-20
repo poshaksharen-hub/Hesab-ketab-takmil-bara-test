@@ -1,0 +1,161 @@
+
+'use client';
+
+import React from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { CurrencyInput } from '@/components/ui/input';
+import type { FinancialGoal, BankAccount } from '@/lib/types';
+import { formatCurrency, cn } from '@/lib/utils';
+import { USER_DETAILS } from '@/lib/constants';
+
+const formSchema = z.object({
+  bankAccountId: z.string().min(1, { message: 'لطفا یک کارت برای برداشت انتخاب کنید.' }),
+  amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
+});
+
+type AddToGoalFormValues = z.infer<typeof formSchema>;
+
+interface AddToGoalDialogProps {
+  goal: FinancialGoal;
+  bankAccounts: BankAccount[];
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: { goal: FinancialGoal; amount: number; bankAccountId: string; }) => void;
+}
+
+export function AddToGoalDialog({
+  goal,
+  bankAccounts,
+  isOpen,
+  onOpenChange,
+  onSubmit,
+}: AddToGoalDialogProps) {
+
+  const form = useForm<AddToGoalFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      bankAccountId: bankAccounts[0]?.id || '',
+      amount: 0,
+    },
+  });
+  
+  React.useEffect(() => {
+    form.reset({
+      bankAccountId: bankAccounts[0]?.id || '',
+      amount: 0,
+    })
+  }, [goal, bankAccounts, form]);
+
+
+  const getOwnerName = (account: BankAccount) => {
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+  };
+
+  const selectedBankAccountId = form.watch('bankAccountId');
+  const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
+  const availableBalance = selectedBankAccount ? selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0) : 0;
+
+  function handleFormSubmit(data: AddToGoalFormValues) {
+    onSubmit({
+      goal,
+      ...data,
+    });
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-headline">افزودن به پس‌انداز هدف: {goal.name}</DialogTitle>
+          <DialogDescription>
+            مبلغ مورد نظر را از یکی از حساب‌ها به پس‌انداز این هدف اضافه کنید.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+            
+            <FormField
+              control={form.control}
+              name="bankAccountId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>برداشت از کارت</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {bankAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                           {`${account.bankName} ${getOwnerName(account)}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>مبلغ (تومان)</FormLabel>
+                  <FormControl>
+                    <CurrencyInput value={field.value} onChange={field.onChange} />
+                  </FormControl>
+                  {selectedBankAccount && (
+                    <FormDescription className={cn(availableBalance < field.value && "text-destructive")}>
+                        موجودی قابل استفاده: {formatCurrency(availableBalance, 'IRT')}
+                    </FormDescription>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                انصراف
+              </Button>
+              <Button type="submit">افزودن و مسدود کردن</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

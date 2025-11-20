@@ -144,6 +144,18 @@
       },
       "required": ["id", "registeredByUserId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
     },
+    "FinancialGoalContribution": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FinancialGoalContribution",
+      "type": "object",
+      "description": "Represents a single contribution towards a financial goal.",
+      "properties": {
+        "bankAccountId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bankAccountId", "amount", "date"]
+    },
     "FinancialGoal": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "FinancialGoal",
@@ -152,16 +164,21 @@
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
+            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who this goal is for." },
             "name": { "type": "string" },
             "targetAmount": { "type": "number" },
             "currentAmount": { "type": "number" },
             "targetDate": { "type": "string", "format": "date-time" },
             "isAchieved": { "type": "boolean" },
             "priority": { "type": "string", "enum": ["low", "medium", "high"] },
-            "savedFromBankAccountId": { "type": "string" },
-            "savedAmount": { "type": "number" }
+            "contributions": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/entities/FinancialGoalContribution"
+                }
+            }
         },
-        "required": ["id", "registeredByUserId", "name", "targetAmount", "currentAmount", "targetDate", "isAchieved", "priority"]
+        "required": ["id", "registeredByUserId", "ownerId", "name", "targetAmount", "currentAmount", "targetDate", "isAchieved", "priority", "contributions"]
     },
     "Loan": {
         "$schema": "http://json-schema.org/draft-07/schema#",
