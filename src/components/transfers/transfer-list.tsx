@@ -1,27 +1,35 @@
+
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Transfer, BankAccount } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import type { Transfer, BankAccount, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
-import { ArrowLeftRight } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowRight, Banknote } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
-
+import { Separator } from '../ui/separator';
 
 interface TransferListProps {
   transfers: Transfer[];
   bankAccounts: BankAccount[];
+  users: UserProfile[];
 }
 
-export function TransferList({ transfers, bankAccounts }: TransferListProps) {
+const BalanceChange = ({ label, amount, type }: { label: string, amount: number, type: 'before' | 'after' }) => (
+  <div className="text-xs">
+    <span className="text-muted-foreground">{label}: </span>
+    <span className="font-mono font-semibold">{formatCurrency(amount, 'IRT').replace(' تومان', '')}</span>
+  </div>
+);
+
+
+export function TransferList({ transfers, bankAccounts, users }: TransferListProps) {
   
   const getAccountDisplayName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
-    if (!account) return 'نامشخص';
-    if (account.ownerId === 'shared') return `${account.bankName} (مشترک)`;
-    const owner = USER_DETAILS[account.ownerId];
-    return `${account.bankName} (${owner?.firstName || 'ناشناس'})`;
+    if (!account) return { name: 'نامشخص', owner: '' };
+    const ownerName = account.ownerId === 'shared' ? '(مشترک)' : `(${USER_DETAILS[account.ownerId]?.firstName || 'ناشناس'})`;
+    return { name: account.bankName, owner: ownerName };
   };
   
   if (transfers.length === 0) {
@@ -38,35 +46,75 @@ export function TransferList({ transfers, bankAccounts }: TransferListProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline">تاریخچه انتقال‌ها</CardTitle>
-        <CardDescription>انتقال‌های اخیر شما در اینجا نمایش داده می‌شود.</CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>مبلغ</TableHead>
-              <TableHead>از حساب</TableHead>
-              <TableHead></TableHead>
-              <TableHead>به حساب</TableHead>
-              <TableHead>تاریخ</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transfers.sort((a,b) => new Date(b.transferDate).getTime() - new Date(a.transferDate).getTime()).map((transfer) => (
-              <TableRow key={transfer.id}>
-                <TableCell className="font-medium font-mono">{formatCurrency(transfer.amount, 'IRT')}</TableCell>
-                <TableCell className="text-muted-foreground">{getAccountDisplayName(transfer.fromBankAccountId)}</TableCell>
-                <TableCell><ArrowLeftRight className="w-4 h-4 text-muted-foreground" /></TableCell>
-                <TableCell className="text-muted-foreground">{getAccountDisplayName(transfer.toBankAccountId)}</TableCell>
-                <TableCell>{formatJalaliDate(new Date(transfer.transferDate))}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+            <CardTitle className="font-headline">تاریخچه انتقال‌ها</CardTitle>
+            <CardDescription>انتقال‌های اخیر شما در اینجا نمایش داده می‌شود.</CardDescription>
+        </CardHeader>
+      </Card>
+      
+      {transfers.sort((a,b) => new Date(b.transferDate).getTime() - new Date(a.transferDate).getTime()).map((transfer) => {
+        const fromAccount = getAccountDisplayName(transfer.fromBankAccountId);
+        const toAccount = getAccountDisplayName(transfer.toBankAccountId);
+
+        return (
+            <Card key={transfer.id}>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                           <Banknote className="w-5 h-5 text-muted-foreground" />
+                           <p className="font-bold text-lg">{formatCurrency(transfer.amount, 'IRT')}</p>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{formatJalaliDate(new Date(transfer.transferDate))}</span>
+                    </div>
+                     {transfer.description && <p className="text-sm text-muted-foreground pt-2">{transfer.description}</p>}
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* From Account */}
+                    <div className="flex flex-col gap-3 rounded-lg border p-3">
+                        <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+                                <ArrowUp className="h-4 w-4 text-red-500" />
+                            </div>
+                            <div>
+                               <p className="font-semibold text-sm">از حساب</p>
+                               <p className="text-xs text-muted-foreground">{fromAccount.name} {fromAccount.owner}</p>
+                            </div>
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                            <BalanceChange label="موجودی قبل" amount={transfer.fromAccountBalanceBefore} type="before" />
+                            <div className="text-xs flex items-center gap-1 text-red-600">
+                                <span className="font-mono font-semibold">-{formatCurrency(transfer.amount, 'IRT').replace(' تومان', '')}</span>
+                            </div>
+                            <BalanceChange label="موجودی بعد" amount={transfer.fromAccountBalanceAfter} type="after" />
+                        </div>
+                    </div>
+                    {/* To Account */}
+                     <div className="flex flex-col gap-3 rounded-lg border p-3">
+                        <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
+                                <ArrowDown className="h-4 w-4 text-emerald-500" />
+                            </div>
+                            <div>
+                               <p className="font-semibold text-sm">به حساب</p>
+                               <p className="text-xs text-muted-foreground">{toAccount.name} {toAccount.owner}</p>
+                            </div>
+                        </div>
+                        <Separator />
+                         <div className="space-y-2">
+                            <BalanceChange label="موجودی قبل" amount={transfer.toAccountBalanceBefore} type="before" />
+                            <div className="text-xs flex items-center gap-1 text-emerald-600">
+                                <span className="font-mono font-semibold">+{formatCurrency(transfer.amount, 'IRT').replace(' تومان', '')}</span>
+                            </div>
+                            <BalanceChange label="موجودی بعد" amount={transfer.toAccountBalanceAfter} type="after" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    })}
+    </div>
   );
 }

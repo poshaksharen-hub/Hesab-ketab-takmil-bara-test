@@ -129,4 +129,8 @@ export type Transfer = {
     amount: number;
     transferDate: string;
     description?: string;
+    fromAccountBalanceBefore: number;
+    fromAccountBalanceAfter: number;
+    toAccountBalanceBefore: number;
+    toAccountBalanceAfter: number;
 }

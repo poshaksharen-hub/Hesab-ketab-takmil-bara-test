@@ -205,9 +205,13 @@
             "toBankAccountId": { "type": "string" },
             "amount": { "type": "number" },
             "transferDate": { "type": "string", "format": "date-time" },
-            "description": { "type": "string" }
+            "description": { "type": "string" },
+            "fromAccountBalanceBefore": { "type": "number" },
+            "fromAccountBalanceAfter": { "type": "number" },
+            "toAccountBalanceBefore": { "type": "number" },
+            "toAccountBalanceAfter": { "type": "number" }
         },
-        "required": ["id", "registeredByUserId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate"]
+        "required": ["id", "registeredByUserId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate", "fromAccountBalanceBefore", "fromAccountBalanceAfter", "toAccountBalanceBefore", "toAccountBalanceAfter"]
     }
   },
   "auth": {

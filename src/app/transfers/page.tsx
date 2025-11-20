@@ -2,9 +2,9 @@
 'use client';
 
 import React from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, addDoc, query, where, getDocs } from 'firebase/firestore';
-import type { BankAccount, Transfer, UserProfile, OwnerId } from '@/lib/types';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, doc, runTransaction } from 'firebase/firestore';
+import type { BankAccount, Transfer, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TransferForm } from '@/components/transfers/transfer-form';
@@ -22,7 +22,7 @@ export default function TransfersPage() {
   const { bankAccounts: allBankAccounts, users: allUsers, transfers } = allData;
 
 
-  const handleTransferSubmit = React.useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate'>) => {
+  const handleTransferSubmit = React.useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
     if (!user || !firestore || !allBankAccounts) return;
 
     if (values.fromBankAccountId === values.toBankAccountId) {
@@ -61,12 +61,17 @@ export default function TransfersPage() {
           throw new Error("موجودی قابل استفاده حساب مبدا برای این انتقال کافی نیست.");
         }
 
+        const fromBalanceBefore = fromCardData.balance;
+        const fromBalanceAfter = fromBalanceBefore - values.amount;
+        const toCardData = toCardDoc.data() as BankAccount;
+        const toBalanceBefore = toCardData.balance;
+        const toBalanceAfter = toBalanceBefore + values.amount;
+
         // Deduct from source account
-        transaction.update(fromCardRef, { balance: fromCardData.balance - values.amount });
+        transaction.update(fromCardRef, { balance: fromBalanceAfter });
 
         // Add to destination account
-        const toCardData = toCardDoc.data() as BankAccount;
-        transaction.update(toCardRef, { balance: toCardData.balance + values.amount });
+        transaction.update(toCardRef, { balance: toBalanceAfter });
         
         // Create a record of the transfer in the central collection
         const transferRef = doc(collection(firestore, `family-data/${FAMILY_DATA_DOC}/transfers`));
@@ -75,6 +80,10 @@ export default function TransfersPage() {
             id: transferRef.id,
             registeredByUserId: user.uid,
             transferDate: new Date().toISOString(),
+            fromAccountBalanceBefore: fromBalanceBefore,
+            fromAccountBalanceAfter: fromBalanceAfter,
+            toAccountBalanceBefore: toBalanceBefore,
+            toAccountBalanceAfter: toBalanceAfter,
         });
 
       });
@@ -123,14 +132,15 @@ export default function TransfersPage() {
         <div className="lg:col-span-3">
             {isLoading ? (
                 <div className="space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
                 </div>
             ) : (
                 <TransferList 
                     transfers={transfers || []}
                     bankAccounts={allBankAccounts}
+                    users={allUsers}
                 />
             )}
         </div>
