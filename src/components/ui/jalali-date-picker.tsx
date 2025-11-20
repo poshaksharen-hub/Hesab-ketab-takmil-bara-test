@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { Calendar } from "@hassanmojab/react-modern-calendar-datepicker";
+import Calendar from "@hassanmojab/react-modern-calendar-datepicker";
 import type { Day, Value } from "@hassanmojab/react-modern-calendar-datepicker";
 import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 
@@ -22,87 +22,82 @@ interface JalaliDatePickerProps {
   placeholder?: string;
 }
 
-const toDateObject = (date: Date | null): Day | null => {
+const toJalali = (date: Date | null): Day | null => {
     if (!date) return null;
-    const pDate = new Intl.DateTimeFormat('fa-IR-u-nu-latn', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    }).format(date).split('/');
+    const formattedDate = new Intl.DateTimeFormat('fa-IR-u-nu-latn', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
     
-    return {
-        year: parseInt(pDate[0]),
-        month: parseInt(pDate[1]),
-        day: parseInt(pDate[2])
-    };
+    const [year, month, day] = formattedDate.split('/').map(Number);
+    return { year, month, day };
 };
-
-const fromDateObject = (day: Day | null): Date | null => {
+  
+const fromJalali = (day: Day | null): Date | null => {
     if (!day) return null;
-    const dateStr = `${day.year}/${String(day.month).padStart(2, '0')}/${String(day.day).padStart(2, '0')}`;
     
-    // Convert Persian date string to Gregorian date
-    const gregDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tehran' }));
-    const persianDate = new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(gregDate);
-    const [pYear, pMonth, pDay] = persianDate.split('/').map(Number);
-    const [dYear, dMonth, dDay] = dateStr.split('/').map(Number);
-    
-    const yearDiff = dYear - pYear;
-    const monthDiff = dMonth - pMonth;
-    const dayDiff = dDay - pDay;
+    // A simple approximation for converting Jalali to Gregorian.
+    // For full accuracy, a dedicated library is better, but this avoids adding more dependencies.
+    // This is a known algorithm for conversion.
+    let gy, gm, gd;
+    let jy = day.year;
+    let jm = day.month;
+    let jd = day.day;
 
-    gregDate.setFullYear(gregDate.getFullYear() + yearDiff);
-    gregDate.setMonth(gregDate.getMonth() + monthDiff);
-    gregDate.setDate(gregDate.getDate() + dayDiff);
+    let g_days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let j_days_in_month = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29];
+
+    gy = jy + 621;
+    let jalali_day_no = 0;
+    for (let i = 0; i < jm - 1; i++) {
+        jalali_day_no += j_days_in_month[i];
+    }
+    jalali_day_no += jd;
+
+    let march_day = 0;
+    if ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0)) {
+        march_day = 20;
+    } else {
+        march_day = 21;
+    }
     
-    // This is a simplified conversion and might not be 100% accurate across all edge cases,
-    // but it's a common approach without a full conversion library.
-    // For full accuracy, a dedicated library would be better, but this avoids adding more dependencies.
-    // A simplified way is to create a date string recognized by `new Date` constructor with manual conversion.
-    // Let's go with a more stable approach.
-    const g = new Date(day.year, day.month - 1, day.day);
-    // This isn't correct. The Day object from the calendar is already a Jalali date. We need to convert it.
-    // The library does not provide a utility for this. A simple estimation:
-    const gregorianYear = day.year + 621;
-    // This is also not accurate. Let's use a standard library trick.
-    // Since we don't have a reliable library for conversion, let's format it to a string
-    // that the browser can parse, assuming the user's system locale can handle it.
-    // However, the best approach is to stick with the `Day` object and convert it properly.
-    // Let's go back to a simpler conversion logic that is generally "good enough" for many cases.
-    
-    // The issue is that `new Date(year, month, day)` assumes Gregorian.
-    // A robust solution is needed.
-    // Given the constraints, let's use a simple algorithm.
-     let G_y = day.year+621;
-     let days = [0,31,59,90,120,151,181,212,243,273,304,334];
-     let G_day_no = day.month > 6 ? (day.month - 7) * 30 + 186 + day.day : (day.month - 1) * 31 + day.day;
-     let G_days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-     if (((G_y % 4) == 0 && (G_y % 100) != 0) || ((G_y % 400) == 0)) {
-       G_days_in_month[1] = 29;
-     }
-     let i = 0;
-     for (i = 0; i < 12; i++) {
-       if (G_day_no <= G_days_in_month[i]) {
-         break;
-       }
-       G_day_no -= G_days_in_month[i];
-     }
-     return new Date(G_y, i, G_day_no);
+    let day_no = jalali_day_no + march_day -1;
+
+    if (day_no > 365) {
+        gy++;
+        day_no -= 365;
+        if ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0)) {
+            day_no--;
+        }
+    }
+
+    let i = 0;
+    for (i = 0; i < g_days_in_month.length; i++) {
+        if (day_no <= g_days_in_month[i]) {
+            break;
+        }
+        day_no -= g_days_in_month[i];
+    }
+    gm = i + 1;
+    gd = day_no;
+
+    return new Date(gy, gm - 1, gd);
 };
 
 
 export function JalaliDatePicker({ value, onChange, className, placeholder = "یک تاریخ انتخاب کنید" }: JalaliDatePickerProps) {
-  const [selectedDay, setSelectedDay] = useState<Value>(toDateObject(value));
+  const [selectedDay, setSelectedDay] = useState<Value>(toJalali(value));
   const [isOpen, setIsOpen] = useState(false);
   
   useEffect(() => {
-    setSelectedDay(toDateObject(value));
+    setSelectedDay(toJalali(value));
   }, [value]);
   
   const handleDayChange = (day: Value) => {
       setSelectedDay(day);
       if (day && !Array.isArray(day)) {
-        onChange(fromDateObject(day));
+        onChange(fromJalali(day));
       } else {
         onChange(null);
       }
