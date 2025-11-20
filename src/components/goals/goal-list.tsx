@@ -56,6 +56,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert }: GoalListP
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
     const userDetail = USER_DETAILS[ownerId];
+    if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };
 
@@ -63,7 +64,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert }: GoalListP
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {goals.map((goal) => {
-            const progress = (goal.currentAmount / goal.targetAmount) * 100;
+            const progress = (goal.targetAmount > 0) ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
             const isAchieved = goal.isAchieved;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(goal.ownerId);
 
