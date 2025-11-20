@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useEffect } from 'react';
 import { z } from 'zod';
@@ -23,10 +24,8 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { FinancialGoal, BankAccount } from '@/lib/types';
-import { Info } from 'lucide-react';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { cn, formatCurrency } from '@/lib/utils';
-import { Alert, AlertDescription } from '../ui/alert';
 import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
@@ -65,7 +64,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
 
   useEffect(() => {
     if (initialData) {
-      form.reset({ ...initialData, targetDate: new Date(initialData.targetDate), savedAmount: initialData.savedAmount || 0 });
+      form.reset({ ...initialData, targetDate: new Date(initialData.targetDate), savedAmount: initialData.savedAmount || 0, savedFromBankAccountId: initialData.savedFromBankAccountId || '' });
     } else {
       form.reset({
         name: '',
@@ -189,18 +188,22 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                             </FormControl>
                             <SelectContent>
                                 {bankAccounts.map((account) => {
-                                  const availableBalance = account.balance - (account.blockedBalance || 0);
+                                  const currentAvailableBalance = account.balance - (account.blockedBalance || 0);
+                                  // If editing, add back the currently blocked amount for this goal to show the "true" available balance
+                                  const displayBalance = (initialData && initialData.savedFromBankAccountId === account.id) 
+                                      ? currentAvailableBalance + (initialData.savedAmount || 0)
+                                      : currentAvailableBalance;
                                   return (
                                     <SelectItem key={account.id} value={account.id}>
-                                        {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(availableBalance, 'IRT')}`}
+                                        {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(displayBalance, 'IRT')})`}
                                     </SelectItem>
                                   )
                                 })}
                             </SelectContent>
                             </Select>
-                            {selectedBankAccount && (
+                             {selectedBankAccount && (
                                 <FormDescription>
-                                    موجودی در دسترس: {formatCurrency(availableBalance, 'IRT')}
+                                    موجودی قابل استفاده این حساب: {formatCurrency(availableBalance, 'IRT')}
                                 </FormDescription>
                             )}
                             <FormMessage />
@@ -232,3 +235,5 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     </Card>
   );
 }
+
+    
