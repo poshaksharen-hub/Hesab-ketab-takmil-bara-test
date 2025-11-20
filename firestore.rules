@@ -3,44 +3,22 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper Functions
+    // Helper function to check if the user is one of the two family members.
     function isFamilyMember() {
-      // IMPORTANT: Replace with the actual UIDs of the two family members
-      // For improved security, consider fetching these UIDs from a secure config document.
+      // The UIDs for Ali and Fatemeh.
       let familyUIDs = [
-          "gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2", 
-          "iwXrEC4MPze90eK0BExOdqMdTZ43"
+          "gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2", // Ali's UID
+          "iwXrEC4MPze90eK0BExOdqMdTZ43"  // Fatemeh's UID
       ];
       return request.auth != null && request.auth.uid in familyUIDs;
     }
     
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    // Users Collection
-    // Each of the two family members can create/update their own profile.
-    match /users/{userId} {
-      allow read: if isFamilyMember();
-      allow create: if isOwner(userId) && isFamilyMember();
-      allow update, delete: if isOwner(userId);
-    }
-
-    // Personal Bank Accounts, Categories, Payees
-    // Any family member can read/write to any family member's personal data.
-    match /users/{userId}/{collection}/{docId} {
+    // Grant full read/write access to all collections and documents
+    // for any authenticated family member.
+    // This single rule covers /users/{userId}, all its subcollections,
+    // and the /shared path.
+    match /{path=**} {
       allow read, write: if isFamilyMember();
-    }
-    
-    // Shared Bank Accounts
-    // Allow any family member to read and write to individual shared accounts.
-    match /shared/data/bankAccounts/{accountId} {
-      allow read, write: if isFamilyMember();
-    }
-    
-    // Allow any family member to list the entire collection of shared accounts.
-    match /shared/data/bankAccounts {
-      allow list: if isFamilyMember();
     }
   }
 }
