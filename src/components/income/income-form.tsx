@@ -66,7 +66,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
 
   useEffect(() => {
     if (initialData) {
-        const source = initialData.isShared ? 'shared' : initialData.userId;
+        const source = initialData.isShared ? 'shared' : (initialData.userId === USER_DETAILS.ali.id ? 'ali' : 'fatemeh');
         form.reset({ 
             ...initialData, 
             date: new Date(initialData.date),
@@ -88,7 +88,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   const getOwnerName = (account: BankAccount) => {
     if (account.isShared) return "(مشترک)";
     const owner = users.find(u => u.id === account.userId);
-    return owner ? `(${owner.firstName})` : "(ناشناس)";
+    return owner ? `(${owner.firstName})` : "(ناشناс)";
   };
 
   const availableAccounts = useMemo(() => {
@@ -96,32 +96,38 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     if (selectedSource === 'shared') {
       return bankAccounts.filter(acc => acc.isShared);
     }
-    // Personal source (userId)
-    return bankAccounts.filter(acc => acc.userId === selectedSource && !acc.isShared);
+    if (selectedSource === 'ali') {
+        return bankAccounts.filter(acc => acc.userId === USER_DETAILS.ali.id && !acc.isShared);
+    }
+    if (selectedSource === 'fatemeh') {
+        return bankAccounts.filter(acc => acc.userId === USER_DETAILS.fatemeh.id && !acc.isShared);
+    }
+    return [];
   }, [selectedSource, bankAccounts]);
 
   useEffect(() => {
-    // When the available accounts change (due to source changing),
-    // check if we should auto-select an account.
-    if(availableAccounts.length === 1) {
-        if(form.getValues('bankAccountId') !== availableAccounts[0].id) {
-            form.setValue('bankAccountId', availableAccounts[0].id);
+    // When the source changes, reset the bank account selection if it's no longer valid.
+    const currentBankAccountId = form.getValues('bankAccountId');
+    if (currentBankAccountId) {
+        const isCurrentAccountValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
+        if (!isCurrentAccountValid) {
+            form.setValue('bankAccountId', '');
         }
-    } else {
-       // If there are multiple options or no options, reset the selection,
-       // but only if the currently selected one is no longer valid.
-       const currentAccountId = form.getValues('bankAccountId');
-       if(currentAccountId && !availableAccounts.some(acc => acc.id === currentAccountId)) {
-           form.setValue('bankAccountId', '');
-       }
     }
-  }, [availableAccounts, selectedSource, form]);
+    
+    // Auto-select if there's only one option.
+    if (availableAccounts.length === 1 && form.getValues('bankAccountId') !== availableAccounts[0].id) {
+       form.setValue('bankAccountId', availableAccounts[0].id);
+    }
+  }, [selectedSource, availableAccounts, form]);
 
 
   function handleFormSubmit(data: IncomeFormValues) {
     if (!user) return;
     
     const isSharedIncome = data.source === 'shared';
+    const incomeOwnerId = data.source === 'ali' ? USER_DETAILS.ali.id : (data.source === 'fatemeh' ? USER_DETAILS.fatemeh.id : undefined);
+
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
@@ -129,7 +135,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         category: 'درآمد',
         registeredByUserId: user.uid,
         isShared: isSharedIncome,
-        userId: isSharedIncome ? undefined : data.source,
+        userId: incomeOwnerId,
     };
     onSubmit(submissionData);
   }
@@ -223,8 +229,8 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={USER_DETAILS.ali.id}>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
-                        <SelectItem value={USER_DETAILS.fatemeh.id}>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
+                        <SelectItem value='ali'>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
+                        <SelectItem value='fatemeh'>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
                          <SelectItem value="shared">شغل مشترک</SelectItem>
                       </SelectContent>
                     </Select>
@@ -241,7 +247,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
-                      disabled={!selectedSource || isBankAccountDisabled}
+                      disabled={!selectedSource || availableAccounts.length === 0 || isBankAccountDisabled}
                     >
                       <FormControl>
                         <SelectTrigger>
