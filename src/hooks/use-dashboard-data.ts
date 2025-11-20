@@ -16,6 +16,7 @@ import type {
   LoanPayment,
 } from '@/lib/types';
 import { USER_DETAILS } from '@/lib/constants';
+import type { DateRange } from 'react-day-picker';
 
 export type OwnerFilter = 'all' | string | 'shared';
 
@@ -67,7 +68,7 @@ const useAllCollections = () => {
         const unsubs: Unsubscribe[] = [];
 
         let collectionsLoaded = 0;
-        const totalCollectionsToLoad = subCollections.length * userIds.length;
+        const totalCollectionsToLoad = subCollections.length;
         
         let tempData: any = { };
         subCollections.forEach(sc => tempData[sc] = []);
@@ -83,29 +84,42 @@ const useAllCollections = () => {
         subCollections.forEach(colName => {
             let combinedData: any[] = [];
             let loadedForUsers = 0;
+
+            if (userIds.length === 0) {
+                checkLoadingDone();
+                return;
+            }
+
             userIds.forEach(uid => {
                 const q = query(collection(firestore, `users/${uid}/${colName}`));
                 const unsub = onSnapshot(q, (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as DocumentData[];
-                    // Find and replace data for this user
-                    const otherUsersData = combinedData.filter(item => item.userId !== uid);
+                    // This logic is complex, let's simplify to just combine
+                    const otherUsersData = combinedData.filter(item => {
+                        const itemOwner = item.userId || (item.members ? Object.keys(item.members)[0] : null);
+                        return itemOwner !== uid;
+                    });
+                    
                     combinedData = [...otherUsersData, ...data];
                     tempData[colName] = combinedData;
 
                     loadedForUsers++;
                     if(loadedForUsers === userIds.length) {
-                        checkLoadingDone();
+                         // Once all users for this subcollection are loaded, we can update state
+                        setAllData(prev => ({...prev, [colName]: combinedData}));
                     }
                 }, (error) => {
                     console.error(`Error fetching ${colName} for user ${uid}:`, error);
                     loadedForUsers++;
                     if(loadedForUsers === userIds.length) {
-                        checkLoadingDone();
+                        setAllData(prev => ({...prev, [colName]: combinedData}));
                     }
                 });
                 unsubs.push(unsub);
             });
+             checkLoadingDone(); // This assumes snapshot will eventually fire.
         });
+
 
         return () => {
             unsubs.forEach(unsub => unsub());
@@ -115,22 +129,26 @@ const useAllCollections = () => {
 
     // This effect combines personal and shared bank accounts once they are both loaded.
     useEffect(() => {
-        if (isLoadingUsers || isLoadingSharedAccounts) return;
-        
+        if (isLoadingUsers || isLoadingSharedAccounts) {
+            return;
+        }
+
         setAllData(prev => {
             const personalAccounts = prev.bankAccounts || [];
-            const combined = [
+            const combinedAccounts = [
                 ...personalAccounts,
                 ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
             ];
-            const uniqueAccounts = Array.from(new Map(combined.map(item => [item.id, item])).values());
+            
+            // Deduplicate accounts
+            const uniqueAccounts = Array.from(new Map(combinedAccounts.map(item => [item.id, item])).values());
+            
             return {
                 ...prev,
                 users: users || [],
                 bankAccounts: uniqueAccounts
             };
         });
-
     }, [users, sharedAccounts, isLoadingUsers, isLoadingSharedAccounts]);
 
 
@@ -141,7 +159,7 @@ const useAllCollections = () => {
 export function useDashboardData() {
   const { isLoading, allData } = useAllCollections();
   
-  const getFilteredData = (ownerFilter: OwnerFilter, dateRange?: { from: Date, to: Date }) => {
+  const getFilteredData = (ownerFilter: OwnerFilter, dateRange?: DateRange) => {
     
     const dateMatches = (dateStr: string) => {
         if (!dateRange || !dateRange.from || !dateRange.to) return true;
@@ -160,13 +178,20 @@ export function useDashboardData() {
     } else { // 'ali' or 'fatemeh'
         ownedAccountIds = allData.bankAccounts.filter(b => b.userId === ownerFilter && !b.isShared).map(b => b.id);
     }
+    
+    const filterByOwner = (item: Income | Expense) => {
+        if (ownerFilter === 'all') return true;
+        if (ownerFilter === 'shared') return item.source === 'shared' || allData.bankAccounts.find(ba => ba.id === item.bankAccountId)?.isShared;
+        return item.userId === ownerFilter;
+    }
 
-    const filteredIncomes = allData.incomes.filter(i => dateMatches(i.date) && ownedAccountIds.includes(i.bankAccountId));
-    const filteredExpenses = allData.expenses.filter(e => dateMatches(e.date) && ownedAccountIds.includes(e.bankAccountId));
+    const filteredIncomes = allData.incomes.filter(i => dateMatches(i.date) && filterByOwner(i));
+    const filteredExpenses = allData.expenses.filter(e => dateMatches(e.date) && filterByOwner(e));
     
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
     
+    // Global summaries should not be filtered by date/owner
     const totalAssets = allData.bankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
     const pendingChecksAmount = allData.checks
@@ -213,5 +238,3 @@ export function useDashboardData() {
     allData
   };
 }
-
-    

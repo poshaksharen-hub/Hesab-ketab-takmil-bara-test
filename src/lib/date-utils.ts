@@ -1,5 +1,4 @@
 import { set, addMonths, isPast, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, sub } from 'date-fns';
-import { DateRange } from '@/hooks/use-financial-summary';
 
 /**
  * Calculates the next due date for a recurring payment based on the start date and day of the month.
@@ -21,7 +20,7 @@ export function getNextDueDate(startDate: string | Date, paymentDay: number): Da
   return nextDueDate;
 }
 
-export function getDateRange(range: DateRange): { from: Date, to: Date } {
+export function getDateRange(range: 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'thisYear'): { from: Date, to: Date } {
     const now = new Date();
     switch (range) {
         case 'thisWeek':
