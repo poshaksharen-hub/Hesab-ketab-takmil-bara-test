@@ -53,19 +53,20 @@ export default function CardsPage() {
         });
     } else {
       // --- Create ---
-      const { isShared, owner, ...cardData } = values as any;
+      const { owner, ...cardData } = values as any;
       const newCardBase = {
         ...cardData,
         balance: values.initialBalance,
+        isShared: values.isShared
       };
 
-      if (isShared) {
+      if (values.isShared) {
         const members: { [key: string]: boolean } = {};
         allUsers.forEach(u => {
             members[u.id] = true;
         });
 
-        const newSharedCard = { ...newCardBase, members, userId: null, isShared: true };
+        const newSharedCard = { ...newCardBase, members, userId: null };
         const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
         addDoc(sharedColRef, newSharedCard)
           .then(() => {
@@ -86,7 +87,7 @@ export default function CardsPage() {
             return;
         }
 
-        const newCard = { ...newCardBase, userId: ownerId, isShared: false };
+        const newCard = { ...newCardBase, userId: ownerId };
         const userColRef = collection(firestore, 'users', ownerId, 'bankAccounts');
         addDoc(userColRef, newCard)
           .then(() => {
@@ -106,20 +107,25 @@ export default function CardsPage() {
     setEditingCard(null);
   };
 
-  const handleDelete = async (cardId: string, isShared: boolean) => {
+  const handleDelete = async (cardId: string) => {
     if (!user || !firestore || allUsers.length === 0) return;
     
     const userIds = allUsers.map(u => u.id);
+    const cardToDelete = allBankAccounts.find(c => c.id === cardId);
+
+    if (!cardToDelete) {
+        toast({ variant: 'destructive', title: 'خطا', description: 'کارت مورد نظر برای حذف یافت نشد.'});
+        return;
+    }
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const realCardId = cardId;
             let cardToDeleteRef;
             
-            // Comprehensive check across all users' collections
+            // Check for dependencies across all users first
             for (const userId of userIds) {
                 const checksRef = collection(firestore, 'users', userId, 'checks');
-                const pendingChecksQuery = query(checksRef, where('bankAccountId', '==', realCardId), where('status', '==', 'pending'));
+                const pendingChecksQuery = query(checksRef, where('bankAccountId', '==', cardId), where('status', '==', 'pending'));
                 const pendingChecksSnapshot = await transaction.get(pendingChecksQuery);
 
                 if (!pendingChecksSnapshot.empty) {
@@ -127,7 +133,7 @@ export default function CardsPage() {
                 }
 
                 const loanPaymentsRef = collection(firestore, 'users', userId, 'loanPayments');
-                const loanPaymentsQuery = query(loanPaymentsRef, where('bankAccountId', '==', realCardId));
+                const loanPaymentsQuery = query(loanPaymentsRef, where('bankAccountId', '==', cardId));
                 const loanPaymentsSnapshot = await transaction.get(loanPaymentsQuery);
                 
                 if(!loanPaymentsSnapshot.empty) {
@@ -135,19 +141,19 @@ export default function CardsPage() {
                 }
             }
             
-            let ownerId;
-            if (isShared) {
-                cardToDeleteRef = doc(firestore, 'shared', 'data', 'bankAccounts', realCardId);
+            // Determine the correct path to the card document
+            if (cardToDelete.isShared) {
+                cardToDeleteRef = doc(firestore, 'shared', 'data', 'bankAccounts', cardId);
             } else {
-                const cardOwner = allBankAccounts.find(c => c.id === cardId && !c.isShared);
-                ownerId = cardOwner?.userId;
-                if (!ownerId) throw new Error("مالک کارت شخصی برای حذف یافت نشد.");
-                cardToDeleteRef = doc(firestore, `users/${ownerId}/bankAccounts/${cardId}`);
+                if (!cardToDelete.userId) {
+                    throw new Error("مالک کارت شخصی برای حذف یافت نشد.");
+                }
+                cardToDeleteRef = doc(firestore, `users/${cardToDelete.userId}/bankAccounts/${cardId}`);
             }
 
              const cardDoc = await transaction.get(cardToDeleteRef);
              if (!cardDoc.exists()) {
-                 throw new Error("کارت بانکی برای حذف یافت نشد.");
+                 throw new Error("کارت بانکی برای حذف در پایگاه داده یافت نشد.");
              }
              transaction.delete(cardToDeleteRef);
         });

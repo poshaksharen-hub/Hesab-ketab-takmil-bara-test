@@ -24,11 +24,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUser } from '@/firebase';
+import { USER_DETAILS } from '@/lib/constants';
 
 interface CardListProps {
   cards: BankAccount[];
   onEdit: (card: BankAccount) => void;
-  onDelete: (cardId: string, isShared: boolean) => void;
+  onDelete: (cardId: string) => void;
   users: UserProfile[];
 }
 
@@ -66,6 +67,16 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
     const owner = users.find(u => u.id === card.userId);
     return owner ? `${owner.firstName} ${owner.lastName}` : "ناشناس";
   };
+  
+  const sortedCards = [...cards].sort((a, b) => {
+    if (a.isShared && !b.isShared) return 1;
+    if (!a.isShared && b.isShared) return -1;
+    const ownerA = users.find(u => u.id === a.userId)?.firstName || '';
+    const ownerB = users.find(u => u.id === b.userId)?.firstName || '';
+    if (ownerA < ownerB) return -1;
+    if (ownerA > ownerB) return 1;
+    return 0;
+  });
 
   if (cards.length === 0) {
     return (
@@ -82,7 +93,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
 
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        {cards.map((card) => (
+        {sortedCards.map((card) => (
             <div key={card.id} className={cn("relative rounded-xl p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-all hover:scale-[1.02]", themeClasses[card.theme || 'blue'])}>
                 <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
                 <div className='relative z-10 flex justify-between items-start'>
@@ -114,7 +125,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                     <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDelete(card.id, !!card.isShared)}>
+                                    <AlertDialogAction onClick={() => onDelete(card.id)}>
                                         بله، حذف کن
                                     </AlertDialogAction>
                                     </AlertDialogFooter>
