@@ -56,6 +56,7 @@ export default function CardsPage() {
       const { isShared, owner, ...cardData } = values as any;
       const newCardBase = {
         ...cardData,
+        isShared: isShared,
         balance: values.initialBalance,
       };
 
@@ -65,7 +66,7 @@ export default function CardsPage() {
             members[u.id] = true;
         });
 
-        const newSharedCard = { ...newCardBase, members };
+        const newSharedCard = { ...newCardBase, members, userId: null };
         const sharedColRef = collection(firestore, 'shared', 'data', 'bankAccounts');
         addDoc(sharedColRef, newSharedCard)
           .then(() => {
