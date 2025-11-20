@@ -91,16 +91,24 @@ export default function ChecksPage() {
         const bankAccountDoc = await transaction.get(bankAccountRef);
         if (!bankAccountDoc.exists()) throw new Error("حساب بانکی یافت نشد.");
 
-        const availableBalance = bankAccountDoc.data()!.balance - (bankAccountDoc.data()!.blockedBalance || 0);
+        const bankAccountData = bankAccountDoc.data()!;
+        const availableBalance = bankAccountData.balance - (bankAccountData.blockedBalance || 0);
 
         if (availableBalance < check.amount) {
           throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
         }
 
-        transaction.update(checkRef, { status: 'cleared' });
-        const newBalance = bankAccountDoc.data()!.balance - check.amount;
-        transaction.update(bankAccountRef, { balance: newBalance });
+        const clearedDate = new Date().toISOString();
+        const balanceBefore = bankAccountData.balance;
+        const balanceAfter = balanceBefore - check.amount;
 
+        // Update check status and cleared date
+        transaction.update(checkRef, { status: 'cleared', clearedDate });
+        
+        // Update bank account balance
+        transaction.update(bankAccountRef, { balance: balanceAfter });
+
+        // Create the corresponding expense
         const expenseRef = doc(expensesColRef);
         transaction.set(expenseRef, {
             id: expenseRef.id,
@@ -109,11 +117,13 @@ export default function ChecksPage() {
             amount: check.amount,
             bankAccountId: check.bankAccountId,
             categoryId: check.categoryId,
-            date: new Date().toISOString(),
+            date: clearedDate,
             description: `پاس کردن چک به: ${payees?.find(p => p.id === check.payeeId)?.name || 'نامشخص'}`,
             type: 'expense',
             checkId: check.id,
             createdAt: serverTimestamp(),
+            balanceBefore: balanceBefore,
+            balanceAfter: balanceAfter,
         });
       });
       toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });

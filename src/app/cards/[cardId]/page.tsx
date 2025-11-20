@@ -107,6 +107,12 @@ export default function CardTransactionsPage() {
     ].sort((a, b) => {
         const dateA = a.type === 'transfer' ? new Date(a.transferDate) : new Date(a.date);
         const dateB = b.type === 'transfer' ? new Date(b.transferDate) : new Date(b.date);
+        if (dateA.getTime() === dateB.getTime()) {
+            // If dates are identical, we need a tie-breaker.
+            // Let's assume transfers happen 'after' income/expense for ordering purposes.
+            if (a.type === 'transfer' && b.type !== 'transfer') return -1;
+            if (a.type !== 'transfer' && b.type === 'transfer') return 1;
+        }
         return dateB.getTime() - dateA.getTime();
     });
 
@@ -114,8 +120,8 @@ export default function CardTransactionsPage() {
     const ledgerWithBalances: TransactionWithBalances[] = [];
 
     for (const tx of allTransactions) {
-      if (tx.type === 'transfer') {
-          // Balances are pre-calculated for transfers
+      if (tx.type === 'transfer' || (tx.type === 'expense' && tx.balanceAfter !== undefined && tx.balanceBefore !== undefined)) {
+          // Balances are pre-calculated for transfers and check-related expenses
           ledgerWithBalances.push(tx as TransactionWithBalances);
           continue;
       }
@@ -132,7 +138,8 @@ export default function CardTransactionsPage() {
       ledgerWithBalances.push({ ...tx, balanceBefore, balanceAfter });
       currentBalance = balanceBefore;
     }
-
+    
+    // Final sort by after-balance to ensure chronological accuracy
     return { card: cardAccount, ledger: ledgerWithBalances.sort((a, b) => b.balanceAfter - a.balanceAfter) };
   }, [isLoading, cardId, incomes, expenses, transfers, bankAccounts]);
 

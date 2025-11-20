@@ -35,6 +35,8 @@ export type Expense = {
   loanPaymentId?: string;
   createdAt: any;
   updatedAt?: any;
+  balanceBefore?: number;
+  balanceAfter?: number;
 };
 
 
@@ -82,6 +84,7 @@ export type Check = {
     issueDate: string;
     dueDate: string;
     status: 'pending' | 'cleared';
+    clearedDate?: string;
     description?: string;
 }
 

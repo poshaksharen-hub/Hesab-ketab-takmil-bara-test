@@ -66,8 +66,11 @@ export default function PayeeDetailPage() {
     const relatedExpenses = expenses.filter(e => e.payeeId === payeeId);
     const relatedChecks = checks.filter(c => c.payeeId === payeeId);
     const relatedLoans = loans.filter(l => l.payeeId === payeeId);
+    
+    const clearedCheckExpenses = expenses.filter(e => e.checkId && relatedChecks.some(rc => rc.id === e.checkId));
 
-    const totalCashPayment = relatedExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalCashPayment = relatedExpenses.reduce((sum, e) => sum + e.amount, 0) + clearedCheckExpenses.reduce((sum, e) => sum + e.amount, 0);
+
     const pendingChecks = relatedChecks.filter(c => c.status === 'pending');
     const totalPendingChecksAmount = pendingChecks.reduce((sum, c) => sum + c.amount, 0);
     const totalLoanAmount = relatedLoans.reduce((sum, l) => sum + l.remainingAmount, 0);
@@ -181,12 +184,12 @@ export default function PayeeDetailPage() {
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">کل پرداخت نقدی</CardTitle>
+                <CardTitle className="text-sm font-medium">کل وجوه پرداخت شده</CardTitle>
                 <HandCoins className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(summary.totalCashPayment || 0, 'IRT')}</div>
-                <p className="text-xs text-muted-foreground">مجموع هزینه‌های ثبت شده برای این شخص</p>
+                <p className="text-xs text-muted-foreground">مجموع هزینه‌های نقدی و چک‌های پاس شده</p>
             </CardContent>
         </Card>
          <Card>
