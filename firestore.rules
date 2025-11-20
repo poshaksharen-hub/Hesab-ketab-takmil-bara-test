@@ -3,7 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if the user is one of the two family members based on email.
     function isFamilyMember() {
       // The allowed emails for Ali and Fatemeh.
       let familyEmails = [
@@ -13,12 +12,14 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email in familyEmails;
     }
     
-    // Grant full read/write access to all collections and documents
-    // for any authenticated family member.
-    // This single rule covers /users/{userId}, all its subcollections,
-    // and the /shared path.
-    match /{path=**} {
+    // Rule for user-specific data
+    match /users/{userId}/{path=**} {
       allow read, write: if isFamilyMember();
+    }
+
+    // Explicit rule for the shared data collection
+    match /shared/{path=**} {
+       allow read, write: if isFamilyMember();
     }
   }
 }
