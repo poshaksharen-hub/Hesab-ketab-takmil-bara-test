@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CalendarCheck2, RotateCcw } from 'lucide-react';
+import { Edit, Trash2, CalendarCheck2, ArrowLeft } from 'lucide-react';
 import type { Loan, LoanPayment, Payee } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -21,6 +21,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { getNextDueDate } from '@/lib/date-utils';
+import Link from 'next/link';
+
 
 interface LoanListProps {
   loans: Loan[];
@@ -52,7 +54,7 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
   }
 
   const getLoanStatus = (loan: Loan) => {
-    if (loan.paidInstallments >= loan.numberOfInstallments) {
+    if (loan.paidInstallments >= loan.numberOfInstallments && loan.numberOfInstallments > 0) {
       return <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">تکمیل شده</Badge>;
     }
     const nextDueDate = getNextDueDate(loan.startDate, loan.paymentDay);
@@ -69,71 +71,52 @@ export function LoanList({ loans, loanPayments, payees, onEdit, onDelete, onPay 
     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {loans.sort((a, b) => a.paidInstallments - b.paidInstallments).map((loan) => {
             const progress = (loan.paidInstallments / loan.numberOfInstallments) * 100;
-            const isCompleted = loan.paidInstallments >= loan.numberOfInstallments;
+            const isCompleted = loan.numberOfInstallments > 0 && loan.paidInstallments >= loan.numberOfInstallments;
 
             return (
-            <Card key={loan.id} className={cn("flex flex-col justify-between shadow-lg", isCompleted && "bg-muted/50")}>
-                <CardHeader>
-                    <div className='flex justify-between items-start'>
-                        <div className="space-y-1">
-                            <CardTitle className={cn(isCompleted && "text-muted-foreground line-through")}>{loan.title}</CardTitle>
-                             <CardDescription>
-                                {getLoanStatus(loan)}
-                                {loan.payeeId && <span className="mr-2 text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
-                            </CardDescription>
+             <div key={loan.id} className="relative group">
+              <Link href={`/loans/${loan.id}`} className="block cursor-pointer">
+                <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
+                    <CardHeader>
+                        <div className='flex justify-between items-start'>
+                            <div className="space-y-1">
+                                <CardTitle className={cn("font-headline", isCompleted && "text-muted-foreground line-through")}>{loan.title}</CardTitle>
+                                <CardDescription>
+                                    {getLoanStatus(loan)}
+                                    {loan.payeeId && <span className="mr-2 text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
+                                </CardDescription>
+                            </div>
+                           <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ArrowLeft className="h-4 w-4" />
+                           </Button>
                         </div>
-                        <div className="flex gap-1">
-                            {!isCompleted && (
-                                <Button variant="ghost" size="icon" onClick={() => onEdit(loan)}>
-                                    <Edit className="h-4 w-4" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            <div className="flex justify-between text-sm text-muted-foreground">
+                                <span>{formatCurrency(loan.remainingAmount, 'IRT')}</span>
+                                <span>{formatCurrency(loan.amount, 'IRT')}</span>
+                            </div>
+                            <Progress value={100 - (loan.remainingAmount / loan.amount) * 100} className="h-2" />
+                            <div className="flex justify-between text-xs text-muted-foreground text-center">
+                                <span>{`${loan.numberOfInstallments - loan.paidInstallments} قسط باقی‌مانده`}</span>
+                                <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments} قسط پرداخت شده`}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                    {!isCompleted && (
+                        <CardFooter>
+                            <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}} className="w-full">
+                                <Button className="w-full">
+                                    <CalendarCheck2 className="ml-2 h-4 w-4" />
+                                    پرداخت قسط
                                 </Button>
-                            )}
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        این عمل تمام سوابق پرداخت و هزینه‌های مربوط به این وام را نیز حذف خواهد کرد. این عملیات غیرقابل بازگشت است.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDelete(loan.id)}>
-                                        بله، حذف کن
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>{formatCurrency(loan.remainingAmount, 'IRT')}</span>
-                            <span>{formatCurrency(loan.amount, 'IRT')}</span>
-                        </div>
-                        <Progress value={100 - (loan.remainingAmount / loan.amount) * 100} className="h-2" />
-                         <div className="flex justify-between text-xs text-muted-foreground text-center">
-                            <span>{`${loan.numberOfInstallments - loan.paidInstallments} قسط باقی‌مانده`}</span>
-                            <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments} قسط پرداخت شده`}</span>
-                        </div>
-                    </div>
-                </CardContent>
-                {!isCompleted && (
-                     <CardFooter>
-                        <Button className="w-full" onClick={() => onPay(loan)}>
-                            <CalendarCheck2 className="ml-2 h-4 w-4" />
-                            پرداخت قسط
-                        </Button>
-                    </CardFooter>
-                )}
-            </Card>
+                            </div>
+                        </CardFooter>
+                    )}
+                </Card>
+              </Link>
+             </div>
         )})}
     </div>
   );
