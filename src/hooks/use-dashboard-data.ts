@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, getDocs, query, where, DocumentData } from 'firebase/firestore';
+import { collection, getDocs, query, where, DocumentData, onSnapshot } from 'firebase/firestore';
 import type {
   Income,
   Expense,
@@ -13,8 +13,8 @@ import type {
   Loan,
   Payee,
   Transfer,
+  LoanPayment,
 } from '@/lib/types';
-import { USER_DETAILS } from '@/lib/constants';
 
 export type OwnerFilter = 'all' | string | 'shared';
 
@@ -29,211 +29,91 @@ type AllData = {
   loans: Loan[];
   payees: Payee[];
   transfers: Transfer[];
-  loanPayments: any[]; // Assuming loanPayments might be needed later
+  loanPayments: LoanPayment[];
 };
 
 const useAllCollections = () => {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
 
-    const usersQuery = useMemoFirebase(
-        () => (firestore ? collection(firestore, 'users') : null),
-        [firestore]
-    );
-    const { data: users = [], isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
-
-    const userIds = useMemo(() => users.map(u => u.id), [users]);
-
-    const useSubCollection = <T>(collectionName: string) => {
-        const queries = useMemoFirebase(() => {
-            if (!firestore || userIds.length === 0) return [];
-            return userIds.map(uid => collection(firestore, 'users', uid, collectionName));
-        }, [firestore, userIds]);
-
-        const [data, setData] = useState<T[]>([]);
-        const [isLoading, setIsLoading] = useState(true);
-
-        useEffect(() => {
-            if (queries.length === 0) {
-                setIsLoading(false);
-                return;
-            }
-            setIsLoading(true);
-            const unsubscribers = queries.map(q => 
-                onSnapshot(q, (snapshot) => {
-                     // This part needs to aggregate results carefully
-                })
-            );
-            
-            Promise.all(queries.map(q => getDocs(q))).then(snapshots => {
-                const allDocs = snapshots.flatMap(snap => snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as T)));
-                setData(allDocs);
-                setIsLoading(false);
-            }).catch(() => setIsLoading(false));
-
-        }, [queries]);
-
-        return { data, isLoading };
-    };
-
-    const incomesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users', userIds[0] || 'a', 'incomes')) : null, [firestore, userIds]);
-    const { data: user1Incomes } = useCollection<Income>(incomesQuery);
-    
-    // This is getting very complex to do with individual hooks.
-    // Let's stick to a single smart fetch logic inside a main useEffect.
     const [allData, setAllData] = useState<AllData>({
         users: [], incomes: [], expenses: [], bankAccounts: [], categories: [], checks: [], 
         goals: [], loans: [], payees: [], transfers: [], loanPayments: []
     });
     const [isLoadingData, setIsLoadingData] = useState(true);
 
-    useEffect(() => {
-        if (!firestore || isAuthLoading) return;
-        
-        setIsLoadingData(true);
+    const usersQuery = useMemoFirebase(
+        () => (firestore ? collection(firestore, 'users') : null),
+        [firestore]
+    );
+    const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
 
-        // 1. Listen to users
-        const usersUnsub = onSnapshot(collection(firestore, 'users'), (usersSnapshot) => {
-            const userProfiles = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
-            setAllData(prev => ({ ...prev, users: userProfiles }));
+    const userIds = useMemo(() => (users || []).map(u => u.id), [users]);
 
-            const userIds = userProfiles.map(u => u.id);
-            if (userIds.length === 0) {
-                setIsLoadingData(false);
-                return;
-            }
-
-            const collectionsToFetch = [
-                'incomes', 'expenses', 'categories', 'checks', 'financialGoals', 
-                'loans', 'payees', 'transfers', 'bankAccounts', 'loanPayments'
-            ];
-
-            // 2. Listen to all subcollections for all users
-            const subCollectionUnsubs = collectionsToFetch.map(colName => {
-                const unsubscribers = userIds.map(uid => {
-                    return onSnapshot(collection(firestore, 'users', uid, colName), () => {
-                         // This is just to trigger a refetch, the actual fetch is below
-                    });
-                });
-                return unsubscribers;
-            }).flat();
-
-            // 3. Listen to shared bank accounts
-            const sharedAccountsUnsub = onSnapshot(collection(firestore, 'shared/data/bankAccounts'), () => {
-                // Trigger refetch
-            });
-
-            // Initial fetch and refetch logic
-            constfetchAllData = async () => {
-                try {
-                    const fetchedData: any = {};
-                    for (const colName of collectionsToFetch) {
-                        const userPromises = userIds.map(uid => getDocs(collection(firestore, 'users', uid, colName)));
-                        const snapshots = await Promise.all(userPromises);
-                        fetchedData[colName] = snapshots.flatMap(snap => snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-                    }
-
-                    const sharedAccountsSnap = await getDocs(collection(firestore, 'shared/data/bankAccounts'));
-                    const sharedAccounts = sharedAccountsSnap.docs.map(doc => ({ ...doc.data(), id: doc.id, isShared: true }));
-                    
-                    fetchedData['bankAccounts'] = [...(fetchedData['bankAccounts'] || []), ...sharedAccounts];
-                    
-                    setAllData(prev => ({ ...prev, ...fetchedData }));
-
-                } catch (e) {
-                    console.error("Error fetching all data", e);
-                } finally {
-                    setIsLoadingData(false);
-                }
-            };
-            
-            // This is a simplified listener, a full implementation would merge results
-            const masterUnsub = onSnapshot(query(collection(firestore, 'users')), () => {
-                fetchAllData();
-            });
-
-            return () => {
-                usersUnsub();
-                subCollectionUnsubs.forEach(unsub => unsub());
-                sharedAccountsUnsub();
-                masterUnsub();
-            };
-
-        }, (error) => {
-            console.error("Error listening to users collection:", error);
-            setIsLoadingData(false);
-        });
-
-        return () => usersUnsub();
-
-    }, [firestore, isAuthLoading]);
-
-
-    // Let's simplify and go back to a useEffect fetch but make it real-time.
-    // The previous logic was getting too complex. The simplest way is to listen to all collections.
+    const sharedAccountsQuery = useMemoFirebase(
+        () => (firestore ? collection(firestore, 'shared', 'data', 'bankAccounts') : null),
+        [firestore]
+    );
+    const { data: sharedAccounts, isLoading: isLoadingSharedAccounts } = useCollection<BankAccount>(sharedAccountsQuery);
 
     useEffect(() => {
-        if (!firestore || isAuthLoading) return;
-        setIsLoadingData(true);
+        if (isLoadingUsers || isLoadingSharedAccounts) {
+            setIsLoadingData(true);
+            return;
+        }
 
-        const collections = [
-            { path: 'users', setter: (data: any) => setAllData(prev => ({...prev, users: data})) },
-            { path: 'shared/data/bankAccounts', setter: (data: any) => setAllData(prev => ({...prev, bankAccounts: [...prev.bankAccounts.filter(b => !b.isShared), ...data.map((d:any) => ({...d, isShared: true}))]}))},
+        const combinedBankAccounts = [
+            ...(allData.bankAccounts.filter(b => !b.isShared)), // Keep personal accounts from subcollections
+            ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
         ];
+        
+        setAllData(prev => ({
+            ...prev,
+            users: users || [],
+            bankAccounts: combinedBankAccounts
+        }));
 
+    }, [users, sharedAccounts, isLoadingUsers, isLoadingSharedAccounts]);
+
+
+    useEffect(() => {
+        if (!firestore || userIds.length === 0) {
+            if (!isLoadingUsers) setIsLoadingData(false);
+            return;
+        }
+
+        setIsLoadingData(true);
         const subCollections = ['incomes', 'expenses', 'categories', 'checks', 'financialGoals', 'loans', 'payees', 'transfers', 'bankAccounts', 'loanPayments'];
+        
+        const unsubs = subCollections.flatMap(colName => 
+            userIds.map(uid => {
+                const q = collection(firestore, `users/${uid}/${colName}`);
+                return onSnapshot(q, (snapshot) => {
+                    const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, userId: uid }));
+                    setAllData(prev => {
+                        const otherUserData = (prev as any)[colName].filter((item: any) => item.userId !== uid);
+                        const updatedCollection = [...otherUserData, ...data];
+                        
+                        if(colName === 'bankAccounts') {
+                            const personalAccounts = updatedCollection;
+                            const sharedAccountsFromState = prev.bankAccounts.filter(b => b.isShared);
+                            return { ...prev, bankAccounts: [...personalAccounts, ...sharedAccountsFromState] };
+                        }
 
-        const unsubs: (() => void)[] = [];
-
-        // Listener for top-level collections
-        collections.forEach(c => {
-            const q = collection(firestore, c.path);
-            const unsub = onSnapshot(q, (snapshot) => {
-                const data = snapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
-                c.setter(data);
-            }, console.error);
-            unsubs.push(unsub);
-        });
-
-        // This part is tricky. We need to listen to subcollections of users that might not be loaded yet.
-        // The best approach is to first get users, then attach listeners.
-        const usersUnsub = onSnapshot(collection(firestore, 'users'), (usersSnapshot) => {
-            const userProfiles = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
-            setAllData(prev => ({ ...prev, users: userProfiles }));
-            const userIds = userProfiles.map(u => u.id);
-
-            // Clear old subcollection data
-            subCollections.forEach(sc => {
-                setAllData(prev => ({ ...prev, [sc]: [] }));
-            });
-
-            if(userIds.length > 0) {
-                // Listen to all subcollections for all users
-                 subCollections.forEach(colName => {
-                    userIds.forEach(uid => {
-                        const subCollUnsub = onSnapshot(collection(firestore, `users/${uid}/${colName}`), (snapshot) => {
-                            const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                             setAllData(prev => {
-                                const existing = (prev as any)[colName].filter((item: any) => item.userId !== uid);
-                                return {...prev, [colName]: [...existing, ...data]}
-                            });
-                        });
-                         unsubs.push(subCollUnsub);
+                        return { ...prev, [colName]: updatedCollection };
                     });
                 });
-            }
-        });
-        unsubs.push(usersUnsub);
+            })
+        );
         
-        // This is to set the final loading state
-        const timer = setTimeout(() => setIsLoadingData(false), 2000); // Heuristic loading time
+        const timer = setTimeout(() => setIsLoadingData(false), 2500); // Heuristic loading time
         unsubs.push(() => clearTimeout(timer));
 
         return () => {
             unsubs.forEach(unsub => unsub());
         };
+    }, [firestore, userIds, isLoadingUsers]);
 
-    }, [firestore, isAuthLoading]);
 
     return { isLoading: isLoadingData, allData };
 };
@@ -257,10 +137,12 @@ export function useDashboardData() {
       return account?.isShared || false;
     };
 
-    const getOwnerId = (item: { userId?: string, bankAccountId?: string }) => {
+    const getOwnerId = (item: { userId?: string, bankAccountId?: string, isShared?: boolean }) => {
+        if (item.isShared) return 'shared';
+
         const account = item.bankAccountId ? bankAccounts.find(ba => ba.id === item.bankAccountId) : null;
         if (account) {
-            return account.isShared ? 'shared' : account.userId;
+            return account.userId;
         }
         return item.userId;
     };
@@ -283,6 +165,7 @@ export function useDashboardData() {
         const personalIncomes = filteredIncomes.filter(i => !isSharedTx(i) && getOwnerId(i) === ownerFilter);
         const personalExpenses = filteredExpenses.filter(e => !isSharedTx(e) && getOwnerId(e) === ownerFilter);
         
+        // In personal view, we show their personal tx + half of shared tx
         const sharedIncomes = filteredIncomes.filter(isSharedTx);
         const sharedExpenses = filteredExpenses.filter(isSharedTx);
 
@@ -292,6 +175,7 @@ export function useDashboardData() {
         totalExpense = personalExpenses.reduce((sum, e) => sum + e.amount, 0) +
                        sharedExpenses.reduce((sum, e) => sum + e.amount * 0.5, 0);
 
+        // The list should contain personal tx and all shared tx
         filteredIncomes = [...personalIncomes, ...sharedIncomes];
         filteredExpenses = [...personalExpenses, ...sharedExpenses];
     }
@@ -299,14 +183,14 @@ export function useDashboardData() {
     const ownerMatches = (item: any) => {
         const ownerId = getOwnerId(item);
         if (ownerFilter === 'all') return true;
-        if (ownerFilter === 'shared') return ownerId === 'shared';
-        return ownerId === ownerFilter;
+        if (ownerFilter === 'shared') return item.isShared;
+        return ownerId === ownerFilter && !item.isShared;
     };
     
     const filteredBankAccounts = bankAccounts.filter(ownerMatches);
-    const filteredChecks = checks.filter(ownerMatches);
-    const filteredLoans = loans.filter(ownerMatches);
-    const filteredGoals = goals.filter(ownerMatches);
+    const filteredChecks = checks.filter(c => getOwnerId(c) === ownerFilter || ownerFilter === 'all');
+    const filteredLoans = loans.filter(l => getOwnerId(l) === ownerFilter || ownerFilter === 'all');
+    const filteredGoals = goals.filter(g => getOwnerId(g) === ownerFilter || ownerFilter === 'all');
 
     const totalAssets = filteredBankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
@@ -318,7 +202,7 @@ export function useDashboardData() {
     const totalLiabilities = pendingChecksAmount + remainingLoanAmount;
     const netWorth = totalAssets - totalLiabilities;
     
-    const allTransactions = [...incomes, ...expenses].sort((a, b) => {
+    const allTransactions = [...filteredIncomes, ...filteredExpenses].sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.date);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.date);
         return dateB.getTime() - dateA.getTime();
@@ -345,14 +229,14 @@ export function useDashboardData() {
       details: {
         incomes: filteredIncomes,
         expenses: filteredExpenses,
-        checks: filteredChecks,
-        loans: filteredLoans,
-        goals: filteredGoals,
+        checks: allData.checks, // Show all checks/loans/etc. in detail views
+        loans: allData.loans,
+        goals: allData.goals,
         transactions: allTransactions,
         payees,
         categories,
         users,
-        bankAccounts: filteredBankAccounts,
+        bankAccounts: allData.bankAccounts, // Pass all accounts to detail views for lookups
       },
       allData,
     };
@@ -364,5 +248,3 @@ export function useDashboardData() {
     allData
   };
 }
-
-    
