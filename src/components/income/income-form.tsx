@@ -66,7 +66,15 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
 
   useEffect(() => {
     if (initialData) {
-        const source = initialData.isShared ? 'shared' : (initialData.userId === USER_DETAILS.ali.id ? 'ali' : 'fatemeh');
+        let source;
+        if (initialData.isShared) {
+            source = 'shared';
+        } else if (initialData.userId === USER_DETAILS.ali.id) {
+            source = 'ali';
+        } else if (initialData.userId === USER_DETAILS.fatemeh.id) {
+            source = 'fatemeh';
+        }
+
         form.reset({ 
             ...initialData, 
             date: new Date(initialData.date),
@@ -85,39 +93,32 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
 
   const selectedSource = form.watch('source');
   
-  const getOwnerName = (account: BankAccount) => {
+  const getOwnerName = useCallback((account: BankAccount) => {
     if (account.isShared) return "(مشترک)";
+    if (!users || users.length === 0) return "(ناشناس)";
     const owner = users.find(u => u.id === account.userId);
-    return owner ? `(${owner.firstName})` : "(ناشناс)";
-  };
+    return owner ? `(${owner.firstName})` : "(ناشناس)";
+  }, [users]);
 
   const availableAccounts = useMemo(() => {
-    if (!selectedSource) return [];
+    if (!selectedSource || !bankAccounts) return [];
     if (selectedSource === 'shared') {
       return bankAccounts.filter(acc => acc.isShared);
     }
-    if (selectedSource === 'ali') {
-        return bankAccounts.filter(acc => acc.userId === USER_DETAILS.ali.id && !acc.isShared);
-    }
-    if (selectedSource === 'fatemeh') {
-        return bankAccounts.filter(acc => acc.userId === USER_DETAILS.fatemeh.id && !acc.isShared);
-    }
-    return [];
+    const targetUserId = selectedSource === 'ali' ? USER_DETAILS.ali.id : USER_DETAILS.fatemeh.id;
+    return bankAccounts.filter(acc => acc.userId === targetUserId && !acc.isShared);
   }, [selectedSource, bankAccounts]);
 
   useEffect(() => {
-    // When the source changes, reset the bank account selection if it's no longer valid.
     const currentBankAccountId = form.getValues('bankAccountId');
-    if (currentBankAccountId) {
-        const isCurrentAccountValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
-        if (!isCurrentAccountValid) {
+    const isCurrentAccountValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
+
+    if (!isCurrentAccountValid) {
+        if (availableAccounts.length === 1) {
+            form.setValue('bankAccountId', availableAccounts[0].id);
+        } else {
             form.setValue('bankAccountId', '');
         }
-    }
-    
-    // Auto-select if there's only one option.
-    if (availableAccounts.length === 1 && form.getValues('bankAccountId') !== availableAccounts[0].id) {
-       form.setValue('bankAccountId', availableAccounts[0].id);
     }
   }, [selectedSource, availableAccounts, form]);
 
@@ -126,7 +127,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     if (!user) return;
     
     const isSharedIncome = data.source === 'shared';
-    const incomeOwnerId = data.source === 'ali' ? USER_DETAILS.ali.id : (data.source === 'fatemeh' ? USER_DETAILS.fatemeh.id : undefined);
+    const incomeOwnerId = isSharedIncome ? undefined : (data.source === 'ali' ? USER_DETAILS.ali.id : USER_DETAILS.fatemeh.id);
 
     const submissionData = {
         ...data,
@@ -231,7 +232,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                       <SelectContent>
                         <SelectItem value='ali'>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
                         <SelectItem value='fatemeh'>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
-                         <SelectItem value="shared">شغل مشترک</SelectItem>
+                        <SelectItem value="shared">شغل مشترک</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

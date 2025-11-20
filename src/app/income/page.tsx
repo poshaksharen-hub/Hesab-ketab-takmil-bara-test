@@ -27,8 +27,8 @@ export default function IncomePage() {
 
   const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user || !firestore || !allBankAccounts) return;
+  const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' >) => {
+    if (!user || !firestore || !allBankAccounts || !allUsers) return;
   
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -49,6 +49,7 @@ export default function IncomePage() {
         if (editingIncome) {
           // --- Edit Mode ---
           const isOldIncomeShared = editingIncome.source === 'shared' || editingIncome.isShared;
+          
           const oldIncomeRef = isOldIncomeShared
             ? doc(firestore, 'shared/data/incomes', editingIncome.id)
             : doc(firestore, `users/${editingIncome.userId}/incomes/${editingIncome.id}`);
@@ -69,7 +70,7 @@ export default function IncomePage() {
           transaction.update(targetCardRef, { balance: targetCardData.balance + values.amount });
   
           // 3. Update or move income document
-          const incomeOwnerId = isSharedIncome ? undefined : values.source;
+          const incomeOwnerId = isSharedIncome ? undefined : (values.source === 'ali' ? USER_DETAILS.ali.id : USER_DETAILS.fatemeh.id);
           const newIncomeData = { ...values, userId: incomeOwnerId, isShared: isSharedIncome, updatedAt: serverTimestamp() };
           
           if (isOldIncomeShared !== isSharedIncome) {
@@ -102,7 +103,7 @@ export default function IncomePage() {
               createdAt: serverTimestamp(),
             });
           } else {
-            const incomeOwnerId = values.source;
+            const incomeOwnerId = values.source === 'ali' ? USER_DETAILS.ali.id : USER_DETAILS.fatemeh.id;
             const newIncomeRef = doc(collection(firestore, 'users', incomeOwnerId, 'incomes'));
             transaction.set(newIncomeRef, {
               ...values,
@@ -131,7 +132,7 @@ export default function IncomePage() {
           });
         }
     }
-  }, [user, firestore, allBankAccounts, editingIncome, toast]);
+  }, [user, firestore, allBankAccounts, allUsers, editingIncome, toast]);
   
 
   const handleDelete = React.useCallback(async (income: Income) => {
@@ -139,7 +140,7 @@ export default function IncomePage() {
     
     try {
         await runTransaction(firestore, async (transaction) => {
-            const isIncomeShared = income.source === 'shared' || income.isShared;
+            const isIncomeShared = income.isShared;
             const incomeRef = isIncomeShared
                 ? doc(firestore, 'shared/data/incomes', income.id)
                 : doc(firestore, `users/${income.userId}/incomes/${income.id}`);
