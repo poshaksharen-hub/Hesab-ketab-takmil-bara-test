@@ -116,12 +116,14 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   
   const handleSourceChange = useCallback((value: string) => {
       form.setValue('source', value);
+      
       const newAvailableAccounts = bankAccounts.filter(acc => {
           if (value === 'shared') return acc.isShared;
           if (value === 'ali') return acc.userId === USER_DETAILS.ali.id && !acc.isShared;
           if (value === 'fatemeh') return acc.userId === USER_DETAILS.fatemeh.id && !acc.isShared;
           return false;
       });
+
       if (newAvailableAccounts.length > 0) {
           form.setValue('bankAccountId', newAvailableAccounts[0].id);
       } else {
@@ -135,8 +137,11 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     const isCurrentAccountValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
 
     if (!isCurrentAccountValid) {
-        if (availableAccounts.length > 0) {
+        if (availableAccounts.length === 1) {
             form.setValue('bankAccountId', availableAccounts[0].id);
+        } else if (availableAccounts.length > 1) {
+            // Keep it empty for user to choose
+            form.setValue('bankAccountId', '');
         } else {
             form.setValue('bankAccountId', '');
         }
@@ -244,7 +249,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>منبع درآمد</FormLabel>
-                    <Select onValueChange={handleSourceChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="یک منبع انتخاب کنید" />
@@ -298,3 +303,5 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
       </Card>
   );
 }
+
+    
