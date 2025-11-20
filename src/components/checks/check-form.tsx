@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -101,9 +102,9 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
   }
 
   const getOwnerName = (account: BankAccount) => {
-    if (account.isShared) return "(مشترک)";
-    const owner = users.find(u => u.id === account.userId);
-    return owner ? `(${owner.firstName})` : "(ناشناس)";
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
   const checkingAccounts = bankAccounts.filter(acc => acc.accountType === 'checking');
