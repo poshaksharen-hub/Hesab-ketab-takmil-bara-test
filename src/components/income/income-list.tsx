@@ -20,6 +20,7 @@ import {
   Landmark,
   Calendar,
   PenSquare,
+  Building,
 } from 'lucide-react';
 import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
@@ -53,16 +54,20 @@ const DetailItem = ({
 }: {
   icon: React.ElementType;
   label: string;
-  value: string;
-}) => (
-  <div className="flex items-center gap-3 text-sm">
-    <Icon className="h-5 w-5 text-muted-foreground" />
-    <div className="flex flex-col">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold">{value}</span>
+  value: string | null | undefined;
+}) => {
+  if (!value) return null;
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <Icon className="h-5 w-5 text-muted-foreground" />
+      <div className="flex flex-col">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-semibold">{value}</span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
 
 export function IncomeList({
   incomes,
@@ -79,12 +84,20 @@ export function IncomeList({
     const user = users.find((u) => u.id === userId);
     return user ? user.firstName : 'نامشخص';
   };
+  
+  const getOwnerSourceText = (ownerId: OwnerId) => {
+    switch (ownerId) {
+      case 'ali':
+        return `درآمد ${USER_DETAILS.ali.firstName}`;
+      case 'fatemeh':
+        return `درآمد ${USER_DETAILS.fatemeh.firstName}`;
+      case 'shared':
+        return 'شغل مشترک';
+      default:
+        return 'نامشخص';
+    }
+  }
 
-  const getOwnerDetails = (ownerId: OwnerId) => {
-    if (ownerId === 'shared') return { name: 'مشترک', Icon: Users };
-    const userDetail = USER_DETAILS[ownerId];
-    return { name: userDetail.firstName, Icon: User };
-  };
 
   if (incomes.length === 0) {
     return (
@@ -118,7 +131,6 @@ export function IncomeList({
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           )
           .map((income) => {
-            const { name: ownerName } = getOwnerDetails(income.ownerId);
             const bankAccount = getBankAccount(income.bankAccountId);
 
             return (
@@ -142,7 +154,12 @@ export function IncomeList({
                     <DetailItem
                       icon={Briefcase}
                       label="منبع درآمد"
-                      value={income.source || ownerName}
+                      value={getOwnerSourceText(income.ownerId)}
+                    />
+                     <DetailItem
+                      icon={Building}
+                      label="واریز کننده"
+                      value={income.source}
                     />
                     <DetailItem
                       icon={Landmark}
