@@ -41,7 +41,6 @@ const formSchema = z.object({
   accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
   owner: z.string().min(1, { message: 'لطفا صاحب حساب را مشخص کنید.'}),
-  isShared: z.boolean().default(false),
   theme: z.enum(['blue', 'green', 'purple', 'orange', 'gray']).default('blue'),
 });
 
@@ -69,7 +68,6 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
       accountType: 'savings',
       initialBalance: 0,
       owner: user?.uid, // Default to current user
-      isShared: false,
       theme: 'blue'
     },
   });
@@ -88,7 +86,6 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
          accountType: initialData.accountType,
          initialBalance: initialData.initialBalance,
          owner: initialData.isShared ? 'shared' : initialData.userId,
-         isShared: !!initialData.isShared,
          theme: initialData.theme || 'blue',
         });
     } else {
@@ -101,7 +98,6 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         accountType: 'savings',
         initialBalance: 0,
         owner: user?.uid || '',
-        isShared: false,
         theme: 'blue',
       });
     }
@@ -111,8 +107,6 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
     onSubmit(data);
   }
   
-  const isShared = form.watch('isShared');
-
   return (
       <Card>
         <CardHeader>

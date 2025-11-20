@@ -20,28 +20,32 @@ export const useInitialData = () => {
     const seedInitialData = async (userId: string) => {
         setIsSeeding(true);
         try {
-            // Check if a user's personal data has been seeded to prevent re-seeding
+            // --- Seed Shared Data (if not exists) ---
+            const sharedAccountsCollectionRef = collection(firestore, 'shared', 'data', 'bankAccounts');
+            const sharedAccountsSnap = await getDocs(query(sharedAccountsCollectionRef));
+            
+            const sharedDataBatch = writeBatch(firestore);
+            let sharedDataExists = !sharedAccountsSnap.empty;
+
+            if (!sharedDataExists) {
+                const sharedAccounts = getSharedBankAccounts();
+                sharedAccounts.forEach(account => {
+                    const docRef = doc(sharedAccountsCollectionRef);
+                    sharedDataBatch.set(docRef, { ...account, id: docRef.id, balance: account.initialBalance });
+                });
+                await sharedDataBatch.commit();
+                console.log("Shared data seeded.");
+            }
+            
+            // --- Seed Personal Data (if not exists) ---
             const categoriesSnap = await getDocs(query(collection(firestore, `users/${userId}/categories`)));
             if (!categoriesSnap.empty) {
-                console.log("Initial data already exists for this user.");
-                // Still check for shared data, might have been missed
-                const sharedAccountsSnap = await getDocs(query(collection(firestore, 'shared/data/bankAccounts')));
-                 if (sharedAccountsSnap.empty && userId === USER_DETAILS.ali.id) {
-                     const batch = writeBatch(firestore);
-                     const sharedAccounts = getSharedBankAccounts();
-                     sharedAccounts.forEach(account => {
-                         const docRef = doc(collection(firestore, 'shared/data/bankAccounts'));
-                         batch.set(docRef, { ...account, id: docRef.id, balance: account.initialBalance });
-                     });
-                     await batch.commit();
-                 }
+                console.log("Personal data already exists for this user.");
                 setIsSeeding(false);
                 return;
             }
-            
-            const batch = writeBatch(firestore);
 
-            // Seed personal data
+            const personalDataBatch = writeBatch(firestore);
             const collectionsToSeed: { [key: string]: (uid: string) => any[] } = {
                 'categories': getDefaultCategories,
                 'payees': getDefaultPayees,
@@ -56,23 +60,11 @@ export const useInitialData = () => {
                     if (colName === 'bankAccounts') {
                         docData.balance = item.initialBalance;
                     }
-                    batch.set(docRef, docData);
+                    personalDataBatch.set(docRef, docData);
                 });
             }
             
-            // Seed shared data (only once, by Ali)
-            if (userId === USER_DETAILS.ali.id) {
-                const sharedAccountsSnap = await getDocs(query(collection(firestore, 'shared', 'data', 'bankAccounts')));
-                if (sharedAccountsSnap.empty) {
-                    const sharedAccounts = getSharedBankAccounts();
-                    sharedAccounts.forEach(account => {
-                         const docRef = doc(collection(firestore, 'shared', 'data', 'bankAccounts'));
-                         batch.set(docRef, { ...account, id: docRef.id, balance: account.initialBalance });
-                    });
-                }
-            }
-            
-            await batch.commit();
+            await personalDataBatch.commit();
 
             toast({
                 title: "خوش آمدید!",
