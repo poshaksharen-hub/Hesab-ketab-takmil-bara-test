@@ -2,7 +2,7 @@
 'use client';
 import { useState } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, writeBatch, doc, getDocs } from 'firebase/firestore';
+import { collection, writeBatch, doc, getDocs, query } from 'firebase/firestore';
 import { 
     getDefaultCategories, 
     getDefaultPayees,
@@ -20,10 +20,21 @@ export const useInitialData = () => {
     const seedInitialData = async (userId: string) => {
         setIsSeeding(true);
         try {
-            // Check if user already has data to prevent re-seeding
-            const categoriesSnap = await getDocs(collection(firestore, `users/${userId}/categories`));
+            // Check if a user's personal data has been seeded to prevent re-seeding
+            const categoriesSnap = await getDocs(query(collection(firestore, `users/${userId}/categories`)));
             if (!categoriesSnap.empty) {
                 console.log("Initial data already exists for this user.");
+                // Still check for shared data, might have been missed
+                const sharedAccountsSnap = await getDocs(query(collection(firestore, 'shared/data/bankAccounts')));
+                 if (sharedAccountsSnap.empty && userId === USER_DETAILS.ali.id) {
+                     const batch = writeBatch(firestore);
+                     const sharedAccounts = getSharedBankAccounts();
+                     sharedAccounts.forEach(account => {
+                         const docRef = doc(collection(firestore, 'shared/data/bankAccounts'));
+                         batch.set(docRef, { ...account, id: docRef.id, balance: account.initialBalance });
+                     });
+                     await batch.commit();
+                 }
                 setIsSeeding(false);
                 return;
             }
@@ -48,20 +59,15 @@ export const useInitialData = () => {
                     batch.set(docRef, docData);
                 });
             }
-
-            // Seed shared data (only once)
+            
+            // Seed shared data (only once, by Ali)
             if (userId === USER_DETAILS.ali.id) {
-                const sharedAccountsSnap = await getDocs(collection(firestore, `shared/data/bankAccounts`));
+                const sharedAccountsSnap = await getDocs(query(collection(firestore, 'shared/data/bankAccounts')));
                 if (sharedAccountsSnap.empty) {
                     const sharedAccounts = getSharedBankAccounts();
                     sharedAccounts.forEach(account => {
-                         const docRef = doc(collection(firestore, `shared/data/bankAccounts`));
-                         const docData = {
-                             ...account,
-                             id: docRef.id,
-                             balance: account.initialBalance,
-                         };
-                         batch.set(docRef, docData);
+                         const docRef = doc(collection(firestore, 'shared/data/bankAccounts'));
+                         batch.set(docRef, { ...account, id: docRef.id, balance: account.initialBalance });
                     });
                 }
             }
