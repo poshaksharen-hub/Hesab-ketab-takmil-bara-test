@@ -36,81 +36,92 @@ export function useDashboardData() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    if (!firestore || isUserLoading) return;
-    
-    const fetchData = async () => {
-      setIsLoading(true);
-
-      const usersSnapshot = await getDocs(collection(firestore, 'users'));
-      const userProfiles = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
-      setUsers(userProfiles);
-      const userIds = userProfiles.map(u => u.id);
-
-      if (userIds.length === 0) {
-        setIsLoading(false);
+    if (!firestore || isUserLoading) {
+        if(!isUserLoading) {
+            setIsLoading(false);
+        }
         return;
+    };
+    
+    setIsLoading(true);
+
+    const fetchData = async () => {
+      
+      try {
+        const usersSnapshot = await getDocs(collection(firestore, 'users'));
+        const userProfiles = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserProfile));
+        setUsers(userProfiles);
+        const userIds = userProfiles.map(u => u.id);
+
+        if (userIds.length === 0) {
+            setIsLoading(false);
+            return;
+        }
+        
+        const collectionsToFetch = [
+            { name: 'incomes', setter: setIncomes },
+            { name: 'expenses', setter: setExpenses },
+            { name: 'categories', setter: setCategories },
+            { name: 'checks', setter: setChecks },
+            { name: 'financialGoals', setter: setGoals },
+            { name: 'loans', setter: setLoans },
+            { name: 'payees', setter: setPayees },
+            { name: 'transfers', setter: setTransfers },
+        ];
+
+        const allDataPromises: Promise<any>[] = [];
+
+        // Fetch personal bank accounts
+        userIds.forEach(uid => {
+            const personalAccountsQuery = getDocs(collection(firestore, 'users', uid, 'bankAccounts'));
+            allDataPromises.push(personalAccountsQuery);
+        });
+
+        // Fetch all other collections for all users
+        collectionsToFetch.forEach(col => {
+            userIds.forEach(uid => {
+                const collectionQuery = getDocs(collection(firestore, 'users', uid, col.name));
+                allDataPromises.push(collectionQuery);
+            });
+        });
+        
+        // Fetch shared bank accounts
+        const sharedAccountsQuery = getDocs(collection(firestore, 'shared/data/bankAccounts'));
+        allDataPromises.push(sharedAccountsQuery);
+        
+        const allSnapshots = await Promise.all(allDataPromises);
+
+        let snapshotIndex = 0;
+        
+        const personalAccounts: BankAccount[] = [];
+        for(let i = 0; i < userIds.length; i++) {
+            const personalAccountSnapshot = allSnapshots[snapshotIndex++];
+            personalAccountSnapshot.docs.forEach((doc: any) => {
+                personalAccounts.push({ ...(doc.data() as Omit<BankAccount, 'id'>), id: doc.id, userId: userIds[i] });
+            });
+        }
+
+        collectionsToFetch.forEach(col => {
+            const items: any[] = [];
+            for(let i = 0; i < userIds.length; i++) {
+                const userDocsSnapshot = allSnapshots[snapshotIndex++];
+                userDocsSnapshot.docs.forEach((doc: any) => {
+                    items.push({ ...doc.data(), id: doc.id });
+                });
+            }
+            col.setter(items);
+        });
+
+        const sharedAccountsSnapshot = allSnapshots[snapshotIndex];
+        const sharedAccounts = sharedAccountsSnapshot.docs.map((doc: any) => ({ ...doc.data(), id: doc.id, isShared: true } as BankAccount));
+        
+        setBankAccounts([...personalAccounts, ...sharedAccounts]);
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      const collectionsToFetch = [
-        { name: 'incomes', setter: setIncomes },
-        { name: 'expenses', setter: setExpenses },
-        { name: 'categories', setter: setCategories },
-        { name: 'checks', setter: setChecks },
-        { name: 'financialGoals', setter: setGoals },
-        { name: 'loans', setter: setLoans },
-        { name: 'payees', setter: setPayees },
-        { name: 'transfers', setter: setTransfers },
-      ];
-
-      const allDataPromises: Promise<any>[] = [];
-
-      // Fetch personal bank accounts
-      userIds.forEach(uid => {
-          const personalAccountsQuery = getDocs(collection(firestore, 'users', uid, 'bankAccounts'));
-          allDataPromises.push(personalAccountsQuery);
-      });
-
-      // Fetch all other collections for all users
-      collectionsToFetch.forEach(col => {
-          userIds.forEach(uid => {
-              const collectionQuery = getDocs(collection(firestore, 'users', uid, col.name));
-              allDataPromises.push(collectionQuery);
-          });
-      });
-      
-      // Fetch shared bank accounts
-      const sharedAccountsQuery = getDocs(collection(firestore, 'shared/data/bankAccounts'));
-      allDataPromises.push(sharedAccountsQuery);
-      
-      const allSnapshots = await Promise.all(allDataPromises);
-
-      let snapshotIndex = 0;
-      
-      const personalAccounts: BankAccount[] = [];
-      for(let i = 0; i < userIds.length; i++) {
-          const personalAccountSnapshot = allSnapshots[snapshotIndex++];
-          personalAccountSnapshot.docs.forEach((doc: any) => {
-              personalAccounts.push({ ...(doc.data() as Omit<BankAccount, 'id'>), id: doc.id, userId: userIds[i] });
-          });
-      }
-
-      collectionsToFetch.forEach(col => {
-          const items: any[] = [];
-           for(let i = 0; i < userIds.length; i++) {
-              const userDocsSnapshot = allSnapshots[snapshotIndex++];
-              userDocsSnapshot.docs.forEach((doc: any) => {
-                  items.push({ ...doc.data(), id: doc.id });
-              });
-           }
-          col.setter(items);
-      });
-
-      const sharedAccountsSnapshot = allSnapshots[snapshotIndex];
-      const sharedAccounts = sharedAccountsSnapshot.docs.map((doc: any) => ({ ...doc.data(), id: doc.id, isShared: true } as BankAccount));
-      
-      setBankAccounts([...personalAccounts, ...sharedAccounts]);
-
-      setIsLoading(false);
     };
 
     fetchData();
