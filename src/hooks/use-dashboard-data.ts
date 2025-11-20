@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -58,7 +59,7 @@ const useAllCollections = () => {
     
     // Effect for fetching all user-specific sub-collections
     useEffect(() => {
-        if (!firestore || userIds.length === 0) {
+        if (!firestore || !userIds || userIds.length === 0) {
             if(!isLoadingUsers) setIsLoading(false);
             return;
         }
@@ -67,59 +68,43 @@ const useAllCollections = () => {
         const subCollections = ['incomes', 'expenses', 'categories', 'checks', 'financialGoals', 'loans', 'payees', 'transfers', 'bankAccounts', 'loanPayments'];
         const unsubs: Unsubscribe[] = [];
 
-        let collectionsLoaded = 0;
-        const totalCollectionsToLoad = subCollections.length;
+        let collectionsLoadedCount = 0;
+        const totalCollectionsToLoad = userIds.length * subCollections.length;
         
-        let tempData: any = { };
-        subCollections.forEach(sc => tempData[sc] = []);
+        let tempData: { [key: string]: any[] } = {};
 
-        const checkLoadingDone = () => {
-            collectionsLoaded++;
-            if (collectionsLoaded >= totalCollectionsToLoad) {
-                setAllData(prev => ({...prev, ...tempData}));
-                setIsLoading(false);
-            }
-        };
-
-        subCollections.forEach(colName => {
-            let combinedData: any[] = [];
-            let loadedForUsers = 0;
-
-            if (userIds.length === 0) {
-                checkLoadingDone();
-                return;
-            }
-
-            userIds.forEach(uid => {
+        userIds.forEach(uid => {
+            subCollections.forEach(colName => {
                 const q = query(collection(firestore, `users/${uid}/${colName}`));
                 const unsub = onSnapshot(q, (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as DocumentData[];
-                    // This logic is complex, let's simplify to just combine
-                    const otherUsersData = combinedData.filter(item => {
-                        const itemOwner = item.userId || (item.members ? Object.keys(item.members)[0] : null);
-                        return itemOwner !== uid;
+                    
+                    // Update temporary data for the specific user and collection
+                    const userSpecificColKey = `${uid}_${colName}`;
+                    tempData[userSpecificColKey] = data;
+
+                    // Combine all data for the collection across all users
+                    let combinedCollectionData: any[] = [];
+                    userIds.forEach(innerUid => {
+                        combinedCollectionData = [...combinedCollectionData, ...(tempData[`${innerUid}_${colName}`] || [])];
                     });
                     
-                    combinedData = [...otherUsersData, ...data];
-                    tempData[colName] = combinedData;
-
-                    loadedForUsers++;
-                    if(loadedForUsers === userIds.length) {
-                         // Once all users for this subcollection are loaded, we can update state
-                        setAllData(prev => ({...prev, [colName]: combinedData}));
+                    setAllData(prev => ({ ...prev, [colName]: combinedCollectionData }));
+                    
+                    collectionsLoadedCount++;
+                    if (collectionsLoadedCount >= totalCollectionsToLoad) {
+                         setIsLoading(false);
                     }
                 }, (error) => {
                     console.error(`Error fetching ${colName} for user ${uid}:`, error);
-                    loadedForUsers++;
-                    if(loadedForUsers === userIds.length) {
-                        setAllData(prev => ({...prev, [colName]: combinedData}));
+                    collectionsLoadedCount++;
+                     if (collectionsLoadedCount >= totalCollectionsToLoad) {
+                         setIsLoading(false);
                     }
                 });
                 unsubs.push(unsub);
             });
-             checkLoadingDone(); // This assumes snapshot will eventually fire.
         });
-
 
         return () => {
             unsubs.forEach(unsub => unsub());
@@ -135,24 +120,24 @@ const useAllCollections = () => {
 
         setAllData(prev => {
             const personalAccounts = prev.bankAccounts || [];
-            const combinedAccounts = [
+            const combined = [
                 ...personalAccounts,
                 ...(sharedAccounts || []).map(sa => ({ ...sa, isShared: true }))
             ];
             
-            // Deduplicate accounts
-            const uniqueAccounts = Array.from(new Map(combinedAccounts.map(item => [item.id, item])).values());
-            
+            // Deduplicate accounts just in case
+            const uniqueAccounts = Array.from(new Map(combined.map(item => [item.id, item])).values());
+
             return {
                 ...prev,
                 users: users || [],
-                bankAccounts: uniqueAccounts
+                bankAccounts: uniqueAccounts,
             };
         });
     }, [users, sharedAccounts, isLoadingUsers, isLoadingSharedAccounts]);
 
 
-    return { isLoading: isLoading || isLoadingUsers || isLoadingSharedAccounts, allData };
+    return { isLoading: isLoading, allData };
 };
 
 
@@ -181,8 +166,19 @@ export function useDashboardData() {
     
     const filterByOwner = (item: Income | Expense) => {
         if (ownerFilter === 'all') return true;
-        if (ownerFilter === 'shared') return item.source === 'shared' || allData.bankAccounts.find(ba => ba.id === item.bankAccountId)?.isShared;
-        return item.userId === ownerFilter;
+        
+        // This logic correctly identifies transactions related to the filter
+        const account = allData.bankAccounts.find(ba => ba.id === item.bankAccountId);
+        if (ownerFilter === 'shared') {
+            return account?.isShared;
+        }
+        if (ownerFilter === aliId) {
+            return account?.userId === aliId && !account.isShared;
+        }
+        if (ownerFilter === fatemehId) {
+            return account?.userId === fatemehId && !account.isShared;
+        }
+        return false;
     }
 
     const filteredIncomes = allData.incomes.filter(i => dateMatches(i.date) && filterByOwner(i));
