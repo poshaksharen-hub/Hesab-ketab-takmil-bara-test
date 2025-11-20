@@ -23,14 +23,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUser } from '@/firebase';
-import { USER_DETAILS } from '@/lib/constants';
-
-interface CardListProps {
-  cards: BankAccount[];
-  onEdit: (card: BankAccount) => void;
-  onDelete: (cardId: string) => void;
-  users: UserProfile[];
-}
 
 const themeClasses = {
     blue: 'from-blue-500 to-blue-700',
@@ -79,7 +71,7 @@ function CardItem({ card, onEdit, onDelete, users }: { card: BankAccount; onEdit
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEdit(card)}>
+                            <DropdownMenuItem onSelect={() => onEdit(card)}>
                                 <Edit className="ml-2 h-4 w-4" />
                                 ویرایش
                             </DropdownMenuItem>
@@ -149,8 +141,8 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   const { user } = useUser();
 
   const sortedCards = [...(cards || [])].sort((a, b) => {
-    if (a.isShared && !b.isShared) return 1;
-    if (!a.isShared && b.isShared) return -1;
+    if (a.isShared && !b.isShared) return -1;
+    if (!a.isShared && b.isShared) return 1;
     const ownerA = users.find(u => u.id === a.userId)?.firstName || '';
     const ownerB = users.find(u => u.id === b.userId)?.firstName || '';
     if (ownerA < ownerB) return -1;
