@@ -75,7 +75,7 @@ export function PayeeForm({ isOpen, setIsOpen, onSubmit, initialData }: PayeeFor
                   <FormItem>
                     <FormLabel>نام و نام خانوادگی</FormLabel>
                     <FormControl>
-                      <Input placeholder="مثال: علی حسینی" {...field} />
+                      <Input placeholder="مثال: علی کاکایی" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
