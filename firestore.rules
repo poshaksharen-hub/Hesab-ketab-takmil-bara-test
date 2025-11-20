@@ -33,10 +33,14 @@ service cloud.firestore {
     }
     
     // Shared Bank Accounts
-    // Any family member can read and write to shared accounts.
-    // The dangerous `allow write: if isSignedIn()` has been removed.
+    // Allow any family member to read and write to individual shared accounts.
     match /shared/data/bankAccounts/{accountId} {
       allow read, write: if isFamilyMember();
+    }
+    
+    // Allow any family member to list the entire collection of shared accounts.
+    match /shared/data/bankAccounts {
+      allow list: if isFamilyMember();
     }
   }
 }
