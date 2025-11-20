@@ -15,7 +15,7 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
-import { Input, CurrencyInput } from '@/components/ui/input';
+import { Input, CurrencyInput, NumericInput, ExpiryDateInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -110,6 +110,10 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
   }, [initialData, form, user]);
 
   function handleFormSubmit(data: CardFormValues) {
+    // Reformat expiry date before submission to ensure it's always MM/YY
+    data.expiryDate = data.expiryDate.replace(/\/?/g, '');
+    data.expiryDate = data.expiryDate.slice(0, 2) + '/' + data.expiryDate.slice(2, 4);
+
     onSubmit(data);
   }
   
@@ -165,7 +169,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                   <FormItem>
                     <FormLabel>شماره حساب</FormLabel>
                     <FormControl>
-                      <Input dir="ltr" placeholder="شماره حساب بانکی" {...field} />
+                      <NumericInput dir="ltr" placeholder="شماره حساب بانکی" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -178,7 +182,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                   <FormItem>
                     <FormLabel>شماره کارت</FormLabel>
                     <FormControl>
-                      <Input dir="ltr" maxLength={16} placeholder="---- ---- ---- ----" {...field} />
+                      <NumericInput dir="ltr" maxLength={16} placeholder="---- ---- ---- ----" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,7 +196,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                     <FormItem>
                         <FormLabel>تاریخ انقضا</FormLabel>
                         <FormControl>
-                          <Input dir="ltr" placeholder="MM/YY" {...field} />
+                          <ExpiryDateInput dir="ltr" placeholder="MM/YY" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -205,7 +209,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                     <FormItem>
                         <FormLabel>CVV2</FormLabel>
                         <FormControl>
-                          <Input dir="ltr" placeholder="---" {...field} />
+                          <NumericInput dir="ltr" maxLength={4} placeholder="---" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>

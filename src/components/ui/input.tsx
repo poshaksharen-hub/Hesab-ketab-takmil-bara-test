@@ -75,5 +75,64 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
 );
 CurrencyInput.displayName = "CurrencyInput";
 
+const NumericInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+    ({ className, onChange, ...props }, ref) => {
+      const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = event.target;
+        const numericValue = value.replace(/\D/g, '');
+        event.target.value = numericValue;
+        if (onChange) {
+          onChange(event);
+        }
+      };
+  
+      return (
+        <Input
+          type="text"
+          inputMode="numeric"
+          onChange={handleInputChange}
+          className={cn("font-mono", className)}
+          ref={ref}
+          {...props}
+        />
+      );
+    }
+  );
+NumericInput.displayName = "NumericInput";
 
-export { Input, CurrencyInput }
+const ExpiryDateInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+    ({ className, onChange, ...props }, ref) => {
+      const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        let { value } = event.target;
+        // Remove all non-digit characters
+        let numericValue = value.replace(/\D/g, '');
+  
+        // Add slash after the first two digits
+        if (numericValue.length > 2) {
+          numericValue = numericValue.slice(0, 2) + '/' + numericValue.slice(2, 4);
+        }
+        
+        event.target.value = numericValue;
+  
+        if (onChange) {
+          onChange(event);
+        }
+      };
+  
+      return (
+        <Input
+          type="text"
+          inputMode="numeric"
+          maxLength={5}
+          onChange={handleInputChange}
+          className={cn("font-mono", className)}
+          ref={ref}
+          {...props}
+        />
+      );
+    }
+);
+ExpiryDateInput.displayName = "ExpiryDateInput";
+
+
+export { Input, CurrencyInput, NumericInput, ExpiryDateInput }
