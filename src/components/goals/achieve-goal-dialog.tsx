@@ -72,7 +72,7 @@ export function AchieveGoalDialog({
   };
 
   // Filter out accounts that have contributed to this goal already
-  const contributionAccountIds = new Set(goal.contributions.map(c => c.bankAccountId));
+  const contributionAccountIds = new Set((goal.contributions || []).map(c => c.bankAccountId));
   const availablePaymentAccounts = bankAccounts.filter(acc => !contributionAccountIds.has(acc.id));
 
 
