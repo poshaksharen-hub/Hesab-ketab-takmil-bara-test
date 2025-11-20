@@ -5,9 +5,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { Check, BankAccount, Payee } from '@/lib/types';
+import type { Check, BankAccount, Payee, Category } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import {
   AlertDialog,
@@ -27,14 +27,13 @@ interface CheckListProps {
   checks: Check[];
   bankAccounts: BankAccount[];
   payees: Payee[];
-  onEdit: (check: Check) => void;
-  onDelete: (check: Check) => void;
+  categories: Category[];
   onClear: (check: Check) => void;
 }
 
-export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onClear }: CheckListProps) {
-  const getBankAccountName = (id: string) => bankAccounts.find(acc => acc.id === id)?.bankName || 'نامشخص';
+export function CheckList({ checks, bankAccounts, payees, categories, onClear }: CheckListProps) {
   const getPayeeName = (id: string) => payees.find(p => p.id === id)?.name || 'نامشخص';
+  const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'نامشخص';
 
   const getStatusBadge = (status: 'pending' | 'cleared', dueDate: string) => {
     const isOverdue = new Date(dueDate) < new Date() && status === 'pending';
@@ -69,7 +68,7 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
             <TableRow>
               <TableHead>طرف حساب</TableHead>
               <TableHead>مبلغ</TableHead>
-              <TableHead>سریال / صیادی</TableHead>
+              <TableHead>دسته‌بندی / شرح</TableHead>
               <TableHead>تاریخ سررسید</TableHead>
               <TableHead>وضعیت</TableHead>
               <TableHead className="text-left">عملیات</TableHead>
@@ -81,8 +80,8 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
                 <TableCell className="font-medium">{getPayeeName(check.payeeId)}</TableCell>
                 <TableCell>{formatCurrency(check.amount, 'IRT')}</TableCell>
                 <TableCell>
-                  {check.checkSerialNumber && <div className='font-mono text-xs'>سریال: {check.checkSerialNumber}</div>}
-                  {check.sayadId && <div className='font-mono text-xs'>صیاد: {check.sayadId}</div>}
+                    <div className="font-semibold">{getCategoryName(check.categoryId)}</div>
+                    <div className="text-xs text-muted-foreground">{check.description}</div>
                 </TableCell>
                 <TableCell>{formatJalaliDate(new Date(check.dueDate))}</TableCell>
                 <TableCell>{getStatusBadge(check.status, check.dueDate)}</TableCell>
@@ -111,31 +110,6 @@ export function CheckList({ checks, bankAccounts, payees, onEdit, onDelete, onCl
                             </AlertDialogContent>
                         </AlertDialog>
                         )}
-                        
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(check)} aria-label="Edit">
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete" disabled={check.status === 'cleared'}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، مبلغ آن به حساب باز نخواهد گشت و هزینه ثبت شده حذف نمی‌شود.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(check)}>
-                                    بله، حذف کن
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
                     </div>
                 </TableCell>
               </TableRow>

@@ -111,15 +111,13 @@ export default function ChecksPage() {
         transaction.update(bankAccountRef, { balance: balanceAfter });
         
         // Create a detailed description for the expense
-        const expenseDescription = `
-          پاس کردن چک به: ${payeeName}
+        const expenseDescription = `پاس کردن چک به: ${payeeName}
 - تاریخ صدور: ${formatJalaliDate(new Date(check.issueDate))}
 - تاریخ سررسید: ${formatJalaliDate(new Date(check.dueDate))}
 - از بانک: ${account.bankName}
-- شماره صیادی: ${check.sayadId || 'ندارد'}
-- شماره سری: ${check.checkSerialNumber || 'ندارد'}
-- شرح چک: ${check.description || 'ندارد'}
-        `.trim().replace(/  +/g, ' ').replace(/\\n\\s*/g, '\\n');
+- شماره صیادی: ${check.sayadId}
+- شماره سری: ${check.checkSerialNumber}
+- شرح چک: ${check.description || 'ندارد'}`.trim();
 
 
         // Create the corresponding expense
@@ -158,64 +156,6 @@ export default function ChecksPage() {
     }
   }, [user, firestore, bankAccounts, payees, toast]);
 
-  const handleDelete = React.useCallback(async (check: Check) => {
-    if (!user || !firestore) return;
-    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-    const checkRef = doc(familyDataRef, 'checks', check.id);
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            if (check.status === 'cleared') {
-                const account = bankAccounts.find(acc => acc.id === check.bankAccountId);
-                 if (account) {
-                    const bankAccountRef = doc(familyDataRef, 'bankAccounts', account.id);
-                    const bankAccountDoc = await transaction.get(bankAccountRef);
-                    if(bankAccountDoc.exists()){
-                        const currentBalance = bankAccountDoc.data().balance;
-                        transaction.update(bankAccountRef, { balance: currentBalance + check.amount });
-                    }
-                }
-                const expensesColRef = collection(familyDataRef, 'expenses');
-                const expenseToDeleteQuery = query(expensesColRef, where("checkId", "==", check.id));
-                const expenseSnapshot = await getDocs(expenseToDeleteQuery);
-                expenseSnapshot.forEach((doc) => {
-                    transaction.delete(doc.ref);
-                });
-            }
-            
-            transaction.delete(checkRef);
-        });
-
-        toast({ title: "موفقیت", description: "چک با موفقیت حذف شد." });
-    } catch (error: any) {
-        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
-                path: checkRef.path, // Simplified path
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
-                variant: "destructive",
-                title: "خطا در حذف چک",
-                description: error.message || "مشکلی در حذف چک پیش آمد.",
-            });
-        }
-    }
-  }, [user, firestore, bankAccounts, toast]);
-
-  const handleEdit = React.useCallback((check: Check) => {
-    if (check.status === 'cleared') {
-      toast({
-        variant: "destructive",
-        title: "امکان ویرایش وجود ندارد",
-        description: "چک‌های پاس شده قابل ویرایش نیستند. برای اصلاح، لطفا چک را حذف و مجددا ثبت کنید.",
-      });
-      return;
-    }
-    setEditingCheck(check);
-    setIsFormOpen(true);
-  }, [toast]);
-  
   const handleAddNew = React.useCallback(() => {
     setEditingCheck(null);
     setIsFormOpen(true);
@@ -257,8 +197,7 @@ export default function ChecksPage() {
           checks={checks || []}
           bankAccounts={bankAccounts || []}
           payees={payees || []}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          categories={categories || []}
           onClear={handleClearCheck}
         />
       )}
