@@ -63,8 +63,8 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
     
     const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(card.ownerId);
 
-    const goalContributions = goals.flatMap(g => 
-        g.contributions
+    const goalContributions = (goals || []).flatMap(g => 
+        (g.contributions || [])
          .filter(c => c.bankAccountId === card.id)
          .map(c => ({...c, goalName: g.name, goalOwnerId: g.ownerId}))
     );
