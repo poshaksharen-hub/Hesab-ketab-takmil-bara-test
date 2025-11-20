@@ -38,7 +38,7 @@ export const getInitialBankAccounts = (userId: string): Omit<BankAccount, 'id' |
                 isShared: false,
                 theme: 'orange',
             },
-            {
+             {
                 userId: USER_DETAILS.ali.id,
                 bankName: 'بانک سامان',
                 accountNumber: '80111234567890',
@@ -53,23 +53,7 @@ export const getInitialBankAccounts = (userId: string): Omit<BankAccount, 'id' |
             },
         ];
     }
-    if (userId === USER_DETAILS.fatemeh.id) {
-        return [
-             {
-                userId: USER_DETAILS.fatemeh.id,
-                bankName: 'بانک ملی',
-                accountNumber: '0116932870001',
-                cardNumber: '6037998251708110',
-                expiryDate: '07/28',
-                cvv2: '1638',
-                accountType: 'savings',
-                initialBalance: 5000000,
-                blockedBalance: 0,
-                isShared: false,
-                theme: 'purple',
-            }
-        ];
-    }
+    // No default personal account for Fatemeh
     return [];
 };
 
