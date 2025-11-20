@@ -126,7 +126,7 @@ export function ExpenseList({
                 <Card key={expense.id} className="flex flex-col">
                     <CardHeader>
                     <div className="flex items-start justify-between">
-                        <p className="text-lg font-bold">{expense.description}</p>
+                        <p className="text-lg font-bold whitespace-pre-wrap">{expense.description}</p>
                         <div className="text-left">
                         <p className="text-2xl font-bold text-destructive">
                             {`-${formatCurrency(expense.amount, 'IRT')}`}

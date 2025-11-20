@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { formatJalaliDate } from '@/lib/utils';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -85,6 +86,7 @@ export default function ChecksPage() {
     }
     const bankAccountRef = doc(familyDataRef, 'bankAccounts', account.id);
     const expensesColRef = collection(familyDataRef, 'expenses');
+    const payeeName = payees?.find(p => p.id === check.payeeId)?.name || 'نامشخص';
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -107,6 +109,16 @@ export default function ChecksPage() {
         
         // Update bank account balance
         transaction.update(bankAccountRef, { balance: balanceAfter });
+        
+        // Create a detailed description for the expense
+        const expenseDescription = `
+          پاس کردن چک به: ${payeeName}
+          - تاریخ صدور: ${formatJalaliDate(new Date(check.issueDate))}
+          - تاریخ سررسید: ${formatJalaliDate(new Date(check.dueDate))}
+          - از بانک: ${account.bankName}
+          - شرح چک: ${check.description || 'ندارد'}
+        `.trim().replace(/  +/g, ' ').replace(/\n\s*/g, '\n');
+
 
         // Create the corresponding expense
         const expenseRef = doc(expensesColRef);
@@ -118,7 +130,7 @@ export default function ChecksPage() {
             bankAccountId: check.bankAccountId,
             categoryId: check.categoryId,
             date: clearedDate,
-            description: `پاس کردن چک به: ${payees?.find(p => p.id === check.payeeId)?.name || 'نامشخص'}`,
+            description: expenseDescription,
             type: 'expense',
             checkId: check.id,
             createdAt: serverTimestamp(),
