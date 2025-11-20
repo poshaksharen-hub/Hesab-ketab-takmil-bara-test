@@ -1,7 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format } from 'date-fns';
-import { faIR } from "date-fns/locale";
+import { format } from 'date-fns-jalali';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -19,5 +18,9 @@ export function formatCurrency(amount: number, currency: 'USD' | 'IRT' = 'USD') 
 }
 
 export function formatJalaliDate(date: Date) {
-    return format(date, 'yyyy/MM/dd', { locale: faIR });
+    if (!date) return '';
+    // Ensure we have a valid date object
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return '';
+    return format(dateObj, 'yyyy/MM/dd');
 }
