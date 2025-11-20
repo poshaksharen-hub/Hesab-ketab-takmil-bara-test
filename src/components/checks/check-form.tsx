@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -22,9 +23,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
+import type { Check, BankAccount, Payee, Category } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { USER_DETAILS } from '@/lib/constants';
+import { formatCurrency } from '@/lib/utils';
 
 const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
@@ -33,7 +35,6 @@ const formSchema = z.object({
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
   issueDate: z.date({ required_error: 'لطفا تاریخ صدور را انتخاب کنید.' }),
   dueDate: z.date({ required_error: 'لطفا تاریخ سررسید را انتخاب کنید.' }),
-  status: z.enum(['pending', 'cleared']).default('pending'),
   description: z.string().optional(),
   sayadId: z.string().min(1, { message: 'شماره صیادی الزامی است.' }),
   checkSerialNumber: z.string().min(1, { message: 'شماره سری چک الزامی است.' }),
@@ -44,15 +45,14 @@ type CheckFormValues = z.infer<typeof formSchema>;
 interface CheckFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Check, 'id' | 'userId'>) => void;
+  onSubmit: (data: Omit<Check, 'id' | 'userId' | 'status'>) => void;
   initialData: Check | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
-  users: UserProfile[];
 }
 
-export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, categories, users }: CheckFormProps) {
+export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, categories }: CheckFormProps) {
   const form = useForm<CheckFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,7 +62,6 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
       amount: 0,
       issueDate: new Date(),
       dueDate: new Date(),
-      status: 'pending',
       description: '',
       sayadId: '',
       checkSerialNumber: '',
@@ -87,7 +86,6 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
           amount: 0,
           issueDate: new Date(),
           dueDate: new Date(),
-          status: 'pending',
           description: '',
           sayadId: '',
           checkSerialNumber: '',
@@ -202,7 +200,9 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                         </FormControl>
                         <SelectContent>
                             {checkingAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>{`${account.bankName} ${getOwnerName(account)}`}</SelectItem>
+                            <SelectItem key={account.id} value={account.id}>
+                                {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                            </SelectItem>
                             ))}
                         </SelectContent>
                         </Select>

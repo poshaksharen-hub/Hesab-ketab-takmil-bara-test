@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -42,10 +43,9 @@ interface TransferFormProps {
   onSubmit: (data: TransferFormValues) => void;
   bankAccounts: BankAccount[];
   user: User | null;
-  users: UserProfile[];
 }
 
-export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFormProps) {
+export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps) {
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -72,16 +72,8 @@ export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFo
 
   // Filter destination accounts based on the source account
   const availableToAccounts = React.useMemo(() => {
-    if (!fromAccount) {
-      return bankAccounts;
-    }
-    // If transferring FROM shared account, you can transfer to any personal account.
-    if (fromAccount.ownerId === 'shared') {
-      return bankAccounts.filter(acc => acc.ownerId !== 'shared');
-    }
-    // If transferring FROM a personal account, you can NOT transfer to the shared account.
-    return bankAccounts.filter(acc => acc.id !== fromAccountId && acc.ownerId !== 'shared');
-  }, [fromAccountId, fromAccount, bankAccounts]);
+    return bankAccounts.filter(acc => acc.id !== fromAccountId);
+  }, [fromAccountId, bankAccounts]);
 
   // Reset 'to' account if it becomes invalid
   React.useEffect(() => {
@@ -118,7 +110,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFo
                       <SelectContent>
                         {bankAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
+                            {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -147,7 +139,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, users }: TransferFo
                       <SelectContent>
                         {availableToAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
+                            {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>

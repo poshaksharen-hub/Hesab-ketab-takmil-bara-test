@@ -44,13 +44,16 @@ export default function IncomePage() {
           throw new Error("کارت بانکی مورد نظر یافت نشد.");
         }
         const targetCardData = targetCardDoc.data() as BankAccount;
+        
+        const balanceBefore = targetCardData.balance;
+        const balanceAfter = balanceBefore + values.amount;
   
         if (editingIncome) {
           // Editing is disabled per user request
         } else {
           // --- Create Mode ---
           // 1. Increase balance
-          transaction.update(targetCardRef, { balance: targetCardData.balance + values.amount });
+          transaction.update(targetCardRef, { balance: balanceAfter });
   
           // 2. Create new income document
           const incomesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'incomes');
@@ -59,6 +62,7 @@ export default function IncomePage() {
             ...values,
             id: newIncomeRef.id,
             createdAt: serverTimestamp(),
+            balanceAfter: balanceAfter, // Add balance after transaction
           });
           toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
         }
@@ -123,7 +127,7 @@ export default function IncomePage() {
           setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
           initialData={editingIncome}
-          bankAccounts={allBankAccounts}
+          bankAccounts={allBankAccounts || []}
           user={user}
           users={allUsers}
         />

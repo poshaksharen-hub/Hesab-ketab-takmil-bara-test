@@ -17,6 +17,7 @@ export type Income = {
   bankAccountId: string;
   createdAt: any;
   updatedAt?: any;
+  balanceAfter?: number;
 }
 
 export type Expense = {

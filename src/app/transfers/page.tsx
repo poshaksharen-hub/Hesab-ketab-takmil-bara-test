@@ -122,10 +122,9 @@ export default function TransfersPage() {
                 <Skeleton className="h-96 w-full" />
             ) : (
                 <TransferForm
-                    bankAccounts={allBankAccounts}
+                    bankAccounts={allBankAccounts || []}
                     onSubmit={handleTransferSubmit}
                     user={user}
-                    users={allUsers}
                 />
             )}
         </div>
@@ -139,8 +138,8 @@ export default function TransfersPage() {
             ) : (
                 <TransferList 
                     transfers={transfers || []}
-                    bankAccounts={allBankAccounts}
-                    users={allUsers}
+                    bankAccounts={allBankAccounts || []}
+                    users={allUsers || []}
                 />
             )}
         </div>

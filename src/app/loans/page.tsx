@@ -2,12 +2,12 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
-import type { Loan, LoanPayment, BankAccount, Category, Payee } from '@/lib/types';
+import type { Loan, LoanPayment, BankAccount, Category, Payee, Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
@@ -41,7 +41,7 @@ export default function LoansPage() {
     expenses
   } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: any) => {
+  const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
 
     const {
@@ -110,7 +110,8 @@ export default function LoansPage() {
                     const bankAccountRef = bankAccountDoc.ref;
                     
                     // 1. Update bank balance
-                    transaction.update(bankAccountRef, { balance: bankAccountData.balance + loanData.amount });
+                    const balanceAfter = bankAccountData.balance + loanData.amount;
+                    transaction.update(bankAccountRef, { balance: balanceAfter });
 
                     // 2. Create corresponding income record
                     const incomeRef = doc(collection(familyDataRef, 'incomes'));
@@ -126,6 +127,7 @@ export default function LoansPage() {
                         category: 'درآمد',
                         source: payeeId ? (payees.find(p => p.id === payeeId)?.name || 'وام') : 'وام',
                         createdAt: serverTimestamp(),
+                        balanceAfter: balanceAfter,
                     });
                 }
                 toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
@@ -146,7 +148,7 @@ export default function LoansPage() {
 }, [user, firestore, editingLoan, toast, payees]);
 
 
-  const handlePayInstallment = React.useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
+  const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
     if (!user || !firestore || !bankAccounts || !categories) return;
 
     if (installmentAmount <= 0) {
@@ -235,34 +237,44 @@ export default function LoansPage() {
     }
   }, [user, firestore, bankAccounts, categories, toast]);
 
-  const handleDelete = React.useCallback(async (loanId: string) => {
-    if (!user || !firestore || !loans || !users) return;
+  const handleDelete = useCallback(async (loanId: string) => {
+    if (!user || !firestore || !loans) return;
 
     const loanToDelete = loans.find(l => l.id === loanId);
     if (!loanToDelete) return;
 
     try {
-        const batch = writeBatch(firestore);
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        
-        // Find and delete all payments for this loan
-        const paymentsQuery = query(collection(familyDataRef, 'loanPayments'), where('loanId', '==', loanId));
-        const paymentsSnapshot = await getDocs(paymentsQuery);
-        const paymentIds = paymentsSnapshot.docs.map(d => d.id);
-        paymentsSnapshot.forEach(doc => batch.delete(doc.ref));
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const loanRef = doc(familyDataRef, 'loans', loanId);
 
-        // Find and delete all expenses associated with those payments
-        if (paymentIds.length > 0) {
-            const expensesQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', 'in', paymentIds));
-            const expensesSnapshot = await getDocs(expensesQuery);
-            expensesSnapshot.forEach(doc => batch.delete(doc.ref));
-        }
-       
-        // Delete the main loan document
-        const loanRef = doc(familyDataRef, 'loans', loanId);
-        batch.delete(loanRef);
+            // Find and reverse associated payments
+            const paymentsQuery = query(collection(familyDataRef, 'loanPayments'), where('loanId', '==', loanId));
+            const paymentsSnapshot = await getDocs(paymentsQuery);
 
-        await batch.commit();
+            for (const paymentDoc of paymentsSnapshot.docs) {
+                const payment = paymentDoc.data() as LoanPayment;
+                const accountRef = doc(familyDataRef, 'bankAccounts', payment.bankAccountId);
+                const accountDoc = await transaction.get(accountRef);
+                if (accountDoc.exists()) {
+                    const accountData = accountDoc.data() as BankAccount;
+                    transaction.update(accountRef, { balance: accountData.balance + payment.amount });
+                }
+                // Delete the payment record
+                transaction.delete(paymentDoc.ref);
+            }
+            
+            // Delete associated expenses
+            const paymentIds = paymentsSnapshot.docs.map(d => d.id);
+            if (paymentIds.length > 0) {
+                 const expensesQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', 'in', paymentIds));
+                 const expensesSnapshot = await getDocs(expensesQuery);
+                 expensesSnapshot.forEach(doc => transaction.delete(doc.ref));
+            }
+            
+             // Delete the main loan document
+            transaction.delete(loanRef);
+        });
 
         toast({ title: "موفقیت", description: "وام و تمام سوابق پرداخت آن با موفقیت حذف شدند." });
 
@@ -273,15 +285,15 @@ export default function LoansPage() {
             description: error.message || "مشکلی در حذف وام و سوابق آن پیش آمد.",
         });
     }
-  }, [user, firestore, loans, users, toast]);
+}, [user, firestore, loans, toast]);
 
 
-  const handleAddNew = React.useCallback(() => {
+  const handleAddNew = useCallback(() => {
     setEditingLoan(null);
     setIsFormOpen(true);
   }, []);
 
-  const handleEdit = React.useCallback((loan: Loan) => {
+  const handleEdit = useCallback((loan: Loan) => {
     setEditingLoan(loan);
     setIsFormOpen(true);
   }, []);
@@ -316,7 +328,6 @@ export default function LoansPage() {
         <>
             <LoanList
                 loans={loans || []}
-                loanPayments={loanPayments || []}
                 payees={payees || []}
                 onEdit={handleEdit}
                 onDelete={handleDelete}

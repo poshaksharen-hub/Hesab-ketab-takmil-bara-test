@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, ShieldCheck } from 'lucide-react';
+import { CheckCircle, ShieldCheck, Trash2 } from 'lucide-react';
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import {
@@ -28,16 +28,17 @@ interface CheckListProps {
   categories: Category[];
   users?: UserProfile[];
   onClear: (check: Check) => void;
+  onDelete: (check: Check) => void;
 }
 
-export function CheckList({ checks, bankAccounts, payees, categories, onClear, users = [] }: CheckListProps) {
+export function CheckList({ checks, bankAccounts, payees, categories, onClear, onDelete, users = [] }: CheckListProps) {
   
   const getDetails = (item: Check) => {
     const payee = payees.find(p => p.id === item.payeeId)?.name || 'نامشخص';
     const category = categories.find(c => c.id === item.categoryId)?.name || 'نامشخص';
     const bankAccount = bankAccounts.find(b => b.id === item.bankAccountId);
     const ownerId = bankAccount?.ownerId;
-    const ownerName = ownerId === 'shared' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId] ? `${USER_DETAILS[ownerId].firstName} ${USER_DETAILS[ownerId].lastName}` : 'ناشناس');
+    const ownerName = ownerId === 'shared' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId] ? `${USER_DETAILS[ownerId].firstName}` : 'ناشناس');
 
     return { payee, category, bankAccount, ownerName };
   }
@@ -132,32 +133,52 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, u
                 </div>
             </CardContent>
 
-            {!isCleared && (
-                <CardFooter className="bg-muted/50 p-2">
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                           <Button className="w-full" variant="ghost" title="پاس کردن چک">
-                                <ShieldCheck className="ml-2 h-5 w-5 text-emerald-500" />
-                                پاس کردن چک
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>آیا از پاس کردن این چک مطمئن هستید؟</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                مبلغ چک از حساب شما کسر و یک هزینه متناظر با تمام جزئیات ثبت خواهد شد. این عملیات غیرقابل بازگشت است.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>انصراف</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onClear(check)}>
-                                بله، پاس کن
-                            </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </CardFooter>
-            )}
+            <CardFooter className="bg-muted/50 p-2 grid grid-cols-2 gap-2">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                       <Button className="w-full" variant="ghost" disabled={isCleared} title="پاس کردن چک">
+                            <ShieldCheck className="ml-2 h-5 w-5 text-emerald-500" />
+                            پاس کردن چک
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>آیا از پاس کردن این چک مطمئن هستید؟</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            مبلغ چک از حساب شما کسر و یک هزینه متناظر با تمام جزئیات ثبت خواهد شد.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>انصراف</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onClear(check)}>
+                            بله، پاس کن
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                       <Button className="w-full text-destructive" variant="ghost" title="حذف چک">
+                            <Trash2 className="ml-2 h-5 w-5" />
+                            حذف چک
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، هزینه مربوط به آن نیز حذف و مبلغ به حساب شما بازگردانده می‌شود.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>انصراف</AlertDialogCancel>
+                        <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(check)}>
+                            بله، حذف کن
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardFooter>
           </Card>
           )
         })}

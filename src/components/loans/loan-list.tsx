@@ -29,7 +29,6 @@ import { USER_DETAILS } from '@/lib/constants';
 
 interface LoanListProps {
   loans: Loan[];
-  loanPayments: LoanPayment[];
   payees: Payee[];
   bankAccounts: BankAccount[];
   onEdit: (loan: Loan) => void;
@@ -37,7 +36,7 @@ interface LoanListProps {
   onPay: (loan: Loan) => void;
 }
 
-export function LoanList({ loans, loanPayments, payees, bankAccounts, onEdit, onDelete, onPay }: LoanListProps) {
+export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -123,14 +122,14 @@ export function LoanList({ loans, loanPayments, payees, bankAccounts, onEdit, on
                             </div>
                         </div>
                     </CardContent>
-                     <CardFooter>
+                     <CardFooter className="grid grid-cols-2 gap-2">
                         {isCompleted ? (
-                            <div className="w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
+                            <div className="col-span-2 w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
                                 <CheckCircle className="h-5 w-5" />
                                 <span>وام تسویه شد!</span>
                             </div>
                         ) : (
-                            <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}} className="w-full">
+                            <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}} className="col-span-2 w-full">
                                 <Button className="w-full">
                                     <CalendarCheck2 className="ml-2 h-4 w-4" />
                                     پرداخت قسط

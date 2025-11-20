@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
@@ -259,7 +260,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                             <SelectContent>
                                 {bankAccounts.map((account) => (
                                 <SelectItem key={account.id} value={account.id}>
-                                    {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
+                                    {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
                                 </SelectItem>
                                 ))}
                             </SelectContent>

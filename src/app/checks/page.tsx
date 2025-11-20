@@ -5,10 +5,10 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
-import type { Check, BankAccount, Payee, Category } from '@/lib/types';
+import type { Check, BankAccount, Payee, Category, Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -28,9 +28,9 @@ export default function ChecksPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCheck, setEditingCheck] = React.useState<Check | null>(null);
   
-  const { checks, bankAccounts, payees, categories, users } = allData;
+  const { checks, bankAccounts, payees, categories, users, expenses } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status'>) => {
     if (!user || !firestore) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
@@ -111,13 +111,7 @@ export default function ChecksPage() {
         transaction.update(bankAccountRef, { balance: balanceAfter });
         
         // Create a detailed description for the expense
-        const expenseDescription = `پاس کردن چک به: ${payeeName}
-- تاریخ صدور: ${formatJalaliDate(new Date(check.issueDate))}
-- تاریخ سررسید: ${formatJalaliDate(new Date(check.dueDate))}
-- از بانک: ${account.bankName}
-- شماره صیادی: ${check.sayadId}
-- شماره سری: ${check.checkSerialNumber}
-- شرح چک: ${check.description || 'ندارد'}`.trim();
+        const expenseDescription = `پاس کردن چک به: ${payeeName}`;
 
 
         // Create the corresponding expense
@@ -129,6 +123,7 @@ export default function ChecksPage() {
             amount: check.amount,
             bankAccountId: check.bankAccountId,
             categoryId: check.categoryId,
+            payeeId: check.payeeId,
             date: clearedDate,
             description: expenseDescription,
             type: 'expense',
@@ -155,6 +150,56 @@ export default function ChecksPage() {
        }
     }
   }, [user, firestore, bankAccounts, payees, toast]);
+  
+  const handleDeleteCheck = React.useCallback(async (check: Check) => {
+    if (!user || !firestore) return;
+    
+    const checkRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'checks', check.id);
+    const bankAccountRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', check.bankAccountId);
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            if (check.status === 'cleared') {
+                // Find the associated expense
+                const expenseQuery = query(
+                    collection(firestore, 'family-data', FAMILY_DATA_DOC, 'expenses'),
+                    where('checkId', '==', check.id)
+                );
+                const expenseSnapshot = await getDocs(expenseQuery);
+                const expenseDoc = expenseSnapshot.docs[0];
+
+                if (expenseDoc) {
+                    const bankAccountDoc = await transaction.get(bankAccountRef);
+                    if (bankAccountDoc.exists()) {
+                        const bankAccountData = bankAccountDoc.data();
+                        transaction.update(bankAccountRef, { balance: bankAccountData.balance + check.amount });
+                    }
+                    transaction.delete(expenseDoc.ref);
+                }
+            }
+            // Finally, delete the check itself
+            transaction.delete(checkRef);
+        });
+
+        toast({ title: "موفقیت", description: "چک با موفقیت حذف شد." });
+
+    } catch (error: any) {
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: checkRef.path, 
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+             toast({
+                variant: "destructive",
+                title: "خطا در حذف چک",
+                description: error.message || "مشکلی در حذف چک پیش آمد.",
+            });
+        }
+    }
+  }, [user, firestore, toast]);
+
 
   const handleAddNew = React.useCallback(() => {
     setEditingCheck(null);
@@ -190,7 +235,6 @@ export default function ChecksPage() {
           bankAccounts={bankAccounts || []}
           payees={payees || []}
           categories={categories || []}
-          users={users}
         />
       ) : (
         <CheckList
@@ -199,6 +243,7 @@ export default function ChecksPage() {
           payees={payees || []}
           categories={categories || []}
           onClear={handleClearCheck}
+          onDelete={handleDeleteCheck}
         />
       )}
     </main>

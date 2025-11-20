@@ -59,8 +59,11 @@ export default function ExpensesPage() {
                 throw new Error("موجودی حساب برای انجام این هزینه کافی نیست.");
             }
             
+            const balanceBefore = fromCardData.balance;
+            const balanceAfter = balanceBefore - expenseData.amount;
+            
             // 1. Deduct from balance
-            transaction.update(fromCardRef, { balance: fromCardData.balance - expenseData.amount });
+            transaction.update(fromCardRef, { balance: balanceAfter });
 
             // 2. Create new expense document
             const expensesColRef = collection(firestore, `family-data/${FAMILY_DATA_DOC}/expenses`);
@@ -73,6 +76,8 @@ export default function ExpensesPage() {
                 type: 'expense',
                 registeredByUserId: user.uid,
                 createdAt: serverTimestamp(),
+                balanceBefore,
+                balanceAfter,
             });
 
             toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });

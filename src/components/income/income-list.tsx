@@ -166,7 +166,7 @@ export function IncomeList({
                      <DetailItem
                       icon={Wallet}
                       label="موجودی مقصد پس از تراکنش"
-                      value={bankAccount ? formatCurrency(bankAccount.balance, 'IRT') : 'نامشخص'}
+                      value={income.balanceAfter ? formatCurrency(income.balanceAfter, 'IRT') : 'نامشخص'}
                       className="text-primary font-mono"
                     />
                   </div>
