@@ -144,8 +144,9 @@ export default function GoalsPage() {
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
         const permissionError = new FirestorePermissionError({
-            path: `family-data/${FAMILY_DATA_DOC}/financialGoals`,
-            operation: 'write'
+            path: `family-data/${FAMILY_DATA_DOC}`, // General path for transaction
+            operation: 'write',
+            requestResourceData: values,
         });
         errorEmitter.emit('permission-error', permissionError);
       } else {
