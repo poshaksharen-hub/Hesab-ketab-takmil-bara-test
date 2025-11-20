@@ -23,7 +23,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
 
   const categoriesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
+    () => (user && firestore ? collection(firestore, 'users', user.uid, 'categories') : null),
     [firestore, user]
   );
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -43,21 +44,21 @@ export default function GoalsPage() {
   );
 
   const goalsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'financialGoals') : null),
+    () => (user && firestore ? collection(firestore, 'users', user.uid, 'financialGoals') : null),
     [firestore, user]
   );
   const { data: goals, isLoading: isLoadingGoals } =
     useCollection<FinancialGoal>(goalsQuery);
 
   const bankAccountsQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'bankAccounts') : null),
+    () => (user && firestore ? collection(firestore, 'users', user.uid, 'bankAccounts') : null),
     [firestore, user]
   );
   const { data: bankAccounts, isLoading: isLoadingBankAccounts } =
     useCollection<BankAccount>(bankAccountsQuery);
   
   const categoriesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'categories') : null),
+    () => (user && firestore ? collection(firestore, 'users', user.uid, 'categories') : null),
     [firestore, user]
   );
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);

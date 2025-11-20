@@ -23,7 +23,7 @@ export default function PayeesPage() {
   const [editingPayee, setEditingPayee] = React.useState<Payee | null>(null);
 
   const payeesQuery = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'payees') : null),
+    () => (user && firestore ? collection(firestore, 'users', user.uid, 'payees') : null),
     [firestore, user]
   );
   const { data: payees, isLoading: isLoadingPayees } = useCollection<Payee>(payeesQuery);
