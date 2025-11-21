@@ -59,7 +59,7 @@ export default function CardTransactionsPage() {
   const cardId = params.cardId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { incomes, expenses, transfers, bankAccounts, categories, users } = allData;
+  const { incomes, expenses, transfers, bankAccounts, categories } = allData;
 
   const { card, ledger } = useMemo(() => {
     if (isLoading || !cardId) {
@@ -209,9 +209,9 @@ export default function CardTransactionsPage() {
         ledger.map((tx) => (
           <Card key={`${tx.id}-${tx.type}`} className="overflow-hidden relative">
             <div className={cn("border-l-4 h-full absolute left-0 top-0", getTransactionAmountClass(tx))}></div>
-            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+            <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4">
                 {/* Transaction Details */}
-                <div className="md:col-span-2 flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-grow">
                      {getTransactionIcon(tx)}
                      <div className="flex-grow">
                         <p className="font-bold">{tx.description}</p>
@@ -224,7 +224,7 @@ export default function CardTransactionsPage() {
                 </div>
 
                 {/* Amounts */}
-                <div className="md:col-span-1 grid grid-cols-3 gap-2 text-center md:text-left text-sm">
+                <div className="grid grid-cols-3 gap-2 text-center md:text-left text-sm md:w-auto w-full pt-2 md:pt-0">
                     <div className="space-y-1 p-2 rounded-md bg-muted/50">
                         <p className="text-xs text-muted-foreground">موجودی قبل</p>
                         <p className="font-mono font-semibold">{formatCurrency(tx.balanceBefore, 'IRT').replace(' تومان', '')}</p>
@@ -248,5 +248,3 @@ export default function CardTransactionsPage() {
     </main>
   );
 }
-
-    

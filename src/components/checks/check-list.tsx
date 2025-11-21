@@ -57,7 +57,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
   }
 
   return (
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {checks.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime()).map((check) => {
           const { payee, category, bankAccount, ownerName } = getDetails(check);
           const isCleared = check.status === 'cleared';

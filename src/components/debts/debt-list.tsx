@@ -49,7 +49,7 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
   };
 
   return (
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+    <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
         {debts.sort((a, b) => a.remainingAmount > 0 ? -1 : 1).map((debt) => {
             const progress = 100 - (debt.remainingAmount / debt.amount) * 100;
             const isCompleted = debt.remainingAmount <= 0;

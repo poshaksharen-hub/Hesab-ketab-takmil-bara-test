@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
 import type { Check, BankAccount, Payee, Category, Expense } from '@/lib/types';
@@ -171,7 +171,6 @@ export default function ChecksPage() {
             
             // If the check was cleared, we need to reverse the financial impact
             if (check.status === 'cleared') {
-                // Find the corresponding expense
                 const expenseQuery = query(collection(familyDataRef, 'expenses'), where('checkId', '==', check.id));
                 const expenseSnapshot = await getDocs(expenseQuery);
                 

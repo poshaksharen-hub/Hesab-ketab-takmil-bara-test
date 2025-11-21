@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, Edit, MoreVertical, History } from 'lucide-react';
+import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History } from 'lucide-react';
 import type { Loan, LoanPayment, Payee, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -38,12 +38,11 @@ interface LoanListProps {
   loans: Loan[];
   payees: Payee[];
   bankAccounts: BankAccount[];
-  onEdit: (loan: Loan) => void;
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
 }
 
-export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay }: LoanListProps) {
+export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -86,7 +85,7 @@ export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay 
 
 
   return (
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+    <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
         {loans.sort((a, b) => a.paidInstallments - b.paidInstallments).map((loan) => {
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
@@ -123,10 +122,6 @@ export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay 
                                             <History className="ml-2 h-4 w-4" />
                                             مشاهده تاریخچه
                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled>
-                                            <Edit className="ml-2 h-4 w-4" />
-                                            ویرایش وام
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem

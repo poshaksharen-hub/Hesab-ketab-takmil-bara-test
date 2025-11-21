@@ -56,9 +56,7 @@ interface LoanFormProps {
 export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
   const form = useForm<LoanFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData
-      ? { ...initialData, startDate: new Date(initialData.startDate) }
-      : {
+    defaultValues: {
           title: '',
           payeeId: '',
           amount: 0,
@@ -73,10 +71,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
   });
 
   useEffect(() => {
-    if (initialData) {
-      form.reset({ ...initialData, startDate: new Date(initialData.startDate) });
-    } else {
-      form.reset({
+    form.reset({
         title: '',
         payeeId: '',
         amount: 0,
@@ -87,9 +82,8 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
         paymentDay: 1,
         depositOnCreate: false,
         depositToAccountId: '',
-      });
-    }
-  }, [initialData, form]);
+    });
+  }, [form]);
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
@@ -143,7 +137,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                   </FormItem>
                 )}
               />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                   control={form.control}
                   name="payeeId"
@@ -191,7 +185,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
             </div>
             <div className="rounded-lg border p-4 space-y-4">
                 <p className='text-sm text-muted-foreground'>اطلاعات زیر فقط برای یادآوری و آمار است و در محاسبات تاثیری ندارد.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <FormField
                         control={form.control}
                         name="installmentAmount"
@@ -220,7 +214,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                     />
                 </div>
             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                     control={form.control}
                     name="paymentDay"
