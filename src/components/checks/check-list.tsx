@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -142,6 +143,16 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
                                 <div className="text-left">
                                     <p className="text-xs text-muted-foreground">دسته‌بندی</p>
                                     <p className="font-semibold">{category}</p>
+                                </div>
+                            </div>
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-xs text-muted-foreground">تاریخ صدور</p>
+                                    <p className="font-semibold font-mono">{formatJalaliDate(new Date(check.issueDate))}</p>
+                                </div>
+                                <div className="text-left">
+                                    <p className="text-xs text-muted-foreground">تاریخ سررسید</p>
+                                    <p className="font-semibold font-mono">{formatJalaliDate(new Date(check.dueDate))}</p>
                                 </div>
                             </div>
                         </div>
