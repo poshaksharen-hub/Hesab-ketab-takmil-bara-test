@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
 import type { Check, BankAccount, Payee, Category, Expense } from '@/lib/types';
@@ -28,7 +28,7 @@ export default function ChecksPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCheck, setEditingCheck] = React.useState<Check | null>(null);
   
-  const { checks, bankAccounts, payees, categories, users } = allData;
+  const { checks, bankAccounts, payees, categories } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'ownerId'> & {ownerId: 'ali' | 'fatemeh' | 'shared'}) => {
     if (!user || !firestore) return;
