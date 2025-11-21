@@ -132,6 +132,7 @@ export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay 
                                         <DropdownMenuItem
                                             onSelect={() => onDelete(loan.id)}
                                             className="text-destructive focus:text-destructive"
+                                            disabled={!isCompleted}
                                         >
                                             <Trash2 className="ml-2 h-4 w-4" />
                                             حذف وام

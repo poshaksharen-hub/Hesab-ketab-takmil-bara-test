@@ -74,13 +74,13 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
   };
 
   const selectedBankAccountId = form.watch('bankAccountId');
+  const selectedAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
 
   useEffect(() => {
-    const selectedAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
     if (selectedAccount && selectedAccount.ownerId === 'shared') {
       form.setValue('expenseFor', 'shared');
     }
-  }, [selectedBankAccountId, bankAccounts, form]);
+  }, [selectedAccount, form]);
 
 
   React.useEffect(() => {
@@ -109,8 +109,6 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
     }
     onSubmit(submissionData);
   }
-  
-  const selectedAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
 
 
   return (
