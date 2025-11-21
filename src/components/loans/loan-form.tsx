@@ -34,13 +34,22 @@ const formSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
   payeeId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'مبلغ وام باید یک عدد مثبت باشد.' }),
-  ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این بدهی برای کیست.' }),
+  ownerId: z.enum(['ali', 'fatemeh', 'shared']).optional(),
   installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').optional(),
   numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').optional(),
   startDate: z.date({ required_error: 'لطفا تاریخ شروع را انتخاب کنید.' }),
   paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').optional(),
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
+}).refine(data => {
+    // If deposit is not on, ownerId is required.
+    if (!data.depositOnCreate) {
+      return !!data.ownerId;
+    }
+    return true;
+}, {
+    message: "لطفا مشخص کنید این بدهی برای کیست.",
+    path: ["ownerId"],
 });
 
 type LoanFormValues = z.infer<typeof formSchema>;
@@ -91,17 +100,25 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
+  const watchDepositOnCreate = form.watch('depositOnCreate');
+  const watchDepositToAccountId = form.watch('depositToAccountId');
+  const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
+
   function handleFormSubmit(data: LoanFormValues) {
+    
+    let finalOwnerId = data.ownerId;
+    if (data.depositOnCreate && depositAccount) {
+        finalOwnerId = depositAccount.ownerId;
+    }
+
     const submissionData = {
       ...data,
+      ownerId: finalOwnerId,
       startDate: data.startDate.toISOString(),
     };
     onSubmit(submissionData);
   }
 
-  const watchDepositOnCreate = form.watch('depositOnCreate');
-  const watchDepositToAccountId = form.watch('depositToAccountId');
-  const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
   return (
     <Card>
@@ -162,28 +179,30 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                     </FormItem>
                   )}
                 />
-                 <FormField
-                    control={form.control}
-                    name="ownerId"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>این بدهی برای کیست؟</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
-                            <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                            <SelectItem value="shared">مشترک</SelectItem>
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+                 {!watchDepositOnCreate && (
+                    <FormField
+                        control={form.control}
+                        name="ownerId"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>این بدهی برای کیست؟</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                                <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                                <SelectItem value="shared">مشترک</SelectItem>
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                 )}
             </div>
             <div className="rounded-lg border p-4 space-y-4">
                 <p className='text-sm text-muted-foreground'>اطلاعات زیر فقط برای یادآوری و آمار است و در محاسبات تاثیری ندارد.</p>

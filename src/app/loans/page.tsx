@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
-import type { Loan, LoanPayment, BankAccount, Category, Payee, Expense } from '@/lib/types';
+import type { Loan, LoanPayment, BankAccount, Category, Payee, Expense, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
@@ -60,6 +60,8 @@ export default function LoansPage() {
             
             let bankAccountDoc = null;
             let bankAccountData: BankAccount | null = null;
+            let finalOwnerId: OwnerId = ownerId;
+
             if (depositOnCreate && depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
                 bankAccountDoc = await transaction.get(bankAccountRef);
@@ -68,12 +70,13 @@ export default function LoansPage() {
                     throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
                 }
                 bankAccountData = bankAccountDoc.data()!;
+                finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
             }
 
             const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
                 title,
                 amount,
-                ownerId,
+                ownerId: finalOwnerId,
                 installmentAmount: installmentAmount || 0,
                 numberOfInstallments: numberOfInstallments || 0,
                 startDate: startDate,
