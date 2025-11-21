@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -45,14 +44,14 @@ export function PayeeList({ payees, onEdit, onDelete }: PayeeListProps) {
             <TableRow>
               <TableHead>نام</TableHead>
               <TableHead className="hidden sm:table-cell">شماره تلفن</TableHead>
-              <TableHead className="text-left">عملیات</TableHead>
+              <TableHead className="text-left w-[150px]">عملیات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {payees.map((payee) => (
-              <TableRow key={payee.id}>
+              <TableRow key={payee.id} className="group">
                 <TableCell className="font-medium">
-                    <Link href={`/payees/${payee.id}`} className="flex items-center gap-2 hover:underline">
+                    <Link href={`/payees/${payee.id}`} className="flex items-center gap-2 group-hover:underline">
                         {payee.name}
                     </Link>
                 </TableCell>
@@ -83,7 +82,7 @@ export function PayeeList({ payees, onEdit, onDelete }: PayeeListProps) {
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-                        <Button variant="ghost" size="icon" asChild>
+                        <Button variant="ghost" size="icon" asChild className="opacity-0 group-hover:opacity-100 transition-opacity">
                            <Link href={`/payees/${payee.id}`}>
                             <ArrowLeft className="h-4 w-4" />
                            </Link>

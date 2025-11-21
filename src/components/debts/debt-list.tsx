@@ -50,7 +50,7 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
 
   return (
     <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-        {debts.sort((a, b) => a.remainingAmount > 0 ? -1 : 1).map((debt) => {
+        {debts.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((debt) => {
             const progress = 100 - (debt.remainingAmount / debt.amount) * 100;
             const isCompleted = debt.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(debt.ownerId);
@@ -84,12 +84,12 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>آیا از حذف این بدهی مطمئن هستید؟</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                           این عمل قابل بازگشت نیست. اگر بدهی به طور کامل تسویه نشده باشد، امکان حذف آن وجود ندارد. در غیر این صورت، بدهی و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده می‌شوند.
+                                           این عمل قابل بازگشت نیست. اگر بدهی دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، بدهی برای همیشه حذف خواهد شد.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                        <AlertDialogAction disabled={!isCompleted} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(debt.id); }}>
+                                        <AlertDialogAction disabled={debt.remainingAmount > 0 && debt.remainingAmount < debt.amount} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(debt.id); }}>
                                             بله، حذف کن
                                         </AlertDialogAction>
                                         </AlertDialogFooter>

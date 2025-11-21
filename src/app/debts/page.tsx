@@ -158,8 +158,8 @@ export default function DebtsPage() {
         toast({ variant: "destructive", title: "خطا", description: "بدهی مورد نظر یافت نشد." });
         return;
     }
-    if (debtToDelete.remainingAmount > 0) {
-        toast({ variant: "destructive", title: "امکان حذف وجود ندارد", description: "این بدهی هنوز به طور کامل تسویه نشده است." });
+    if (debtToDelete.remainingAmount > 0 && debtToDelete.remainingAmount < debtToDelete.amount) {
+        toast({ variant: "destructive", title: "امکان حذف وجود ندارد", description: "این بدهی دارای سابقه پرداخت است. ابتدا باید بدهی را به طور کامل تسویه کنید و سپس اقدام به حذف نمایید." });
         return;
     }
 
