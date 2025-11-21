@@ -14,7 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { formatJalaliDate } from '@/lib/utils';
 
 const FAMILY_DATA_DOC = 'shared-data';
 

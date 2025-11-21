@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -73,6 +73,16 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
+  const selectedBankAccountId = form.watch('bankAccountId');
+
+  useEffect(() => {
+    const selectedAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
+    if (selectedAccount && selectedAccount.ownerId === 'shared') {
+      form.setValue('expenseFor', 'shared');
+    }
+  }, [selectedBankAccountId, bankAccounts, form]);
+
+
   React.useEffect(() => {
     if (initialData) {
       form.reset({ ...initialData, date: new Date(initialData.date), expenseFor: initialData.expenseFor || 'shared' });
@@ -99,6 +109,9 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
     }
     onSubmit(submissionData);
   }
+  
+  const selectedAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
+
 
   return (
       <Card>
@@ -226,7 +239,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>هزینه برای</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={selectedAccount?.ownerId === 'shared'}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="شخص یا مورد هزینه را انتخاب کنید" />

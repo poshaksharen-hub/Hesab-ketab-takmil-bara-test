@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -89,7 +88,7 @@ export function ExpenseList({
     if (!account) return '';
     if (account.ownerId === 'shared') return ' (مشترک)';
     const userDetail = USER_DETAILS[account.ownerId];
-    return userDetail ? ` (حساب ${userDetail.firstName})` : '';
+    return userDetail ? ` (شخصی ${userDetail.firstName})` : '';
   };
 
 

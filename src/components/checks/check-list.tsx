@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -82,11 +81,6 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
                         <p className="text-sm text-muted-foreground">بانک: {bankAccount?.bankName}</p>
                         <p className="text-xs">{ownerName}</p>
                     </div>
-                </div>
-
-                {/* Amount in words */}
-                <div className="text-center bg-muted/50 p-2 rounded-md">
-                    <p className="font-semibold">{formatCurrency(check.amount, 'IRT')}</p>
                 </div>
                 
                  {/* Details Section */}
