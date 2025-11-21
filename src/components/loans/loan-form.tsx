@@ -46,15 +46,14 @@ const formSchema = z.object({
 type LoanFormValues = z.infer<typeof formSchema>;
 
 interface LoanFormProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  onCancel: () => void;
   onSubmit: (data: any) => void;
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
 }
 
-export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
+export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
   const form = useForm<LoanFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -295,7 +294,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
+            <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
             <Button type="submit">ذخیره</Button>
           </CardFooter>
         </form>

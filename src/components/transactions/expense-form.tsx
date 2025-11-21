@@ -42,8 +42,7 @@ const formSchema = z.object({
 type ExpenseFormValues = z.infer<typeof formSchema>;
 
 interface ExpenseFormProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  onCancel: () => void;
   onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'registeredByUserId'>) => void;
   initialData: Expense | null;
   bankAccounts: BankAccount[];
@@ -51,7 +50,7 @@ interface ExpenseFormProps {
   payees: Payee[];
 }
 
-export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees }: ExpenseFormProps) {
+export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, categories, payees }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -255,7 +254,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
               />
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
+                <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
                 <Button type="submit">ذخیره</Button>
             </CardFooter>
           </form>

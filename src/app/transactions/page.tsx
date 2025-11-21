@@ -145,6 +145,10 @@ export default function ExpensesPage() {
     setIsFormOpen(true);
   }, []);
   
+  const handleCancel = React.useCallback(() => {
+    setIsFormOpen(false);
+  }, []);
+
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
@@ -167,8 +171,7 @@ export default function ExpensesPage() {
           </div>
       ) : isFormOpen ? (
         <ExpenseForm
-          isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
+          onCancel={handleCancel}
           onSubmit={handleFormSubmit}
           initialData={null}
           bankAccounts={allBankAccounts || []}

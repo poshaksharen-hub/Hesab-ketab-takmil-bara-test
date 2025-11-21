@@ -213,8 +213,8 @@ export default function LoansPage() {
         return;
     }
     
-    if (loanToDelete.remainingAmount > 0) {
-        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام هنوز به طور کامل تسویه نشده است.' });
+    if (loanToDelete.paidInstallments > 0 && loanToDelete.remainingAmount < loanToDelete.amount) {
+        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. ابتدا باید پرداخت‌ها را حذف کنید.' });
         return;
     }
 
@@ -223,41 +223,33 @@ export default function LoansPage() {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const loanRef = doc(familyDataRef, 'loans', loanId);
 
-            const paymentsQuery = query(collection(familyDataRef, 'loanPayments'), where('loanId', '==', loanId));
-            const paymentsSnapshot = await getDocs(paymentsQuery);
-
-            for (const paymentDoc of paymentsSnapshot.docs) {
-                const payment = paymentDoc.data() as LoanPayment;
-                const accountRef = doc(familyDataRef, 'bankAccounts', payment.bankAccountId);
-                
-                const expenseQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', '==', payment.id));
-                const expenseSnapshot = await getDocs(expenseQuery);
-                if (!expenseSnapshot.empty) {
-                    const expenseDoc = expenseSnapshot.docs[0];
-                    transaction.delete(expenseDoc.ref);
-                }
-
-                const accountDoc = await transaction.get(accountRef);
-                if (accountDoc.exists()) {
-                    const accountData = accountDoc.data()!;
-                    transaction.update(accountRef, { balance: accountData.balance + payment.amount });
-                }
-                transaction.delete(paymentDoc.ref);
-            }
-
+            // Reverse the initial deposit if it was made
             if (loanToDelete.depositToAccountId) {
                 const depositAccountRef = doc(familyDataRef, 'bankAccounts', loanToDelete.depositToAccountId);
                 const depositAccountDoc = await transaction.get(depositAccountRef);
                 if (depositAccountDoc.exists()) {
                     const accountData = depositAccountDoc.data()!;
                     transaction.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
+                } else {
+                    // If account is deleted, we can't reverse. Log this inconsistency.
+                    console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found.`);
                 }
             }
+            
+            // It's safe to delete payments and expenses since we've checked that there are none.
+            const paymentsQuery = query(collection(familyDataRef, 'loanPayments'), where('loanId', '==', loanId));
+            const paymentsSnapshot = await getDocs(paymentsQuery);
+            paymentsSnapshot.forEach(doc => transaction.delete(doc.ref));
+
+            const expensesQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', 'in', paymentsSnapshot.docs.map(d => d.id)));
+            const expensesSnapshot = await getDocs(expensesQuery);
+            expensesSnapshot.forEach(doc => transaction.delete(doc.ref));
+
 
             transaction.delete(loanRef);
         });
 
-        toast({ title: "موفقیت", description: "وام و تمام سوابق پرداخت آن با موفقیت حذف شدند." });
+        toast({ title: "موفقیت", description: "وام و تمام سوابق آن با موفقیت حذف شدند." });
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -281,6 +273,11 @@ export default function LoansPage() {
     setEditingLoan(null);
     setIsFormOpen(true);
   }, []);
+  
+  const handleCancel = useCallback(() => {
+    setIsFormOpen(false);
+    setEditingLoan(null);
+  }, []);
 
   
   const isLoading = isUserLoading || isDashboardLoading;
@@ -302,8 +299,7 @@ export default function LoansPage() {
         </div>
       ) : isFormOpen ? (
         <LoanForm
-          isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
+          onCancel={handleCancel}
           onSubmit={handleFormSubmit}
           initialData={editingLoan}
           bankAccounts={bankAccounts || []}

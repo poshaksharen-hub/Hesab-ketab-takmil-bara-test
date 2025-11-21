@@ -20,6 +20,7 @@ import {
   FolderKanban,
   Wallet,
   Trash2,
+  Receipt,
 } from 'lucide-react';
 import type { Expense, BankAccount, Category, UserProfile, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
@@ -96,8 +97,8 @@ export function ExpenseList({
   }) => {
     if (!value) return null;
     return (
-      <div className="flex items-center gap-3 text-sm">
-        <Icon className="h-5 w-5 text-muted-foreground" />
+      <div className="flex items-start gap-3 text-sm">
+        <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
         <div className="flex flex-col">
           <span className="text-muted-foreground">{label}</span>
           <span className={`font-semibold ${className}`}>{value}</span>
@@ -131,7 +132,7 @@ export function ExpenseList({
                     <CardHeader>
                     <div className="flex items-start justify-between">
                         <p className="text-lg font-bold whitespace-pre-wrap">{expense.description}</p>
-                        <div className="text-left">
+                        <div className="text-left shrink-0 pl-2">
                         <p className="text-2xl font-bold text-destructive">
                             {`-${formatCurrency(expense.amount, 'IRT')}`}
                         </p>
@@ -169,9 +170,15 @@ export function ExpenseList({
                                 label="ثبت توسط"
                                 value={getUserName(expense.registeredByUserId)}
                             />
+                             <DetailItem
+                                icon={Receipt}
+                                label="موجودی قبل"
+                                value={expense.balanceBefore !== undefined ? formatCurrency(expense.balanceBefore, 'IRT') : 'نامشخص'}
+                                className="font-mono"
+                            />
                             <DetailItem
                                 icon={Wallet}
-                                label="موجودی پس از تراکنش"
+                                label="موجودی بعد"
                                 value={expense.balanceAfter !== undefined ? formatCurrency(expense.balanceAfter, 'IRT') : 'نامشخص'}
                                 className="text-primary font-mono"
                             />
