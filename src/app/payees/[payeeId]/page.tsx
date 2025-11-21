@@ -28,7 +28,7 @@ function PayeeDetailSkeleton() {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-10 w-24" />
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />
@@ -171,7 +171,7 @@ export default function PayeeDetailPage() {
         </Button>
       </div>
 
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+       <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         <Card className="border-l-4 border-destructive">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">کل بدهی شما</CardTitle>
