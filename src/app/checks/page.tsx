@@ -34,10 +34,21 @@ export default function ChecksPage() {
     if (!user || !firestore) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
+    const bankAccount = bankAccounts.find(acc => acc.id === values.bankAccountId);
+
+    if (!bankAccount) {
+        toast({ variant: 'destructive', title: "خطا", description: "حساب بانکی انتخاب شده یافت نشد." });
+        return;
+    }
+
 
     if (editingCheck) {
       const checkRef = doc(checksColRef, editingCheck.id);
-      updateDoc(checkRef, values)
+      const updatedCheck = {
+        ...values,
+        ownerId: bankAccount.ownerId
+      }
+      updateDoc(checkRef, updatedCheck)
         .then(() => {
           toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
         })
@@ -45,13 +56,14 @@ export default function ChecksPage() {
             const permissionError = new FirestorePermissionError({
                 path: checkRef.path,
                 operation: 'update',
-                requestResourceData: values,
+                requestResourceData: updatedCheck,
             });
             errorEmitter.emit('permission-error', permissionError);
         });
     } else {
       const newCheck = {
         ...values,
+        ownerId: bankAccount.ownerId,
         registeredByUserId: user.uid,
         status: 'pending' as 'pending',
       };
@@ -71,7 +83,7 @@ export default function ChecksPage() {
     }
     setIsFormOpen(false);
     setEditingCheck(null);
-  }, [user, firestore, editingCheck, toast]);
+  }, [user, firestore, editingCheck, toast, bankAccounts]);
 
   const handleClearCheck = React.useCallback(async (check: Check) => {
     if (!user || !firestore || check.status === 'cleared') return;
@@ -155,34 +167,10 @@ export default function ChecksPage() {
     if (!user || !firestore) return;
     
     const checkRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'checks', check.id);
-    const bankAccountRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', check.bankAccountId);
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            if (check.status === 'cleared') {
-                // Find the associated expense
-                const expenseQuery = query(
-                    collection(firestore, 'family-data', FAMILY_DATA_DOC, 'expenses'),
-                    where('checkId', '==', check.id)
-                );
-                const expenseSnapshot = await getDocs(expenseQuery);
-                const expenseDoc = expenseSnapshot.docs[0];
-
-                if (expenseDoc) {
-                    const bankAccountDoc = await transaction.get(bankAccountRef);
-                    if (bankAccountDoc.exists()) {
-                        const bankAccountData = bankAccountDoc.data();
-                        transaction.update(bankAccountRef, { balance: bankAccountData.balance + check.amount });
-                    }
-                    transaction.delete(expenseDoc.ref);
-                }
-            }
-            // Finally, delete the check itself
-            transaction.delete(checkRef);
-        });
-
+        await deleteDoc(checkRef);
         toast({ title: "موفقیت", description: "چک با موفقیت حذف شد." });
-
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
