@@ -5,7 +5,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark } from 'lucide-react';
+import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark } from 'lucide-react';
 import type { Loan, LoanPayment, Payee, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';

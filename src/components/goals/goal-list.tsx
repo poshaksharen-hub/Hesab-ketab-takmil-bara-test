@@ -102,7 +102,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                           این عمل قابل بازگشت نیست. هدف و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده می‌شوند.
+                                           این عمل قابل بازگشت نیست. اگر هدف محقق شده باشد، ابتدا آن را بازگردانی کنید. در غیر این صورت، مبالغ مسدود شده آزاد خواهند شد و هدف برای همیشه حذف می‌شود.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>

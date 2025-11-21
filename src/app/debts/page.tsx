@@ -9,8 +9,11 @@ import {
   doc,
   runTransaction,
   serverTimestamp,
+  getDocs,
+  query,
+  where
 } from 'firebase/firestore';
-import type { PreviousDebt, BankAccount, Category, Payee, Expense } from '@/lib/types';
+import type { PreviousDebt, BankAccount, Category, Payee, Expense, DebtPayment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -18,6 +21,8 @@ import { formatCurrency } from '@/lib/utils';
 import { DebtList } from '@/components/debts/debt-list';
 import { DebtForm } from '@/components/debts/debt-form';
 import { PayDebtDialog } from '@/components/debts/pay-debt-dialog';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -124,8 +129,8 @@ export default function DebtsPage() {
                 payeeId: debt.payeeId,
                 date: new Date().toISOString(),
                 description: `پرداخت بدهی: ${debt.description}`,
-                type: 'expense',
-                subType: 'debt_payment',
+                type: 'expense' as const,
+                subType: 'debt_payment' as const,
                 debtPaymentId: paymentRef.id,
                 createdAt: serverTimestamp(),
                 balanceBefore: balanceBefore,
@@ -142,6 +147,64 @@ export default function DebtsPage() {
         });
     }
   }, [user, firestore, categories, toast]);
+
+  const handleDeleteDebt = useCallback(async (debtId: string) => {
+    if (!user || !firestore) return;
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const debtRef = doc(familyDataRef, 'previousDebts', debtId);
+        
+        // Find and reverse associated payments and expenses
+        const paymentsQuery = query(collection(familyDataRef, 'debtPayments'), where('debtId', '==', debtId));
+        const paymentsSnapshot = await getDocs(paymentsQuery);
+
+        for (const paymentDoc of paymentsSnapshot.docs) {
+          const payment = paymentDoc.data() as DebtPayment;
+          const accountRef = doc(familyDataRef, 'bankAccounts', payment.bankAccountId);
+
+          // Find and delete the corresponding expense first
+          const expenseQuery = query(collection(familyDataRef, 'expenses'), where('debtPaymentId', '==', payment.id));
+          const expenseSnapshot = await getDocs(expenseQuery);
+          if (!expenseSnapshot.empty) {
+            const expenseDoc = expenseSnapshot.docs[0];
+            transaction.delete(expenseDoc.ref);
+          }
+
+          // Restore balance
+          const accountDoc = await transaction.get(accountRef);
+          if (accountDoc.exists()) {
+            const accountData = accountDoc.data() as BankAccount;
+            transaction.update(accountRef, { balance: accountData.balance + payment.amount });
+          }
+
+          // Delete the payment record
+          transaction.delete(paymentDoc.ref);
+        }
+
+        // Delete the main debt document
+        transaction.delete(debtRef);
+      });
+
+      toast({ title: "موفقیت", description: "بدهی و تمام سوابق پرداخت آن با موفقیت حذف شدند." });
+
+    } catch (error: any) {
+      if (error.name === 'FirebaseError') {
+        const permissionError = new FirestorePermissionError({
+          path: `family-data/shared-data/previousDebts/${debtId}`,
+          operation: 'delete'
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "خطا در حذف بدهی",
+          description: error.message || "مشکلی در حذف بدهی و سوابق آن پیش آمد.",
+        });
+      }
+    }
+  }, [user, firestore, toast]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -173,6 +236,7 @@ export default function DebtsPage() {
                 debts={previousDebts || []}
                 payees={payees || []}
                 onPay={setPayingDebt}
+                onDelete={handleDeleteDebt}
             />
             {payingDebt && (
                 <PayDebtDialog
@@ -188,5 +252,3 @@ export default function DebtsPage() {
     </main>
   );
 }
-
-    
