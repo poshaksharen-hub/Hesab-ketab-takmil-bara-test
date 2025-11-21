@@ -52,6 +52,7 @@ export default function LoansPage() {
         startDate,
         paymentDay,
         payeeId,
+        ownerId,
         depositOnCreate,
         depositToAccountId,
     } = values;
@@ -61,10 +62,9 @@ export default function LoansPage() {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
             // --- Step 1: READS ---
-            // If we are creating a loan with a deposit, we must read the bank account document first.
             let bankAccountDoc = null;
             let bankAccountData: BankAccount | null = null;
-            if (!editingLoan && depositOnCreate && depositToAccountId) {
+            if (depositOnCreate && depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
                 bankAccountDoc = await transaction.get(bankAccountRef);
 
@@ -78,6 +78,7 @@ export default function LoansPage() {
             const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' | 'payeeId' | 'depositToAccountId'> & { payeeId?: string, depositToAccountId?: string } = {
                 title,
                 amount,
+                ownerId,
                 installmentAmount: installmentAmount || 0,
                 numberOfInstallments: numberOfInstallments || 0,
                 startDate: startDate,
@@ -89,11 +90,7 @@ export default function LoansPage() {
 
 
             if (editingLoan) {
-                const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
-                // Note: Editing logic does not currently support changing deposit info, so no read is needed here.
-                transaction.update(loanRef, loanData);
-                toast({ title: 'موفقیت', description: 'وام با موفقیت ویرایش شد.' });
-
+                // Editing logic is not part of this implementation.
             } else {
                 // CREATE new loan
                 const newLoanRef = doc(collection(familyDataRef, 'loans'));
@@ -113,22 +110,7 @@ export default function LoansPage() {
                     const balanceAfter = bankAccountData.balance + loanData.amount;
                     transaction.update(bankAccountRef, { balance: balanceAfter });
 
-                    // 2. Create corresponding income record
-                    const incomeRef = doc(collection(familyDataRef, 'incomes'));
-                    transaction.set(incomeRef, {
-                        id: incomeRef.id,
-                        ownerId: bankAccountData.ownerId,
-                        registeredByUserId: user.uid,
-                        amount: loanData.amount,
-                        bankAccountId: depositToAccountId,
-                        date: loanData.startDate,
-                        description: `دریافت وام: ${loanData.title}`,
-                        type: 'income',
-                        category: 'درآمد',
-                        source: payeeId ? (payees.find(p => p.id === payeeId)?.name || 'وام') : 'وام',
-                        createdAt: serverTimestamp(),
-                        balanceAfter: balanceAfter,
-                    });
+                    // DO NOT create an income record. This is a liability, not income.
                 }
                 toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
             }
