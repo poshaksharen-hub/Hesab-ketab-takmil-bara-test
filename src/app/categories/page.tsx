@@ -49,9 +49,9 @@ export default function CategoriesPage() {
             errorEmitter.emit('permission-error', permissionError);
         });
     } else {
-        addDoc(categoriesColRef, values)
+        addDoc(categoriesColRef, { ...values, id: '' }) // Add with an empty ID initially
         .then((docRef) => {
-            updateDoc(docRef, { id: docRef.id });
+            updateDoc(docRef, { id: docRef.id }); // Then update with the correct ID
             toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
         })
         .catch(async (serverError) => {
@@ -74,13 +74,13 @@ export default function CategoriesPage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             // Check for usage in expenses
-            const isUsedInExpenses = expenses.some(e => e.categoryId === categoryId);
+            const isUsedInExpenses = (expenses || []).some(e => e.categoryId === categoryId);
             if (isUsedInExpenses) {
                 throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند هزینه استفاده شده است.");
             }
             
             // Check for usage in checks
-            const isUsedInChecks = checks.some(c => c.categoryId === categoryId);
+            const isUsedInChecks = (checks || []).some(c => c.categoryId === categoryId);
             if (isUsedInChecks) {
                 throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند چک استفاده شده است.");
             }

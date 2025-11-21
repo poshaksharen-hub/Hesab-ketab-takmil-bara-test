@@ -100,6 +100,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
   }
 
   const watchDepositOnCreate = form.watch('depositOnCreate');
+  const watchDepositToAccountId = form.watch('depositToAccountId');
+  const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
   return (
     <Card>
@@ -281,11 +283,16 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             <SelectContent>
                                 {bankAccounts.map((account) => (
                                 <SelectItem key={account.id} value={account.id}>
-                                    {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
+                                    {`${account.bankName} ${getOwnerName(account)}`}
                                 </SelectItem>
                                 ))}
                             </SelectContent>
                             </Select>
+                             {depositAccount && (
+                                <FormDescription className="pt-2">
+                                    موجودی فعلی این حساب: {formatCurrency(depositAccount.balance, 'IRT')}
+                                </FormDescription>
+                            )}
                             <FormMessage />
                         </FormItem>
                         )}
@@ -295,7 +302,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-            <Button type="submit">ذخیره</Button>
+            <Button type="submit" disabled={!!initialData}>ذخیره</Button>
           </CardFooter>
         </form>
       </Form>

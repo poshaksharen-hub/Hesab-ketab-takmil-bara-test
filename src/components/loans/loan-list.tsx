@@ -86,7 +86,7 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanL
 
 
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+    <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
         {loans.sort((a, b) => a.paidInstallments - b.paidInstallments).map((loan) => {
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
@@ -136,12 +136,15 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanL
                                                 <AlertDialogHeader>
                                                 <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                   این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط با آن (مانند واریز اولیه) معکوس خواهد شد.
+                                                   این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط (مانند واریز اولیه) معکوس و وام حذف خواهد شد.
                                                 </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                <AlertDialogAction disabled={loan.paidInstallments > 0} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
+                                                <AlertDialogAction
+                                                    className="bg-destructive hover:bg-destructive/90"
+                                                    disabled={loan.paidInstallments > 0}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
                                                     بله، حذف کن
                                                 </AlertDialogAction>
                                                 </AlertDialogFooter>

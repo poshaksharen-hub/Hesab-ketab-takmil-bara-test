@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2 } from 'lucide-react';
+import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, History } from 'lucide-react';
 import type { PreviousDebt, Payee, OwnerId } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -12,6 +12,7 @@ import { Badge } from '../ui/badge';
 import Link from 'next/link';
 import { USER_DETAILS } from '@/lib/constants';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '../ui/alert-dialog';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../ui/dropdown-menu';
 
 
 interface DebtListProps {
@@ -57,7 +58,6 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
 
             return (
              <div key={debt.id} className="relative group">
-              <Link href={`/debts/${debt.id}`} className="block cursor-pointer">
                 <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
                     <CardHeader>
                         <div className='flex justify-between items-start'>
@@ -71,33 +71,48 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
                                     <span className="text-xs">(به: {getPayeeName(debt.payeeId)})</span>
                                 </CardDescription>
                             </div>
-                           <div className="flex gap-1">
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="inline-block">
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="حذف بدهی">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>آیا از حذف این بدهی مطمئن هستید؟</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                           این عمل قابل بازگشت نیست. اگر بدهی دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، بدهی برای همیشه حذف خواهد شد.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                        <AlertDialogAction disabled={debt.remainingAmount > 0 && debt.remainingAmount < debt.amount} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(debt.id); }}>
-                                            بله، حذف کن
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <ArrowLeft className="h-4 w-4" />
-                                </Button>
+                           <div className="flex gap-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                               <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                            <MoreVertical className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/debts/${debt.id}`}>
+                                                <History className="ml-2 h-4 w-4" />
+                                                مشاهده تاریخچه
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                    <Trash2 className="ml-2 h-4 w-4" />
+                                                    حذف بدهی
+                                                </div>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>آیا از حذف این بدهی مطمئن هستید؟</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    این عمل قابل بازگشت نیست. اگر بدهی دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، بدهی برای همیشه حذف خواهد شد.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    className="bg-destructive hover:bg-destructive/90"
+                                                    disabled={debt.remainingAmount > 0 && debt.remainingAmount < debt.amount}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(debt.id); }}>
+                                                    بله، حذف کن
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                            </div>
                         </div>
                     </CardHeader>
@@ -129,7 +144,6 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
                         )}
                     </CardFooter>
                 </Card>
-              </Link>
              </div>
         )})}
     </div>
