@@ -52,7 +52,7 @@ export default function ExpensesPage() {
             if (!fromCardDoc.exists()) {
                 throw new Error("کارت بانکی مورد نظر یافت نشد.");
             }
-            const fromCardData = fromCardDoc.data() as BankAccount;
+            const fromCardData = fromCardDoc.data()!;
             const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
             
             if (availableBalance < expenseData.amount) {
@@ -62,16 +62,14 @@ export default function ExpensesPage() {
             const balanceBefore = fromCardData.balance;
             const balanceAfter = balanceBefore - expenseData.amount;
             
-            // 1. Deduct from balance
             transaction.update(fromCardRef, { balance: balanceAfter });
 
-            // 2. Create new expense document
             const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
             
             transaction.set(newExpenseRef, {
                 ...expenseData,
                 id: newExpenseRef.id,
-                ownerId: ownerId, // Set the ownerId based on the bank account's owner
+                ownerId: ownerId,
                 type: 'expense',
                 registeredByUserId: user.uid,
                 createdAt: serverTimestamp(),
@@ -119,11 +117,9 @@ export default function ExpensesPage() {
             const accountDoc = await transaction.get(accountRef);
             if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این هزینه یافت نشد.");
 
-            // Reverse the transaction
-            const accountData = accountDoc.data() as BankAccount;
+            const accountData = accountDoc.data()!;
             transaction.update(accountRef, { balance: accountData.balance + expenseToDelete.amount });
 
-            // Delete the expense document
             transaction.delete(expenseRef);
         });
         toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ آن به حساب بازگردانده شد." });

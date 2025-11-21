@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import { IncomeList } from '@/components/income/income-list';
@@ -15,6 +15,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -43,15 +45,13 @@ export default function IncomePage() {
         if (!targetCardDoc.exists()) {
           throw new Error("کارت بانکی مورد نظر یافت نشد.");
         }
-        const targetCardData = targetCardDoc.data() as BankAccount;
+        const targetCardData = targetCardDoc.data()!;
         
         const balanceBefore = targetCardData.balance;
         const balanceAfter = balanceBefore + values.amount;
   
-        // 1. Increase balance
         transaction.update(targetCardRef, { balance: balanceAfter });
 
-        // 2. Create new income document
         const newIncomeRef = doc(collection(familyDataRef, 'incomes'));
         transaction.set(newIncomeRef, {
             ...values,
@@ -100,11 +100,9 @@ export default function IncomePage() {
             const accountDoc = await transaction.get(accountRef);
             if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این درآمد یافت نشد.");
 
-            // Reverse the transaction
-            const accountData = accountDoc.data() as BankAccount;
+            const accountData = accountDoc.data()!;
             transaction.update(accountRef, { balance: accountData.balance - incomeToDelete.amount });
 
-            // Delete the income document
             transaction.delete(incomeRef);
         });
         toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ آن از حساب کسر شد." });

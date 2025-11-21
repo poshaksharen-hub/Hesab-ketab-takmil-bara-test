@@ -11,7 +11,9 @@ import {
   serverTimestamp,
   getDocs,
   query,
-  where
+  where,
+  addDoc,
+  updateDoc
 } from 'firebase/firestore';
 import type { PreviousDebt, BankAccount, Category, Payee, Expense, DebtPayment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,21 +44,21 @@ export default function DebtsPage() {
     payees,
   } = allData;
 
-  const handleFormSubmit = useCallback(async (values: any) => {
+  const handleFormSubmit = useCallback(async (values: Omit<PreviousDebt, 'id' | 'registeredByUserId' | 'remainingAmount'>) => {
     if (!user || !firestore) return;
 
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        const newDebtRef = doc(collection(familyDataRef, 'previousDebts'));
-        
-        transaction.set(newDebtRef, {
-          ...values,
-          id: newDebtRef.id,
-          registeredByUserId: user.uid,
-          remainingAmount: values.amount,
-        });
+      const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+      const newDebtRef = collection(familyDataRef, 'previousDebts');
+      
+      const newDoc = await addDoc(newDebtRef, {
+        ...values,
+        registeredByUserId: user.uid,
+        remainingAmount: values.amount,
       });
+
+      await updateDoc(newDoc, { id: newDoc.id });
+
       toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
       setIsFormOpen(false);
     } catch (error: any) {
@@ -156,7 +158,6 @@ export default function DebtsPage() {
         const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
         const debtRef = doc(familyDataRef, 'previousDebts', debtId);
         
-        // Find and reverse associated payments and expenses
         const paymentsQuery = query(collection(familyDataRef, 'debtPayments'), where('debtId', '==', debtId));
         const paymentsSnapshot = await getDocs(paymentsQuery);
 
@@ -164,7 +165,6 @@ export default function DebtsPage() {
           const payment = paymentDoc.data() as DebtPayment;
           const accountRef = doc(familyDataRef, 'bankAccounts', payment.bankAccountId);
 
-          // Find and delete the corresponding expense first
           const expenseQuery = query(collection(familyDataRef, 'expenses'), where('debtPaymentId', '==', payment.id));
           const expenseSnapshot = await getDocs(expenseQuery);
           if (!expenseSnapshot.empty) {
@@ -172,18 +172,14 @@ export default function DebtsPage() {
             transaction.delete(expenseDoc.ref);
           }
 
-          // Restore balance
           const accountDoc = await transaction.get(accountRef);
           if (accountDoc.exists()) {
             const accountData = accountDoc.data() as BankAccount;
             transaction.update(accountRef, { balance: accountData.balance + payment.amount });
           }
 
-          // Delete the payment record
           transaction.delete(paymentDoc.ref);
         }
-
-        // Delete the main debt document
         transaction.delete(debtRef);
       });
 

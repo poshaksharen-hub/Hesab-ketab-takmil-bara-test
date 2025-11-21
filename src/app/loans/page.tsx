@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -67,44 +68,38 @@ export default function LoansPage() {
                 if (!bankAccountDoc.exists()) {
                     throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
                 }
-                bankAccountData = bankAccountDoc.data() as BankAccount;
+                bankAccountData = bankAccountDoc.data()!;
             }
 
-            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' | 'payeeId' | 'depositToAccountId'> & { payeeId?: string, depositToAccountId?: string } = {
+            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
                 title,
                 amount,
                 ownerId,
                 installmentAmount: installmentAmount || 0,
                 numberOfInstallments: numberOfInstallments || 0,
-                startDate: startDate,
+                startDate: startDate.toISOString(),
                 paymentDay: paymentDay || 1,
+                payeeId: payeeId || undefined,
+                depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
             };
 
-            if (payeeId) loanData.payeeId = payeeId;
-            if (depositOnCreate && depositToAccountId) loanData.depositToAccountId = depositToAccountId;
+            const newLoanRef = doc(collection(familyDataRef, 'loans'));
+            transaction.set(newLoanRef, {
+                ...loanData,
+                id: newLoanRef.id,
+                registeredByUserId: user.uid,
+                paidInstallments: 0,
+                remainingAmount: loanData.amount,
+            });
 
-
-            if (editingLoan) {
-                // Editing is not implemented
-            } else {
-                const newLoanRef = doc(collection(familyDataRef, 'loans'));
-                transaction.set(newLoanRef, {
-                    ...loanData,
-                    id: newLoanRef.id,
-                    registeredByUserId: user.uid,
-                    paidInstallments: 0,
-                    remainingAmount: loanData.amount,
-                });
-
-                if (depositOnCreate && depositToAccountId && bankAccountDoc && bankAccountData) {
-                    const bankAccountRef = bankAccountDoc.ref;
-                    const balanceAfter = bankAccountData.balance + loanData.amount;
-                    transaction.update(bankAccountRef, { balance: balanceAfter });
-                }
-                toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
+            if (depositOnCreate && depositToAccountId && bankAccountDoc && bankAccountData) {
+                const bankAccountRef = bankAccountDoc.ref;
+                const balanceAfter = bankAccountData.balance + loanData.amount;
+                transaction.update(bankAccountRef, { balance: balanceAfter });
             }
         });
 
+        toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
         setIsFormOpen(false);
         setEditingLoan(null);
 
@@ -147,8 +142,8 @@ export default function LoansPage() {
             if (!loanDoc.exists()) throw new Error("وام مورد نظر یافت نشد.");
             if (!accountToPayFromDoc.exists()) throw new Error("کارت بانکی پرداخت یافت نشد.");
             
-            const currentLoanData = loanDoc.data() as Loan;
-            const accountData = accountToPayFromDoc.data() as BankAccount;
+            const currentLoanData = loanDoc.data()!;
+            const accountData = accountToPayFromDoc.data()!;
             const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
 
             if (installmentAmount > currentLoanData.remainingAmount) {
@@ -221,7 +216,6 @@ export default function LoansPage() {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const loanRef = doc(familyDataRef, 'loans', loanId);
 
-            // Find and reverse associated payments and expenses
             const paymentsQuery = query(collection(familyDataRef, 'loanPayments'), where('loanId', '==', loanId));
             const paymentsSnapshot = await getDocs(paymentsQuery);
 
@@ -229,7 +223,6 @@ export default function LoansPage() {
                 const payment = paymentDoc.data() as LoanPayment;
                 const accountRef = doc(familyDataRef, 'bankAccounts', payment.bankAccountId);
                 
-                // Find and delete the corresponding expense first
                 const expenseQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', '==', payment.id));
                 const expenseSnapshot = await getDocs(expenseQuery);
                 if (!expenseSnapshot.empty) {
@@ -237,18 +230,13 @@ export default function LoansPage() {
                     transaction.delete(expenseDoc.ref);
                 }
 
-                // Restore balance
                 const accountDoc = await transaction.get(accountRef);
                 if (accountDoc.exists()) {
-                    const accountData = accountDoc.data() as BankAccount;
+                    const accountData = accountDoc.data()!;
                     transaction.update(accountRef, { balance: accountData.balance + payment.amount });
                 }
-
-                // Delete the payment record
                 transaction.delete(paymentDoc.ref);
             }
-            
-            // Delete the main loan document
             transaction.delete(loanRef);
         });
 
@@ -313,10 +301,10 @@ export default function LoansPage() {
             <LoanList
                 loans={loans || []}
                 payees={payees || []}
+                bankAccounts={bankAccounts || []}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
-                bankAccounts={bankAccounts || []}
             />
             {payingLoan && (
                 <LoanPaymentDialog

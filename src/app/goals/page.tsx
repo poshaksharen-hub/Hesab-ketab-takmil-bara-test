@@ -17,6 +17,7 @@ import {
   addDoc,
   serverTimestamp,
   deleteDoc,
+  updateDoc
 } from 'firebase/firestore';
 import type { FinancialGoal, BankAccount, Category, FinancialGoalContribution, Expense, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -53,24 +54,21 @@ export default function GoalsPage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const newGoalRef = doc(collection(familyDataRef, 'financialGoals'));
-
-            // --- READS ---
+            
             let initialAccountDoc = null;
             if (initialContributionBankAccountId && initialContributionAmount > 0) {
                 const accountRef = doc(familyDataRef, 'bankAccounts', initialContributionBankAccountId);
                 initialAccountDoc = await transaction.get(accountRef);
                 if (!initialAccountDoc.exists()) throw new Error("حساب بانکی انتخاب شده برای پس‌انداز یافت نشد.");
                 
-                const accountData = initialAccountDoc.data();
+                const accountData = initialAccountDoc.data()!;
                 const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
                 if (availableBalance < initialContributionAmount) {
                     throw new Error("موجودی حساب برای مسدود کردن مبلغ کافی نیست.");
                 }
             }
 
-            // --- WRITES ---
-            const newGoal: Omit<FinancialGoal, 'id'> = {
+            const newGoalData: Omit<FinancialGoal, 'id'> = {
                 ...goalData,
                 registeredByUserId: user.uid,
                 isAchieved: false,
@@ -79,21 +77,22 @@ export default function GoalsPage() {
             };
 
             if (initialContributionBankAccountId && initialContributionAmount > 0) {
-                newGoal.contributions.push({
+                newGoalData.contributions.push({
                     bankAccountId: initialContributionBankAccountId,
                     amount: initialContributionAmount,
                     date: new Date().toISOString(),
                 });
-                newGoal.currentAmount = initialContributionAmount;
+                newGoalData.currentAmount = initialContributionAmount;
 
                 if (initialAccountDoc) {
-                    const accountData = initialAccountDoc.data();
+                    const accountData = initialAccountDoc.data()!;
                     transaction.update(initialAccountDoc.ref, { blockedBalance: (accountData.blockedBalance || 0) + initialContributionAmount });
                 }
             }
-
+            
+            const newGoalRef = doc(collection(familyDataRef, 'financialGoals'));
             transaction.set(newGoalRef, {
-                ...newGoal,
+                ...newGoalData,
                 id: newGoalRef.id,
             });
         });
@@ -134,13 +133,13 @@ export default function GoalsPage() {
             const accountDoc = await transaction.get(accountRef);
             if (!accountDoc.exists()) throw new Error("حساب بانکی انتخاب شده یافت نشد.");
 
-            const accountData = accountDoc.data();
+            const accountData = accountDoc.data()!;
             const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
             if (availableBalance < amount) throw new Error("موجودی قابل استفاده حساب کافی نیست.");
 
             const goalDoc = await transaction.get(goalRef);
             if (!goalDoc.exists()) throw new Error("هدف مالی مورد نظر یافت نشد.");
-            const goalData = goalDoc.data();
+            const goalData = goalDoc.data()!;
 
             const newContributions = [...(goalData.contributions || []), { amount, bankAccountId, date: new Date().toISOString() }];
             const newCurrentAmount = goalData.currentAmount + amount;
@@ -167,10 +166,9 @@ export default function GoalsPage() {
             const goalRef = doc(familyDataRef, 'financialGoals', goal.id);
             const expensesRef = collection(familyDataRef, 'expenses');
             
-            // Step 1: Find or create the 'Goals' category
             const categoryRef = collection(familyDataRef, 'categories');
             const categoryQuery = query(categoryRef, where("name", "==", "اهداف مالی"));
-            const categorySnapshot = await getDocs(categoryQuery); // This read is allowed before transaction writes
+            const categorySnapshot = await getDocs(categoryQuery);
             
             let goalsCategoryId: string;
             if (categorySnapshot.empty) {
@@ -185,7 +183,6 @@ export default function GoalsPage() {
                 goalsCategoryId = categorySnapshot.docs[0].id;
             }
 
-            // Step 2: READ all necessary account documents
             const accountRefsToRead: { [id: string]: any } = {};
             (goal.contributions || []).forEach(c => {
                 if (!accountRefsToRead[c.bankAccountId]) {
@@ -219,10 +216,8 @@ export default function GoalsPage() {
                 if(availableBalance < cashPaymentNeeded) throw new Error(`موجودی کارت پرداخت (${formatCurrency(availableBalance, 'IRT')}) برای پرداخت مابقی (${formatCurrency(cashPaymentNeeded, 'IRT')}) کافی نیست.`);
             }
 
-            // Step 3: WRITES
             const nowISO = new Date().toISOString();
             
-            // Process saved portions: unblock and deduct from balance, create expense
             for(const contribution of (goal.contributions || [])) {
                 const accountData = accountDataMap.get(contribution.bankAccountId)!;
                 const accountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
@@ -248,7 +243,6 @@ export default function GoalsPage() {
                 });
             }
             
-            // Process cash portion if any
             if (cashPaymentNeeded > 0 && paymentCardId) {
                  const paymentAccountData = accountDataMap.get(paymentCardId)!;
                  const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
@@ -273,7 +267,6 @@ export default function GoalsPage() {
                  });
             }
 
-            // Finally, update the goal status
             transaction.update(goalRef, { isAchieved: true, actualCost: actualCost });
         });
 
@@ -310,7 +303,6 @@ export default function GoalsPage() {
         
         const accountRestorations: { [accountId: string]: { balance: number, blocked: number } } = {};
 
-        // 1. Calculate balance restorations and prepare expense deletions
         expensesSnapshot.forEach(doc => {
             const expense = doc.data() as Expense;
             if (!accountRestorations[expense.bankAccountId]) {
@@ -320,7 +312,6 @@ export default function GoalsPage() {
             transaction.delete(doc.ref);
         });
 
-        // 2. Re-block the saved amounts
         for (const contribution of (goal.contributions || [])) {
             if (!accountRestorations[contribution.bankAccountId]) {
                  accountRestorations[contribution.bankAccountId] = { balance: 0, blocked: 0 };
@@ -328,12 +319,11 @@ export default function GoalsPage() {
             accountRestorations[contribution.bankAccountId].blocked += contribution.amount;
         }
 
-        // 3. Apply all account updates
         for (const accountId in accountRestorations) {
             const accountRef = doc(familyDataRef, 'bankAccounts', accountId);
             const accountDoc = await transaction.get(accountRef);
              if (accountDoc.exists()) {
-               const accountData = accountDoc.data() as BankAccount;
+               const accountData = accountDoc.data()!;
                transaction.update(accountRef, { 
                    'balance': accountData.balance + accountRestorations[accountId].balance,
                    'blockedBalance': (accountData.blockedBalance || 0) + accountRestorations[accountId].blocked,
@@ -341,7 +331,6 @@ export default function GoalsPage() {
              }
         }
         
-        // 4. Revert the goal itself
         transaction.update(goalRef, { isAchieved: false, actualCost: 0 });
       });
 
@@ -371,24 +360,20 @@ export default function GoalsPage() {
             
             const goalData = goalDoc.data() as FinancialGoal;
 
-            // If goal was achieved, it must be reverted first to handle expenses correctly
             if (goalData.isAchieved) {
                 throw new Error("لطفا ابتدا هدف را بازگردانی کنید و سپس اقدام به حذف نمایید.");
             }
 
-            // Unblock any saved amounts
             for (const contribution of (goalData.contributions || [])) {
                 const accountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
                 const accountDoc = await transaction.get(accountRef);
                 if (accountDoc.exists()) {
-                    const accountData = accountDoc.data() as BankAccount;
+                    const accountData = accountDoc.data()!;
                     transaction.update(accountRef, {
                         blockedBalance: (accountData.blockedBalance || 0) - contribution.amount
                     });
                 }
             }
-
-            // Delete the goal document
             transaction.delete(goalRef);
         });
 

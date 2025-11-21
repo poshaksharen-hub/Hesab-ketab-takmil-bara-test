@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark } from 'lucide-react';
+import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, Edit, MoreVertical, History } from 'lucide-react';
 import type { Loan, LoanPayment, Payee, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -20,6 +19,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { getNextDueDate } from '@/lib/date-utils';
@@ -87,7 +94,6 @@ export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay 
 
             return (
              <div key={loan.id} className="relative group">
-              <Link href={`/loans/${loan.id}`} className="block cursor-pointer">
                 <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
                     <CardHeader>
                         <div className='flex justify-between items-start'>
@@ -104,33 +110,34 @@ export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay 
                                      </CardDescription>
                                 )}
                             </div>
-                           <div className="flex gap-1">
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="inline-block">
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="حذف وام">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            این عمل قابل بازگشت نیست. وام و تمام سوابق پرداخت آن (شامل هزینه‌های ثبت شده) برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده می‌شوند.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                        <AlertDialogAction onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
-                                            بله، حذف کن
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <ArrowLeft className="h-4 w-4" />
-                                </Button>
+                           <div className="flex gap-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                               <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                            <MoreVertical className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem asChild>
+                                           <Link href={`/loans/${loan.id}`}>
+                                            <History className="ml-2 h-4 w-4" />
+                                            مشاهده تاریخچه
+                                           </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled>
+                                            <Edit className="ml-2 h-4 w-4" />
+                                            ویرایش وام
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onSelect={() => onDelete(loan.id)}
+                                            className="text-destructive focus:text-destructive"
+                                        >
+                                            <Trash2 className="ml-2 h-4 w-4" />
+                                            حذف وام
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                            </div>
                         </div>
                     </CardHeader>
@@ -154,16 +161,13 @@ export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay 
                                 <span>وام تسویه شد!</span>
                             </div>
                         ) : (
-                            <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}} className="col-span-2 w-full">
-                                <Button className="w-full">
-                                    <CalendarCheck2 className="ml-2 h-4 w-4" />
-                                    پرداخت قسط
-                                </Button>
-                            </div>
+                            <Button className="w-full col-span-2" onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}}>
+                                <CalendarCheck2 className="ml-2 h-4 w-4" />
+                                پرداخت قسط
+                            </Button>
                         )}
                     </CardFooter>
                 </Card>
-              </Link>
              </div>
         )})}
     </div>

@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CheckCircle, RotateCcw, Target, PlusCircle, User, Users, ArrowLeft } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, RotateCcw, Target, PlusCircle, User, Users, ArrowLeft, History } from 'lucide-react';
 import type { FinancialGoal, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -20,6 +19,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
@@ -74,7 +81,6 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
 
             return (
             <div key={goal.id} className="relative group">
-              <Link href={`/goals/${goal.id}`} className="block cursor-pointer">
                 <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isAchieved && "bg-muted/50")}>
                     <CardHeader>
                         <div className='flex justify-between items-start'>
@@ -89,59 +95,42 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
                                     <span className='mr-2'>اولویت: {getPriorityBadge(goal.priority)}</span>
                                 </CardDescription>
                             </div>
-                            <div className="flex gap-1">
-                                 <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="inline-block">
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="حذف هدف">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                           این عمل قابل بازگشت نیست. اگر هدف محقق شده باشد، ابتدا آن را بازگردانی کنید. در غیر این صورت، مبالغ مسدود شده آزاد خواهند شد و هدف برای همیشه حذف می‌شود.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                        <AlertDialogAction onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(goal.id); }}>
-                                            بله، حذف کن
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                {isAchieved ? (
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                           <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="inline-block">
-                                                <Button variant="ghost" size="icon" aria-label="بازگردانی هدف">
-                                                    <RotateCcw className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>آیا از بازگردانی این هدف مطمئن هستید؟</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                با این کار، وضعیت هدف به حالت "در حال پیشرفت" برمی‌گردد و هزینه(های) ثبت شده برای آن حذف خواهد شد. همچنین مبالغ پرداخت شده به حساب‌های شما بازگردانده می‌شود.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                            <AlertDialogAction onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRevert(goal); }}>
-                                                بله، بازگردانی کن
-                                            </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                ) : (
-                                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <ArrowLeft className="h-4 w-4" />
-                                   </Button>
-                                )}
+                            <div className="flex gap-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                            <MoreVertical className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/goals/${goal.id}`}>
+                                                <History className="ml-2 h-4 w-4" />
+                                                مشاهده تاریخچه
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        {!isAchieved && (
+                                            <DropdownMenuItem onSelect={() => onRevert(goal)} disabled>
+                                                <Edit className="ml-2 h-4 w-4" />
+                                                ویرایش هدف
+                                            </DropdownMenuItem>
+                                        )}
+                                        {isAchieved && (
+                                            <DropdownMenuItem onSelect={() => onRevert(goal)}>
+                                                <RotateCcw className="ml-2 h-4 w-4" />
+                                                بازگردانی هدف
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onSelect={() => onDelete(goal.id)}
+                                            className="text-destructive focus:text-destructive"
+                                        >
+                                            <Trash2 className="ml-2 h-4 w-4" />
+                                            حذف هدف
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </div>
                     </CardHeader>
@@ -166,23 +155,18 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
                             </div>
                         ) : (
                             <>
-                                <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); onContribute(goal); }}>
-                                    <Button className="w-full" variant="outline">
-                                        <PlusCircle className="ml-2 h-4 w-4" />
-                                        افزودن به پس‌انداز
-                                    </Button>
-                                </div>
-                                <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAchieve(goal); }}>
-                                    <Button className="w-full">
-                                        <Target className="ml-2 h-4 w-4" />
-                                        رسیدم به هدف!
-                                    </Button>
-                                </div>
+                                <Button className="w-full" variant="outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onContribute(goal); }}>
+                                    <PlusCircle className="ml-2 h-4 w-4" />
+                                    افزودن به پس‌انداز
+                                </Button>
+                                <Button className="w-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAchieve(goal); }}>
+                                    <Target className="ml-2 h-4 w-4" />
+                                    رسیدم به هدف!
+                                </Button>
                             </>
                         )}
                     </CardFooter>
                 </Card>
-              </Link>
             </div>
         )})}
     </div>

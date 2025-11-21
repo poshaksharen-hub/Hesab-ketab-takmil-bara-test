@@ -30,7 +30,7 @@ export default function ChecksPage() {
   
   const { checks, bankAccounts, payees, categories, users } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'ownerId'> & {ownerId: 'ali' | 'fatemeh' | 'shared'}) => {
     if (!user || !firestore) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
@@ -63,7 +63,6 @@ export default function ChecksPage() {
     } else {
       const newCheck = {
         ...values,
-        ownerId: bankAccount.ownerId,
         registeredByUserId: user.uid,
         status: 'pending' as 'pending',
       };
@@ -173,34 +172,31 @@ export default function ChecksPage() {
             
             // If the check was cleared, we need to reverse the financial impact
             if (check.status === 'cleared') {
-                // 1. Find the corresponding expense
+                // Find the corresponding expense
                 const expenseQuery = query(collection(familyDataRef, 'expenses'), where('checkId', '==', check.id));
-                const expenseSnapshot = await getDocs(expenseQuery); // This read is fine inside a transaction
+                const expenseSnapshot = await getDocs(expenseQuery);
                 
                 if (!expenseSnapshot.empty) {
                     const expenseDoc = expenseSnapshot.docs[0];
                     const expenseData = expenseDoc.data() as Expense;
                     
-                    // 2. Find the bank account
                     const accountRef = doc(familyDataRef, 'bankAccounts', expenseData.bankAccountId);
                     const accountDoc = await transaction.get(accountRef);
                     
                     if (accountDoc.exists()) {
-                        // 3. Restore the balance
                         const accountData = accountDoc.data() as BankAccount;
                         transaction.update(accountRef, { balance: accountData.balance + expenseData.amount });
                     }
                     
-                    // 4. Delete the expense record
                     transaction.delete(expenseDoc.ref);
                 }
             }
             
-            // 5. Finally, delete the check itself
+            // Finally, delete the check itself
             transaction.delete(checkRef);
         });
 
-        toast({ title: "موفقیت", description: "چک و تمام سوابق مالی مرتبط با آن با موفقیت حذف شد." });
+        toast({ title: "موفقیت", description: "چک و سوابق مالی مرتبط (در صورت وجود) با موفقیت حذف شد." });
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
