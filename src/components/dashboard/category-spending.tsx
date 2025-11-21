@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -63,8 +64,8 @@ export function CategorySpending({ expenses, categories }: SpendingChartProps) {
 
   if (chartData.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <p className="text-muted-foreground">داده‌ای برای نمایش هزینه در این بازه زمانی وجود ندارد.</p>
+      <div className="flex h-[350px] w-full items-center justify-center">
+        <p className="text-muted-foreground">داده‌ای برای نمایش هزینه وجود ندارد.</p>
       </div>
     );
   }

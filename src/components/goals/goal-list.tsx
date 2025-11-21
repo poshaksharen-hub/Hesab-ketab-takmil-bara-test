@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -30,9 +31,10 @@ interface GoalListProps {
   onContribute: (goal: FinancialGoal) => void;
   onAchieve: (goal: FinancialGoal) => void;
   onRevert: (goal: FinancialGoal) => void;
+  onDelete: (goalId: string) => void;
 }
 
-export function GoalList({ goals, onContribute, onAchieve, onRevert }: GoalListProps) {
+export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }: GoalListProps) {
   
   if (goals.length === 0) {
     return (
@@ -88,6 +90,29 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert }: GoalListP
                                 </CardDescription>
                             </div>
                             <div className="flex gap-1">
+                                 <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="inline-block">
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="حذف هدف">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                           این عمل قابل بازگشت نیست. هدف و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده می‌شوند.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                        <AlertDialogAction onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(goal.id); }}>
+                                            بله، حذف کن
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                                 {isAchieved ? (
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>

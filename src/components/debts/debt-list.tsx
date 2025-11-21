@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -84,7 +85,7 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>آیا از حذف این بدهی مطمئن هستید؟</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                           این عمل قابل بازگشت نیست. بدهی و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده نمی‌شوند.
+                                           این عمل قابل بازگشت نیست. بدهی و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده می‌شوند.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>

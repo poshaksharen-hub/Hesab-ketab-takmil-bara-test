@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -167,7 +168,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
                         <AlertDialogHeader>
                         <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
                         <AlertDialogDescription>
-                            این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، هزینه مربوط به آن نیز حذف و مبلغ به حساب شما بازگردانده می‌شود.
+                            این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، هزینه مربوط به آن نیز حذف و مبلغ به حساب شما بازگردانده می‌شود. در غیر اینصورت فقط خود چک حذف می‌شود.
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

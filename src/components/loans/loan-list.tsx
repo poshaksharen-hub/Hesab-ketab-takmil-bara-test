@@ -117,7 +117,7 @@ export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay 
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            این عمل قابل بازگشت نیست. وام و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده نمی‌شوند.
+                                            این عمل قابل بازگشت نیست. وام و تمام سوابق پرداخت آن (شامل هزینه‌های ثبت شده) برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده می‌شوند.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
