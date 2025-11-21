@@ -1,6 +1,5 @@
 
 
-
 import type { LucideIcon } from 'lucide-react';
 
 export type OwnerId = 'ali' | 'fatemeh' | 'shared';
@@ -175,5 +174,3 @@ export type Transfer = {
     toAccountBalanceBefore: number;
     toAccountBalanceAfter: number;
 }
-
-    

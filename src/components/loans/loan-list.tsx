@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -124,14 +125,28 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanL
                                            </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            onSelect={() => onDelete(loan.id)}
-                                            className="text-destructive focus:text-destructive"
-                                            disabled={!isCompleted}
-                                        >
-                                            <Trash2 className="ml-2 h-4 w-4" />
-                                            حذف وام
-                                        </DropdownMenuItem>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                    <Trash2 className="ml-2 h-4 w-4" />
+                                                    حذف وام
+                                                </div>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                   این عمل قابل بازگشت نیست. اگر وام به طور کامل تسویه نشده باشد، امکان حذف آن وجود ندارد. در غیر این صورت، وام و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                                <AlertDialogAction disabled={!isCompleted} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
+                                                    بله، حذف کن
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                            </div>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -75,7 +76,7 @@ export default function LoansPage() {
                 ownerId,
                 installmentAmount: installmentAmount || 0,
                 numberOfInstallments: numberOfInstallments || 0,
-                startDate: startDate.toISOString(),
+                startDate: startDate,
                 paymentDay: paymentDay || 1,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
@@ -207,7 +208,15 @@ export default function LoansPage() {
     if (!user || !firestore || !loans) return;
 
     const loanToDelete = loans.find(l => l.id === loanId);
-    if (!loanToDelete) return;
+    if (!loanToDelete) {
+        toast({ variant: 'destructive', title: 'خطا', description: 'وام مورد نظر یافت نشد.' });
+        return;
+    }
+    
+    if (loanToDelete.remainingAmount > 0) {
+        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام هنوز به طور کامل تسویه نشده است.' });
+        return;
+    }
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -235,6 +244,16 @@ export default function LoansPage() {
                 }
                 transaction.delete(paymentDoc.ref);
             }
+
+            if (loanToDelete.depositToAccountId) {
+                const depositAccountRef = doc(familyDataRef, 'bankAccounts', loanToDelete.depositToAccountId);
+                const depositAccountDoc = await transaction.get(depositAccountRef);
+                if (depositAccountDoc.exists()) {
+                    const accountData = depositAccountDoc.data()!;
+                    transaction.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
+                }
+            }
+
             transaction.delete(loanRef);
         });
 
@@ -263,10 +282,6 @@ export default function LoansPage() {
     setIsFormOpen(true);
   }, []);
 
-  const handleEdit = useCallback((loan: Loan) => {
-    setEditingLoan(loan);
-    setIsFormOpen(true);
-  }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -300,7 +315,6 @@ export default function LoansPage() {
                 loans={loans || []}
                 payees={payees || []}
                 bankAccounts={bankAccounts || []}
-                onEdit={handleEdit}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
             />

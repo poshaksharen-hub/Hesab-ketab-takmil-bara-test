@@ -28,7 +28,6 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '../ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 
-
 interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
