@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React from 'react';
@@ -48,8 +46,8 @@ const DetailItem = ({
   }) => {
     if (!value) return null;
     return (
-      <div className="flex items-center gap-3 text-sm">
-        <Icon className="h-5 w-5 text-muted-foreground" />
+      <div className="flex items-start gap-3 text-sm">
+        <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
         <div className="flex flex-col">
           <span className="text-muted-foreground">{label}</span>
           <span className={`font-semibold ${className}`}>{value}</span>

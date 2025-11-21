@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React from 'react';
@@ -38,6 +36,30 @@ interface ExpenseListProps {
   users: UserProfile[];
   onDelete: (expenseId: string) => void;
 }
+
+const DetailItem = ({
+    icon: Icon,
+    label,
+    value,
+    className,
+  }: {
+    icon: React.ElementType;
+    label: string;
+    value: string | null | undefined;
+    className?: string;
+  }) => {
+    if (!value) return null;
+    return (
+      <div className="flex items-start gap-3 text-sm">
+        <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+        <div className="flex flex-col">
+          <span className="text-muted-foreground">{label}</span>
+          <span className={`font-semibold ${className}`}>{value}</span>
+        </div>
+      </div>
+    );
+  };
+
 
 export function ExpenseList({
   expenses,
@@ -84,28 +106,6 @@ export function ExpenseList({
     );
   }
   
-  const DetailItem = ({
-    icon: Icon,
-    label,
-    value,
-    className,
-  }: {
-    icon: React.ElementType;
-    label: string;
-    value: string | null | undefined;
-    className?: string;
-  }) => {
-    if (!value) return null;
-    return (
-      <div className="flex items-start gap-3 text-sm">
-        <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-        <div className="flex flex-col">
-          <span className="text-muted-foreground">{label}</span>
-          <span className={`font-semibold ${className}`}>{value}</span>
-        </div>
-      </div>
-    );
-  };
 
 
   return (
