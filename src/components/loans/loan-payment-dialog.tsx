@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -34,6 +35,8 @@ import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Input, CurrencyInput } from '../ui/input';
+import { USER_DETAILS } from '@/lib/constants';
+
 
 const createFormSchema = (remainingAmount: number) => z.object({
   paymentBankAccountId: z.string().min(1, { message: 'لطفا یک کارت برای پرداخت انتخاب کنید.' }),
@@ -72,12 +75,17 @@ export function LoanPaymentDialog({
   });
   
   React.useEffect(() => {
-    // Reset form with default installment amount when a new loan is selected
     form.reset({
         paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
         installmentAmount: Math.min(loan.installmentAmount > 0 ? loan.installmentAmount : loan.remainingAmount, loan.remainingAmount),
     });
   }, [loan, bankAccounts, form]);
+  
+  const getOwnerName = (account: BankAccount) => {
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+  };
 
 
   function handleFormSubmit(data: LoanPaymentFormValues) {
@@ -137,7 +145,7 @@ export function LoanPaymentDialog({
                     <SelectContent>
                       {bankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.bankName} (موجودی: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
+                          {account.bankName} {getOwnerName(account)} (قابل استفاده: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
                         </SelectItem>
                       ))}
                     </SelectContent>

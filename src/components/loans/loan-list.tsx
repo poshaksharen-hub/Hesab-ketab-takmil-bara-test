@@ -104,9 +104,34 @@ export function LoanList({ loans, payees, bankAccounts, onEdit, onDelete, onPay 
                                      </CardDescription>
                                 )}
                             </div>
-                           <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                <ArrowLeft className="h-4 w-4" />
-                           </Button>
+                           <div className="flex gap-1">
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="inline-block">
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="حذف وام">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            این عمل قابل بازگشت نیست. وام و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد و مبالغ به حساب‌ها بازگردانده نمی‌شوند.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                        <AlertDialogAction onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
+                                            بله، حذف کن
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <ArrowLeft className="h-4 w-4" />
+                                </Button>
+                           </div>
                         </div>
                     </CardHeader>
                     <CardContent>

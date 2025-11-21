@@ -8,6 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Briefcase,
@@ -16,17 +17,22 @@ import {
   PenSquare,
   Building,
   Wallet,
+  Trash2,
 } from 'lucide-react';
 import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '../ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+
 
 interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
   users: UserProfile[];
+  onDelete: (incomeId: string) => void;
 }
 
 const DetailItem = ({
@@ -57,6 +63,7 @@ export function IncomeList({
   incomes,
   bankAccounts,
   users,
+  onDelete,
 }: IncomeListProps) {
   const getBankAccount = (id: string) => {
     return bankAccounts.find((acc) => acc.id === id);
@@ -167,6 +174,30 @@ export function IncomeList({
                     />
                   </div>
                 </CardContent>
+                 <CardFooter className="p-2 bg-muted/50">
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button variant="ghost" className="w-full text-xs text-destructive" aria-label="حذف درآمد">
+                                <Trash2 className="ml-2 h-4 w-4" />
+                                حذف تراکنش
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>آیا از حذف این درآمد مطمئن هستید؟</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                این عمل قابل بازگشت نیست. با حذف این درآمد، مبلغ آن از موجودی حساب شما کسر خواهد شد.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>انصراف</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(income.id)}>
+                                بله، حذف کن
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardFooter>
               </Card>
             );
           })}

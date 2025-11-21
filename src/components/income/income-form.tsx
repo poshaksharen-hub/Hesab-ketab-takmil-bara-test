@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useCallback } from 'react';
@@ -45,10 +46,9 @@ interface IncomeFormProps {
   initialData: Income | null;
   bankAccounts: BankAccount[];
   user: AuthUser | null;
-  users: UserProfile[];
 }
 
-export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user, users }: IncomeFormProps) {
+export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user }: IncomeFormProps) {
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -92,7 +92,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     return bankAccounts.filter(acc => acc.ownerId === selectedOwnerId);
   }, [selectedOwnerId, bankAccounts]);
 
-  // Effect to auto-select bank account if only one is available for the selected owner
   useEffect(() => {
       const currentBankAccountId = form.getValues('bankAccountId');
       const isCurrentAccountStillValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
@@ -116,7 +115,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         type: 'income' as 'income',
         category: 'درآمد',
         registeredByUserId: user.uid,
-        source: data.source || data.description, // Fallback to description if source not provided
+        source: data.source || data.description, 
     };
     onSubmit(submissionData);
   }

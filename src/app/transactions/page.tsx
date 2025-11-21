@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import { ExpenseForm } from '@/components/transactions/expense-form';
 import type { Expense, BankAccount, Category, UserProfile, OwnerId } from '@/lib/types';
@@ -25,7 +25,6 @@ export default function ExpensesPage() {
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
 
   const {
     expenses: allExpenses,
@@ -40,13 +39,14 @@ export default function ExpensesPage() {
     
     try {
         await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const expenseData = { ...values };
             
             const account = allBankAccounts.find(acc => acc.id === expenseData.bankAccountId);
             if (!account) throw new Error("کارت بانکی یافت نشد");
             
             const ownerId: OwnerId = account.ownerId;
-            const fromCardRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/bankAccounts`, account.id);
+            const fromCardRef = doc(familyDataRef, 'bankAccounts', account.id);
             const fromCardDoc = await transaction.get(fromCardRef);
 
             if (!fromCardDoc.exists()) {
@@ -66,8 +66,7 @@ export default function ExpensesPage() {
             transaction.update(fromCardRef, { balance: balanceAfter });
 
             // 2. Create new expense document
-            const expensesColRef = collection(firestore, `family-data/${FAMILY_DATA_DOC}/expenses`);
-            const newExpenseRef = doc(expensesColRef);
+            const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
             
             transaction.set(newExpenseRef, {
                 ...expenseData,
@@ -79,16 +78,19 @@ export default function ExpensesPage() {
                 balanceBefore,
                 balanceAfter,
             });
-
-            toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         });
         
+        toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         setIsFormOpen(false);
-        setEditingExpense(null);
 
     } catch (error: any) {
-        if (error instanceof FirestorePermissionError) {
-          errorEmitter.emit('permission-error', error);
+        if (error.name === 'FirebaseError') {
+          const permissionError = new FirestorePermissionError({
+                path: 'family-data/shared-data/expenses',
+                operation: 'create',
+                requestResourceData: values,
+            });
+          errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -99,9 +101,51 @@ export default function ExpensesPage() {
     }
   }, [user, firestore, allBankAccounts, toast]);
 
+   const handleDelete = React.useCallback(async (expenseId: string) => {
+    if (!firestore || !allExpenses) return;
+    
+    const expenseToDelete = allExpenses.find(exp => exp.id === expenseId);
+    if (!expenseToDelete) {
+        toast({ variant: "destructive", title: "خطا", description: "تراکنش هزینه مورد نظر یافت نشد." });
+        return;
+    }
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const expenseRef = doc(familyDataRef, 'expenses', expenseId);
+            const accountRef = doc(familyDataRef, 'bankAccounts', expenseToDelete.bankAccountId);
+
+            const accountDoc = await transaction.get(accountRef);
+            if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این هزینه یافت نشد.");
+
+            // Reverse the transaction
+            const accountData = accountDoc.data() as BankAccount;
+            transaction.update(accountRef, { balance: accountData.balance + expenseToDelete.amount });
+
+            // Delete the expense document
+            transaction.delete(expenseRef);
+        });
+        toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ آن به حساب بازگردانده شد." });
+    } catch (error: any) {
+         if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: `family-data/shared-data/expenses/${expenseId}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "خطا در حذف هزینه",
+            description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
+          });
+        }
+    }
+  }, [firestore, allExpenses, toast]);
+
   
   const handleAddNew = React.useCallback(() => {
-    setEditingExpense(null);
     setIsFormOpen(true);
   }, []);
   
@@ -130,7 +174,7 @@ export default function ExpensesPage() {
           isOpen={isFormOpen}
           setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
-          initialData={editingExpense}
+          initialData={null}
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
           payees={allPayees || []}
@@ -141,6 +185,7 @@ export default function ExpensesPage() {
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
           users={allUsers || []}
+          onDelete={handleDelete}
         />
       )}
     </main>

@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import { IncomeList } from '@/components/income/income-list';
 import { IncomeForm } from '@/components/income/income-form';
 import type { Income, BankAccount, UserProfile } from '@/lib/types';
@@ -25,7 +25,6 @@ export default function IncomePage() {
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [editingIncome, setEditingIncome] = React.useState<Income | null>(null);
 
   const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
 
@@ -34,10 +33,11 @@ export default function IncomePage() {
   
     try {
       await runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
         const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
         if (!account) throw new Error("کارت بانکی یافت نشد");
   
-        const targetCardRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', account.id);
+        const targetCardRef = doc(familyDataRef, 'bankAccounts', account.id);
         const targetCardDoc = await transaction.get(targetCardRef);
   
         if (!targetCardDoc.exists()) {
@@ -52,23 +52,26 @@ export default function IncomePage() {
         transaction.update(targetCardRef, { balance: balanceAfter });
 
         // 2. Create new income document
-        const incomesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'incomes');
-        const newIncomeRef = doc(incomesColRef);
+        const newIncomeRef = doc(collection(familyDataRef, 'incomes'));
         transaction.set(newIncomeRef, {
-        ...values,
-        id: newIncomeRef.id,
-        createdAt: serverTimestamp(),
-        balanceAfter: balanceAfter, // Add balance after transaction
+            ...values,
+            id: newIncomeRef.id,
+            createdAt: serverTimestamp(),
+            balanceAfter: balanceAfter,
         });
-        toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
       });
       
-      setEditingIncome(null);
+      toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
       setIsFormOpen(false);
   
     } catch (error: any) {
-        if (error instanceof FirestorePermissionError) {
-          errorEmitter.emit('permission-error', error);
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: 'family-data/shared-data/incomes',
+                operation: 'create',
+                requestResourceData: values,
+            });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -79,9 +82,51 @@ export default function IncomePage() {
     }
   }, [user, firestore, allBankAccounts, toast]);
 
+  const handleDelete = React.useCallback(async (incomeId: string) => {
+    if (!firestore || !allIncomes) return;
+    
+    const incomeToDelete = allIncomes.find(inc => inc.id === incomeId);
+    if (!incomeToDelete) {
+        toast({ variant: "destructive", title: "خطا", description: "تراکنش درآمد مورد نظر یافت نشد." });
+        return;
+    }
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const incomeRef = doc(familyDataRef, 'incomes', incomeId);
+            const accountRef = doc(familyDataRef, 'bankAccounts', incomeToDelete.bankAccountId);
+
+            const accountDoc = await transaction.get(accountRef);
+            if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این درآمد یافت نشد.");
+
+            // Reverse the transaction
+            const accountData = accountDoc.data() as BankAccount;
+            transaction.update(accountRef, { balance: accountData.balance - incomeToDelete.amount });
+
+            // Delete the income document
+            transaction.delete(incomeRef);
+        });
+        toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ آن از حساب کسر شد." });
+    } catch (error: any) {
+         if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: `family-data/shared-data/incomes/${incomeId}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "خطا در حذف درآمد",
+            description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
+          });
+        }
+    }
+  }, [firestore, allIncomes, toast]);
+
   
   const handleAddNew = React.useCallback(() => {
-    setEditingIncome(null);
     setIsFormOpen(true);
   }, []);
 
@@ -110,7 +155,7 @@ export default function IncomePage() {
           isOpen={isFormOpen}
           setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
-          initialData={editingIncome}
+          initialData={null}
           bankAccounts={allBankAccounts || []}
           user={user}
         />
@@ -119,6 +164,7 @@ export default function IncomePage() {
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}
           users={allUsers || []}
+          onDelete={handleDelete}
         />
       )}
     </main>

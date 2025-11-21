@@ -18,18 +18,23 @@ import {
   User,
   FolderKanban,
   Wallet,
+  Trash2,
 } from 'lucide-react';
 import type { Expense, BankAccount, Category, UserProfile, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '../ui/button';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '../ui/alert-dialog';
+
 
 interface ExpenseListProps {
   expenses: Expense[];
   bankAccounts: BankAccount[];
   categories: Category[];
   users: UserProfile[];
+  onDelete: (expenseId: string) => void;
 }
 
 const DetailItem = ({
@@ -61,6 +66,7 @@ export function ExpenseList({
   bankAccounts,
   categories,
   users,
+  onDelete,
 }: ExpenseListProps) {
   const getBankAccount = (id: string) => {
     return bankAccounts.find((acc) => acc.id === id);
@@ -171,6 +177,30 @@ export function ExpenseList({
                             />
                         </div>
                     </CardContent>
+                    <CardFooter className="p-2 bg-muted/50">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Button variant="ghost" className="w-full text-xs text-destructive" aria-label="حذف هزینه">
+                                    <Trash2 className="ml-2 h-4 w-4" />
+                                    حذف تراکنش
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>آیا از حذف این هزینه مطمئن هستید؟</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    این عمل قابل بازگشت نیست. با حذف این هزینه، مبلغ آن به موجودی حساب شما بازگردانده خواهد شد.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(expense.id)}>
+                                    بله، حذف کن
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </CardFooter>
                 </Card>
                 );
             })}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -26,7 +27,6 @@ import type { Expense, BankAccount, Category, Payee } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { cn, formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
-import type { User } from 'firebase/auth';
 
 
 const formSchema = z.object({
@@ -49,10 +49,9 @@ interface ExpenseFormProps {
   bankAccounts: BankAccount[];
   categories: Category[];
   payees: Payee[];
-  user: User | null;
 }
 
-export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees, user }: ExpenseFormProps) {
+export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -166,7 +165,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                         <SelectContent>
                             {bankAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
-                                {`${account.bankName} ${getOwnerName(account)} - ${formatCurrency(account.balance, 'IRT')}`}
+                                {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                             </SelectItem>
                             ))}
                         </SelectContent>

@@ -93,26 +93,26 @@ export default function CardsPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const checksRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
-            const pendingChecksQuery = query(checksRef, where('bankAccountId', '==', cardId), where('status', '==', 'pending'));
-            const pendingChecksSnapshot = await transaction.get(pendingChecksQuery);
-
-            if (!pendingChecksSnapshot.empty) {
-                throw new Error("امکان حذف وجود ندارد. این کارت در یک یا چند چک پاس نشده استفاده شده است.");
-            }
-
-            const loanPaymentsRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'loanPayments');
-            const loanPaymentsQuery = query(loanPaymentsRef, where('bankAccountId', '==', cardId));
-            const loanPaymentsSnapshot = await transaction.get(loanPaymentsQuery);
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            if(!loanPaymentsSnapshot.empty) {
-                throw new Error("امکان حذف وجود ندارد. از این کارت برای پرداخت اقساط وام استفاده شده است.");
+            // --- Check for dependencies ---
+            const checksQuery = query(collection(familyDataRef, 'checks'), where('bankAccountId', '==', cardId));
+            const loansQuery = query(collection(familyDataRef, 'loanPayments'), where('bankAccountId', '==', cardId));
+            const goalsQuery = query(collection(familyDataRef, 'financialGoals'), where('contributions', 'array-contains-any', [{bankAccountId: cardId}]));
+
+            const [checksSnapshot, loansSnapshot] = await Promise.all([
+                getDocs(checksQuery),
+                getDocs(loansQuery),
+            ]);
+
+            if (!checksSnapshot.empty) throw new Error("امکان حذف وجود ندارد. این کارت در یک یا چند چک استفاده شده است.");
+            if (!loansSnapshot.empty) throw new Error("امکان حذف وجود ندارد. از این کارت برای پرداخت اقساط وام استفاده شده است.");
+
+            // Since Firestore doesn't support array-contains-any for direct query in transactions, we just check if there's any blocked balance.
+            if(cardToDelete.blockedBalance && cardToDelete.blockedBalance > 0) {
+                 throw new Error("امکان حذف وجود ندارد. این کارت دارای مبلغ مسدود شده برای اهداف مالی است.");
             }
-            
-             const cardDoc = await transaction.get(cardToDeleteRef);
-             if (!cardDoc.exists()) {
-                 throw new Error("کارت بانکی برای حذف در پایگاه داده یافت نشد.");
-             }
+             
              transaction.delete(cardToDeleteRef);
         });
 

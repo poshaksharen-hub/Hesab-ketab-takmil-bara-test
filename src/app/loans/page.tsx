@@ -15,6 +15,8 @@ import { LoanForm } from '@/components/loans/loan-form';
 import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { formatCurrency } from '@/lib/utils';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -22,23 +24,18 @@ export default function LoansPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData, getFilteredData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [payingLoan, setPayingLoan] = useState<Loan | null>(null);
 
-  // We need to get all data, not just filtered data, for some operations.
   const { 
-    loans, 
-    loanPayments, 
-    bankAccounts, 
-    categories, 
-    payees, 
-    users,
-    incomes,
-    expenses
+    loans,
+    bankAccounts,
+    categories,
+    payees,
   } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
@@ -61,7 +58,6 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            // --- Step 1: READS ---
             let bankAccountDoc = null;
             let bankAccountData: BankAccount | null = null;
             if (depositOnCreate && depositToAccountId) {
@@ -74,7 +70,6 @@ export default function LoansPage() {
                 bankAccountData = bankAccountDoc.data() as BankAccount;
             }
 
-            // --- Step 2: WRITES ---
             const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' | 'payeeId' | 'depositToAccountId'> & { payeeId?: string, depositToAccountId?: string } = {
                 title,
                 amount,
@@ -90,9 +85,8 @@ export default function LoansPage() {
 
 
             if (editingLoan) {
-                // Editing logic is not part of this implementation.
+                // Editing is not implemented
             } else {
-                // CREATE new loan
                 const newLoanRef = doc(collection(familyDataRef, 'loans'));
                 transaction.set(newLoanRef, {
                     ...loanData,
@@ -102,15 +96,10 @@ export default function LoansPage() {
                     remainingAmount: loanData.amount,
                 });
 
-                // Handle the optional deposit logic (writes only)
                 if (depositOnCreate && depositToAccountId && bankAccountDoc && bankAccountData) {
                     const bankAccountRef = bankAccountDoc.ref;
-                    
-                    // 1. Update bank balance
                     const balanceAfter = bankAccountData.balance + loanData.amount;
                     transaction.update(bankAccountRef, { balance: balanceAfter });
-
-                    // DO NOT create an income record. This is a liability, not income.
                 }
                 toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
             }
@@ -120,12 +109,20 @@ export default function LoansPage() {
         setEditingLoan(null);
 
     } catch (error: any) {
-        console.error("Error creating loan:", error);
-        toast({
-            variant: 'destructive',
-            title: 'خطا در ثبت وام',
-            description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
-        });
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: 'family-data/shared-data/loans',
+                operation: 'create',
+                requestResourceData: values,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'خطا در ثبت وام',
+                description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
+            });
+        }
     }
 }, [user, firestore, editingLoan, toast, payees]);
 
@@ -144,7 +141,6 @@ export default function LoansPage() {
             const loanRef = doc(familyDataRef, 'loans', loan.id);
             const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
             
-            // --- Step 1: READS ---
             const loanDoc = await transaction.get(loanRef);
             const accountToPayFromDoc = await transaction.get(accountToPayFromRef);
 
@@ -163,22 +159,18 @@ export default function LoansPage() {
                 throw new Error("موجودی حساب برای پرداخت قسط کافی نیست.");
             }
 
-            // --- Step 2: WRITES ---
             const balanceBefore = accountData.balance;
             const balanceAfter = balanceBefore - installmentAmount;
             const newPaidInstallments = currentLoanData.paidInstallments + 1;
             const newRemainingAmount = currentLoanData.remainingAmount - installmentAmount;
 
-            // 1. Deduct from bank account
             transaction.update(accountToPayFromRef, { balance: balanceAfter });
 
-            // 2. Update loan document
             transaction.update(loanRef, {
                 paidInstallments: newPaidInstallments,
                 remainingAmount: newRemainingAmount,
             });
 
-            // 3. Create a loan payment record
             const paymentRef = doc(collection(familyDataRef, 'loanPayments'));
             transaction.set(paymentRef, {
                 id: paymentRef.id,
@@ -189,7 +181,6 @@ export default function LoansPage() {
                 registeredByUserId: user.uid,
             });
 
-            // 4. Create a corresponding expense
             const expenseRef = doc(collection(familyDataRef, 'expenses'));
             const expenseCategory = categories?.find(c => c.name.includes('قسط')) || categories?.[0];
             transaction.set(expenseRef, {
@@ -230,42 +221,53 @@ export default function LoansPage() {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const loanRef = doc(familyDataRef, 'loans', loanId);
 
-            // Find and reverse associated payments
+            // Find and reverse associated payments and expenses
             const paymentsQuery = query(collection(familyDataRef, 'loanPayments'), where('loanId', '==', loanId));
             const paymentsSnapshot = await getDocs(paymentsQuery);
 
             for (const paymentDoc of paymentsSnapshot.docs) {
                 const payment = paymentDoc.data() as LoanPayment;
                 const accountRef = doc(familyDataRef, 'bankAccounts', payment.bankAccountId);
+                
+                // Find and delete the corresponding expense first
+                const expenseQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', '==', payment.id));
+                const expenseSnapshot = await getDocs(expenseQuery);
+                if (!expenseSnapshot.empty) {
+                    const expenseDoc = expenseSnapshot.docs[0];
+                    transaction.delete(expenseDoc.ref);
+                }
+
+                // Restore balance
                 const accountDoc = await transaction.get(accountRef);
                 if (accountDoc.exists()) {
                     const accountData = accountDoc.data() as BankAccount;
                     transaction.update(accountRef, { balance: accountData.balance + payment.amount });
                 }
+
                 // Delete the payment record
                 transaction.delete(paymentDoc.ref);
             }
             
-            // Delete associated expenses
-            const paymentIds = paymentsSnapshot.docs.map(d => d.id);
-            if (paymentIds.length > 0) {
-                 const expensesQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', 'in', paymentIds));
-                 const expensesSnapshot = await getDocs(expensesQuery);
-                 expensesSnapshot.forEach(doc => transaction.delete(doc.ref));
-            }
-            
-             // Delete the main loan document
+            // Delete the main loan document
             transaction.delete(loanRef);
         });
 
         toast({ title: "موفقیت", description: "وام و تمام سوابق پرداخت آن با موفقیت حذف شدند." });
 
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "خطا در حذف وام",
-            description: error.message || "مشکلی در حذف وام و سوابق آن پیش آمد.",
-        });
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: `family-data/shared-data/loans/${loanId}`,
+                operation: 'delete'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در حذف وام",
+                description: error.message || "مشکلی در حذف وام و سوابق آن پیش آمد.",
+            });
+        }
     }
 }, [user, firestore, loans, toast]);
 
