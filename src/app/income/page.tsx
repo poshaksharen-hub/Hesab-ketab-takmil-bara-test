@@ -48,24 +48,19 @@ export default function IncomePage() {
         const balanceBefore = targetCardData.balance;
         const balanceAfter = balanceBefore + values.amount;
   
-        if (editingIncome) {
-          // Editing is disabled per user request
-        } else {
-          // --- Create Mode ---
-          // 1. Increase balance
-          transaction.update(targetCardRef, { balance: balanceAfter });
-  
-          // 2. Create new income document
-          const incomesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'incomes');
-          const newIncomeRef = doc(incomesColRef);
-          transaction.set(newIncomeRef, {
-            ...values,
-            id: newIncomeRef.id,
-            createdAt: serverTimestamp(),
-            balanceAfter: balanceAfter, // Add balance after transaction
-          });
-          toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
-        }
+        // 1. Increase balance
+        transaction.update(targetCardRef, { balance: balanceAfter });
+
+        // 2. Create new income document
+        const incomesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'incomes');
+        const newIncomeRef = doc(incomesColRef);
+        transaction.set(newIncomeRef, {
+        ...values,
+        id: newIncomeRef.id,
+        createdAt: serverTimestamp(),
+        balanceAfter: balanceAfter, // Add balance after transaction
+        });
+        toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
       });
       
       setEditingIncome(null);
@@ -82,19 +77,8 @@ export default function IncomePage() {
           });
         }
     }
-  }, [user, firestore, allBankAccounts, editingIncome, toast]);
-  
+  }, [user, firestore, allBankAccounts, toast]);
 
-  const handleDelete = React.useCallback(async (income: Income) => {
-    // Deleting is disabled per user request
-    return;
-  }, []);
-
-
-  const handleEdit = React.useCallback((income: Income) => {
-    // Editing is disabled per user request
-    return;
-  }, []);
   
   const handleAddNew = React.useCallback(() => {
     setEditingIncome(null);
@@ -129,15 +113,12 @@ export default function IncomePage() {
           initialData={editingIncome}
           bankAccounts={allBankAccounts || []}
           user={user}
-          users={allUsers}
         />
       ) : (
         <IncomeList
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}
-          users={allUsers}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          users={allUsers || []}
         />
       )}
     </main>

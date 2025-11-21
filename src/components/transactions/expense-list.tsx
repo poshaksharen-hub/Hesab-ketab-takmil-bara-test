@@ -30,8 +30,6 @@ interface ExpenseListProps {
   bankAccounts: BankAccount[];
   categories: Category[];
   users: UserProfile[];
-  onEdit: (expense: Expense) => void;
-  onDelete: (expense: Expense) => void;
 }
 
 const DetailItem = ({

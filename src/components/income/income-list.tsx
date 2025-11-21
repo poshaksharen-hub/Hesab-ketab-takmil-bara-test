@@ -27,8 +27,6 @@ interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
   users: UserProfile[];
-  onEdit: (income: Income) => void;
-  onDelete: (income: Income) => void;
 }
 
 const DetailItem = ({
@@ -59,8 +57,6 @@ export function IncomeList({
   incomes,
   bankAccounts,
   users,
-  onEdit,
-  onDelete,
 }: IncomeListProps) {
   const getBankAccount = (id: string) => {
     return bankAccounts.find((acc) => acc.id === id);

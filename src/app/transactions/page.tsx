@@ -99,15 +99,6 @@ export default function ExpensesPage() {
     }
   }, [user, firestore, allBankAccounts, toast]);
 
-  const handleDelete = React.useCallback(async (expense: Expense) => {
-    // Deleting is disabled per user request
-    return;
-  }, []);
-
-  const handleEdit = React.useCallback((expense: Expense) => {
-    // Per user request, editing is disabled.
-    return;
-  }, []);
   
   const handleAddNew = React.useCallback(() => {
     setEditingExpense(null);
@@ -143,16 +134,13 @@ export default function ExpensesPage() {
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
           payees={allPayees || []}
-          user={user}
         />
       ) : (
         <ExpenseList
           expenses={allExpenses || []}
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
-          users={allUsers}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          users={allUsers || []}
         />
       )}
     </main>
