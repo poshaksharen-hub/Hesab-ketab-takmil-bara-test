@@ -85,7 +85,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
                 
                  {/* Details Section */}
                 <div className="space-y-4 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <p className="text-xs text-muted-foreground">به نام</p>
                             <p className="font-semibold">{payee}</p>
@@ -105,7 +105,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
 
                     <Separator />
 
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                             <p className="text-xs text-muted-foreground">تاریخ صدور</p>
                             <p className="font-mono font-semibold">{formatJalaliDate(new Date(check.issueDate))}</p>
@@ -115,7 +115,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
                             <p className="font-mono font-semibold">{formatJalaliDate(new Date(check.dueDate))}</p>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-mono">
                         <div>
                             <p className="text-xs text-muted-foreground">شماره صیادی</p>
                             <p className="font-semibold tracking-wider">{check.sayadId}</p>

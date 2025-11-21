@@ -70,7 +70,7 @@ export function TransferList({ transfers, bankAccounts, users }: TransferListPro
                     </div>
                      {transfer.description && <p className="text-sm text-muted-foreground pt-2">{transfer.description}</p>}
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* From Account */}
                     <div className="flex flex-col gap-3 rounded-lg border p-3">
                         <div className="flex items-center gap-2">

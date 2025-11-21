@@ -151,7 +151,18 @@ export default function DebtsPage() {
   }, [user, firestore, categories, toast]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !previousDebts) return;
+
+    const debtToDelete = previousDebts.find(d => d.id === debtId);
+    if (!debtToDelete) {
+        toast({ variant: "destructive", title: "خطا", description: "بدهی مورد نظر یافت نشد." });
+        return;
+    }
+    if (debtToDelete.remainingAmount > 0) {
+        toast({ variant: "destructive", title: "امکان حذف وجود ندارد", description: "این بدهی هنوز به طور کامل تسویه نشده است." });
+        return;
+    }
+
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -200,7 +211,7 @@ export default function DebtsPage() {
         });
       }
     }
-  }, [user, firestore, toast]);
+  }, [user, firestore, toast, previousDebts]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 

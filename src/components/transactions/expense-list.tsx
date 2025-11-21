@@ -87,8 +87,7 @@ export function ExpenseList({
    const getAccountOwnerName = (account?: BankAccount) => {
     if (!account) return '';
     if (account.ownerId === 'shared') return ' (مشترک)';
-    const userDetail = USER_DETAILS[account.ownerId];
-    return userDetail ? ` (شخصی ${userDetail.firstName})` : '';
+    return ` (شخصی)`;
   };
 
 

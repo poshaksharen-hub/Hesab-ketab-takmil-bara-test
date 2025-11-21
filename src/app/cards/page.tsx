@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, runTransaction } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
 import { CardForm } from '@/components/cards/card-form';
 import type { BankAccount, UserProfile } from '@/lib/types';
@@ -65,7 +65,7 @@ export default function CardsPage() {
         addDoc(collectionRef, newCard)
             .then((docRef) => {
             updateDoc(docRef, { id: docRef.id });
-            toast({ title: "موفقیت", description: `کارت بانکی جدید برای ${values.ownerId === 'shared' ? 'حساب مشترک' : USER_DETAILS[values.ownerId].firstName} با موفقیت اضافه شد.` });
+            toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
             })
             .catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({
@@ -96,21 +96,26 @@ export default function CardsPage() {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
             // --- Check for dependencies ---
-            const checksQuery = query(collection(familyDataRef, 'checks'), where('bankAccountId', '==', cardId));
-            const loansQuery = query(collection(familyDataRef, 'loanPayments'), where('bankAccountId', '==', cardId));
-            const goalsQuery = query(collection(familyDataRef, 'financialGoals'), where('contributions', 'array-contains-any', [{bankAccountId: cardId}]));
+            const dependencyChecks = [
+              { name: 'هزینه‌ها', collection: 'expenses', field: 'bankAccountId' },
+              { name: 'درآمدها', collection: 'incomes', field: 'bankAccountId' },
+              { name: 'انتقال‌ها (مبدا)', collection: 'transfers', field: 'fromBankAccountId' },
+              { name: 'انتقال‌ها (مقصد)', collection: 'transfers', field: 'toBankAccountId' },
+              { name: 'چک‌ها', collection: 'checks', field: 'bankAccountId' },
+              { name: 'پرداخت وام‌ها', collection: 'loanPayments', field: 'bankAccountId' },
+              { name: 'پرداخت بدهی‌ها', collection: 'debtPayments', field: 'bankAccountId' },
+            ];
 
-            const [checksSnapshot, loansSnapshot] = await Promise.all([
-                getDocs(checksQuery),
-                getDocs(loansQuery),
-            ]);
-
-            if (!checksSnapshot.empty) throw new Error("امکان حذف وجود ندارد. این کارت در یک یا چند چک استفاده شده است.");
-            if (!loansSnapshot.empty) throw new Error("امکان حذف وجود ندارد. از این کارت برای پرداخت اقساط وام استفاده شده است.");
-
-            // Since Firestore doesn't support array-contains-any for direct query in transactions, we just check if there's any blocked balance.
+            for (const dep of dependencyChecks) {
+                const q = query(collection(familyDataRef, dep.collection), where(dep.field, '==', cardId));
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    throw new Error(`امکان حذف وجود ندارد. این کارت در یک یا چند تراکنش (${dep.name}) استفاده شده است.`);
+                }
+            }
+            
             if(cardToDelete.blockedBalance && cardToDelete.blockedBalance > 0) {
-                 throw new Error("امکان حذف وجود ندارد. این کارت دارای مبلغ مسدود شده برای اهداف مالی است.");
+                 throw new Error("امکان حذف وجود ندارد. این کارت دارای مبلغ مسدود شده برای اهداف مالی است. ابتدا هدف‌های مرتبط را حذف یا ویرایش کنید.");
             }
              
              transaction.delete(cardToDeleteRef);

@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction } from 'firebase/firestore';
+import { collection, doc, runTransaction, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { BankAccount, Transfer, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -37,21 +37,15 @@ export default function TransfersPage() {
     try {
       await runTransaction(firestore, async (transaction) => {
         
-        const fromAccount = allBankAccounts.find(acc => acc.id === values.fromBankAccountId);
-        const toAccount = allBankAccounts.find(acc => acc.id === values.toBankAccountId);
-
-        if (!fromAccount || !toAccount) {
-            throw new Error("یک یا هر دو حساب بانکی یافت نشدند.");
-        }
-
-        const fromCardRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/bankAccounts`, fromAccount.id);
-        const toCardRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/bankAccounts`, toAccount.id);
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const fromCardRef = doc(familyDataRef, 'bankAccounts', values.fromBankAccountId);
+        const toCardRef = doc(familyDataRef, 'bankAccounts', values.toBankAccountId);
 
         const fromCardDoc = await transaction.get(fromCardRef);
         const toCardDoc = await transaction.get(toCardRef);
 
         if (!fromCardDoc.exists() || !toCardDoc.exists()) {
-          throw new Error("یک یا هر دو سند حساب بانکی در پایگاه داده یافت نشدند.");
+          throw new Error("یک یا هر دو حساب بانکی در پایگاه داده یافت نشدند.");
         }
 
         const fromCardData = fromCardDoc.data() as BankAccount;
@@ -74,10 +68,10 @@ export default function TransfersPage() {
         transaction.update(toCardRef, { balance: toBalanceAfter });
         
         // Create a record of the transfer in the central collection
-        const transferRef = doc(collection(firestore, `family-data/${FAMILY_DATA_DOC}/transfers`));
-        transaction.set(transferRef, {
+        const newTransferRef = doc(collection(familyDataRef, 'transfers'));
+        transaction.set(newTransferRef, {
             ...values,
-            id: transferRef.id,
+            id: newTransferRef.id,
             registeredByUserId: user.uid,
             transferDate: new Date().toISOString(),
             fromAccountBalanceBefore: fromBalanceBefore,
