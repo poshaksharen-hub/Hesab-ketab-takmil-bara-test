@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -36,6 +37,7 @@ import {
   Target,
   Landmark,
   Bell,
+  Handshake,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -75,6 +77,7 @@ function Menu() {
     { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy },
     { href: '/loans', label: 'وام‌ها', icon: Landmark },
+    { href: '/debts', label: 'بدهی‌ها', icon: Handshake },
     { href: '/goals', label: 'اهداف مالی', icon: Target },
     { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
   ];
@@ -224,3 +227,5 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
+
+    

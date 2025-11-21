@@ -28,6 +28,7 @@ import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { OwnerId } from '@/lib/types';
+import { getDateRange } from '@/lib/date-utils';
 
 function DashboardSkeleton() {
   const auth = useAuth();
@@ -80,19 +81,20 @@ export default function DashboardPage() {
   const { summary, details } = getFilteredData(ownerFilter, date);
   
   const { 
-      totalAssets, 
-      totalLiabilities,
-      netWorth,
       aliBalance,
       fatemehBalance,
       sharedBalance
-   } = getFilteredData('all', undefined).summary; // Global summaries are always 'all'
+   } = getFilteredData('all', undefined).summary; // Global balances are always 'all'
 
 
   const effectiveLoading = isUserLoading || isLoading;
 
   if (effectiveLoading) {
     return <DashboardSkeleton />;
+  }
+
+  const handleDatePreset = (preset: 'thisWeek' | 'thisMonth' | 'thisYear') => {
+      setDate(getDateRange(preset));
   }
   
   return (
@@ -101,7 +103,7 @@ export default function DashboardPage() {
         <h1 className="font-headline text-3xl font-bold tracking-tight">
           مرکز تحلیل مالی
         </h1>
-        <div className="flex flex-col items-stretch gap-2 sm:flex-row">
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
            <Select onValueChange={(value) => setOwnerFilter(value as OwnerId | 'all')} defaultValue="all">
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="نمایش داده‌های..." />
@@ -113,14 +115,17 @@ export default function DashboardPage() {
                 <SelectItem value="shared">مشترک</SelectItem>
               </SelectContent>
             </Select>
+            <div className='flex gap-2'>
+              <Button variant="outline" onClick={() => handleDatePreset('thisWeek')}>این هفته</Button>
+              <Button variant="outline" onClick={() => handleDatePreset('thisMonth')}>این ماه</Button>
+              <Button variant="outline" onClick={() => handleDatePreset('thisYear')}>امسال</Button>
+            </div>
             <CustomDateRangePicker date={date} setDate={setDate} />
         </div>
       </div>
 
       {/* Overall Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <OverallSummary summary={{ netWorth, totalAssets, totalLiabilities, totalIncome: summary.totalIncome, totalExpense: summary.totalExpense }} />
-      </div>
+      <OverallSummary summary={summary} />
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AccountBalanceCards 
             aliBalance={aliBalance}
@@ -189,3 +194,5 @@ export default function DashboardPage() {
     </main>
   );
 }
+
+    

@@ -15,7 +15,9 @@ import type {
   Payee,
   Transfer,
   LoanPayment,
-  OwnerId
+  OwnerId,
+  PreviousDebt,
+  DebtPayment,
 } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 import { USER_DETAILS } from '@/lib/constants';
@@ -34,6 +36,8 @@ type AllData = {
   payees: Payee[];
   transfers: Transfer[];
   loanPayments: LoanPayment[];
+  previousDebts: PreviousDebt[];
+  debtPayments: DebtPayment[];
 };
 
 export function useDashboardData() {
@@ -54,8 +58,10 @@ export function useDashboardData() {
     const { data: loanPayments, isLoading: illp } = useCollection<LoanPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'loanPayments') : null), [baseDocRef]));
     const { data: payees, isLoading: ilp } = useCollection<Payee>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'payees') : null), [baseDocRef]));
     const { data: transfers, isLoading: ilt } = useCollection<Transfer>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'transfers') : null), [baseDocRef]));
+    const { data: previousDebts, isLoading: ilpd } = useCollection<PreviousDebt>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
+    const { data: debtPayments, isLoading: ildp } = useCollection<DebtPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]));
     
-    const isLoading = isAuthLoading || isLoadingUsers || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt;
+    const isLoading = isAuthLoading || isLoadingUsers || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
 
     const allData = useMemo<AllData>(() => ({
         users: users || [],
@@ -69,7 +75,9 @@ export function useDashboardData() {
         payees: payees || [],
         transfers: transfers || [],
         loanPayments: loanPayments || [],
-    }), [users, bankAccounts, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments]);
+        previousDebts: previousDebts || [],
+        debtPayments: debtPayments || [],
+    }), [users, bankAccounts, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
 
 
   const getFilteredData = (ownerFilter: OwnerId | 'all', dateRange?: DateRange) => {
@@ -80,10 +88,10 @@ export function useDashboardData() {
         return itemDate >= dateRange.from && itemDate <= dateRange.to;
     };
     
-    const filterByOwner = (item: Income | Expense) => {
+    const filterByOwner = <T extends { ownerId: OwnerId }>(item: T) => {
         if (ownerFilter === 'all') return true;
         return item.ownerId === ownerFilter;
-    }
+    };
 
     const filteredIncomes = allData.incomes.filter(i => dateMatches(i.date) && filterByOwner(i));
     const filteredExpenses = allData.expenses.filter(e => dateMatches(e.date) && filterByOwner(e));
@@ -91,14 +99,18 @@ export function useDashboardData() {
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
     
-    const totalAssets = allData.bankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const filteredAccounts = allData.bankAccounts.filter(filterByOwner);
+    const totalAssets = ownerFilter === 'all' 
+        ? allData.bankAccounts.reduce((sum, acc) => sum + acc.balance, 0)
+        : filteredAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
-    const pendingChecksAmount = allData.checks
-        .filter(c => c.status === 'pending')
-        .reduce((sum, c) => sum + c.amount, 0);
+    const pendingChecks = allData.checks.filter(c => c.status === 'pending' && filterByOwner(c));
+    const pendingChecksAmount = pendingChecks.reduce((sum, c) => sum + c.amount, 0);
     
-    const remainingLoanAmount = allData.loans.reduce((sum, l) => sum + l.remainingAmount, 0);
-    const totalLiabilities = pendingChecksAmount + remainingLoanAmount;
+    const remainingLoanAmount = allData.loans.filter(filterByOwner).reduce((sum, l) => sum + l.remainingAmount, 0);
+    const remainingDebtsAmount = allData.previousDebts.filter(filterByOwner).reduce((sum, d) => sum + d.remainingAmount, 0);
+
+    const totalLiabilities = pendingChecksAmount + remainingLoanAmount + remainingDebtsAmount;
     const netWorth = totalAssets - totalLiabilities;
     
     const allTransactions = [...filteredIncomes, ...filteredExpenses].sort((a, b) => {
@@ -107,6 +119,7 @@ export function useDashboardData() {
         return dateB.getTime() - dateA.getTime();
     });
 
+    // Balances are always calculated globally, not affected by date/owner filter for display
     const aliBalance = allData.bankAccounts.filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0);
     const fatemehBalance = allData.bankAccounts.filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0);
     const sharedBalance = allData.bankAccounts.filter(b => b.ownerId === 'shared').reduce((sum, acc) => sum + acc.balance, 0);
@@ -118,6 +131,9 @@ export function useDashboardData() {
         netWorth,
         totalAssets,
         totalLiabilities,
+        pendingChecksAmount,
+        remainingLoanAmount,
+        remainingDebtsAmount,
         aliBalance,
         fatemehBalance,
         sharedBalance,
@@ -137,3 +153,5 @@ export function useDashboardData() {
     allData
   };
 }
+
+    

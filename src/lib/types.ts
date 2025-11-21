@@ -1,5 +1,6 @@
 
 
+
 import type { LucideIcon } from 'lucide-react';
 
 export type OwnerId = 'ali' | 'fatemeh' | 'shared';
@@ -31,11 +32,12 @@ export type Expense = {
   date: string;
   description: string;
   type: 'expense';
-  subType?: 'goal_saved_portion' | 'goal_cash_portion'; // For differentiating goal expenses
+  subType?: 'goal_saved_portion' | 'goal_cash_portion' | 'debt_payment'; // For differentiating special expenses
   expenseFor?: 'ali' | 'fatemeh' | 'shared'; // The person/entity this expense was for.
   checkId?: string;
   goalId?: string;
   loanPaymentId?: string;
+  debtPaymentId?: string;
   createdAt: any;
   updatedAt?: any;
   balanceBefore?: number;
@@ -80,6 +82,7 @@ export type Payee = {
 export type Check = {
     id: string;
     registeredByUserId: string;
+    ownerId: OwnerId;
     bankAccountId: string;
     payeeId: string;
     categoryId: string;
@@ -117,6 +120,7 @@ export type FinancialGoal = {
 export type Loan = {
     id: string;
     registeredByUserId: string;
+    ownerId: OwnerId;
     payeeId?: string;
     title: string;
     amount: number;
@@ -138,6 +142,26 @@ export type LoanPayment = {
     paymentDate: string;
 }
 
+export type PreviousDebt = {
+    id: string;
+    registeredByUserId: string;
+    ownerId: OwnerId;
+    payeeId: string;
+    description: string;
+    amount: number;
+    remainingAmount: number;
+    startDate: string;
+}
+
+export type DebtPayment = {
+    id: string;
+    registeredByUserId: string;
+    debtId: string;
+    bankAccountId: string;
+    amount: number;
+    paymentDate: string;
+}
+
 export type Transfer = {
     id: string;
     registeredByUserId: string;
@@ -151,3 +175,5 @@ export type Transfer = {
     toAccountBalanceBefore: number;
     toAccountBalanceAfter: number;
 }
+
+    
