@@ -214,7 +214,7 @@ export default function LoansPage() {
     }
     
     if (loanToDelete.paidInstallments > 0 && loanToDelete.remainingAmount < loanToDelete.amount) {
-        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. ابتدا باید پرداخت‌ها را حذف کنید.' });
+        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. برای حذف، ابتدا باید وام را به طور کامل تسویه کنید.' });
         return;
     }
 
@@ -231,25 +231,14 @@ export default function LoansPage() {
                     const accountData = depositAccountDoc.data()!;
                     transaction.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
                 } else {
-                    // If account is deleted, we can't reverse. Log this inconsistency.
                     console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found.`);
                 }
             }
             
-            // It's safe to delete payments and expenses since we've checked that there are none.
-            const paymentsQuery = query(collection(familyDataRef, 'loanPayments'), where('loanId', '==', loanId));
-            const paymentsSnapshot = await getDocs(paymentsQuery);
-            paymentsSnapshot.forEach(doc => transaction.delete(doc.ref));
-
-            const expensesQuery = query(collection(familyDataRef, 'expenses'), where('loanPaymentId', 'in', paymentsSnapshot.docs.map(d => d.id)));
-            const expensesSnapshot = await getDocs(expensesQuery);
-            expensesSnapshot.forEach(doc => transaction.delete(doc.ref));
-
-
             transaction.delete(loanRef);
         });
 
-        toast({ title: "موفقیت", description: "وام و تمام سوابق آن با موفقیت حذف شدند." });
+        toast({ title: "موفقیت", description: "وام با موفقیت حذف شد." });
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {

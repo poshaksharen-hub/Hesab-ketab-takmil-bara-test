@@ -27,34 +27,33 @@ interface CurrencyInputProps extends Omit<React.ComponentProps<"input">, 'onChan
 
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ className, value, onChange, ...props }, ref) => {
-    const [displayValue, setDisplayValue] = React.useState(value ? new Intl.NumberFormat('en-US').format(value) : '');
+    const [displayValue, setDisplayValue] = React.useState(value ? new Intl.NumberFormat('fa-IR', { style: 'decimal' }).format(value) : '');
 
     React.useEffect(() => {
         if (value) {
-            const formatted = new Intl.NumberFormat('en-US').format(value);
-            if(formatted !== displayValue) {
+            const formatted = new Intl.NumberFormat('fa-IR', { style: 'decimal' }).format(value);
+            if(formatted !== displayValue.replace(/,/g, '')) {
                setDisplayValue(formatted);
             }
-        } else {
-            setDisplayValue('');
+        } else if (value === 0 && document.activeElement !== ref) {
+             setDisplayValue('');
         }
-    }, [value]);
+    }, [value, ref, displayValue]);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rawValue = e.target.value.replace(/,/g, '');
-      if (/^\d*$/.test(rawValue)) { // Only allow digits
-        const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
-        if (!isNaN(numValue)) {
-            setDisplayValue(rawValue === '' ? '' : new Intl.NumberFormat('en-US').format(numValue));
-            onChange(numValue);
-        }
+      const rawValue = e.target.value.replace(/,/g, '').replace(/[^\d]/g, '');
+      const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
+      if (!isNaN(numValue)) {
+          setDisplayValue(rawValue === '' ? '' : new Intl.NumberFormat('fa-IR', { style: 'decimal' }).format(numValue));
+          onChange(numValue);
       }
     };
     
-    const handleBlur = () => {
-        if (value) {
-            setDisplayValue(new Intl.NumberFormat('en-US').format(value));
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value.replace(/,/g, '').replace(/[^\d]/g, '');
+        if (rawValue === '') {
+            onChange(0);
         }
     }
 

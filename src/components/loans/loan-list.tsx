@@ -136,12 +136,12 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanL
                                                 <AlertDialogHeader>
                                                 <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                   این عمل قابل بازگشت نیست. اگر وام به طور کامل تسویه نشده باشد، امکان حذف آن وجود ندارد. در غیر این صورت، وام و تمام سوابق پرداخت و هزینه‌های مرتبط با آن برای همیشه حذف خواهند شد.
+                                                   این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد.
                                                 </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                <AlertDialogAction disabled={!isCompleted} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
+                                                <AlertDialogAction disabled={loan.paidInstallments > 0} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
                                                     بله، حذف کن
                                                 </AlertDialogAction>
                                                 </AlertDialogFooter>
