@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -63,11 +64,20 @@ export default function DebtsPage() {
       toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
       setIsFormOpen(false);
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'خطا در ثبت بدهی',
-        description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
-      });
+      if (error.name === 'FirebaseError') {
+         const permissionError = new FirestorePermissionError({
+            path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
+            operation: 'create',
+            requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'خطا در ثبت بدهی',
+          description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
+        });
+      }
     }
   }, [user, firestore, toast]);
 

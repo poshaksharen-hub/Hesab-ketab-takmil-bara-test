@@ -87,7 +87,7 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanL
 
   return (
     <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-        {loans.sort((a, b) => a.paidInstallments - b.paidInstallments).map((loan) => {
+        {loans.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((loan) => {
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
             const depositAccountInfo = getAccountInfo(loan.depositToAccountId);

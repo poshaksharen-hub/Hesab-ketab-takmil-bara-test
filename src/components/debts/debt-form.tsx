@@ -1,4 +1,5 @@
 
+
 'use client';
 import React from 'react';
 import { z } from 'zod';
@@ -169,5 +170,4 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
     </Card>
   );
 }
-
     

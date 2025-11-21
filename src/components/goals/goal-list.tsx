@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -74,7 +75,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
 
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        {goals.map((goal) => {
+        {goals.sort((a, b) => (a.isAchieved ? 1 : -1) - (b.isAchieved ? 1 : -1) || new Date(b.targetDate).getTime() - new Date(a.targetDate).getTime()).map((goal) => {
             const progress = (goal.targetAmount > 0) ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
             const isAchieved = goal.isAchieved;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(goal.ownerId);
@@ -110,9 +111,9 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
                                             </Link>
                                         </DropdownMenuItem>
                                         {!isAchieved && (
-                                            <DropdownMenuItem onSelect={() => onRevert(goal)} disabled>
+                                            <DropdownMenuItem disabled>
                                                 <Edit className="ml-2 h-4 w-4" />
-                                                ویرایش هدف
+                                                ویرایش هدف (غیرفعال)
                                             </DropdownMenuItem>
                                         )}
                                         {isAchieved && (
@@ -122,13 +123,31 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
                                             </DropdownMenuItem>
                                         )}
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            onSelect={() => onDelete(goal.id)}
-                                            className="text-destructive focus:text-destructive"
-                                        >
-                                            <Trash2 className="ml-2 h-4 w-4" />
-                                            حذف هدف
-                                        </DropdownMenuItem>
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                    <Trash2 className="ml-2 h-4 w-4" />
+                                                    حذف هدف
+                                                </div>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    این عمل قابل بازگشت نیست. اگر هدف محقق شده باشد، ابتدا باید آن را بازگردانی کنید. در غیر این صورت، تمام مبالغ مسدود شده برای این هدف آزاد خواهند شد.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    className="bg-destructive hover:bg-destructive/90"
+                                                    disabled={goal.isAchieved}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(goal.id); }}>
+                                                    بله، حذف کن
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
