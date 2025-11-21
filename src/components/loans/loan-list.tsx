@@ -86,7 +86,7 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanL
 
 
   return (
-    <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {loans.sort((a, b) => a.paidInstallments - b.paidInstallments).map((loan) => {
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
@@ -136,7 +136,7 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanL
                                                 <AlertDialogHeader>
                                                 <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                   این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد.
+                                                   این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط با آن (مانند واریز اولیه) معکوس خواهد شد.
                                                 </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>

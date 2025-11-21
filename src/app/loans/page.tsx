@@ -213,8 +213,9 @@ export default function LoansPage() {
         return;
     }
     
+    // Prevent deleting a loan that has been partially paid.
     if (loanToDelete.paidInstallments > 0 && loanToDelete.remainingAmount < loanToDelete.amount) {
-        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. برای حذف، ابتدا باید وام را به طور کامل تسویه کنید.' });
+        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌ها را به صورت دستی برگردانید و سپس وام را حذف کنید.' });
         return;
     }
 
@@ -231,7 +232,8 @@ export default function LoansPage() {
                     const accountData = depositAccountDoc.data()!;
                     transaction.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
                 } else {
-                    console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found.`);
+                    // If account is not found, we can't reverse the transaction. Log a warning.
+                    console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found. The deletion will proceed without reversing the initial deposit.`);
                 }
             }
             
@@ -251,7 +253,7 @@ export default function LoansPage() {
             toast({
                 variant: "destructive",
                 title: "خطا در حذف وام",
-                description: error.message || "مشکلی در حذف وام و سوابق آن پیش آمد.",
+                description: error.message || "مشکلی در حذف وام پیش آمد.",
             });
         }
     }

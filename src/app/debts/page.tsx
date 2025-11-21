@@ -13,7 +13,8 @@ import {
   query,
   where,
   addDoc,
-  updateDoc
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import type { PreviousDebt, BankAccount, Category, Payee, Expense, DebtPayment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -151,50 +152,28 @@ export default function DebtsPage() {
   }, [user, firestore, categories, toast]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
-    if (!user || !firestore || !previousDebts) return;
-
-    const debtToDelete = previousDebts.find(d => d.id === debtId);
-    if (!debtToDelete) {
-        toast({ variant: "destructive", title: "خطا", description: "بدهی مورد نظر یافت نشد." });
-        return;
-    }
-    if (debtToDelete.remainingAmount > 0 && debtToDelete.remainingAmount < debtToDelete.amount) {
-        toast({ variant: "destructive", title: "امکان حذف وجود ندارد", description: "این بدهی دارای سابقه پرداخت است. ابتدا باید بدهی را به طور کامل تسویه کنید و سپس اقدام به حذف نمایید." });
-        return;
-    }
-
+    if (!user || !firestore) return;
 
     try {
       await runTransaction(firestore, async (transaction) => {
         const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
         const debtRef = doc(familyDataRef, 'previousDebts', debtId);
         
-        const paymentsQuery = query(collection(familyDataRef, 'debtPayments'), where('debtId', '==', debtId));
-        const paymentsSnapshot = await getDocs(paymentsQuery);
-
-        for (const paymentDoc of paymentsSnapshot.docs) {
-          const payment = paymentDoc.data() as DebtPayment;
-          const accountRef = doc(familyDataRef, 'bankAccounts', payment.bankAccountId);
-
-          const expenseQuery = query(collection(familyDataRef, 'expenses'), where('debtPaymentId', '==', payment.id));
-          const expenseSnapshot = await getDocs(expenseQuery);
-          if (!expenseSnapshot.empty) {
-            const expenseDoc = expenseSnapshot.docs[0];
-            transaction.delete(expenseDoc.ref);
-          }
-
-          const accountDoc = await transaction.get(accountRef);
-          if (accountDoc.exists()) {
-            const accountData = accountDoc.data() as BankAccount;
-            transaction.update(accountRef, { balance: accountData.balance + payment.amount });
-          }
-
-          transaction.delete(paymentDoc.ref);
+        const debtDoc = await transaction.get(debtRef);
+        if (!debtDoc.exists()) {
+            throw new Error("بدهی مورد نظر یافت نشد.");
         }
+        const debtToDelete = debtDoc.data() as PreviousDebt;
+
+        // Prevent deletion if there's a payment history (i.e., it's not fully owed)
+        if (debtToDelete.remainingAmount < debtToDelete.amount) {
+            throw new Error("امکان حذف وجود ندارد. این بدهی دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌های مرتبط را به صورت دستی برگردانید.");
+        }
+
         transaction.delete(debtRef);
       });
 
-      toast({ title: "موفقیت", description: "بدهی و تمام سوابق پرداخت آن با موفقیت حذف شدند." });
+      toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
 
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
@@ -207,11 +186,11 @@ export default function DebtsPage() {
         toast({
           variant: "destructive",
           title: "خطا در حذف بدهی",
-          description: error.message || "مشکلی در حذف بدهی و سوابق آن پیش آمد.",
+          description: error.message || "مشکلی در حذف بدهی پیش آمد.",
         });
       }
     }
-  }, [user, firestore, toast, previousDebts]);
+  }, [user, firestore, toast]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 
