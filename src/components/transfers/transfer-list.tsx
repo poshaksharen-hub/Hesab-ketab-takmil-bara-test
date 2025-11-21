@@ -1,18 +1,23 @@
 
+
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Transfer, BankAccount, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
-import { ArrowDown, ArrowUp, ArrowRight, Banknote } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowRight, Banknote, Trash2 } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
 import { Separator } from '../ui/separator';
+import { Button } from '../ui/button';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '../ui/alert-dialog';
+
 
 interface TransferListProps {
   transfers: Transfer[];
   bankAccounts: BankAccount[];
   users: UserProfile[];
+  onDelete: (transferId: string) => void;
 }
 
 const BalanceChange = ({ label, amount, type }: { label: string, amount: number, type: 'before' | 'after' }) => (
@@ -23,7 +28,7 @@ const BalanceChange = ({ label, amount, type }: { label: string, amount: number,
 );
 
 
-export function TransferList({ transfers, bankAccounts, users }: TransferListProps) {
+export function TransferList({ transfers, bankAccounts, users, onDelete }: TransferListProps) {
   
   const getAccountDisplayName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
@@ -112,6 +117,30 @@ export function TransferList({ transfers, bankAccounts, users }: TransferListPro
                         </div>
                     </div>
                 </CardContent>
+                 <CardFooter className="p-2 bg-muted/50">
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button variant="ghost" className="w-full text-xs text-destructive" aria-label="حذف انتقال">
+                                <Trash2 className="ml-2 h-4 w-4" />
+                                حذف تراکنش انتقال
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>آیا از حذف این انتقال مطمئن هستید؟</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                این عمل قابل بازگشت نیست. با حذف این انتقال، مبلغ آن از حساب مقصد کسر و به حساب مبدا بازگردانده خواهد شد.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>انصراف</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(transfer.id)}>
+                                بله، حذف کن
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardFooter>
             </Card>
         )
     })}

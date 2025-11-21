@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { BankAccount, Transfer, UserProfile } from '@/lib/types';
@@ -10,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { TransferForm } from '@/components/transfers/transfer-form';
 import { TransferList } from '@/components/transfers/transfer-list';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -88,14 +91,77 @@ export default function TransfersPage() {
       });
 
     } catch (error: any) {
-      console.error("خطا در انتقال وجه:", error);
-      toast({
-        variant: "destructive",
-        title: "خطا در انتقال وجه",
-        description: error.message || "مشکلی در انجام عملیات پیش آمد. لطفا دوباره تلاش کنید.",
-      });
+      if (error.name === 'FirebaseError') {
+        const permissionError = new FirestorePermissionError({
+          path: 'family-data/shared-data/transfers',
+          operation: 'create',
+          requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "خطا در انتقال وجه",
+          description: error.message || "مشکلی در انجام عملیات پیش آمد. لطفا دوباره تلاش کنید.",
+        });
+      }
     }
   }, [user, firestore, allBankAccounts, toast]);
+
+  const handleDeleteTransfer = useCallback(async (transferId: string) => {
+    if (!firestore || !transfers) return;
+
+    const transferToDelete = transfers.find(t => t.id === transferId);
+    if (!transferToDelete) {
+      toast({ variant: "destructive", title: "خطا", description: "تراکنش انتقال مورد نظر یافت نشد." });
+      return;
+    }
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const transferRef = doc(familyDataRef, 'transfers', transferId);
+            const fromAccountRef = doc(familyDataRef, 'bankAccounts', transferToDelete.fromBankAccountId);
+            const toAccountRef = doc(familyDataRef, 'bankAccounts', transferToDelete.toBankAccountId);
+
+            const fromAccountDoc = await transaction.get(fromAccountRef);
+            const toAccountDoc = await transaction.get(toAccountRef);
+
+            if (!fromAccountDoc.exists() || !toAccountDoc.exists()) {
+                throw new Error("یک یا هر دو حساب بانکی مرتبط با این انتقال یافت نشدند.");
+            }
+
+            const fromAccountData = fromAccountDoc.data()!;
+            const toAccountData = toAccountDoc.data()!;
+            
+            // Revert the financial impact
+            transaction.update(fromAccountRef, { balance: fromAccountData.balance + transferToDelete.amount });
+            transaction.update(toAccountRef, { balance: toAccountData.balance - transferToDelete.amount });
+
+            // Delete the transfer record
+            transaction.delete(transferRef);
+        });
+
+        toast({ title: "موفقیت", description: "تراکنش انتقال با موفقیت حذف و مبالغ به حساب‌ها بازگردانده شد." });
+
+    } catch (error: any) {
+       if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: `family-data/shared-data/transfers/${transferId}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "خطا در حذف انتقال",
+            description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
+          });
+        }
+    }
+
+  }, [firestore, transfers, toast]);
+
 
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -134,6 +200,7 @@ export default function TransfersPage() {
                     transfers={transfers || []}
                     bankAccounts={allBankAccounts || []}
                     users={allUsers || []}
+                    onDelete={handleDeleteTransfer}
                 />
             )}
         </div>

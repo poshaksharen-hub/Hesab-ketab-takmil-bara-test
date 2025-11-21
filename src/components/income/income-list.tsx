@@ -35,6 +35,30 @@ interface IncomeListProps {
   onDelete: (incomeId: string) => void;
 }
 
+const DetailItem = ({
+    icon: Icon,
+    label,
+    value,
+    className,
+  }: {
+    icon: React.ElementType;
+    label: string;
+    value: string | null | undefined;
+    className?: string;
+  }) => {
+    if (!value) return null;
+    return (
+      <div className="flex items-center gap-3 text-sm">
+        <Icon className="h-5 w-5 text-muted-foreground" />
+        <div className="flex flex-col">
+          <span className="text-muted-foreground">{label}</span>
+          <span className={`font-semibold ${className}`}>{value}</span>
+        </div>
+      </div>
+    );
+  };
+
+
 export function IncomeList({
   incomes,
   bankAccounts,
@@ -80,28 +104,6 @@ export function IncomeList({
     );
   }
   
-  const DetailItem = ({
-    icon: Icon,
-    label,
-    value,
-    className,
-  }: {
-    icon: React.ElementType;
-    label: string;
-    value: string | null | undefined;
-    className?: string;
-  }) => {
-    if (!value) return null;
-    return (
-      <div className="flex items-center gap-3 text-sm">
-        <Icon className="h-5 w-5 text-muted-foreground" />
-        <div className="flex flex-col">
-          <span className="text-muted-foreground">{label}</span>
-          <span className={`font-semibold ${className}`}>{value}</span>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-4">
