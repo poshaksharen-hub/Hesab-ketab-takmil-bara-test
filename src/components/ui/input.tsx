@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn, toEnglishDigits } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
@@ -27,32 +27,36 @@ interface CurrencyInputProps extends Omit<React.ComponentProps<"input">, 'onChan
 
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ className, value, onChange, ...props }, ref) => {
-    const [displayValue, setDisplayValue] = React.useState(value ? new Intl.NumberFormat('fa-IR', { style: 'decimal' }).format(value) : '');
+    const [displayValue, setDisplayValue] = React.useState(value ? new Intl.NumberFormat('fa-IR').format(value) : '');
 
-    React.useEffect(() => {
-        if (value) {
-            const formatted = new Intl.NumberFormat('fa-IR', { style: 'decimal' }).format(value);
-            if(formatted !== displayValue.replace(/,/g, '')) {
-               setDisplayValue(formatted);
-            }
-        } else if (value === 0 && document.activeElement !== ref) {
-             setDisplayValue('');
+     React.useEffect(() => {
+        const numericValue = Number.isNaN(value) ? 0 : value;
+        const formatted = new Intl.NumberFormat('fa-IR').format(numericValue);
+        // Only update if the formatted value is different, to avoid overriding user input.
+        // We convert both to a "raw" number string for comparison.
+        const rawDisplay = toEnglishDigits(displayValue).replace(/,/g, '');
+        if (numericValue.toString() !== rawDisplay) {
+            setDisplayValue(numericValue === 0 ? '' : formatted);
         }
-    }, [value, ref, displayValue]);
+    }, [value]);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rawValue = e.target.value.replace(/,/g, '').replace(/[^\d]/g, '');
+      const englishValue = toEnglishDigits(e.target.value);
+      const rawValue = englishValue.replace(/,/g, '').replace(/[^\d]/g, '');
       const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
+
       if (!isNaN(numValue)) {
-          setDisplayValue(rawValue === '' ? '' : new Intl.NumberFormat('fa-IR', { style: 'decimal' }).format(numValue));
+          setDisplayValue(rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue));
           onChange(numValue);
+      } else if (rawValue === '') {
+          setDisplayValue('');
+          onChange(0);
       }
     };
     
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        const rawValue = e.target.value.replace(/,/g, '').replace(/[^\d]/g, '');
-        if (rawValue === '') {
+        if (e.target.value === '') {
             onChange(0);
         }
     }
@@ -78,7 +82,8 @@ const NumericInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     ({ className, onChange, ...props }, ref) => {
       const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { value } = event.target;
-        const numericValue = value.replace(/\D/g, '');
+        const englishValue = toEnglishDigits(value);
+        const numericValue = englishValue.replace(/\D/g, '');
         event.target.value = numericValue;
         if (onChange) {
           onChange(event);
@@ -103,8 +108,8 @@ const ExpiryDateInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttrib
     ({ className, onChange, ...props }, ref) => {
       const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         let { value } = event.target;
-        // Remove all non-digit characters
-        let numericValue = value.replace(/\D/g, '');
+        // Convert Persian/Arabic digits to English, then remove non-digits
+        let numericValue = toEnglishDigits(value).replace(/\D/g, '');
   
         // Add slash after the first two digits
         if (numericValue.length > 2) {
