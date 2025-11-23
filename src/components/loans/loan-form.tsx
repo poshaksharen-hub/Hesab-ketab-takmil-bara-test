@@ -79,8 +79,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
 
     const watchDepositOnCreate = form.watch('depositOnCreate');
     const watchDepositToAccountId = form.watch('depositToAccountId');
-    const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
-
+    
     useEffect(() => {
         form.reset({
             title: '',
@@ -101,6 +100,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         const userDetail = USER_DETAILS[account.ownerId];
         return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
     }, []);
+    
+    const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
     const handleFormSubmit = useCallback((data: LoanFormValues) => {
         const submissionData = {
