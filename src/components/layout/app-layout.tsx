@@ -17,6 +17,7 @@ import {
   SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,9 +63,8 @@ const useSimpleTheme = () => {
   return { theme, toggleTheme };
 };
 
-function Menu() {
+function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
-  const { setOpenMobile } = useSidebar();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
     { href: '/due-dates', label: 'سررسیدها', icon: Bell },
@@ -89,7 +89,7 @@ function Menu() {
             <SidebarMenuButton
               isActive={pathname === item.href}
               tooltip={item.label}
-              onClick={() => setOpenMobile(false)}
+              onClick={onLinkClick}
             >
               <item.icon />
               <span>{item.label}</span>
@@ -107,6 +107,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useSimpleTheme();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   
   const handleSignOut = async () => {
     if (auth) {
@@ -141,8 +142,65 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  const MobileMenuContent = () => (
+     <div className="flex h-full flex-col">
+          <SidebarHeader>
+            <div className="flex items-center gap-2">
+              <HesabKetabLogo className="size-8 text-primary" />
+              <span className="font-headline text-2xl font-bold">حساب کتاب</span>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <Menu onLinkClick={() => setMobileMenuOpen(false)} />
+          </SidebarContent>
+          <SidebarFooter>
+             {user && (
+              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <Avatar>
+                  <AvatarImage
+                    src={userAvatar?.imageUrl}
+                    data-ai-hint={userAvatar?.imageHint}
+                  />
+                  <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col truncate">
+                  <span className="truncate text-sm font-semibold">
+                    {userName}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                </div>
+              </div>
+              <div className="flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  aria-label="تغییر تم"
+                >
+                  {theme === 'light' ? <Moon /> : <Sun />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  aria-label="خروج"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <LogOut />
+                </Button>
+              </div>
+            </div>
+            )}
+          </SidebarFooter>
+        </div>
+  );
+
   return (
     <SidebarProvider>
+      {/* Desktop Sidebar */}
       <Sidebar side="right">
         <SidebarHeader>
           <div className="flex items-center gap-2">
@@ -212,13 +270,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
-          <Link href="/" className="flex items-center gap-2">
-            <HesabKetabLogo className="size-7 text-primary" />
-            <span className="font-headline text-xl font-bold">حساب کتاب</span>
-          </Link>
-          <SidebarTrigger />
-        </header>
+         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
+            <Link href="/" className="flex items-center gap-2">
+              <HesabKetabLogo className="size-7 text-primary" />
+              <span className="font-headline text-xl font-bold">حساب کتاب</span>
+            </Link>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <PanelLeft />
+                    <span className="sr-only">Toggle Sidebar</span>
+                  </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
+                  <MobileMenuContent />
+              </SheetContent>
+            </Sheet>
+          </header>
         {children}
       </SidebarInset>
     </SidebarProvider>
