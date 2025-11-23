@@ -78,7 +78,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
   });
 
   useEffect(() => {
-    // This form is only for creating, so we always reset to default.
     form.reset({
         title: '',
         payeeId: '',
@@ -93,6 +92,10 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     });
   }, [form]);
 
+  const watchDepositOnCreate = form.watch('depositOnCreate');
+  const watchDepositToAccountId = form.watch('depositToAccountId');
+  const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
+
   function handleFormSubmit(data: LoanFormValues) {
     const submissionData = {
       ...data,
@@ -106,10 +109,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     const userDetail = USER_DETAILS[account.ownerId];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
-
-  const watchDepositOnCreate = form.watch('depositOnCreate');
-  const watchDepositToAccountId = form.watch('depositToAccountId');
-  const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
   return (
     <Card>
