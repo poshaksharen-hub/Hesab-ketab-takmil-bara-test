@@ -218,11 +218,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <HesabKetabLogo className="size-7 text-primary" />
             <span className="font-headline text-xl font-bold">حساب کتاب</span>
           </Link>
-          <SidebarTrigger />
+          <SidebarTrigger className="md:hidden" />
         </header>
         {children}
       </SidebarInset>
     </SidebarProvider>
   );
 }
-    
