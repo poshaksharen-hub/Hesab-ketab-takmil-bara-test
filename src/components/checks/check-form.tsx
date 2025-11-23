@@ -14,7 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input, CurrencyInput, NumericInput } from '@/components/ui/input';
+import { CurrencyInput, NumericInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -27,6 +27,7 @@ import type { Check, BankAccount, Payee, Category } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { USER_DETAILS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
+import { Textarea } from '../ui/textarea';
 
 const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
@@ -38,7 +39,11 @@ const formSchema = z.object({
   description: z.string().optional(),
   sayadId: z.string().min(1, { message: 'شماره صیادی الزامی است.' }),
   checkSerialNumber: z.string().min(1, { message: 'شماره سری چک الزامی است.' }),
+}).refine(data => data.dueDate >= data.issueDate, {
+    message: "تاریخ سررسید نمی‌تواند قبل از تاریخ صدور باشد.",
+    path: ["dueDate"],
 });
+
 
 type CheckFormValues = z.infer<typeof formSchema>;
 
@@ -264,7 +269,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                   <FormItem>
                     <FormLabel>توضیحات (اختیاری)</FormLabel>
                     <FormControl>
-                      <Input placeholder="مثال: بابت خرید ..." {...field} />
+                      <Textarea placeholder="مثال: بابت خرید ..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

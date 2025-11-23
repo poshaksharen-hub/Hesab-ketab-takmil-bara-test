@@ -27,6 +27,7 @@ import type { Expense, BankAccount, Category, Payee } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { cn, formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
+import { Textarea } from '../ui/textarea';
 
 
 const formSchema = z.object({
@@ -127,7 +128,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                   <FormItem>
                     <FormLabel>شرح هزینه</FormLabel>
                     <FormControl>
-                      <Input placeholder="مثال: خرید هفتگی از فروشگاه" {...field} />
+                      <Textarea placeholder="مثال: خرید هفتگی از فروشگاه" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -106,14 +106,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
 
   function handleFormSubmit(data: LoanFormValues) {
     
-    let finalOwnerId = data.ownerId;
-    if (data.depositOnCreate && depositAccount) {
-        finalOwnerId = depositAccount.ownerId;
-    }
-
     const submissionData = {
       ...data,
-      ownerId: finalOwnerId,
       startDate: data.startDate.toISOString(),
     };
     onSubmit(submissionData);
@@ -306,7 +300,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 </SelectItem>
                                 ))}
                             </SelectContent>
-                            </Select>
                              {depositAccount && (
                                 <FormDescription className="pt-2">
                                     موجودی فعلی این حساب: {formatCurrency(depositAccount.balance, 'IRT')}

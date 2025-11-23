@@ -27,6 +27,7 @@ import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import type { User as AuthUser } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
+import { Textarea } from '../ui/textarea';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
@@ -137,7 +138,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                   <FormItem>
                     <FormLabel>شرح درآمد</FormLabel>
                     <FormControl>
-                      <Input placeholder="مثال: حقوق ماهانه" {...field} />
+                      <Textarea placeholder="مثال: حقوق ماهانه، فروش پروژه" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
