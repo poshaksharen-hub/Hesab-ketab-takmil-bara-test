@@ -1,7 +1,6 @@
 
-
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -42,7 +41,6 @@ const formSchema = z.object({
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
 }).refine(data => {
-    // If deposit is not on, ownerId is required.
     if (!data.depositOnCreate) {
       return !!data.ownerId;
     }
@@ -76,10 +74,11 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
           paymentDay: 1,
           depositOnCreate: false,
           depositToAccountId: '',
-        },
+    },
   });
 
   useEffect(() => {
+    // This form is only for creating, so we always reset to default.
     form.reset({
         title: '',
         payeeId: '',
@@ -94,6 +93,14 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     });
   }, [form]);
 
+  function handleFormSubmit(data: LoanFormValues) {
+    const submissionData = {
+      ...data,
+      startDate: data.startDate.toISOString(),
+    };
+    onSubmit(submissionData);
+  }
+
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId];
@@ -103,16 +110,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
   const watchDepositOnCreate = form.watch('depositOnCreate');
   const watchDepositToAccountId = form.watch('depositToAccountId');
   const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
-
-  function handleFormSubmit(data: LoanFormValues) {
-    
-    const submissionData = {
-      ...data,
-      startDate: data.startDate.toISOString(),
-    };
-    onSubmit(submissionData);
-  }
-
 
   return (
     <Card>
