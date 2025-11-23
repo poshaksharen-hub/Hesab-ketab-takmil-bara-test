@@ -96,6 +96,12 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
   const watchDepositToAccountId = form.watch('depositToAccountId');
   const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
+  const getOwnerName = (account: BankAccount) => {
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+  };
+
   function handleFormSubmit(data: LoanFormValues) {
     const submissionData = {
       ...data,
@@ -103,12 +109,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     };
     onSubmit(submissionData);
   }
-
-  const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId];
-    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
-  };
 
   return (
     <Card>
