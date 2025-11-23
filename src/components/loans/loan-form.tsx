@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useEffect, useCallback } from 'react';
 import { z } from 'zod';
@@ -297,6 +296,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                     </SelectItem>
                                     ))}
                                 </SelectContent>
+                                </Select>
                                 {depositAccount && (
                                     <FormDescription className="pt-2">
                                         موجودی فعلی این حساب: {formatCurrency(depositAccount.balance, 'IRT')}
@@ -318,5 +318,4 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </Card>
     );
 }
-
     
