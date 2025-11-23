@@ -61,260 +61,261 @@ interface LoanFormProps {
 }
 
 export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
-  const form = useForm<LoanFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-          title: '',
-          payeeId: '',
-          amount: 0,
-          ownerId: 'shared',
-          installmentAmount: 0,
-          numberOfInstallments: 1,
-          startDate: new Date(),
-          paymentDay: 1,
-          depositOnCreate: false,
-          depositToAccountId: '',
-    },
-  });
-  
-  const watchDepositOnCreate = form.watch('depositOnCreate');
-  const watchDepositToAccountId = form.watch('depositToAccountId');
-  
-  useEffect(() => {
-    form.reset({
-        title: '',
-        payeeId: '',
-        amount: 0,
-        ownerId: 'shared',
-        installmentAmount: 0,
-        numberOfInstallments: 1,
-        startDate: new Date(),
-        paymentDay: 1,
-        depositOnCreate: false,
-        depositToAccountId: '',
+    const form = useForm<LoanFormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            title: '',
+            payeeId: '',
+            amount: 0,
+            ownerId: 'shared',
+            installmentAmount: 0,
+            numberOfInstallments: 1,
+            startDate: new Date(),
+            paymentDay: 1,
+            depositOnCreate: false,
+            depositToAccountId: '',
+        },
     });
-  }, [form]);
 
-  const getOwnerName = useCallback((account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId];
-    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
-  }, []);
+    const watchDepositOnCreate = form.watch('depositOnCreate');
+    const watchDepositToAccountId = form.watch('depositToAccountId');
 
-  const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
-  
-  function handleFormSubmit(data: LoanFormValues) {
-    const submissionData = {
-      ...data,
-      startDate: data.startDate.toISOString(),
-    };
-    onSubmit(submissionData);
-  }
+    useEffect(() => {
+        form.reset({
+            title: '',
+            payeeId: '',
+            amount: 0,
+            ownerId: 'shared',
+            installmentAmount: 0,
+            numberOfInstallments: 1,
+            startDate: new Date(),
+            paymentDay: 1,
+            depositOnCreate: false,
+            depositToAccountId: '',
+        });
+    }, [form]);
+    
+    const getOwnerName = useCallback((account: BankAccount) => {
+        if (account.ownerId === 'shared') return "(مشترک)";
+        const userDetail = USER_DETAILS[account.ownerId];
+        return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+    }, []);
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline">
-          {initialData ? 'ویرایش وام' : 'ثبت وام جدید'}
-        </CardTitle>
-      </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-          <CardContent className="space-y-6">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>عنوان وام</FormLabel>
-                  <FormControl>
-                    <Input placeholder="مثال: وام خرید مسکن" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
+    const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
+
+    const handleFormSubmit = useCallback((data: LoanFormValues) => {
+        const submissionData = {
+            ...data,
+            startDate: data.startDate.toISOString(),
+        };
+        onSubmit(submissionData);
+    }, [onSubmit]);
+
+
+    return (
+        <Card>
+        <CardHeader>
+            <CardTitle className="font-headline">
+            {initialData ? 'ویرایش وام' : 'ثبت وام جدید'}
+            </CardTitle>
+        </CardHeader>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+            <CardContent className="space-y-6">
+                <FormField
                 control={form.control}
-                name="amount"
+                name="title"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>مبلغ کل وام (تومان)</FormLabel>
+                    <FormItem>
+                    <FormLabel>عنوان وام</FormLabel>
                     <FormControl>
-                      <CurrencyInput value={field.value} onChange={field.onChange} />
+                        <Input placeholder="مثال: وام خرید مسکن" {...field} />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>
-                )}
-              />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                  control={form.control}
-                  name="payeeId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>دریافت وام از (طرف حساب)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="یک طرف حساب انتخاب کنید (اختیاری)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {payees.map((payee) => (
-                            <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
                     </FormItem>
-                  )}
+                )}
                 />
-                 {!watchDepositOnCreate && (
-                    <FormField
-                        control={form.control}
-                        name="ownerId"
-                        render={({ field }) => (
+                <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>مبلغ کل وام (تومان)</FormLabel>
+                        <FormControl>
+                        <CurrencyInput value={field.value} onChange={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField
+                    control={form.control}
+                    name="payeeId"
+                    render={({ field }) => (
                         <FormItem>
-                            <FormLabel>این بدهی برای کیست؟</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                        <FormLabel>دریافت وام از (طرف حساب)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
-                                </SelectTrigger>
+                            <SelectTrigger>
+                                <SelectValue placeholder="یک طرف حساب انتخاب کنید (اختیاری)" />
+                            </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
-                                <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                                <SelectItem value="shared">مشترک</SelectItem>
+                            {payees.map((payee) => (
+                                <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
+                            ))}
                             </SelectContent>
-                            </Select>
-                            <FormMessage />
+                        </Select>
+                        <FormMessage />
                         </FormItem>
-                        )}
+                    )}
                     />
-                 )}
-            </div>
-            <div className="rounded-lg border p-4 space-y-4">
-                <p className='text-sm text-muted-foreground'>اطلاعات زیر فقط برای یادآوری و آمار است و در محاسبات تاثیری ندارد.</p>
+                    {!watchDepositOnCreate && (
+                        <FormField
+                            control={form.control}
+                            name="ownerId"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>این بدهی برای کیست؟</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                                    <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                                    <SelectItem value="shared">مشترک</SelectItem>
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    )}
+                </div>
+                <div className="rounded-lg border p-4 space-y-4">
+                    <p className='text-sm text-muted-foreground'>اطلاعات زیر فقط برای یادآوری و آمار است و در محاسبات تاثیری ندارد.</p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <FormField
+                            control={form.control}
+                            name="installmentAmount"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
+                                <FormControl>
+                                <CurrencyInput value={field.value} onChange={field.onChange} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="numberOfInstallments"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
+                                <FormControl>
+                                <Input type="number" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <FormField
                         control={form.control}
-                        name="installmentAmount"
+                        name="paymentDay"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
+                            <FormLabel>روز یادآوری پرداخت در ماه</FormLabel>
                             <FormControl>
-                            <CurrencyInput value={field.value} onChange={field.onChange} />
+                            <Input type="number" min="1" max="30" {...field} />
                             </FormControl>
+                            <FormDescription>
+                            روز پرداخت قسط در هر ماه (مثلا: پنجم هر ماه)
+                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
-                        name="numberOfInstallments"
+                        name="startDate"
                         render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
-                            <FormControl>
-                            <Input type="number" {...field} />
-                            </FormControl>
+                        <FormItem className="flex flex-col">
+                            <FormLabel>تاریخ دریافت وام</FormLabel>
+                            <JalaliDatePicker value={field.value} onChange={field.onChange} />
                             <FormMessage />
                         </FormItem>
                         )}
                     />
                 </div>
-            </div>
-             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <FormField
-                    control={form.control}
-                    name="paymentDay"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>روز یادآوری پرداخت در ماه</FormLabel>
-                        <FormControl>
-                        <Input type="number" min="1" max="30" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                        روز پرداخت قسط در هر ماه (مثلا: پنجم هر ماه)
-                        </FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                        <FormLabel>تاریخ دریافت وام</FormLabel>
-                        <JalaliDatePicker value={field.value} onChange={field.onChange} />
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-            </div>
-            <div className="space-y-4 rounded-lg border p-4">
-                 <FormField
-                    control={form.control}
-                    name="depositOnCreate"
-                    render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between">
-                        <div className="space-y-0.5">
-                        <FormLabel>واریز مبلغ وام به حساب</FormLabel>
-                        <FormDescription>
-                           آیا مایلید مبلغ کل وام به موجودی یکی از حساب‌ها اضافه شود؟
-                        </FormDescription>
-                        </div>
-                        <FormControl>
-                        <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={!!initialData}
-                        />
-                        </FormControl>
-                    </FormItem>
-                    )}
-                />
-                {watchDepositOnCreate && (
+                <div className="space-y-4 rounded-lg border p-4">
                     <FormField
                         control={form.control}
-                        name="depositToAccountId"
+                        name="depositOnCreate"
                         render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>واریز به کارت</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
+                        <FormItem className="flex flex-row items-center justify-between">
+                            <div className="space-y-0.5">
+                            <FormLabel>واریز مبلغ وام به حساب</FormLabel>
+                            <FormDescription>
+                            آیا مایلید مبلغ کل وام به موجودی یکی از حساب‌ها اضافه شود؟
+                            </FormDescription>
+                            </div>
                             <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="یک کارت برای واریز انتخاب کنید" />
-                                </SelectTrigger>
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={!!initialData}
+                            />
                             </FormControl>
-                            <SelectContent>
-                                {bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                    {`${account.bankName} ${getOwnerName(account)}`}
-                                </SelectItem>
-                                ))}
-                            </SelectContent>
-                             {depositAccount && (
-                                <FormDescription className="pt-2">
-                                    موجودی فعلی این حساب: {formatCurrency(depositAccount.balance, 'IRT')}
-                                </FormDescription>
-                            )}
-                            <FormMessage />
                         </FormItem>
                         )}
                     />
-                )}
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-            <Button type="submit" disabled={!!initialData}>ذخیره</Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
-  );
+                    {watchDepositOnCreate && (
+                        <FormField
+                            control={form.control}
+                            name="depositToAccountId"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>واریز به کارت</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="یک کارت برای واریز انتخاب کنید" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {bankAccounts.map((account) => (
+                                    <SelectItem key={account.id} value={account.id}>
+                                        {`${account.bankName} ${getOwnerName(account)}`}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                                {depositAccount && (
+                                    <FormDescription className="pt-2">
+                                        موجودی فعلی این حساب: {formatCurrency(depositAccount.balance, 'IRT')}
+                                    </FormDescription>
+                                )}
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    )}
+                </div>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
+                <Button type="submit" disabled={!!initialData}>ذخیره</Button>
+            </CardFooter>
+            </form>
+        </Form>
+        </Card>
+    );
 }
