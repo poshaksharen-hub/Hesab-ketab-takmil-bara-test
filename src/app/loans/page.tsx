@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -320,3 +319,5 @@ export default function LoansPage() {
     </main>
   );
 }
+
+    
