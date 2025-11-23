@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Loan, BankAccount, Payee } from '@/lib/types';
+import type { Loan, BankAccount, Payee, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
@@ -317,3 +317,5 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     </Card>
   );
 }
+
+    
