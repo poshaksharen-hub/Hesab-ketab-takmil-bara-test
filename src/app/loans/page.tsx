@@ -273,6 +273,35 @@ export default function LoansPage() {
   
   const isLoading = isUserLoading || isDashboardLoading;
 
+  if (isLoading) {
+    return (
+        <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+            <div className="flex items-center justify-between">
+                <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
+                <Skeleton className="h-10 w-36" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Skeleton className="h-48 w-full rounded-xl" />
+                <Skeleton className="h-48 w-full rounded-xl" />
+            </div>
+        </main>
+    )
+  }
+
+  if (isFormOpen) {
+      return (
+        <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+             <LoanForm
+                onCancel={handleCancel}
+                onSubmit={handleFormSubmit}
+                initialData={editingLoan}
+                bankAccounts={bankAccounts || []}
+                payees={payees || []}
+                />
+        </main>
+      )
+  }
+
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
@@ -282,21 +311,6 @@ export default function LoansPage() {
           ثبت وام جدید
         </Button>
       </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Skeleton className="h-48 w-full rounded-xl" />
-            <Skeleton className="h-48 w-full rounded-xl" />
-        </div>
-      ) : isFormOpen ? (
-        <LoanForm
-          onCancel={handleCancel}
-          onSubmit={handleFormSubmit}
-          initialData={editingLoan}
-          bankAccounts={bankAccounts || []}
-          payees={payees || []}
-        />
-      ) : (
         <>
             <LoanList
                 loans={loans || []}
@@ -315,7 +329,6 @@ export default function LoansPage() {
                 />
             )}
         </>
-      )}
     </main>
   );
 }
