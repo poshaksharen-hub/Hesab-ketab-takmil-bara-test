@@ -44,6 +44,7 @@ import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
+import type { User } from 'firebase/auth';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -100,6 +101,76 @@ function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
   );
 }
 
+// Extracted MobileMenuContent to be a standalone component
+const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClick }: {
+  user: User | null;
+  theme: string;
+  toggleTheme: () => void;
+  handleSignOut: () => void;
+  onLinkClick?: () => void;
+}) => {
+    const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+    const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
+    const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
+
+    return (
+        <div className="flex h-full flex-col">
+            <SidebarHeader>
+                <div className="flex items-center gap-2">
+                    <HesabKetabLogo className="size-8 text-primary" />
+                    <span className="font-headline text-2xl font-bold">حساب کتاب</span>
+                </div>
+            </SidebarHeader>
+            <SidebarContent>
+                <Menu onLinkClick={onLinkClick} />
+            </SidebarContent>
+            <SidebarFooter>
+                {user && (
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            <Avatar>
+                                <AvatarImage
+                                    src={userAvatar?.imageUrl}
+                                    data-ai-hint={userAvatar?.imageHint}
+                                />
+                                <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col truncate">
+                                <span className="truncate text-sm font-semibold">
+                                    {userName}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                    {user.email}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={toggleTheme}
+                                aria-label="تغییر تم"
+                            >
+                                {theme === 'light' ? <Moon /> : <Sun />}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleSignOut}
+                                aria-label="خروج"
+                                className="text-destructive hover:text-destructive"
+                            >
+                                <LogOut />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </SidebarFooter>
+        </div>
+    );
+};
+
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -140,62 +211,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (pathname === '/login' || (!user && !isUserLoading)) {
     return <>{children}</>;
   }
-
-  const MobileMenuContent = () => (
-     <div className="flex h-full flex-col">
-          <SidebarHeader>
-            <div className="flex items-center gap-2">
-              <HesabKetabLogo className="size-8 text-primary" />
-              <span className="font-headline text-2xl font-bold">حساب کتاب</span>
-            </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <Menu onLinkClick={() => setMobileMenuOpen(false)} />
-          </SidebarContent>
-          <SidebarFooter>
-             {user && (
-              <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <Avatar>
-                  <AvatarImage
-                    src={userAvatar?.imageUrl}
-                    data-ai-hint={userAvatar?.imageHint}
-                  />
-                  <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col truncate">
-                  <span className="truncate text-sm font-semibold">
-                    {userName}
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
-                  </span>
-                </div>
-              </div>
-              <div className="flex">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleTheme}
-                  aria-label="تغییر تم"
-                >
-                  {theme === 'light' ? <Moon /> : <Sun />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSignOut}
-                  aria-label="خروج"
-                  className="text-destructive hover:text-destructive"
-                >
-                  <LogOut />
-                </Button>
-              </div>
-            </div>
-            )}
-          </SidebarFooter>
-        </div>
-  );
 
   return (
     <SidebarProvider>
@@ -282,7 +297,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
-                  <MobileMenuContent />
+                  <MobileMenuContent 
+                    user={user} 
+                    theme={theme} 
+                    toggleTheme={toggleTheme} 
+                    handleSignOut={handleSignOut}
+                    onLinkClick={() => setMobileMenuOpen(false)}
+                  />
               </SheetContent>
             </Sheet>
           </header>
