@@ -79,6 +79,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
 
     const watchDepositOnCreate = form.watch('depositOnCreate');
     const watchDepositToAccountId = form.watch('depositToAccountId');
+    const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
     useEffect(() => {
         form.reset({
@@ -94,14 +95,12 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             depositToAccountId: '',
         });
     }, [form]);
-    
+
     const getOwnerName = useCallback((account: BankAccount) => {
         if (account.ownerId === 'shared') return "(مشترک)";
         const userDetail = USER_DETAILS[account.ownerId];
         return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
     }, []);
-
-    const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
     const handleFormSubmit = useCallback((data: LoanFormValues) => {
         const submissionData = {
@@ -110,7 +109,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         };
         onSubmit(submissionData);
     }, [onSubmit]);
-
 
     return (
         <Card>
