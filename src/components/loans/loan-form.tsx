@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -76,7 +76,10 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
           depositToAccountId: '',
     },
   });
-
+  
+  const watchDepositOnCreate = form.watch('depositOnCreate');
+  const watchDepositToAccountId = form.watch('depositToAccountId');
+  
   useEffect(() => {
     form.reset({
         title: '',
@@ -92,16 +95,14 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     });
   }, [form]);
 
-  const watchDepositOnCreate = form.watch('depositOnCreate');
-  const watchDepositToAccountId = form.watch('depositToAccountId');
-  const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
-
-  const getOwnerName = (account: BankAccount) => {
+  const getOwnerName = useCallback((account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
-  };
+  }, []);
 
+  const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
+  
   function handleFormSubmit(data: LoanFormValues) {
     const submissionData = {
       ...data,
