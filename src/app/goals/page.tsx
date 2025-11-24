@@ -194,7 +194,7 @@ export default function GoalsPage() {
             }
             
             const accountDocs = await Promise.all(
-                Object.entries(accountRefsToRead).map(([id, ref]) => transaction.get(ref).then(doc => ({id, doc})))
+                Object.entries(accountRefsToRead).map(([id, ref]) => transaction.get(ref).then(docSnap => ({id, doc: docSnap})))
             );
             
             const accountDataMap = new Map<string, BankAccount>();
