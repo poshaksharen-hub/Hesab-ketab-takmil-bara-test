@@ -106,6 +106,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         const submissionData = {
             ...data,
             startDate: data.startDate.toISOString(),
+            payeeId: data.payeeId || '',
+            ownerId: data.ownerId || 'shared'
         };
         onSubmit(submissionData);
     }, [onSubmit]);
