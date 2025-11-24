@@ -53,7 +53,7 @@ type LoanFormValues = z.infer<typeof formSchema>;
 
 interface LoanFormProps {
   onCancel: () => void;
-  onSubmit: (data: LoanFormValues) => void;
+  onSubmit: (data: any) => void;
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
@@ -119,8 +119,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         const submissionData = {
             ...data,
             startDate: data.startDate.toISOString(),
-            payeeId: data.payeeId || '',
-            ownerId: data.ownerId || 'shared'
+            payeeId: data.payeeId,
+            ownerId: data.ownerId
         };
         onSubmit(submissionData);
     }, [onSubmit]);
@@ -269,60 +269,61 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         )}
                     />
                 </div>
-                <div className="space-y-4 rounded-lg border p-4">
-                    <FormField
-                        control={form.control}
-                        name="depositOnCreate"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                            <div className="space-y-0.5">
-                            <FormLabel>واریز مبلغ وام به حساب</FormLabel>
-                            <FormDescription>
-                            آیا مایلید مبلغ کل وام به موجودی یکی از حساب‌ها اضافه شود؟
-                            </FormDescription>
-                            </div>
-                            <FormControl>
-                            <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                disabled={!!initialData}
-                            />
-                            </FormControl>
-                        </FormItem>
-                        )}
-                    />
-                    {watchDepositOnCreate && (
+                {!initialData && (
+                    <div className="space-y-4 rounded-lg border p-4">
                         <FormField
                             control={form.control}
-                            name="depositToAccountId"
+                            name="depositOnCreate"
                             render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>واریز به کارت</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
+                            <FormItem className="flex flex-row items-center justify-between">
+                                <div className="space-y-0.5">
+                                <FormLabel>واریز مبلغ وام به حساب</FormLabel>
+                                <FormDescription>
+                                آیا مایلید مبلغ کل وام به موجودی یکی از حساب‌ها اضافه شود؟
+                                </FormDescription>
+                                </div>
                                 <FormControl>
-                                    <SelectTrigger>
-                                    <SelectValue placeholder="یک کارت برای واریز انتخاب کنید" />
-                                    </SelectTrigger>
+                                <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
                                 </FormControl>
-                                <SelectContent>
-                                    {bankAccounts.map((account) => (
-                                    <SelectItem key={account.id} value={account.id}>
-                                        {`${account.bankName} ${getOwnerName(account)}`}
-                                    </SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
-                                {depositAccount && (
-                                    <FormDescription className="pt-2">
-                                        موجودی فعلی این حساب: {formatCurrency(depositAccount.balance, 'IRT')}
-                                    </FormDescription>
-                                )}
-                                <FormMessage />
                             </FormItem>
                             )}
                         />
-                    )}
-                </div>
+                        {watchDepositOnCreate && (
+                            <FormField
+                                control={form.control}
+                                name="depositToAccountId"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>واریز به کارت</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                        <SelectValue placeholder="یک کارت برای واریز انتخاب کنید" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {bankAccounts.map((account) => (
+                                        <SelectItem key={account.id} value={account.id}>
+                                            {`${account.bankName} ${getOwnerName(account)}`}
+                                        </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                    </Select>
+                                    {depositAccount && (
+                                        <FormDescription className="pt-2">
+                                            موجودی فعلی این حساب: {formatCurrency(depositAccount.balance, 'IRT')}
+                                        </FormDescription>
+                                    )}
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        )}
+                    </div>
+                )}
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
