@@ -73,6 +73,12 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
     );
     const blockedForGoals = goalContributions.reduce((sum, c) => sum + c.amount, 0);
     const availableBalance = card.balance - blockedForGoals;
+    
+    const getGoalOwnerName = (ownerId: OwnerId) => {
+        if (ownerId === 'shared') return 'مشترک';
+        return USER_DETAILS[ownerId]?.firstName || 'ناشناس';
+    }
+
 
     return (
         <>
@@ -166,7 +172,7 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
                                 <div key={index} className="flex justify-between items-center text-xs">
                                     <div className="flex items-center gap-2">
                                         <PiggyBank className="w-4 h-4 text-primary" />
-                                        <span>{contrib.goalName} ({USER_DETAILS[contrib.goalOwnerId]?.firstName})</span>
+                                        <span>{contrib.goalName} ({getGoalOwnerName(contrib.goalOwnerId)})</span>
                                     </div>
                                     <span className="font-mono text-destructive">{formatCurrency(contrib.amount, 'IRT')}</span>
                                 </div>
