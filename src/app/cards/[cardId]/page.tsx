@@ -75,6 +75,14 @@ export default function CardTransactionsPage() {
       return { card: null, ledger: [] };
     }
     
+    const cardIncomes: Transaction[] = incomes
+        .filter(t => t.bankAccountId === cardId)
+        .map(t => ({ ...t, type: 'income' as const }));
+
+    const cardExpenses: Transaction[] = expenses
+        .filter(t => t.bankAccountId === cardId)
+        .map(t => ({ ...t, type: 'expense' as const }));
+
     const cardTransfers: Transaction[] = transfers
       .filter(t => t.fromBankAccountId === cardId || t.toBankAccountId === cardId)
       .map(t => {
@@ -93,9 +101,6 @@ export default function CardTransactionsPage() {
                 : `دریافت از ${fromAccount?.bankName || 'ناشناس'}`,
           };
       });
-
-    const cardIncomes: Transaction[] = incomes.filter(t => t.bankAccountId === cardId);
-    const cardExpenses: Transaction[] = expenses.filter(t => t.bankAccountId === cardId);
 
     // Combine all transactions and sort them by date descending (most recent first)
     const allTransactions: Transaction[] = [
