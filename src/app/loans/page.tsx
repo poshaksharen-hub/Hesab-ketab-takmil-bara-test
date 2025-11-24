@@ -68,7 +68,7 @@ export default function LoansPage() {
                 if (!bankAccountDoc.exists()) {
                     throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
                 }
-                bankAccountData = bankAccountDoc.data()!;
+                bankAccountData = bankAccountDoc.data() as BankAccount;
                 finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
             }
 
@@ -144,7 +144,7 @@ export default function LoansPage() {
             if (!accountToPayFromDoc.exists()) throw new Error("کارت بانکی پرداخت یافت نشد.");
             
             const currentLoanData = loanDoc.data()!;
-            const accountData = accountToPayFromDoc.data()!;
+            const accountData = accountToPayFromDoc.data() as BankAccount;
             const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
 
             if (installmentAmount > currentLoanData.remainingAmount) {
@@ -230,7 +230,7 @@ export default function LoansPage() {
                 const depositAccountRef = doc(familyDataRef, 'bankAccounts', loanToDelete.depositToAccountId);
                 const depositAccountDoc = await transaction.get(depositAccountRef);
                 if (depositAccountDoc.exists()) {
-                    const accountData = depositAccountDoc.data()!;
+                    const accountData = depositAccountDoc.data() as BankAccount;
                     transaction.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
                 } else {
                     console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found. The deletion will proceed without reversing the initial deposit.`);
