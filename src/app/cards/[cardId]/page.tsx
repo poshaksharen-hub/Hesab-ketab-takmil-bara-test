@@ -13,7 +13,11 @@ import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-type Transaction = (Income | Expense | Transfer) & { type: 'income' | 'expense' | 'transfer' };
+type Transaction = (Omit<Income, 'date'> | Omit<Expense, 'date'> | Omit<Transfer, 'transferDate'>) & {
+  type: 'income' | 'expense' | 'transfer';
+  date: string;
+};
+
 
 type TransactionWithBalances = Transaction & {
   balanceBefore: number;
@@ -147,7 +151,7 @@ export default function CardTransactionsPage() {
   const getCategoryName = (tx: Transaction) => {
     if (tx.type === 'income') return 'درآمد';
     if (tx.type === 'transfer') return 'انتقال داخلی';
-    if (tx.type === 'expense' && tx.categoryId) {
+    if (tx.type === 'expense' && 'categoryId' in tx && tx.categoryId) {
         return categories?.find(c => c.id === tx.categoryId)?.name || 'متفرقه';
     }
     return 'متفرقه';
