@@ -80,19 +80,32 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     const watchDepositToAccountId = form.watch('depositToAccountId');
     
     useEffect(() => {
-        form.reset({
-            title: '',
-            payeeId: '',
-            amount: 0,
-            ownerId: 'shared',
-            installmentAmount: 0,
-            numberOfInstallments: 1,
-            startDate: new Date(),
-            paymentDay: 1,
-            depositOnCreate: false,
-            depositToAccountId: '',
-        });
-    }, [form]);
+        if (initialData) {
+            form.reset({
+                ...initialData,
+                startDate: new Date(initialData.startDate),
+                payeeId: initialData.payeeId || '',
+                installmentAmount: initialData.installmentAmount || 0,
+                numberOfInstallments: initialData.numberOfInstallments || 0,
+                paymentDay: initialData.paymentDay || 1,
+                depositOnCreate: !!initialData.depositToAccountId,
+                depositToAccountId: initialData.depositToAccountId || '',
+            });
+        } else {
+            form.reset({
+                title: '',
+                payeeId: '',
+                amount: 0,
+                ownerId: 'shared',
+                installmentAmount: 0,
+                numberOfInstallments: 1,
+                startDate: new Date(),
+                paymentDay: 1,
+                depositOnCreate: false,
+                depositToAccountId: '',
+            });
+        }
+    }, [initialData, form]);
 
     const getOwnerName = useCallback((account: BankAccount) => {
         if (account.ownerId === 'shared') return "(مشترک)";
