@@ -50,7 +50,7 @@ type CheckFormValues = z.infer<typeof formSchema>;
 interface CheckFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Check, 'id' | 'userId' | 'status'>) => void;
+  onSubmit: (data: CheckFormValues) => void;
   initialData: Check | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
@@ -99,12 +99,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
   }, [initialData, form]);
 
   function handleFormSubmit(data: CheckFormValues) {
-    const submissionData = {
-        ...data,
-        issueDate: data.issueDate.toISOString(),
-        dueDate: data.dueDate.toISOString(),
-    };
-    onSubmit(submissionData);
+    onSubmit(data);
   }
 
   const getOwnerName = (account: BankAccount) => {
