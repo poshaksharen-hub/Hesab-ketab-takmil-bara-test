@@ -53,7 +53,7 @@ type LoanFormValues = z.infer<typeof formSchema>;
 
 interface LoanFormProps {
   onCancel: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: LoanFormValues & { startDate: string }) => void;
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
@@ -119,8 +119,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         const submissionData = {
             ...data,
             startDate: data.startDate.toISOString(),
-            payeeId: data.payeeId || '',
-            ownerId: data.ownerId || 'shared'
         };
         onSubmit(submissionData);
     }, [onSubmit]);
