@@ -81,11 +81,12 @@ export default function CardTransactionsPage() {
           const isDebit = t.fromBankAccountId === cardId;
           const toAccount = bankAccounts.find(b => b.id === t.toBankAccountId);
           const fromAccount = bankAccounts.find(b => b.id === t.fromBankAccountId);
+          const { transferDate, ...restOfT } = t;
 
           return {
-              ...t,
+              ...restOfT,
               type: 'transfer' as const,
-              date: t.transferDate,
+              date: transferDate, // Use 'date' property consistently
               amount: t.amount,
               description: isDebit 
                 ? `انتقال به ${toAccount?.bankName || 'ناشناس'}`
