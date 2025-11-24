@@ -21,12 +21,12 @@ export function CustomDateRangePicker({
     <div className="flex gap-2">
        <JalaliDatePicker 
          value={from || null}
-         onChange={(newDate) => setDate(d => ({ ...d, from: newDate || undefined }))}
+         onChange={(newDate) => setDate((d: DateRange | undefined) => ({ ...d, from: newDate || undefined }))}
          placeholder="تاریخ شروع"
        />
        <JalaliDatePicker 
          value={to || null}
-         onChange={(newDate) => setDate(d => ({ ...d, to: newDate || undefined }))}
+         onChange={(newDate) => setDate((d: DateRange | undefined) => ({ ...d, to: newDate || undefined }))}
          placeholder="تاریخ پایان"
        />
     </div>
