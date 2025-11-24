@@ -194,15 +194,15 @@ export default function GoalsPage() {
             }
             
             const accountDocs = await Promise.all(
-                Object.values(accountRefsToRead).map(ref => transaction.get(ref))
+                Object.entries(accountRefsToRead).map(([id, ref]) => transaction.get(ref).then(doc => ({id, doc})))
             );
             
             const accountDataMap = new Map<string, BankAccount>();
-            accountDocs.forEach(docSnap => {
+            accountDocs.forEach(({ id, doc: docSnap }) => {
                 if (docSnap.exists()) {
-                    accountDataMap.set(docSnap.id, docSnap.data() as BankAccount);
+                    accountDataMap.set(id, docSnap.data() as BankAccount);
                 } else {
-                    throw new Error(`حساب بانکی با شناسه ${docSnap.id} یافت نشد.`);
+                    throw new Error(`حساب بانکی با شناسه ${id} یافت نشد.`);
                 }
             });
 
@@ -469,5 +469,3 @@ export default function GoalsPage() {
     </main>
   );
 }
-
-    
