@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Calendar } from "@hassanmojab/react-modern-calendar-datepicker";
-import type { Day, Value } from "@hassanmojab/react-modern-calendar-datepicker";
+import type { Value } from "@hassanmojab/react-modern-calendar-datepicker";
 import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 
 import {
@@ -13,6 +13,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// Define the 'Day' type locally to resolve the namespace conflict.
+type Day = {
+  year: number;
+  month: number;
+  day: number;
+};
 
 interface JalaliDatePickerProps {
   value: Date | null;
