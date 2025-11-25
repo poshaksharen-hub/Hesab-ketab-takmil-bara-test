@@ -2,31 +2,31 @@
 import type { BankAccount, Category, Payee, Check, Loan } from './types';
 import { USER_DETAILS } from './constants';
 
-export const getDefaultCategories = (userId: string): Omit<Category, 'id'>[] => [
-  { userId, name: 'خورد و خوراک', description: 'هزینه‌های مربوط به رستوران، کافه و مواد غذایی' },
-  { userId, name: 'حمل و نقل', description: 'هزینه‌های مربوط به تاکسی، اتوبوس، بنزین و تعمیرات خودرو' },
-  { userId, name: 'مسکن', description: 'اجاره، شارژ ساختمان، قبض‌ها و تعمیرات منزل' },
-  { userId, name: 'پوشاک', description: 'خرید لباس، کفش و اکسسوری' },
-  { userId, name: 'تفریح و سرگرمی', description: 'سینما، تئاتر، سفر و سایر فعالیت‌های تفریحی' },
-  { userId, name: 'آموزش', description: 'کلاس‌های آموزشی، کتاب و دوره‌های آنلاین' },
-  { userId, name: 'سلامت و درمان', description: 'هزینه‌های پزشکی، دارو و بیمه' },
-  { userId, name: 'اقساط و بدهی', description: 'پرداخت اقساط وام و سایر بدهی‌ها' },
-  { userId, name: 'سرمایه‌گذاری', description: 'خرید سهام، طلا و سایر موارد سرمایه‌گذاری' },
-  { userId, name: 'متفرقه', description: 'سایر هزینه‌های پیش‌بینی نشده' },
+export const getDefaultCategories = (): Omit<Category, 'id'>[] => [
+  { name: 'خورد و خوراک', description: 'هزینه‌های مربوط به رستوران، کافه و مواد غذایی' },
+  { name: 'حمل و نقل', description: 'هزینه‌های مربوط به تاکسی، اتوبوس، بنزین و تعمیرات خودرو' },
+  { name: 'مسکن', description: 'اجاره، شارژ ساختمان، قبض‌ها و تعمیرات منزل' },
+  { name: 'پوشاک', description: 'خرید لباس، کفش و اکسسوری' },
+  { name: 'تفریح و سرگرمی', description: 'سینما، تئاتر، سفر و سایر فعالیت‌های تفریحی' },
+  { name: 'آموزش', description: 'کلاس‌های آموزشی، کتاب و دوره‌های آنلاین' },
+  { name: 'سلامت و درمان', description: 'هزینه‌های پزشکی، دارو و بیمه' },
+  { name: 'اقساط و بدهی', description: 'پرداخت اقساط وام و سایر بدهی‌ها' },
+  { name: 'سرمایه‌گذاری', description: 'خرید سهام، طلا و سایر موارد سرمایه‌گذاری' },
+  { name: 'متفرقه', description: 'سایر هزینه‌های پیش‌بینی نشده' },
 ];
 
-export const getDefaultPayees = (userId: string): Omit<Payee, 'id'>[] => [
-    { userId, name: 'فروشگاه زنجیره‌ای افق کوروش'},
-    { userId, name: 'اسنپ و تپسی'},
-    { userId, name: 'رستوران ایتالیایی سنسو'},
+export const getDefaultPayees = (): Omit<Payee, 'id'>[] => [
+    { name: 'فروشگاه زنجیره‌ای افق کوروش'},
+    { name: 'اسنپ و تپسی'},
+    { name: 'رستوران ایتالیایی سنسو'},
 ];
 
 
-export const getInitialBankAccounts = (userId: string): Omit<BankAccount, 'id' | 'balance'>[] => {
-    if (userId === USER_DETAILS.ali.id) {
+export const getInitialBankAccounts = (ownerId: 'ali' | 'fatemeh'): Omit<BankAccount, 'id' | 'balance'>[] => {
+    if (ownerId === 'ali') {
         return [
             {
-                userId: USER_DETAILS.ali.id,
+                ownerId: 'ali',
                 bankName: 'بانک آینده',
                 accountNumber: '0201458796009',
                 cardNumber: '6362141098765432',
@@ -35,7 +35,6 @@ export const getInitialBankAccounts = (userId: string): Omit<BankAccount, 'id' |
                 accountType: 'savings',
                 initialBalance: 2500000,
                 blockedBalance: 0,
-                isShared: false,
                 theme: 'orange',
             },
         ];
@@ -45,6 +44,6 @@ export const getInitialBankAccounts = (userId: string): Omit<BankAccount, 'id' |
 };
 
 
-export const getSharedBankAccounts = (): Omit<BankAccount, 'id' | 'balance' | 'userId'>[] => [
+export const getSharedBankAccounts = (): Omit<BankAccount, 'id' | 'balance' | 'ownerId'>[] => [
     // This is now empty by default, user creates it via the UI.
 ];
