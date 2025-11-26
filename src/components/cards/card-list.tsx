@@ -66,12 +66,6 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
 
     const blockedForGoals = card.blockedBalance || 0;
     const availableBalance = card.balance - blockedForGoals;
-    
-    const getGoalOwnerName = (ownerId: OwnerId) => {
-        if (ownerId === 'shared') return 'مشترک';
-        return USER_DETAILS[ownerId]?.firstName || 'ناشناس';
-    }
-
 
     return (
         <>
@@ -149,7 +143,7 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
                 {blockedForGoals > 0 && (
                     <div className="bg-muted p-4 rounded-b-xl border-t mt-[-2px] space-y-3">
                        <div className="grid grid-cols-2 gap-4 text-center">
-                            <div className="border-r pr-2">
+                            <div className="border-l pl-2">
                                <p className="text-sm font-semibold text-destructive">{formatCurrency(blockedForGoals, 'IRT')}</p>
                                <p className="text-xs text-muted-foreground">مسدود برای اهداف</p>
                             </div>
@@ -220,3 +214,4 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
     </div>
   );
 }
+
