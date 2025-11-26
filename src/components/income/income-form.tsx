@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import React, { useEffect, useMemo, useCallback } from 'react';
 import { z } from 'zod';
@@ -24,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import type { User as AuthUser } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
@@ -35,7 +34,7 @@ const formSchema = z.object({
   date: z.date({ required_error: 'لطفا تاریخ را انتخاب کنید.' }),
   ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا منبع درآمد را مشخص کنید.' }),
   bankAccountId: z.string().min(1, { message: 'لطفا کارت مقصد را انتخاب کنید.' }),
-  source: z.string().optional(), // Original source text
+  source: z.string().optional(), // Original source of income text
 });
 
 type IncomeFormValues = z.infer<typeof formSchema>;

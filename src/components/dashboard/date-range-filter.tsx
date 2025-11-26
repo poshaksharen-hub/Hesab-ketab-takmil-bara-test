@@ -1,7 +1,7 @@
-'use client';
+"use client";
 import React from 'react';
 import { DateRange } from 'react-day-picker';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 
 interface CustomDateRangePickerProps {
   date: DateRange | undefined;

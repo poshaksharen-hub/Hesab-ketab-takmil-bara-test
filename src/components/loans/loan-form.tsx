@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React, { useEffect, useCallback } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Loan, BankAccount, Payee, OwnerId } from '@/lib/types';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
@@ -311,7 +311,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         </SelectItem>
                                         ))}
                                     </SelectContent>
-                                    </Select>
                                     {depositAccount && (
                                         <FormDescription className="pt-2">
                                             موجودی فعلی این حساب: {formatCurrency(depositAccount.balance, 'IRT')}

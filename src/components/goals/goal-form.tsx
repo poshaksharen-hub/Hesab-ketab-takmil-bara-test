@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 import React, { useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -24,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { FinancialGoal, BankAccount, OwnerId } from '@/lib/types';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import type { User } from 'firebase/auth';
