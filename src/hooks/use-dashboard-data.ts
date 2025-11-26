@@ -43,7 +43,8 @@ type AllData = {
 export function useDashboardData() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
-    const collectionsEnabled = !isAuthLoading && !!firestore;
+    // Ensure we only enable collection queries when the user is fully authenticated.
+    const collectionsEnabled = !isAuthLoading && !!user && !!firestore;
 
     const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
 
@@ -153,5 +154,3 @@ export function useDashboardData() {
     allData
   };
 }
-
-    
