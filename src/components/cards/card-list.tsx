@@ -64,14 +64,7 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
     
     const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(card.ownerId);
 
-    const goalContributions = (goals || [])
-        .filter(g => !g.isAchieved)
-        .flatMap(g => 
-            (g.contributions || [])
-             .filter(c => c.bankAccountId === card.id)
-             .map(c => ({...c, goalName: g.name, goalOwnerId: g.ownerId}))
-    );
-    const blockedForGoals = goalContributions.reduce((sum, c) => sum + c.amount, 0);
+    const blockedForGoals = card.blockedBalance || 0;
     const availableBalance = card.balance - blockedForGoals;
     
     const getGoalOwnerName = (ownerId: OwnerId) => {
@@ -164,19 +157,6 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
                                <p className="text-sm font-semibold text-emerald-600">{formatCurrency(availableBalance, 'IRT')}</p>
                                <p className="text-xs text-muted-foreground">موجودی قابل استفاده</p>
                             </div>
-                       </div>
-                       <Separator />
-                       <div className="space-y-2">
-                            <p className="text-xs font-bold text-muted-foreground">جزئیات مبالغ مسدود شده:</p>
-                             {goalContributions.map((contrib, index) => (
-                                <div key={index} className="flex justify-between items-center text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <PiggyBank className="w-4 h-4 text-primary" />
-                                        <span>{contrib.goalName} ({getGoalOwnerName(contrib.goalOwnerId)})</span>
-                                    </div>
-                                    <span className="font-mono text-destructive">{formatCurrency(contrib.amount, 'IRT')}</span>
-                                </div>
-                            ))}
                        </div>
                     </div>
                 )}
