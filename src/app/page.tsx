@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -194,5 +193,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-
-    
