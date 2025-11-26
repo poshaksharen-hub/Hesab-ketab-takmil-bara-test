@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 // The library might be exporting with a structure that requires this import style.
-import * as modernCalendar from "@hassanmojab/react-modern-calendar-datepicker";
+import Calendar from "@hassanmojab/react-modern-calendar-datepicker";
 import type { Value } from "@hassanmojab/react-modern-calendar-datepicker";
 import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 
@@ -14,9 +14,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-// Because the library might be CJS, we access the Calendar component this way.
-const Calendar = modernCalendar.Calendar;
 
 // Define the 'Day' type locally to resolve the namespace conflict.
 type Day = {
