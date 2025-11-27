@@ -59,6 +59,12 @@ interface LoanFormProps {
   payees: Payee[];
 }
 
+const getOwnerName = (account: BankAccount) => {
+    if (account.ownerId === 'shared') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+};
+
 export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
     const form = useForm<LoanFormValues>({
         resolver: zodResolver(formSchema),
@@ -106,12 +112,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             });
         }
     }, [initialData, form]);
-
-    const getOwnerName = useCallback((account: BankAccount) => {
-        if (account.ownerId === 'shared') return "(مشترک)";
-        const userDetail = USER_DETAILS[account.ownerId];
-        return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
-    }, []);
     
     const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
