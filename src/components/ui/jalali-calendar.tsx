@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-import DatePicker from "@hassanmojab/react-modern-calendar-datepicker";
+import DatePicker, { Calendar } from "@hassanmojab/react-modern-calendar-datepicker";
 import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 
 import {
@@ -58,7 +58,6 @@ const fromDateObject = (day: Day | null): Date | null => {
 export function JalaliDatePicker({ value, onChange, className, placeholder = "یک تاریخ انتخاب کنید" }: JalaliDatePickerProps) {
   const [selectedDay, setSelectedDay] = useState<Day | null>(toDateObject(value));
   const [isOpen, setIsOpen] = useState(false);
-  const Calendar = DatePicker.default;
   
   useEffect(() => {
     setSelectedDay(toDateObject(value));
