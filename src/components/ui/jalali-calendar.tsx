@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-import DatePicker, { Calendar } from "@hassanmojab/react-modern-calendar-datepicker";
+import DatePicker, { type DayValue } from "@hassanmojab/react-modern-calendar-datepicker";
+import { Calendar } from "@hassanmojab/react-modern-calendar-datepicker";
 import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 
 import {
