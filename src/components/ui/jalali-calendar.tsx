@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import DatePicker, { type DayValue } from "@hassanmojab/react-modern-calendar-datepicker";
-import { Calendar } from "@hassanmojab/react-modern-calendar-datepicker";
 import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 
 import {
@@ -15,6 +14,8 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { parse, format } from 'date-fns-jalali';
 
+// The library exports DatePicker as default, and Calendar is a property on it.
+const Calendar = DatePicker;
 
 // Define the 'Day' type locally to resolve the namespace conflict.
 type Day = {
