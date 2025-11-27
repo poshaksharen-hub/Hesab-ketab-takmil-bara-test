@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -100,7 +101,7 @@ export default function DashboardPage() {
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <h1 className="font-headline text-3xl font-bold tracking-tight">
-          مرکز تحلیل مالی
+          داشبورد جامع مالی
         </h1>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
            <Select onValueChange={(value) => setOwnerFilter(value as OwnerId | 'all')} defaultValue="all">
