@@ -219,7 +219,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             <FormItem>
                                 <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
                                 <FormControl>
-                                <CurrencyInput value={field.value || 0} onChange={field.onChange} />
+                                <CurrencyInput value={field.value} onChange={field.onChange} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -232,7 +232,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             <FormItem>
                                 <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
                                 <FormControl>
-                                <Input type="number" {...field} value={field.value || 0} />
+                                <Input type="number" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -248,7 +248,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         <FormItem>
                             <FormLabel>روز یادآوری پرداخت در ماه</FormLabel>
                             <FormControl>
-                            <Input type="number" min="1" max="30" {...field} value={field.value || 1} />
+                            <Input type="number" min="1" max="30" {...field} />
                             </FormControl>
                             <FormDescription>
                             روز پرداخت قسط در هر ماه (مثلا: پنجم هر ماه)
@@ -333,4 +333,3 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </Card>
     );
 }
-    
