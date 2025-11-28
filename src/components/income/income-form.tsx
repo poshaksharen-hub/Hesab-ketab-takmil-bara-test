@@ -89,7 +89,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
 
   const availableAccounts = useMemo(() => {
     if (!selectedOwnerId || !bankAccounts) return [];
-    return bankAccounts.filter(acc => acc.ownerId === selectedOwnerId);
+    return [...bankAccounts.filter(acc => acc.ownerId === selectedOwnerId)].sort((a, b) => b.balance - a.balance);
   }, [selectedOwnerId, bankAccounts]);
 
   useEffect(() => {

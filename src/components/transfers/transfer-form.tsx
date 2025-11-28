@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import React from 'react';
 import { z } from 'zod';
@@ -70,9 +69,12 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
   const fromAccountId = form.watch('fromBankAccountId');
   const fromAccount = bankAccounts.find(acc => acc.id === fromAccountId);
 
+  const sortedFromAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
+
   // Filter destination accounts based on the source account
   const availableToAccounts = React.useMemo(() => {
-    return bankAccounts.filter(acc => acc.id !== fromAccountId);
+    const sorted = [...bankAccounts].sort((a,b) => b.balance - a.balance);
+    return sorted.filter(acc => acc.id !== fromAccountId);
   }, [fromAccountId, bankAccounts]);
 
   // Reset 'to' account if it becomes invalid
@@ -108,7 +110,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {bankAccounts.map((account) => (
+                        {sortedFromAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                           </SelectItem>

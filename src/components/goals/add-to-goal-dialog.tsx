@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import React from 'react';
 import { z } from 'zod';
@@ -100,6 +99,8 @@ export function AddToGoalDialog({
     });
   }
 
+  const sortedBankAccounts = [...bankAccounts].sort((a,b) => b.balance - a.balance);
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -131,7 +132,7 @@ export function AddToGoalDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {bankAccounts.map((account) => (
+                      {sortedBankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                            {`${account.bankName} ${getOwnerName(account)} (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                         </SelectItem>

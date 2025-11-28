@@ -112,7 +112,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
     return "(ناشناس)";
   };
 
-  const checkingAccounts = bankAccounts.filter(acc => acc.accountType === 'checking');
+  const checkingAccounts = [...bankAccounts.filter(acc => acc.accountType === 'checking')].sort((a, b) => b.balance - a.balance);
 
   return (
       <Card>

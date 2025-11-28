@@ -95,6 +95,8 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     onSubmit(submissionData);
   }
 
+  const sortedBankAccounts = [...bankAccounts].sort((a,b) => b.balance - a.balance);
+
   return (
     <Card>
       <CardHeader>
@@ -209,7 +211,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {bankAccounts.map((account) => {
+                                {sortedBankAccounts.map((account) => {
                                   const currentAvailableBalance = account.balance - (account.blockedBalance || 0);
                                   return (
                                     <SelectItem key={account.id} value={account.id}>

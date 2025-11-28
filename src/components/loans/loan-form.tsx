@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useEffect, useCallback } from 'react';
 import { z } from 'zod';
@@ -125,6 +124,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         };
         onSubmit(submissionData);
     }, [onSubmit]);
+
+    const sortedBankAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
 
     return (
         <Card>
@@ -306,7 +307,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {bankAccounts.map((account) => (
+                                        {sortedBankAccounts.map((account) => (
                                         <SelectItem key={account.id} value={account.id}>
                                             {`${account.bankName} ${getOwnerName(account)}`}
                                         </SelectItem>
