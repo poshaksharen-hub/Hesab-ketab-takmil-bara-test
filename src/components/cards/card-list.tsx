@@ -1,9 +1,10 @@
+
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, MoreVertical, Wifi, Users, User, PiggyBank, BadgeAlert, WalletCards, ArrowRight, History } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, Wifi, Users, User, PiggyBank, BadgeAlert, WalletCards, ArrowRight, History, Copy, ClipboardCopy } from 'lucide-react';
 import type { BankAccount, UserProfile, OwnerId, FinancialGoal } from '@/lib/types';
 import { formatCurrency, cn, formatJalaliDate } from '@/lib/utils';
 import {
@@ -26,6 +27,14 @@ import {
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { Separator } from '../ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 const themeClasses = {
     blue: 'from-blue-500 to-blue-700',
@@ -37,7 +46,7 @@ const themeClasses = {
 
 
 const ChipIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none">
+    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none" className="w-10 h-auto sm:w-12">
         <rect x="0.5" y="0.5" width="47" height="35" rx="4.5" fill="#D9D9D9" stroke="#A6A6A6"/>
         <path d="M24 0V36" stroke="#A6A6A6" strokeWidth="0.5"/>
         <path d="M24 18H0" stroke="#A6A6A6" strokeWidth="0.5"/>
@@ -53,7 +62,16 @@ const formatCardNumber = (cardNumber?: string) => {
 };
 
 function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; users: UserProfile[]; goals: FinancialGoal[]}) {
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const { toast } = useToast();
+
+    const handleCopy = (text: string, label: string) => {
+        navigator.clipboard.writeText(text);
+        toast({
+            title: "کپی شد",
+            description: `${label} در کلیپ‌بورد کپی شد.`,
+        });
+    };
 
     const getOwnerDetails = (ownerId: OwnerId) => {
         if (ownerId === 'shared') return { name: "حساب مشترک", Icon: Users };
@@ -69,10 +87,10 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
     return (
         <>
             <div className="relative group">
-                <div className={cn("relative rounded-xl p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses[card.theme || 'blue'])}>
+                <div className={cn("relative rounded-xl p-4 sm:p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses[card.theme || 'blue'])}>
                     <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
                     <div className='relative z-10 flex justify-between items-start'>
-                        <span className="font-bold text-lg tracking-wider">{card.bankName}</span>
+                        <span className="font-bold text-base sm:text-lg tracking-wider">{card.bankName}</span>
                         <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -105,35 +123,49 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
                         </div>
                     </div>
                     
-                    <div className="relative z-10 space-y-2">
+                    <div className="relative z-10 space-y-1 sm:space-y-2">
                         <div className="flex items-center justify-between">
                            <ChipIcon />
-                           <Wifi className="h-8 w-8 -rotate-45" />
+                           <Wifi className="h-6 w-6 sm:h-8 sm:w-8 -rotate-45" />
                         </div>
 
-                        <p className="text-2xl font-mono tracking-widest font-bold text-center" dir="ltr">
-                            {formatCardNumber(card.cardNumber)}
-                        </p>
+                        <div className="text-center space-y-1" dir="ltr">
+                            <div 
+                                className="flex items-center justify-center gap-2 font-mono text-xl sm:text-2xl tracking-widest font-bold cursor-pointer" 
+                                onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}
+                            >
+                                <span>{formatCardNumber(card.cardNumber)}</span>
+                                <Copy className="w-4 h-4 opacity-70" />
+                            </div>
+                            <div 
+                                className="flex items-center justify-center gap-2 text-xs font-mono tracking-wider opacity-80 cursor-pointer"
+                                onClick={() => handleCopy(card.accountNumber, 'شماره حساب')}
+                            >
+                                <span>{`IR - ${card.accountNumber}`}</span>
+                                <Copy className="w-3 h-3" />
+                            </div>
+                        </div>
 
-                         <div className="flex justify-between items-end text-xs font-mono" dir="ltr">
+
+                         <div className="flex justify-between items-end text-xs font-mono pt-1" dir="ltr">
                             <div>
-                                <p className="opacity-70">CVV2</p>
+                                <p className="opacity-70 text-[10px] sm:text-xs">CVV2</p>
                                 <p>{card.cvv2}</p>
                             </div>
                              <div>
-                                <p className="opacity-70">EXPIRES</p>
+                                <p className="opacity-70 text-[10px] sm:text-xs">EXPIRES</p>
                                 <p>{card.expiryDate}</p>
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-end pt-2">
-                            <span className="font-mono text-sm tracking-wider uppercase flex items-center gap-1">
+                        <div className="flex justify-between items-end pt-1 sm:pt-2">
+                            <span className="font-mono text-xs sm:text-sm tracking-wider uppercase flex items-center gap-1">
                                 <OwnerIcon className="w-4 h-4" />
                                 {ownerName}
                             </span>
                             <div className='text-left'>
-                                <p className="text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
-                                <p className="text-xs opacity-80">موجودی کل</p>
+                                <p className="text-base sm:text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
+                                <p className="text-[10px] sm:text-xs opacity-80">موجودی کل</p>
                             </div>
                         </div>
                     </div>
@@ -213,3 +245,4 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
     </div>
   );
 }
+
