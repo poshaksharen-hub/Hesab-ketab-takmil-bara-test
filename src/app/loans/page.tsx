@@ -82,6 +82,8 @@ export default function LoansPage() {
                 paymentDay: paymentDay || 1,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
+                remainingAmount: amount, // Initialize remainingAmount here
+                paidInstallments: 0 // Initialize paidInstallments here
             };
 
             const newLoanRef = doc(collection(familyDataRef, 'loans'));
@@ -89,8 +91,6 @@ export default function LoansPage() {
                 ...loanData,
                 id: newLoanRef.id,
                 registeredByUserId: user.uid,
-                paidInstallments: 0,
-                remainingAmount: loanData.amount,
             });
 
             if (depositOnCreate && depositToAccountId && bankAccountDoc && bankAccountData) {
@@ -260,15 +260,15 @@ export default function LoansPage() {
 }, [user, firestore, loans, toast]);
 
 
-  const handleAddNew = useCallback(() => {
+  const handleAddNew = () => {
     setEditingLoan(null);
     setIsFormOpen(true);
-  }, []);
+  };
   
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     setIsFormOpen(false);
     setEditingLoan(null);
-  }, []);
+  };
 
   
   const isLoading = isUserLoading || isDashboardLoading;
