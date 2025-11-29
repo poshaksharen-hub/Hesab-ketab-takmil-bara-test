@@ -59,12 +59,6 @@ interface LoanFormProps {
   payees: Payee[];
 }
 
-const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
-    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
-};
-
 export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
     const form = useForm<LoanFormValues>({
         resolver: zodResolver(formSchema),
@@ -81,6 +75,12 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             depositToAccountId: '',
         },
     });
+
+    const getOwnerName = (account: BankAccount) => {
+        if (account.ownerId === 'shared') return "(مشترک)";
+        const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
+        return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+    };
 
     const watchDepositOnCreate = form.watch('depositOnCreate');
     const watchDepositToAccountId = form.watch('depositToAccountId');
@@ -124,6 +124,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         };
         onSubmit(submissionData);
     }, [onSubmit]);
+
+    const sortedBankAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
 
     return (
         <Card>
@@ -305,7 +307,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {bankAccounts.map((account) => (
+                                        {sortedBankAccounts.map((account) => (
                                         <SelectItem key={account.id} value={account.id}>
                                             {`${account.bankName} ${getOwnerName(account)}`}
                                         </SelectItem>

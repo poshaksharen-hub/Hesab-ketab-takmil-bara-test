@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { BankAccount, UserProfile } from '@/lib/types';
+import type { BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { ArrowDown, ArrowRightLeft } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
 import { formatCurrency } from '@/lib/utils';
@@ -57,7 +57,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
   
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId];
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 

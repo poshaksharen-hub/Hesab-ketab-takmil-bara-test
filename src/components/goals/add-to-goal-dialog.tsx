@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CurrencyInput } from '@/components/ui/input';
-import type { FinancialGoal, BankAccount } from '@/lib/types';
+import type { FinancialGoal, BankAccount, OwnerId } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -84,7 +84,7 @@ export function AddToGoalDialog({
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId];
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
