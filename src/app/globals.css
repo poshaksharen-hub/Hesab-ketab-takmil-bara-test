@@ -88,7 +88,6 @@
   font-family: inherit;
   box-shadow: none;
   border: none;
-  max-width: 320px; /* Ensures calendar does not exceed a max width */
   width: 100%;
 }
 .calendar-container .Calendar__header {
