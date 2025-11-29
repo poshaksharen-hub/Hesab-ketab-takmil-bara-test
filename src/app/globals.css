@@ -88,7 +88,6 @@
   font-family: inherit;
   box-shadow: none;
   border: none;
-  width: 100%;
 }
 .calendar-container .Calendar__header {
   background-color: hsl(var(--background));
