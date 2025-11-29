@@ -176,5 +176,3 @@ export function AddToGoalDialog({
     </Dialog>
   );
 }
-
-    

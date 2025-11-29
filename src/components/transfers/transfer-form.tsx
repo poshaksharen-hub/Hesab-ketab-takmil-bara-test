@@ -191,5 +191,3 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
       </Card>
   );
 }
-
-    
