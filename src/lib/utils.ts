@@ -35,3 +35,9 @@ export function formatJalaliDate(date: Date) {
     if (isNaN(dateObj.getTime())) return '';
     return format(dateObj, 'yyyy/MM/dd');
 }
+
+
+export function formatCardNumber(cardNumber?: string) {
+    if (!cardNumber) return '---- ---- ---- ----';
+    return cardNumber.replace(/(\d{4})/g, '$1 ').trim();
+};

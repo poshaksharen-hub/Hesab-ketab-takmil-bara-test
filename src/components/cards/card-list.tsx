@@ -4,9 +4,9 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, MoreVertical, Wifi, Users, User, PiggyBank, BadgeAlert, WalletCards, ArrowRight, History, Copy, ClipboardCopy } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, Wifi, Users, User, History, Copy, WalletCards, PiggyBank } from 'lucide-react';
 import type { BankAccount, UserProfile, OwnerId, FinancialGoal } from '@/lib/types';
-import { formatCurrency, cn, formatJalaliDate } from '@/lib/utils';
+import { formatCurrency, cn, formatCardNumber } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,14 +26,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
-import { Separator } from '../ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 
 const themeClasses = {
@@ -56,12 +56,8 @@ const ChipIcon = () => (
     </svg>
 );
 
-const formatCardNumber = (cardNumber?: string) => {
-    if (!cardNumber) return '';
-    return cardNumber.replace(/(\d{4})/g, '$1 ').trim();
-};
 
-function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; users: UserProfile[]; goals: FinancialGoal[]}) {
+function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void;}) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
 
@@ -86,12 +82,12 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
 
     return (
         <>
-            <div className="relative group">
+            <div className="relative group p-1">
                 <div className={cn("relative rounded-xl p-4 sm:p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses[card.theme || 'blue'])}>
                     <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
                     <div className='relative z-10 flex justify-between items-start'>
                         <span className="font-bold text-base sm:text-lg tracking-wider">{card.bankName}</span>
-                        <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
+                         <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 hover:text-white" aria-label="Actions">
@@ -103,17 +99,9 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
                                         <Edit className="ml-2 h-4 w-4" />
                                         ویرایش کارت
                                     </DropdownMenuItem>
-                                     <DropdownMenuItem asChild>
-                                        <Link href={`/cards/${card.id}`}>
-                                            <History className="ml-2 h-4 w-4" />
-                                            مشاهده تاریخچه
-                                        </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                         onSelect={() => setIsDeleteDialogOpen(true)}
                                         className="text-destructive focus:text-destructive"
-                                        data-cy="delete-card-trigger"
                                     >
                                         <Trash2 className="ml-2 h-4 w-4" />
                                         حذف کارت
@@ -130,19 +118,11 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
                         </div>
 
                         <div className="text-center space-y-1" dir="ltr">
-                            <div 
-                                className="flex items-center justify-center gap-2 font-mono text-xl sm:text-2xl tracking-widest font-bold cursor-pointer" 
-                                onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}
-                            >
+                            <div className="flex items-center justify-center gap-2 font-mono text-xl sm:text-2xl tracking-widest font-bold">
                                 <span>{formatCardNumber(card.cardNumber)}</span>
-                                <Copy className="w-4 h-4 opacity-70" />
                             </div>
-                            <div 
-                                className="flex items-center justify-center gap-2 text-xs font-mono tracking-wider opacity-80 cursor-pointer"
-                                onClick={() => handleCopy(card.accountNumber, 'شماره حساب')}
-                            >
+                            <div className="flex items-center justify-center gap-2 text-xs font-mono tracking-wider opacity-80">
                                 <span>{`IR - ${card.accountNumber}`}</span>
-                                <Copy className="w-3 h-3" />
                             </div>
                         </div>
 
@@ -171,20 +151,30 @@ function CardItem({ card, onEdit, onDelete, users, goals }: { card: BankAccount;
                     </div>
                 </div>
 
-                {blockedForGoals > 0 && (
-                    <div className="bg-muted p-4 rounded-b-xl border-t mt-[-2px] space-y-3">
-                       <div className="grid grid-cols-2 gap-4 text-center">
-                            <div className="border-l pl-2">
-                               <p className="text-sm font-semibold text-destructive">{formatCurrency(blockedForGoals, 'IRT')}</p>
-                               <p className="text-xs text-muted-foreground">مسدود برای اهداف</p>
-                            </div>
-                            <div>
-                               <p className="text-sm font-semibold text-emerald-600">{formatCurrency(availableBalance, 'IRT')}</p>
-                               <p className="text-xs text-muted-foreground">موجودی قابل استفاده</p>
-                            </div>
-                       </div>
-                    </div>
-                )}
+                <div className="bg-muted p-4 rounded-b-xl border-t mt-[-2px] space-y-3">
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                        <div className="border-l pl-2">
+                           <p className="text-sm font-semibold text-emerald-600">{formatCurrency(availableBalance, 'IRT')}</p>
+                           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><WalletCards className="w-3 h-3" /> قابل استفاده</p>
+                        </div>
+                        <div>
+                           <p className="text-sm font-semibold text-destructive">{formatCurrency(blockedForGoals, 'IRT')}</p>
+                           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><PiggyBank className="w-3 h-3" /> مسدود برای اهداف</p>
+                        </div>
+                   </div>
+                   <div className="flex gap-2 pt-2">
+                        <Button size="sm" variant="ghost" className="w-full" onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}>
+                            <Copy className="ml-2 h-4 w-4" />
+                            کپی شماره کارت
+                        </Button>
+                        <Button size="sm" variant="ghost" className="w-full" asChild>
+                            <Link href={`/cards/${card.id}`}>
+                                <History className="ml-2 h-4 w-4" />
+                                تاریخچه
+                            </Link>
+                        </Button>
+                   </div>
+                </div>
             </div>
              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
@@ -221,7 +211,7 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
     if (a.ownerId !== 'shared' && b.ownerId === 'shared') return 1;
     if (a.ownerId < b.ownerId) return -1;
     if (a.ownerId > b.ownerId) return 1;
-    return 0;
+    return b.balance - a.balance;
   });
 
   if (cards.length === 0) {
@@ -236,13 +226,46 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
         </Card>
     )
   }
+  
+  const sharedCards = sortedCards.filter(c => c.ownerId === 'shared');
+  const aliCards = sortedCards.filter(c => c.ownerId === 'ali');
+  const fatemehCards = sortedCards.filter(c => c.ownerId === 'fatemeh');
+
+  const renderCarousel = (cardList: BankAccount[], title: string) => {
+    if (cardList.length === 0) return null;
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <Carousel
+                    opts={{
+                        align: "start",
+                        direction: "rtl",
+                    }}
+                    className="w-full"
+                    >
+                    <CarouselContent>
+                        {cardList.map((card) => (
+                            <CarouselItem key={card.id} className="md:basis-1/2">
+                                <CardItem card={card} onEdit={onEdit} onDelete={onDelete} />
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="right-4 -top-12 left-auto disabled:opacity-30" />
+                    <CarouselNext className="right-16 -top-12 left-auto disabled:opacity-30" />
+                </Carousel>
+            </CardContent>
+        </Card>
+    )
+  }
 
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        {sortedCards.map((card) => (
-            <CardItem key={card.id} card={card} onEdit={onEdit} onDelete={onDelete} users={users} goals={goals} />
-        ))}
+    <div className='space-y-6'>
+       {renderCarousel(sharedCards, 'کارت‌های مشترک')}
+       {renderCarousel(aliCards, `کارت‌های ${USER_DETAILS.ali.firstName}`)}
+       {renderCarousel(fatemehCards, `کارت‌های ${USER_DETAILS.fatemeh.firstName}`)}
     </div>
   );
 }
-
