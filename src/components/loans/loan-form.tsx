@@ -125,8 +125,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         onSubmit(submissionData);
     }, [onSubmit]);
 
-    const sortedBankAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
-
     return (
         <Card>
         <CardHeader>
@@ -307,7 +305,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {sortedBankAccounts.map((account) => (
+                                        {bankAccounts.map((account) => (
                                         <SelectItem key={account.id} value={account.id}>
                                             {`${account.bankName} ${getOwnerName(account)}`}
                                         </SelectItem>
