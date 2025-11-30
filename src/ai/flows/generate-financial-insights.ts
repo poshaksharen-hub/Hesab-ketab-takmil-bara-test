@@ -59,6 +59,15 @@ const DebtSchema = z.object({
   payeeName: z.string(),
 });
 
+const FinancialGoalSchema = z.object({
+  name: z.string(),
+  targetAmount: z.number(),
+  currentAmount: z.number(),
+  targetDate: z.string(),
+  priority: z.string(),
+  isAchieved: z.boolean(),
+});
+
 const ChatHistorySchema = z.object({
   role: z.enum(['user', 'model']),
   content: z.string(),
@@ -73,6 +82,7 @@ const FinancialInsightsInputSchema = z.object({
   checks: z.array(CheckSchema).describe('List of all uncleared checks.'),
   loans: z.array(LoanSchema).describe('List of all outstanding loans.'),
   previousDebts: z.array(DebtSchema).describe('List of all outstanding miscellaneous debts.'),
+  financialGoals: z.array(FinancialGoalSchema).describe('List of all financial goals the family is saving for.'),
   history: z.array(ChatHistorySchema).describe('The history of the conversation so far.'),
   latestUserQuestion: z.string().describe('The most recent question asked by the user.'),
 });
@@ -121,6 +131,7 @@ export async function generateFinancialInsights(input: Omit<FinancialInsightsInp
     - **Incomes:** {{{json incomes}}}
     - **Expenses:** {{{json expenses}}}
     - **Bank Accounts:** {{{json bankAccounts}}}
+    - **Financial Goals:** {{{json financialGoals}}}
     - **Uncleared Checks:** {{{json checks}}}
     - **Active Loans:** {{{json loans}}}
     - **Other Debts:** {{{json previousDebts}}}
@@ -131,10 +142,12 @@ export async function generateFinancialInsights(input: Omit<FinancialInsightsInp
         - Analyze the family's overall liquidity based on bank balances and income.
         - Identify and analyze the largest sources of income and the highest spending categories. (Example: "A significant portion of expenses is on 'Food and Clothing'.")
         - Point out spending habits (e.g., frequent purchases from a specific payee) and patterns of personal spending (Ali vs. Fatemeh), personalizing your analysis for {{{currentUserName}}}.
+        - Analyze financial goals, their progress, and feasibility. Suggest adjustments if necessary.
         - Assess the overall debt situation (checks, loans, miscellaneous debts) relative to assets and income, and provide an overview of the family's financial risk.
     3.  **Actionable Recommendations:**
         - **Debt Repayment Strategy:** Based on monthly income and total debt, suggest a smart strategy for paying off debts. Warn about checks with near due dates and recommend which loan or debt to pay off first.
         - **Budgeting Suggestions:** Based on expense analysis, provide specific suggestions for cost reduction in particular categories. (Example: "It is recommended to reduce the monthly budget for the 'Entertainment' category by 20%.")
+        - **Savings & Goals:** Provide encouragement and concrete suggestions on how to reach financial goals faster based on their income and expenses.
         - **General Guidance:** Offer general tips for improving financial health, such as creating an emergency fund, suggesting monthly savings based on income, etc.
 
     Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,

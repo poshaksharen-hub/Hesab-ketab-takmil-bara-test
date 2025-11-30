@@ -34,10 +34,10 @@ export default function InsightsPage() {
   const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
-  const financialData = useMemo((): Omit<FinancialInsightsInput, 'history'> | null => {
+  const financialData = useMemo((): Omit<FinancialInsightsInput, 'history' | 'latestUserQuestion'> | null => {
     if (isLoading || !allData || !user) return null;
 
-    const { incomes, expenses, bankAccounts, categories, payees, users, checks, loans, previousDebts } = allData;
+    const { incomes, expenses, bankAccounts, categories, payees, users, checks, loans, previousDebts, goals } = allData;
     
     const currentUserEmail = user.email || '';
     const currentUserName = currentUserEmail.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
@@ -92,6 +92,15 @@ export default function InsightsPage() {
         payeeName: getPayeeName(debt.payeeId),
     }));
 
+    const enrichedGoals = goals.map(goal => ({
+      name: goal.name,
+      targetAmount: goal.targetAmount,
+      currentAmount: goal.currentAmount,
+      targetDate: goal.targetDate,
+      priority: goal.priority,
+      isAchieved: goal.isAchieved
+    }));
+
 
     return {
       currentUserName,
@@ -101,6 +110,7 @@ export default function InsightsPage() {
       checks: enrichedChecks,
       loans: enrichedLoans,
       previousDebts: enrichedDebts,
+      financialGoals: enrichedGoals,
     };
   }, [isLoading, allData, user]);
 
@@ -115,7 +125,7 @@ export default function InsightsPage() {
     setError(null);
 
     startTransition(async () => {
-      const payload: FinancialInsightsInput = {
+      const payload: Omit<FinancialInsightsInput, 'latestUserQuestion'> = {
           ...financialData,
           history: newMessages
       };
