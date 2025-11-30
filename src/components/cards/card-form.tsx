@@ -76,6 +76,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
     if (initialData) {
       form.reset({
          ...initialData,
+         ownerId: initialData.ownerId, // Explicitly set ownerId for editing
         });
     } else {
       form.reset({
@@ -125,11 +126,11 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                         <SelectContent>
                             <SelectItem value="ali">{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>
                             <SelectItem value="fatemeh">{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>
-                            <SelectItem value="shared" disabled={hasSharedAccount && !initialData}>حساب مشترک</SelectItem>
+                            <SelectItem value="shared" disabled={hasSharedAccount && !(initialData && initialData.ownerId === 'shared')}>حساب مشترک</SelectItem>
                         </SelectContent>
                         </Select>
                          <FormDescription>
-                           مالکیت حساب را مشخص کنید. امکان ایجاد فقط یک حساب مشترک وجود دارد.
+                           مالکیت حساب را مشخص کنید. امکان ایجاد فقط یک حساب مشترک وجود دارد و مالکیت قابل ویرایش نیست.
                         </FormDescription>
                         <FormMessage />
                     </FormItem>
