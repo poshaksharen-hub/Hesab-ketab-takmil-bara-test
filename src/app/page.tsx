@@ -137,10 +137,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Overall Summary Cards */}
-      <OverallSummary 
-        filteredSummary={summary} 
-        globalSummary={globalSummary}
-      />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <OverallSummary 
+            filteredSummary={summary} 
+            globalSummary={globalSummary}
+        />
+      </div>
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AccountBalanceCards 
             aliBalance={globalSummary.aliBalance}

@@ -119,10 +119,22 @@ export function useDashboardData() {
     });
 
     const globalSummary = useMemo(() => {
+        const globalPendingChecks = allData.checks.filter(c => c.status === 'pending');
+        const globalPendingChecksAmount = globalPendingChecks.reduce((sum, c) => sum + c.amount, 0);
+        const globalRemainingLoanAmount = allData.loans.reduce((sum, l) => sum + l.remainingAmount, 0);
+        const globalRemainingDebtsAmount = allData.previousDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
+        const globalTotalAssets = allData.bankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
+        const globalTotalLiabilities = globalPendingChecksAmount + globalRemainingLoanAmount + globalRemainingDebtsAmount;
+
         return {
             aliBalance: allData.bankAccounts.filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0),
             fatemehBalance: allData.bankAccounts.filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0),
             sharedBalance: allData.bankAccounts.filter(b => b.ownerId === 'shared').reduce((sum, acc) => sum + acc.balance, 0),
+            netWorth: globalTotalAssets - globalTotalLiabilities,
+            totalAssets: globalTotalAssets,
+            pendingChecksAmount: globalPendingChecksAmount,
+            remainingLoanAmount: globalRemainingLoanAmount,
+            remainingDebtsAmount: globalRemainingDebtsAmount,
         };
     }, [allData]);
 
