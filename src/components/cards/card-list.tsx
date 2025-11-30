@@ -27,14 +27,6 @@ import {
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-
 
 const themeClasses = {
     blue: 'from-blue-500 to-blue-700',
@@ -43,7 +35,6 @@ const themeClasses = {
     orange: 'from-orange-500 to-amber-700',
     gray: 'from-slate-600 to-gray-800',
 };
-
 
 const ChipIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none" className="w-10 h-auto sm:w-12">
@@ -55,7 +46,6 @@ const ChipIcon = () => (
         <path d="M12 27H36" stroke="#A6A6A6" strokeWidth="0.5"/>
     </svg>
 );
-
 
 function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void;}) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -125,7 +115,6 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                                 <span>{`IR - ${card.accountNumber}`}</span>
                             </div>
                         </div>
-
 
                          <div className="flex justify-between items-end text-xs font-mono pt-1" dir="ltr">
                             <div>
@@ -231,7 +220,7 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
   const aliCards = sortedCards.filter(c => c.ownerId === 'ali');
   const fatemehCards = sortedCards.filter(c => c.ownerId === 'fatemeh');
 
-  const renderCarousel = (cardList: BankAccount[], title: string) => {
+  const renderCardSection = (cardList: BankAccount[], title: string) => {
     if (cardList.length === 0) return null;
     return (
         <Card>
@@ -239,23 +228,11 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
                 <CardTitle className="font-headline">{title}</CardTitle>
             </CardHeader>
             <CardContent>
-                 <Carousel
-                    opts={{
-                        align: "start",
-                        direction: "rtl",
-                    }}
-                    className="w-full"
-                    >
-                    <CarouselContent>
-                        {cardList.map((card) => (
-                            <CarouselItem key={card.id} className="md:basis-1/2">
-                                <CardItem card={card} onEdit={onEdit} onDelete={onDelete} />
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="right-4 -top-12 left-auto disabled:opacity-30" />
-                    <CarouselNext className="right-16 -top-12 left-auto disabled:opacity-30" />
-                </Carousel>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {cardList.map((card) => (
+                        <CardItem key={card.id} card={card} onEdit={onEdit} onDelete={onDelete} />
+                    ))}
+                </div>
             </CardContent>
         </Card>
     )
@@ -263,11 +240,9 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
 
   return (
     <div className='space-y-6'>
-       {renderCarousel(sharedCards, 'کارت‌های مشترک')}
-       {renderCarousel(aliCards, `کارت‌های ${USER_DETAILS.ali.firstName}`)}
-       {renderCarousel(fatemehCards, `کارت‌های ${USER_DETAILS.fatemeh.firstName}`)}
+       {renderCardSection(sharedCards, 'کارت‌های مشترک')}
+       {renderCardSection(aliCards, `کارت‌های ${USER_DETAILS.ali.firstName}`)}
+       {renderCardSection(fatemehCards, `کارت‌های ${USER_DETAILS.fatemeh.firstName}`)}
     </div>
   );
 }
-
-    

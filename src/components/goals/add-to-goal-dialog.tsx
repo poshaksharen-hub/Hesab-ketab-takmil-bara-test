@@ -132,7 +132,7 @@ export function AddToGoalDialog({
                         <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="max-h-[300px] overflow-y-auto">
+                    <SelectContent className="max-h-[250px]">
                       {sortedBankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                            {`${account.bankName} ${getOwnerName(account)} (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}

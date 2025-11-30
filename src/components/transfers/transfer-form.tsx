@@ -110,7 +110,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                           <SelectValue placeholder="یک حساب بانکی به عنوان مبدا انتخاب کنید" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="max-h-[300px] overflow-y-auto">
+                      <SelectContent className="max-h-[250px]">
                         {sortedFromAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
@@ -139,7 +139,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                           <SelectValue placeholder={!fromAccountId ? "ابتدا حساب مبدا را انتخاب کنید" : "یک حساب بانکی به عنوان مقصد انتخاب کنید"} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="max-h-[300px] overflow-y-auto">
+                      <SelectContent className="max-h-[250px]">
                         {availableToAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
