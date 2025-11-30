@@ -99,7 +99,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
         </Button>
       </DialogTrigger>
       <DialogContent 
-        className="w-auto"
+        className="w-auto p-0"
       >
         <DialogHeader>
           <DialogTitle className="sr-only">انتخاب تاریخ</DialogTitle>
