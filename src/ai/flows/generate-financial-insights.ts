@@ -79,13 +79,15 @@ export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSche
 
 
 export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  // IMPORTANT: Hardcoding the API key for testing purposes.
+  // This is a major security risk and should be replaced with environment variables.
+  const apiKey = "AIzaSyDXUKdYfIkSg53bt1xcp5ItXneACBo2FlY";
+  
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not defined in the environment.');
+    throw new Error('GEMINI_API_KEY is not defined.');
   }
 
   // Configure Genkit locally inside the async server function
-  // This is the most reliable way to ensure the API key is available in Next.js Server Actions.
   const ai = genkit({
     plugins: [googleAI({ apiKey })],
   });
