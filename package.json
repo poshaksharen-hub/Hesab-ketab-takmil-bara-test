@@ -16,6 +16,7 @@
     "cypress:run": "echo 'Cypress is not supported on this platform'"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.7",
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
     "@hassanmojab/react-modern-calendar-datepicker": "^3.1.7",

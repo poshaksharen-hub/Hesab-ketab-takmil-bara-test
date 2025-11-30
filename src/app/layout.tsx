@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'حساب کتاب',
   description: 'اپلیکیشن حسابداری خانواده شما',
   manifest: '/manifest.webmanifest',
-  themeColor: '#1e3a8a',
+  themeColor: '#2563eb', // A blue color consistent with the theme
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
