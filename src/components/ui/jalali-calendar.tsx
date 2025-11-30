@@ -6,11 +6,11 @@ import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 
 import {
   Dialog,
-  DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { JalaliDialogContent } from "@/components/ui/jalali-dialog-content";
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -98,9 +98,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           {value ? formatInputValue() : <span>{placeholder}</span>}
         </Button>
       </DialogTrigger>
-      <DialogContent 
-        className="w-auto p-0"
-      >
+      <JalaliDialogContent>
         <DialogHeader>
           <DialogTitle className="sr-only">انتخاب تاریخ</DialogTitle>
         </DialogHeader>
@@ -111,7 +109,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
             locale="fa" // This enables the Persian calendar
             calendarClassName="responsive-calendar" // for custom styling
         />
-      </DialogContent>
+      </JalaliDialogContent>
     </Dialog>
   )
 }
