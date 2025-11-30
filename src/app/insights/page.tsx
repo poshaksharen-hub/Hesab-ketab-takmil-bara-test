@@ -34,7 +34,7 @@ export default function InsightsPage() {
   const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
-  const financialData = useMemo((): FinancialInsightsInput | null => {
+  const financialData = useMemo((): Omit<FinancialInsightsInput, 'history'> | null => {
     if (isLoading || !allData || !user) return null;
 
     const { incomes, expenses, bankAccounts, categories, payees, users, checks, loans, previousDebts } = allData;
@@ -54,33 +54,41 @@ export default function InsightsPage() {
     const getUserName = (id: string) => users.find(u => u.id === id)?.firstName || 'ناشناس';
     
     const enrichedIncomes = incomes.map(income => ({
-        ...income,
+        description: income.description,
+        amount: income.amount,
+        date: income.date,
         bankAccountName: getBankAccountName(income.bankAccountId),
-        registeredBy: getUserName(income.registeredByUserId),
+        source: income.source,
     }));
 
     const enrichedExpenses = expenses.map(expense => ({
-        ...expense,
+        description: expense.description,
+        amount: expense.amount,
+        date: expense.date,
         bankAccountName: getBankAccountName(expense.bankAccountId),
         categoryName: getCategoryName(expense.categoryId),
         payeeName: expense.payeeId ? getPayeeName(expense.payeeId) : undefined,
-        registeredBy: getUserName(expense.registeredByUserId),
         expenseFor: expense.expenseFor ? USER_DETAILS[expense.expenseFor]?.firstName || 'مشترک' : 'مشترک'
     }));
 
     const enrichedChecks = checks.filter(c => c.status === 'pending').map(check => ({
-        ...check,
+        description: check.description,
+        amount: check.amount,
+        dueDate: check.dueDate,
         payeeName: getPayeeName(check.payeeId),
         bankAccountName: getBankAccountName(check.bankAccountId),
     }));
 
     const enrichedLoans = loans.filter(l => l.remainingAmount > 0).map(loan => ({
-        ...loan,
+        title: loan.title,
+        remainingAmount: loan.remainingAmount,
+        installmentAmount: loan.installmentAmount,
         payeeName: loan.payeeId ? getPayeeName(loan.payeeId) : 'نامشخص',
     }));
 
     const enrichedDebts = previousDebts.filter(d => d.remainingAmount > 0).map(debt => ({
-        ...debt,
+        description: debt.description,
+        remainingAmount: debt.remainingAmount,
         payeeName: getPayeeName(debt.payeeId),
     }));
 
@@ -89,17 +97,16 @@ export default function InsightsPage() {
       currentUserName,
       incomes: enrichedIncomes,
       expenses: enrichedExpenses,
-      bankAccounts,
+      bankAccounts: bankAccounts.map(b => ({ bankName: b.bankName, balance: b.balance, ownerId: b.ownerId })),
       checks: enrichedChecks,
       loans: enrichedLoans,
       previousDebts: enrichedDebts,
-      history: messages // Include chat history
     };
-  }, [isLoading, allData, user, messages]);
+  }, [isLoading, allData, user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !financialData) return;
 
     const userMessage: ChatMessage = { role: 'user', content: input };
     const newMessages = [...messages, userMessage];
@@ -108,10 +115,11 @@ export default function InsightsPage() {
     setError(null);
 
     startTransition(async () => {
-      const result = await getFinancialInsightsAction({
-          ...(financialData!),
+      const payload: FinancialInsightsInput = {
+          ...financialData,
           history: newMessages
-      });
+      };
+      const result = await getFinancialInsightsAction(payload);
 
       if (result.success && result.data) {
         setMessages(prev => [...prev, { role: 'model', content: result.data!.summary || '' }]);
@@ -229,4 +237,3 @@ export default function InsightsPage() {
     </main>
   );
 }
-
