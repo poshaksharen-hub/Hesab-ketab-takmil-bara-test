@@ -24,7 +24,15 @@ export function InsightsGenerator({ financialData }: InsightsGeneratorProps) {
     startTransition(async () => {
       setError(null);
       setInsights(null);
-      const result = await getFinancialInsightsAction(financialData);
+
+      // Now we need to pass the history, which we'll manage in the parent component.
+      // For now, we'll pass an empty history.
+      const payload = {
+        ...financialData,
+        history: [],
+      };
+
+      const result = await getFinancialInsightsAction(payload as FinancialInsightsInput);
       if (result.success && result.data) {
         setInsights(result.data);
       } else {
@@ -104,7 +112,8 @@ export function InsightsGenerator({ financialData }: InsightsGeneratorProps) {
               <CardTitle className="font-headline">پیشنهادها</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{insights.recommendations}</p>
+              {/* The prompt now combines summary and recommendations, so we only display summary */}
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">بخش پیشنهادها در تحلیل بالا ادغام شده است.</p>
             </CardContent>
           </Card>
         </div>

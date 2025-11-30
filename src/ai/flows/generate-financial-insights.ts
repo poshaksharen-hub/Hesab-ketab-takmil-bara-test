@@ -13,6 +13,7 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'genkit';
 
+// Define schemas for structured data
 const EnrichedIncomeSchema = z.object({
   description: z.string(),
   amount: z.number(),
@@ -58,32 +59,33 @@ const DebtSchema = z.object({
   payeeName: z.string(),
 });
 
-const FinancialInsightsInputSchema = z.object({
-  currentUserName: z.string().describe('نام کاربری که در حال حاضر در حال تعامل با سیستم است.'),
-  incomes: z.array(EnrichedIncomeSchema).describe('لیست درآمدهای خانواده، غنی‌شده با نام بانک.'),
-  expenses: z.array(EnrichedExpenseSchema).describe('لیست هزینه‌های خانواده، غنی‌شده با نام بانک، دسته‌بندی و طرف حساب.'),
-  bankAccounts: z.array(BankAccountSchema).describe('لیست تمام حساب‌های بانکی و موجودی فعلی آنها.'),
-  checks: z.array(CheckSchema).describe('لیست تمام چک‌های پاس نشده.'),
-  loans: z.array(LoanSchema).describe('لیست تمام وام‌های تسویه نشده.'),
-  previousDebts: z.array(DebtSchema).describe('لیست تمام بدهی‌های متفرقه تسویه نشده.'),
+const ChatHistorySchema = z.object({
+  role: z.enum(['user', 'model']),
+  content: z.string(),
+});
+
+// Main input schema including all financial data and chat history
+export const FinancialInsightsInputSchema = z.object({
+  currentUserName: z.string().describe('The name of the user currently interacting with the system.'),
+  incomes: z.array(EnrichedIncomeSchema).describe('List of family incomes, enriched with bank names.'),
+  expenses: z.array(EnrichedExpenseSchema).describe('List of family expenses, enriched with bank, category, and payee names.'),
+  bankAccounts: z.array(BankAccountSchema).describe('List of all bank accounts and their current balances.'),
+  checks: z.array(CheckSchema).describe('List of all uncleared checks.'),
+  loans: z.array(LoanSchema).describe('List of all outstanding loans.'),
+  previousDebts: z.array(DebtSchema).describe('List of all outstanding miscellaneous debts.'),
+  history: z.array(ChatHistorySchema).describe('The history of the conversation so far.'),
 });
 export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
 
-const FinancialInsightsOutputSchema = z.object({
-  summary: z.string().describe('یک خلاصه تحلیلی و عمیق از وضعیت مالی کلی خانواده.'),
-  recommendations: z.string().describe('چندین پیشنهاد عملی، اولویت‌بندی شده و هوشمندانه برای مدیریت بدهی‌ها و بهبود سلامت مالی.'),
+// Output schema for the AI's response
+export const FinancialInsightsOutputSchema = z.object({
+  summary: z.string().describe('A detailed, insightful, and friendly analysis of the overall financial situation, directly addressing the current user.'),
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
 
-export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
-  // IMPORTANT: Hardcoding the API key for testing purposes.
-  // This is a major security risk and should be replaced with environment variables.
-  const apiKey = "AIzaSyDXUKdYfIkSg53bt1xcp5ItXneACBo2FlY";
-
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not defined.');
-  }
-
+// The main async function that will be called by the server action
+export async function generateFinancialInsights(input: FinancialInsightsInput, apiKey: string): Promise<FinancialInsightsOutput> {
+  
   // Configure Genkit locally inside the async server function
   const ai = genkit({
     plugins: [googleAI({ apiKey })],
@@ -93,35 +95,45 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
     name: 'financialInsightsPrompt',
     input: { schema: FinancialInsightsInputSchema },
     output: { schema: FinancialInsightsOutputSchema },
-    prompt: `شما یک مشاور مالی متخصص، بسیار دقیق و دوستانه برای خانواده ایرانی «علی و فاطمه» هستید. کاربری که در حال حاضر با شما صحبت می‌کند، {{{currentUserName}}} است. وظیفه شما این است که تحلیل‌های خود را کاملاً به زبان فارسی، با لحنی صمیمی، محترمانه، دلگرم‌کننده و خطاب به {{{currentUserName}}} ارائه دهید.
+    prompt: `You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is {{{currentUserName}}}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing {{{currentUserName}}} directly.
 
-  داده‌های زیر تصویر کامل مالی این خانواده است:
-  - **درآمدها:** {{{json incomes}}}
-  - **هزینه‌ها:** {{{json expenses}}}
-  - **حساب‌های بانکی:** {{{json bankAccounts}}}
-  - **چک‌های پاس نشده:** {{{json checks}}}
-  - **وام‌های فعال:** {{{json loans}}}
-  - **سایر بدهی‌ها:** {{{json previousDebts}}}
+    **Conversation History So Far:**
+    {{#each history}}
+    - **{{role}}**: {{content}}
+    {{/each}}
 
-  **وظایف شما:**
+    **Latest User Question:**
+    {{#with (lookup history (subtract history.length 1))}}
+      "{{content}}"
+    {{/with}}
 
-  ۱.  **شروع با یک پیام انگیزشی خطاب به کاربر:** تحلیل خود را با یک جمله انگیزشی کوتاه، عمیق و «سنگین» در مورد قدرت اراده، برداشتن قدم اول، و رسیدن به اهداف مالی بزرگ شروع کن. در این بخش کاربر را مستقیماً با نام خطاب قرار بده. (مثال: "علی عزیز، بزرگترین قدم‌ها...")
+    Based on the latest user question and the entire conversation history, provide a relevant, helpful, and insightful response. Use the comprehensive financial data below to inform your answer. If the user asks for a general analysis, perform the "Comprehensive Analysis" task. If they ask a specific question, answer it using the data.
 
-  ۲.  **خلاصه وضعیت مالی (برای فیلد summary):**
-      - وضعیت کلی نقدینگی خانواده را بر اساس موجودی حساب‌ها و درآمدها تحلیل کن.
-      - بزرگترین منابع درآمد و بیشترین دسته‌بندی‌های هزینه را شناسایی و تحلیل کن. (مثال: "بخش قابل توجهی از هزینه‌ها صرف دسته 'خوراک و پوشاک' شده است.")
-      - به عادت‌های خرید (مثلاً خریدهای زیاد از یک طرف حساب خاص) و الگوی هزینه‌های شخصی (علی در مقابل فاطمه) اشاره کن و تحلیل خود را برای {{{currentUserName}}} شخصی‌سازی کن.
-      - وضعیت کلی بدهی‌ها (چک، وام، بدهی متفرقه) را نسبت به دارایی‌ها و درآمدها بسنج و یک دید کلی از ریسک مالی خانواده ارائه بده.
+    **Comprehensive Financial Data:**
+    - **Incomes:** {{{json incomes}}}
+    - **Expenses:** {{{json expenses}}}
+    - **Bank Accounts:** {{{json bankAccounts}}}
+    - **Uncleared Checks:** {{{json checks}}}
+    - **Active Loans:** {{{json loans}}}
+    - **Other Debts:** {{{json previousDebts}}}
 
-  ۳.  **پیشنهادهای عملی (برای فیلد recommendations):**
-      - **اولویت‌بندی پرداخت بدهی‌ها:** با توجه به درآمد ماهانه و کل بدهی‌ها، یک استراتژی هوشمندانه برای پرداخت بدهی‌ها پیشنهاد بده. به چک‌های نزدیک به تاریخ سررسید هشدار بده و پیشنهاد کن کدام وام یا بدهی را زودتر تسویه کنند.
-      - **پیشنهادهای بودجه‌بندی:** بر اساس تحلیل هزینه‌ها، پیشنهادهای مشخص برای کاهش هزینه‌ها در دسته‌بندی‌های خاص ارائه بده. (مثال: "پیشنهاد می‌شود بودجه ماهانه برای دسته 'تفریح و سرگرمی' را ۲۰٪ کاهش دهید.")
-      - **راهنمایی‌های عمومی:** نکات کلی برای بهبود سلامت مالی مانند ایجاد صندوق اضطراری، پیشنهاد پس‌انداز ماهانه بر اساس درآمد و غیره ارائه بده.
+    **Comprehensive Analysis Task (if user asks for it):**
+    1.  **Start with an encouraging message:** Begin your analysis with a short, profound, and motivational sentence about the power of will, taking the first step, and achieving great financial goals. Address the user directly by name. (Example: "علی عزیز، بزرگترین قدم‌ها...")
+    2.  **Financial Status Summary:**
+        - Analyze the family's overall liquidity based on bank balances and income.
+        - Identify and analyze the largest sources of income and the highest spending categories. (Example: "A significant portion of expenses is on 'Food and Clothing'.")
+        - Point out spending habits (e.g., frequent purchases from a specific payee) and patterns of personal spending (Ali vs. Fatemeh), personalizing your analysis for {{{currentUserName}}}.
+        - Assess the overall debt situation (checks, loans, miscellaneous debts) relative to assets and income, and provide an overview of the family's financial risk.
+    3.  **Actionable Recommendations:**
+        - **Debt Repayment Strategy:** Based on monthly income and total debt, suggest a smart strategy for paying off debts. Warn about checks with near due dates and recommend which loan or debt to pay off first.
+        - **Budgeting Suggestions:** Based on expense analysis, provide specific suggestions for cost reduction in particular categories. (Example: "It is recommended to reduce the monthly budget for the 'Entertainment' category by 20%.")
+        - **General Guidance:** Offer general tips for improving financial health, such as creating an emergency fund, suggesting monthly savings based on income, etc.
 
-  تحلیل شما باید دقیق، داده‌محور و کاملاً شخصی‌سازی شده بر اساس اطلاعات ورودی باشد.`,
+    Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,
     model: 'googleai/gemini-2.5-flash',
   });
 
+  // Define the flow, which will be called by the main function
   const generateFinancialInsightsFlow = ai.defineFlow(
     {
       name: 'generateFinancialInsightsFlow',
@@ -134,5 +146,6 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
     }
   );
 
+  // Execute the flow with the provided input
   return generateFinancialInsightsFlow(input);
 }

@@ -10,8 +10,16 @@ export async function getFinancialInsightsAction(
       return { success: false, error: 'اطلاعات مالی برای تحلیل یافت نشد.' };
   }
 
+  // Manually read the API key from server environment variables
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+      return { success: false, error: 'کلید API هوش مصنوعی (GEMINI_API_KEY) در سرور تنظیم نشده است.' };
+  }
+
+
   try {
-    const insights = await generateFinancialInsights(financialData);
+    // Pass the financial data AND the API key to the flow
+    const insights = await generateFinancialInsights(financialData, apiKey);
     return { success: true, data: insights };
   } catch (e: any) {
     console.error('Error in getFinancialInsightsAction:', e);
