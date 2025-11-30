@@ -81,10 +81,8 @@ export default function DashboardPage() {
 
   const { isLoading, getFilteredData, allData } = useDashboardData();
 
-  const { summary, details } = getFilteredData(ownerFilter, date);
+  const { summary, details, globalSummary } = getFilteredData(ownerFilter, date);
   
-  const globalSummary = getFilteredData('all', undefined).summary;
-
 
   const effectiveLoading = isUserLoading || isLoading;
 

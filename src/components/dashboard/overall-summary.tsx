@@ -18,7 +18,7 @@ type SummaryData = {
 
 
 type OverallSummaryProps = {
-  filteredSummary: Omit<SummaryData, 'netWorth' | 'totalAssets' | 'totalLiabilities'>;
+  filteredSummary: SummaryData;
   globalSummary: Pick<SummaryData, 'netWorth' | 'totalAssets' | 'pendingChecksAmount' | 'remainingLoanAmount' | 'remainingDebtsAmount'>;
 };
 
@@ -32,8 +32,8 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
             <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(globalSummary.netWorth, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">تفاضل کل دارایی و بدهی</p>
+            <div className="text-2xl font-bold">{formatCurrency(filteredSummary.netWorth, 'IRT')}</div>
+            <p className="text-xs text-muted-foreground">تفاضل دارایی و بدهی (فیلتر شده)</p>
           </CardContent>
         </Card>
         <Card>
@@ -42,8 +42,8 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(globalSummary.totalAssets, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">موجودی کل حساب‌های بانکی</p>
+            <div className="text-2xl font-bold">{formatCurrency(filteredSummary.totalAssets, 'IRT')}</div>
+            <p className="text-xs text-muted-foreground">موجودی حساب‌های بانکی (فیلتر شده)</p>
           </CardContent>
         </Card>
         <Card>

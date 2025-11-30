@@ -101,9 +101,7 @@ export function useDashboardData() {
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
     
     const filteredAccounts = allData.bankAccounts.filter(filterByOwner);
-    const totalAssets = ownerFilter === 'all' 
-        ? allData.bankAccounts.reduce((sum, acc) => sum + acc.balance, 0)
-        : filteredAccounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalAssets = filteredAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
     const pendingChecks = allData.checks.filter(c => c.status === 'pending' && filterByOwner(c));
     const pendingChecksAmount = pendingChecks.reduce((sum, c) => sum + c.amount, 0);
@@ -120,10 +118,26 @@ export function useDashboardData() {
         return dateB.getTime() - dateA.getTime();
     });
 
-    // Balances are always calculated globally, not affected by date/owner filter for display
-    const aliBalance = allData.bankAccounts.filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0);
-    const fatemehBalance = allData.bankAccounts.filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0);
-    const sharedBalance = allData.bankAccounts.filter(b => b.ownerId === 'shared').reduce((sum, acc) => sum + acc.balance, 0);
+    const globalSummary = useMemo(() => {
+        const globalAssets = allData.bankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
+        const globalPendingChecks = allData.checks.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0);
+        const globalRemainingLoans = allData.loans.reduce((sum, l) => sum + l.remainingAmount, 0);
+        const globalRemainingDebts = allData.previousDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
+        const globalLiabilities = globalPendingChecks + globalRemainingLoans + globalRemainingDebts;
+        
+        return {
+            netWorth: globalAssets - globalLiabilities,
+            totalAssets: globalAssets,
+            totalLiabilities: globalLiabilities,
+            pendingChecksAmount: globalPendingChecks,
+            remainingLoanAmount: globalRemainingLoans,
+            remainingDebtsAmount: globalRemainingDebts,
+            aliBalance: allData.bankAccounts.filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0),
+            fatemehBalance: allData.bankAccounts.filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0),
+            sharedBalance: allData.bankAccounts.filter(b => b.ownerId === 'shared').reduce((sum, acc) => sum + acc.balance, 0),
+        };
+    }, [allData]);
+
 
     return {
       summary: {
@@ -135,10 +149,8 @@ export function useDashboardData() {
         pendingChecksAmount,
         remainingLoanAmount,
         remainingDebtsAmount,
-        aliBalance,
-        fatemehBalance,
-        sharedBalance,
       },
+      globalSummary,
       details: {
         incomes: filteredIncomes,
         expenses: filteredExpenses,
