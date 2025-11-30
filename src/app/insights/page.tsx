@@ -48,7 +48,7 @@ export default function InsightsPage() {
     const getBankAccountName = (id: string) => {
         const account = bankAccounts.find(b => b.id === id);
         if (!account) return 'نامشخص';
-        const ownerName = account.ownerId === 'shared' ? 'مشترک' : USER_DETAILS[account.ownerId]?.firstName || 'ناشناس';
+        const ownerName = account.ownerId === 'shared' ? 'مشترک' : (account.ownerId in USER_DETAILS ? USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName : 'ناشناس');
         return `${account.bankName} (${ownerName})`;
     };
     const getUserName = (id: string) => users.find(u => u.id === id)?.firstName || 'ناشناس';
@@ -61,15 +61,23 @@ export default function InsightsPage() {
         source: income.source,
     }));
 
-    const enrichedExpenses = expenses.map(expense => ({
+    const enrichedExpenses = expenses.map(expense => {
+      const expenseFor = expense.expenseFor;
+      let expenseForName = 'مشترک';
+      if (expenseFor && (expenseFor === 'ali' || expenseFor === 'fatemeh')) {
+        expenseForName = USER_DETAILS[expenseFor]?.firstName || 'مشترک';
+      }
+
+      return {
         description: expense.description,
         amount: expense.amount,
         date: expense.date,
         bankAccountName: getBankAccountName(expense.bankAccountId),
         categoryName: getCategoryName(expense.categoryId),
         payeeName: expense.payeeId ? getPayeeName(expense.payeeId) : undefined,
-        expenseFor: expense.expenseFor ? USER_DETAILS[expense.expenseFor]?.firstName || 'مشترک' : 'مشترک'
-    }));
+        expenseFor: expenseForName,
+      };
+    });
 
     const enrichedChecks = checks.filter(c => c.status === 'pending').map(check => ({
         description: check.description,
