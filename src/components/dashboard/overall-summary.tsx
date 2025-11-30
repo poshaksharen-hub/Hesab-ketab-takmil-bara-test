@@ -5,20 +5,24 @@ import { formatCurrency } from '@/lib/utils';
 import { TrendingUp, TrendingDown, Wallet, Landmark, Scale, PiggyBank, Handshake, FileText } from 'lucide-react';
 import React from 'react';
 
-type OverallSummaryProps = {
-  summary: {
-    netWorth: number;
-    totalAssets: number;
-    totalLiabilities: number;
-    totalIncome: number;
-    totalExpense: number;
-    pendingChecksAmount: number;
-    remainingLoanAmount: number;
-    remainingDebtsAmount: number;
-  };
+type SummaryData = {
+  netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
+  totalIncome: number;
+  totalExpense: number;
+  pendingChecksAmount: number;
+  remainingLoanAmount: number;
+  remainingDebtsAmount: number;
 };
 
-export function OverallSummary({ summary }: OverallSummaryProps) {
+
+type OverallSummaryProps = {
+  filteredSummary: Omit<SummaryData, 'netWorth' | 'totalAssets' | 'totalLiabilities'>;
+  globalSummary: Pick<SummaryData, 'netWorth' | 'totalAssets' | 'pendingChecksAmount' | 'remainingLoanAmount' | 'remainingDebtsAmount'>;
+};
+
+export function OverallSummary({ filteredSummary, globalSummary }: OverallSummaryProps) {
   return (
     <>
       <div className='lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -28,7 +32,7 @@ export function OverallSummary({ summary }: OverallSummaryProps) {
             <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.netWorth, 'IRT')}</div>
+            <div className="text-2xl font-bold">{formatCurrency(globalSummary.netWorth, 'IRT')}</div>
             <p className="text-xs text-muted-foreground">تفاضل کل دارایی و بدهی</p>
           </CardContent>
         </Card>
@@ -38,7 +42,7 @@ export function OverallSummary({ summary }: OverallSummaryProps) {
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.totalAssets, 'IRT')}</div>
+            <div className="text-2xl font-bold">{formatCurrency(globalSummary.totalAssets, 'IRT')}</div>
             <p className="text-xs text-muted-foreground">موجودی کل حساب‌های بانکی</p>
           </CardContent>
         </Card>
@@ -48,7 +52,7 @@ export function OverallSummary({ summary }: OverallSummaryProps) {
             <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-500">{formatCurrency(summary.totalIncome, 'IRT')}</div>
+            <div className="text-2xl font-bold text-emerald-500">{formatCurrency(filteredSummary.totalIncome, 'IRT')}</div>
             <p className="text-xs text-muted-foreground">در بازه زمانی انتخاب شده</p>
           </CardContent>
         </Card>
@@ -58,7 +62,7 @@ export function OverallSummary({ summary }: OverallSummaryProps) {
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">{formatCurrency(summary.totalExpense, 'IRT')}</div>
+            <div className="text-2xl font-bold text-red-500">{formatCurrency(filteredSummary.totalExpense, 'IRT')}</div>
             <p className="text-xs text-muted-foreground">در بازه زمانی انتخاب شده</p>
           </CardContent>
         </Card>
@@ -70,8 +74,8 @@ export function OverallSummary({ summary }: OverallSummaryProps) {
             <Landmark className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.remainingLoanAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">مبلغ باقی‌مانده وام‌ها</p>
+            <div className="text-2xl font-bold">{formatCurrency(globalSummary.remainingLoanAmount, 'IRT')}</div>
+            <p className="text-xs text-muted-foreground">کل مبلغ باقی‌مانده وام‌ها</p>
             </CardContent>
         </Card>
         <Card>
@@ -80,8 +84,8 @@ export function OverallSummary({ summary }: OverallSummaryProps) {
             <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.pendingChecksAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">مجموع چک‌های پاس نشده</p>
+            <div className="text-2xl font-bold">{formatCurrency(globalSummary.pendingChecksAmount, 'IRT')}</div>
+            <p className="text-xs text-muted-foreground">کل چک‌های پاس نشده</p>
             </CardContent>
         </Card>
         <Card>
@@ -90,13 +94,11 @@ export function OverallSummary({ summary }: OverallSummaryProps) {
             <Handshake className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.remainingDebtsAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">بدهی‌های ثبت شده به افراد</p>
+            <div className="text-2xl font-bold">{formatCurrency(globalSummary.remainingDebtsAmount, 'IRT')}</div>
+            <p className="text-xs text-muted-foreground">کل بدهی‌های ثبت شده به افراد</p>
             </CardContent>
         </Card>
        </div>
     </>
   );
 }
-
-    

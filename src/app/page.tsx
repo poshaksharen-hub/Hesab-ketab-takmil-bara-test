@@ -1,11 +1,11 @@
 
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
-import { subDays } from 'date-fns';
+import { subDays, isEqual } from 'date-fns';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
@@ -29,6 +29,8 @@ import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { OwnerId } from '@/lib/types';
 import { getDateRange } from '@/lib/date-utils';
+
+type DatePreset = 'thisWeek' | 'thisMonth' | 'thisYear';
 
 function DashboardSkeleton() {
   const auth = useAuth();
@@ -75,25 +77,37 @@ export default function DashboardPage() {
     from: subDays(new Date(), 29),
     to: new Date(),
   });
-  
+  const [activePreset, setActivePreset] = useState<DatePreset | null>('thisMonth');
+
   const { isLoading, getFilteredData, allData } = useDashboardData();
 
   const { summary, details } = getFilteredData(ownerFilter, date);
   
-  const { 
-      aliBalance,
-      fatemehBalance,
-      sharedBalance
-   } = getFilteredData('all', undefined).summary; // Global balances are always 'all'
+  const globalSummary = getFilteredData('all', undefined).summary;
 
 
   const effectiveLoading = isUserLoading || isLoading;
+
+  useEffect(() => {
+    // Check if the current date range matches any preset
+    const presets: DatePreset[] = ['thisWeek', 'thisMonth', 'thisYear'];
+    let matchedPreset: DatePreset | null = null;
+    for (const preset of presets) {
+        const presetRange = getDateRange(preset);
+        if (date?.from && date?.to && isEqual(date.from, presetRange.from) && isEqual(date.to, presetRange.to)) {
+            matchedPreset = preset;
+            break;
+        }
+    }
+    setActivePreset(matchedPreset);
+  }, [date]);
+
 
   if (effectiveLoading) {
     return <DashboardSkeleton />;
   }
 
-  const handleDatePreset = (preset: 'thisWeek' | 'thisMonth' | 'thisYear') => {
+  const handleDatePreset = (preset: DatePreset) => {
       setDate(getDateRange(preset));
   }
   
@@ -116,21 +130,24 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
             <div className='flex gap-2'>
-              <Button variant="outline" onClick={() => handleDatePreset('thisWeek')}>این هفته</Button>
-              <Button variant="outline" onClick={() => handleDatePreset('thisMonth')}>این ماه</Button>
-              <Button variant="outline" onClick={() => handleDatePreset('thisYear')}>امسال</Button>
+              <Button variant={activePreset === 'thisWeek' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisWeek')}>این هفته</Button>
+              <Button variant={activePreset === 'thisMonth' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisMonth')}>این ماه</Button>
+              <Button variant={activePreset === 'thisYear' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisYear')}>امسال</Button>
             </div>
             <CustomDateRangePicker date={date} setDate={setDate} />
         </div>
       </div>
 
       {/* Overall Summary Cards */}
-      <OverallSummary summary={summary} />
+      <OverallSummary 
+        filteredSummary={summary} 
+        globalSummary={globalSummary}
+      />
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AccountBalanceCards 
-            aliBalance={aliBalance}
-            fatemehBalance={fatemehBalance}
-            sharedBalance={sharedBalance}
+            aliBalance={globalSummary.aliBalance}
+            fatemehBalance={globalSummary.fatemehBalance}
+            sharedBalance={globalSummary.sharedBalance}
         />
       </div>
 
