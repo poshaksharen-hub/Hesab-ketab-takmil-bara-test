@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from "react";
@@ -9,6 +10,8 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
@@ -97,8 +100,10 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           {value ? formatInputValue() : <span>{placeholder}</span>}
         </Button>
       </DialogTrigger>
-      {/* We use DialogContent directly to have full control over styling */}
       <DialogContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+         <DialogHeader>
+            <DialogTitle className="sr-only">انتخاب تاریخ</DialogTitle>
+         </DialogHeader>
          <div className="bg-background rounded-lg">
             <Calendar
                 value={selectedDay}
