@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from 'date-fns-jalali';
@@ -18,14 +19,15 @@ export function toEnglishDigits(str: string): string {
 }
 
 export function formatCurrency(amount: number, currency: 'USD' | 'IRT' = 'USD') {
+    const numericAmount = (typeof amount !== 'number' || isNaN(amount)) ? 0 : amount;
     if (currency === 'IRT') {
-        return new Intl.NumberFormat('fa-IR').format(amount) + ' تومان';
+        return new Intl.NumberFormat('fa-IR').format(numericAmount) + ' تومان';
     }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(numericAmount);
 }
 
 export function formatJalaliDate(date: Date) {
