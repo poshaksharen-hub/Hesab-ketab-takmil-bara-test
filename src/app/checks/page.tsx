@@ -29,7 +29,7 @@ export default function ChecksPage() {
   
   const { checks, bankAccounts, payees, categories } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'ownerId' | 'issueDate' | 'dueDate'> & {ownerId: 'ali' | 'fatemeh' | 'shared', issueDate: Date, dueDate: Date}) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'ownerId' | 'issueDate' | 'dueDate'> & {issueDate: Date, dueDate: Date}) => {
     if (!user || !firestore) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
@@ -68,6 +68,7 @@ export default function ChecksPage() {
         dueDate: values.dueDate.toISOString(),
         registeredByUserId: user.uid,
         status: 'pending' as 'pending',
+        ownerId: bankAccount.ownerId,
       };
       addDoc(checksColRef, newCheck)
         .then((docRef) => {

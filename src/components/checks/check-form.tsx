@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -22,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Check, BankAccount, Payee, Category, OwnerId } from '@/lib/types';
+import type { Check, BankAccount, Payee, Category } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { USER_DETAILS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -38,8 +39,6 @@ const formSchema = z.object({
   description: z.string().optional(),
   sayadId: z.string().min(1, { message: 'شماره صیادی الزامی است.' }),
   checkSerialNumber: z.string().min(1, { message: 'شماره سری چک الزامی است.' }),
-  // Add ownerId to the schema to match the expected type
-  ownerId: z.enum(['ali', 'fatemeh', 'shared']).default('shared'),
 }).refine(data => data.dueDate >= data.issueDate, {
     message: "تاریخ سررسید نمی‌تواند قبل از تاریخ صدور باشد.",
     path: ["dueDate"],
@@ -137,7 +136,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                             <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
                             </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="max-h-[250px]">
                             {payees.map((payee) => (
                             <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
                             ))}
@@ -202,7 +201,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                             <SelectValue placeholder="یک حساب دارای دسته‌چک انتخاب کنید" />
                             </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="max-h-[250px]">
                             {checkingAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                                 {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
@@ -226,7 +225,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                             <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
                             </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="max-h-[250px]">
                             {categories.map((cat) => (
                             <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                             ))}
