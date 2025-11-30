@@ -41,7 +41,7 @@ const BankAccountSchema = z.object({
 const CheckSchema = z.object({
   description: z.string().optional(),
   amount: z.number(),
-  dueDate: z.string(),
+  dueDate: z_dot_string(),
   payeeName: z.string(),
   bankAccountName: z.string(),
 });
@@ -74,6 +74,7 @@ const FinancialInsightsInputSchema = z.object({
   loans: z.array(LoanSchema).describe('List of all outstanding loans.'),
   previousDebts: z.array(DebtSchema).describe('List of all outstanding miscellaneous debts.'),
   history: z.array(ChatHistorySchema).describe('The history of the conversation so far.'),
+  latestUserQuestion: z.string().describe('The most recent question asked by the user.'),
 });
 export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
 
@@ -84,7 +85,7 @@ const FinancialInsightsOutputSchema = z.object({
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
 
 // The main async function that will be called by the server action
-export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
+export async function generateFinancialInsights(input: Omit<FinancialInsightsInput, 'latestUserQuestion'>): Promise<FinancialInsightsOutput> {
   
   // Manually read the API key from server environment variables
   const apiKey = process.env.GEMINI_API_KEY;
@@ -111,11 +112,7 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
     {{/if}}
 
     **Latest User Question:**
-    {{#if history}}
-    {{#with (lookup history (subtract history.length 1))}}
-      "{{content}}"
-    {{/with}}
-    {{/if}}
+    "{{{latestUserQuestion}}}"
 
     Based on the latest user question and the entire conversation history, provide a relevant, helpful, and insightful response. Use the comprehensive financial data below to inform your answer. If the user asks for a general analysis, perform the "Comprehensive Analysis" task. If they ask a specific question, answer it using the data.
 
@@ -141,11 +138,6 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
 
     Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,
     model: 'googleai/gemini-2.5-flash',
-    config: {
-        customHelpers: {
-            subtract: (a: number, b: number) => a - b,
-        }
-    }
   });
 
   // Define the flow, which will be called by the main function
@@ -161,6 +153,19 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
     }
   );
 
+  // Prepare the full input for the flow, including the latest user question.
+  const latestUserMessage = input.history.findLast(m => m.role === 'user');
+  const fullInput: FinancialInsightsInput = {
+    ...input,
+    latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.', // Provide a default if no user message is found
+  };
+
+
   // Execute the flow with the provided input
-  return generateFinancialInsightsFlow(input);
+  return generateFinancialInsightsFlow(fullInput);
+}
+
+// Helper to get around a bug in the prompt type definition
+function z_dot_string(): any {
+  return z.string();
 }

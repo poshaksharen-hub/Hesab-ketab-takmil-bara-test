@@ -4,7 +4,7 @@
 import { generateFinancialInsights, type FinancialInsightsInput, type FinancialInsightsOutput } from '@/ai/flows/generate-financial-insights';
 
 export async function getFinancialInsightsAction(
-  financialData: FinancialInsightsInput | null
+  financialData: Omit<FinancialInsightsInput, 'latestUserQuestion'> | null
 ): Promise<{ success: boolean; data?: FinancialInsightsOutput; error?: string }> {
   if (!financialData) {
       return { success: false, error: 'اطلاعات مالی برای تحلیل یافت نشد.' };
@@ -15,6 +15,8 @@ export async function getFinancialInsightsAction(
     return { success: true, data: insights };
   } catch (e: any) {
     console.error('Error in getFinancialInsightsAction:', e);
-    return { success: false, error: e.message || 'یک خطای ناشناخته در سرور رخ داد.' };
+    // Extract the core error message if available, otherwise show the full error.
+    const errorMessage = e.cause?.message || e.message || 'یک خطای ناشناخته در سرور رخ داد.';
+    return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: ${errorMessage}` };
   }
 }
