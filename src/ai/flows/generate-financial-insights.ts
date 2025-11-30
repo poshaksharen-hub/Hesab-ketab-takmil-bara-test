@@ -9,7 +9,8 @@
  * - FinancialInsightsOutput - The return type for the generateFinancialInsights function.
  */
 
-import { configureAi } from '@/ai/genkit';
+import { genkit, type GenkitConfig } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
 const EnrichedIncomeSchema = z.object({
@@ -83,7 +84,11 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
     throw new Error('GEMINI_API_KEY is not defined in the environment.');
   }
 
-  const ai = configureAi(apiKey);
+  // Configure Genkit locally inside the async server function
+  const ai = genkit({
+    plugins: [googleAI({ apiKey })],
+    model: 'googleai/gemini-2.5-flash',
+  });
 
   const prompt = ai.definePrompt({
     name: 'financialInsightsPrompt',
