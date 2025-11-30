@@ -29,6 +29,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import { Textarea } from '../ui/textarea';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
+import { AddCategoryDialog } from '../categories/add-category-dialog';
 
 const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
@@ -60,6 +61,7 @@ interface CheckFormProps {
 
 export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, categories }: CheckFormProps) {
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
 
   const form = useForm<CheckFormValues>({
     resolver: zodResolver(formSchema),
@@ -110,6 +112,14 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
         setIsAddPayeeOpen(true);
     } else {
         form.setValue('payeeId', value);
+    }
+  };
+
+  const handleCategorySelection = (value: string) => {
+    if (value === 'add_new') {
+        setIsAddCategoryOpen(true);
+    } else {
+        form.setValue('categoryId', value);
     }
   };
 
@@ -233,13 +243,14 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>دسته‌بندی</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={handleCategorySelection} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                 <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent className="max-h-[250px]">
+                                <SelectItem value="add_new" className="font-bold text-primary">افزودن دسته‌بندی جدید...</SelectItem>
                                 {categories.map((cat) => (
                                 <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                                 ))}
@@ -301,6 +312,15 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                 onOpenChange={setIsAddPayeeOpen}
                 onPayeeAdded={(newPayee) => {
                     form.setValue('payeeId', newPayee.id);
+                }}
+            />
+        )}
+        {isAddCategoryOpen && (
+            <AddCategoryDialog
+                isOpen={isAddCategoryOpen}
+                onOpenChange={setIsAddCategoryOpen}
+                onCategoryAdded={(newCategory) => {
+                    form.setValue('categoryId', newCategory.id);
                 }}
             />
         )}

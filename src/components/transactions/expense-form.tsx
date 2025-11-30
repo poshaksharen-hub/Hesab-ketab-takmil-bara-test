@@ -29,6 +29,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
+import { AddCategoryDialog } from '../categories/add-category-dialog';
 
 
 const formSchema = z.object({
@@ -54,6 +55,7 @@ interface ExpenseFormProps {
 
 export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, categories, payees }: ExpenseFormProps) {
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
@@ -118,6 +120,14 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
         setIsAddPayeeOpen(true);
     } else {
         form.setValue('payeeId', value);
+    }
+  };
+  
+  const handleCategorySelection = (value: string) => {
+    if (value === 'add_new') {
+        setIsAddCategoryOpen(true);
+    } else {
+        form.setValue('categoryId', value);
     }
   };
 
@@ -204,13 +214,14 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>دسته‌بندی هزینه</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={handleCategorySelection} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                 <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent className="max-h-[250px]">
+                                <SelectItem value="add_new" className="font-bold text-primary">افزودن دسته‌بندی جدید...</SelectItem>
                                 {categories.map((category) => (
                                 <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                                 ))}
@@ -281,6 +292,15 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                 onOpenChange={setIsAddPayeeOpen}
                 onPayeeAdded={(newPayee) => {
                     form.setValue('payeeId', newPayee.id);
+                }}
+            />
+        )}
+        {isAddCategoryOpen && (
+            <AddCategoryDialog
+                isOpen={isAddCategoryOpen}
+                onOpenChange={setIsAddCategoryOpen}
+                onCategoryAdded={(newCategory) => {
+                    form.setValue('categoryId', newCategory.id);
                 }}
             />
         )}
