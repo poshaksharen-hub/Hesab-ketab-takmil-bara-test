@@ -1,3 +1,3 @@
 // This file is intentionally left blank.
-// The Genkit configuration has been moved to src/ai/flows/generate-financial-insights.ts to resolve API key loading issues.
-// This file is no longer needed for development.
+// The Genkit configuration is now handled within the flow that uses it
+// to ensure proper API key loading within Next.js Server Actions.

@@ -9,29 +9,7 @@
  * - FinancialInsightsOutput - The return type for the generateFinancialInsights function.
  */
 
-// =================================================================
-// GENKIT CONFIGURATION (MOVED HERE TO FIX API KEY ISSUE)
-// =================================================================
-import { config } from 'dotenv';
-config(); // Load environment variables from .env file FIRST.
-
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
-
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error(
-    'GEMINI_API_KEY is not defined. Please set it in your .env file.'
-  );
-}
-
-// Configure the 'ai' object locally within this file. DO NOT EXPORT IT.
-const ai = genkit({
-  plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
-  model: 'googleai/gemini-2.5-flash',
-});
-// =================================================================
-
-
+import { configureAi } from '@/ai/genkit';
 import {z} from 'genkit';
 
 const EnrichedIncomeSchema = z.object({
@@ -98,15 +76,20 @@ const FinancialInsightsOutputSchema = z.object({
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
 
-export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
-  return generateFinancialInsightsFlow(input);
-}
 
-const prompt = ai.definePrompt({
-  name: 'financialInsightsPrompt',
-  input: {schema: FinancialInsightsInputSchema},
-  output: {schema: FinancialInsightsOutputSchema},
-  prompt: `شما یک مشاور مالی متخصص، بسیار دقیق و دوستانه برای خانواده ایرانی «علی و فاطمه» هستید. وظیفه شما این است که تحلیل‌های خود را کاملاً به زبان فارسی، با لحنی صمیمی، محترمانه و دلگرم‌کننده ارائه دهید.
+export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not defined in the environment.');
+  }
+
+  const ai = configureAi(apiKey);
+
+  const prompt = ai.definePrompt({
+    name: 'financialInsightsPrompt',
+    input: {schema: FinancialInsightsInputSchema},
+    output: {schema: FinancialInsightsOutputSchema},
+    prompt: `شما یک مشاور مالی متخصص، بسیار دقیق و دوستانه برای خانواده ایرانی «علی و فاطمه» هستید. وظیفه شما این است که تحلیل‌های خود را کاملاً به زبان فارسی، با لحنی صمیمی، محترمانه و دلگرم‌کننده ارائه دهید.
 
   داده‌های زیر تصویر کامل مالی این خانواده است:
   - **درآمدها:** {{{json incomes}}}
@@ -132,16 +115,19 @@ const prompt = ai.definePrompt({
       - **راهنمایی‌های عمومی:** نکات کلی برای بهبود سلامت مالی مانند ایجاد صندوق اضطراری، پیشنهاد پس‌انداز ماهانه بر اساس درآمد و غیره ارائه بده.
 
   تحلیل شما باید دقیق، داده‌محور و کاملاً شخصی‌سازی شده بر اساس اطلاعات ورودی باشد.`,
-});
+  });
 
-const generateFinancialInsightsFlow = ai.defineFlow(
-  {
-    name: 'generateFinancialInsightsFlow',
-    inputSchema: FinancialInsightsInputSchema,
-    outputSchema: FinancialInsightsOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
+  const generateFinancialInsightsFlow = ai.defineFlow(
+    {
+      name: 'generateFinancialInsightsFlow',
+      inputSchema: FinancialInsightsInputSchema,
+      outputSchema: FinancialInsightsOutputSchema,
+    },
+    async input => {
+      const {output} = await prompt(input);
+      return output!;
+    }
+  );
+
+  return generateFinancialInsightsFlow(input);
+}
