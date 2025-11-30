@@ -7,6 +7,8 @@ import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -97,8 +99,11 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
         </Button>
       </DialogTrigger>
       <DialogContent 
-        className="p-0"
+        className="p-0 w-auto"
       >
+        <DialogHeader>
+          <DialogTitle className="sr-only">انتخاب تاریخ</DialogTitle>
+        </DialogHeader>
         <Calendar
             value={selectedDay}
             onChange={handleDayChange}
