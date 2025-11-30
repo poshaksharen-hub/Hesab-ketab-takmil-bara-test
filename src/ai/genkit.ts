@@ -1,3 +1,2 @@
 // This file is intentionally left blank.
-// The Genkit configuration has been moved to src/ai/dev.ts to resolve API key loading issues.
-// Flows should now import the 'ai' object from '@//ai/dev.ts'.
+// The Genkit configuration has been moved to src/ai/flows/generate-financial-insights.ts to resolve API key loading issues.

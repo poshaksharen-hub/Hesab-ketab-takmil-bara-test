@@ -9,7 +9,29 @@
  * - FinancialInsightsOutput - The return type for the generateFinancialInsights function.
  */
 
-import {ai} from '@/ai/dev'; // IMPORTANT: Changed import path
+// =================================================================
+// GENKIT CONFIGURATION (MOVED HERE TO FIX API KEY ISSUE)
+// =================================================================
+import { config } from 'dotenv';
+config(); // Load environment variables from .env file FIRST.
+
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error(
+    'GEMINI_API_KEY is not defined. Please set it in your .env file.'
+  );
+}
+
+// Configure and export the 'ai' object from this central file.
+export const ai = genkit({
+  plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
+  model: 'googleai/gemini-2.5-flash',
+});
+// =================================================================
+
+
 import {z} from 'genkit';
 
 const EnrichedIncomeSchema = z.object({
