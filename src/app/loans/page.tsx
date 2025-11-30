@@ -72,7 +72,7 @@ export default function LoansPage() {
                 finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
             }
 
-            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
+            const loanData: Omit<Loan, 'id' | 'registeredByUserId'> = {
                 title,
                 amount,
                 ownerId: finalOwnerId,
