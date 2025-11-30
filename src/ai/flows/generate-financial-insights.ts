@@ -85,9 +85,9 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
   }
 
   // Configure Genkit locally inside the async server function
+  // This is the most reliable way to ensure the API key is available in Next.js Server Actions.
   const ai = genkit({
     plugins: [googleAI({ apiKey })],
-    model: 'googleai/gemini-2.5-flash',
   });
 
   const prompt = ai.definePrompt({
@@ -120,6 +120,7 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
       - **راهنمایی‌های عمومی:** نکات کلی برای بهبود سلامت مالی مانند ایجاد صندوق اضطراری، پیشنهاد پس‌انداز ماهانه بر اساس درآمد و غیره ارائه بده.
 
   تحلیل شما باید دقیق، داده‌محور و کاملاً شخصی‌سازی شده بر اساس اطلاعات ورودی باشد.`,
+     model: 'googleai/gemini-2.5-flash',
   });
 
   const generateFinancialInsightsFlow = ai.defineFlow(

@@ -10,9 +10,10 @@ export async function getFinancialInsightsAction(
       return { success: false, error: 'اطلاعات مالی برای تحلیل یافت نشد.' };
   }
 
-  if (!process.env.GEMINI_API_KEY) {
-      return { success: false, error: 'کلید GEMINI API در سرور تنظیم نشده است.'};
-  }
+  // The API key check is now inside the flow itself, which is more reliable.
+  // if (!process.env.GEMINI_API_KEY) {
+  //     return { success: false, error: 'کلید GEMINI API در سرور تنظیم نشده است.'};
+  // }
 
   try {
     const insights = await generateFinancialInsights(financialData);
