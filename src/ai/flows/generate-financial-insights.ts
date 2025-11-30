@@ -9,80 +9,77 @@
  * - FinancialInsightsOutput - The return type for the generateFinancialInsights function.
  */
 
-import { genkit, type GenkitConfig } from 'genkit';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import {z} from 'genkit';
+import { z } from 'genkit';
 
 const EnrichedIncomeSchema = z.object({
-    description: z.string(),
-    amount: z.number(),
-    date: z.string(),
-    bankAccountName: z.string(),
-    source: z.string().optional(),
+  description: z.string(),
+  amount: z.number(),
+  date: z.string(),
+  bankAccountName: z.string(),
+  source: z.string().optional(),
 });
 
 const EnrichedExpenseSchema = z.object({
-    description: z.string(),
-    amount: z.number(),
-    date: z.string(),
-    bankAccountName: z.string(),
-    categoryName: z.string(),
-    payeeName: z.string().optional(),
-    expenseFor: z.string(),
+  description: z.string(),
+  amount: z.number(),
+  date: z.string(),
+  bankAccountName: z.string(),
+  categoryName: z.string(),
+  payeeName: z.string().optional(),
+  expenseFor: z.string(),
 });
 
 const BankAccountSchema = z.object({
-    bankName: z.string(),
-    balance: z.number(),
-    ownerId: z.string(),
+  bankName: z.string(),
+  balance: z.number(),
+  ownerId: z.string(),
 });
 
 const CheckSchema = z.object({
-    description: z.string().optional(),
-    amount: z.number(),
-    dueDate: z.string(),
-    payeeName: z.string(),
-    bankAccountName: z.string(),
+  description: z.string().optional(),
+  amount: z.number(),
+  dueDate: z.string(),
+  payeeName: z.string(),
+  bankAccountName: z.string(),
 });
 
 const LoanSchema = z.object({
-    title: z.string(),
-    remainingAmount: z.number(),
-    installmentAmount: z.number(),
-    payeeName: z.string(),
+  title: z.string(),
+  remainingAmount: z.number(),
+  installmentAmount: z.number(),
+  payeeName: z.string(),
 });
 
 const DebtSchema = z.object({
-    description: z.string(),
-    remainingAmount: z.number(),
-    payeeName: z.string(),
+  description: z.string(),
+  remainingAmount: z.number(),
+  payeeName: z.string(),
 });
 
-
 const FinancialInsightsInputSchema = z.object({
-  incomes: z.array(EnrichedIncomeSchema).describe("لیست درآمدهای خانواده، غنی‌شده با نام بانک."),
-  expenses: z.array(EnrichedExpenseSchema).describe("لیست هزینه‌های خانواده، غنی‌شده با نام بانک، دسته‌بندی و طرف حساب."),
-  bankAccounts: z.array(BankAccountSchema).describe("لیست تمام حساب‌های بانکی و موجودی فعلی آنها."),
-  checks: z.array(CheckSchema).describe("لیست تمام چک‌های پاس نشده."),
-  loans: z.array(LoanSchema).describe("لیست تمام وام‌های تسویه نشده."),
-  previousDebts: z.array(DebtSchema).describe("لیست تمام بدهی‌های متفرقه تسویه نشده."),
+  currentUserName: z.string().describe('نام کاربری که در حال حاضر در حال تعامل با سیستم است.'),
+  incomes: z.array(EnrichedIncomeSchema).describe('لیست درآمدهای خانواده، غنی‌شده با نام بانک.'),
+  expenses: z.array(EnrichedExpenseSchema).describe('لیست هزینه‌های خانواده، غنی‌شده با نام بانک، دسته‌بندی و طرف حساب.'),
+  bankAccounts: z.array(BankAccountSchema).describe('لیست تمام حساب‌های بانکی و موجودی فعلی آنها.'),
+  checks: z.array(CheckSchema).describe('لیست تمام چک‌های پاس نشده.'),
+  loans: z.array(LoanSchema).describe('لیست تمام وام‌های تسویه نشده.'),
+  previousDebts: z.array(DebtSchema).describe('لیست تمام بدهی‌های متفرقه تسویه نشده.'),
 });
 export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
 
 const FinancialInsightsOutputSchema = z.object({
   summary: z.string().describe('یک خلاصه تحلیلی و عمیق از وضعیت مالی کلی خانواده.'),
-  recommendations: z
-    .string()
-    .describe('چندین پیشنهاد عملی، اولویت‌بندی شده و هوشمندانه برای مدیریت بدهی‌ها و بهبود سلامت مالی.'),
+  recommendations: z.string().describe('چندین پیشنهاد عملی، اولویت‌بندی شده و هوشمندانه برای مدیریت بدهی‌ها و بهبود سلامت مالی.'),
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
-
 
 export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
   // IMPORTANT: Hardcoding the API key for testing purposes.
   // This is a major security risk and should be replaced with environment variables.
   const apiKey = "AIzaSyDXUKdYfIkSg53bt1xcp5ItXneACBo2FlY";
-  
+
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not defined.');
   }
@@ -94,9 +91,9 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
 
   const prompt = ai.definePrompt({
     name: 'financialInsightsPrompt',
-    input: {schema: FinancialInsightsInputSchema},
-    output: {schema: FinancialInsightsOutputSchema},
-    prompt: `شما یک مشاور مالی متخصص، بسیار دقیق و دوستانه برای خانواده ایرانی «علی و فاطمه» هستید. وظیفه شما این است که تحلیل‌های خود را کاملاً به زبان فارسی، با لحنی صمیمی، محترمانه و دلگرم‌کننده ارائه دهید.
+    input: { schema: FinancialInsightsInputSchema },
+    output: { schema: FinancialInsightsOutputSchema },
+    prompt: `شما یک مشاور مالی متخصص، بسیار دقیق و دوستانه برای خانواده ایرانی «علی و فاطمه» هستید. کاربری که در حال حاضر با شما صحبت می‌کند، {{{currentUserName}}} است. وظیفه شما این است که تحلیل‌های خود را کاملاً به زبان فارسی، با لحنی صمیمی، محترمانه، دلگرم‌کننده و خطاب به {{{currentUserName}}} ارائه دهید.
 
   داده‌های زیر تصویر کامل مالی این خانواده است:
   - **درآمدها:** {{{json incomes}}}
@@ -106,14 +103,14 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
   - **وام‌های فعال:** {{{json loans}}}
   - **سایر بدهی‌ها:** {{{json previousDebts}}}
 
-  **وظایف شما:**
+  **وظایf شما:**
 
-  ۱.  **شروع با یک پیام انگیزشی:** تحلیل خود را با یک جمله انگیزشی کوتاه، عمیق و «سنگین» در مورد قدرت اراده، برداشتن قدم اول، و رسیدن به اهداف مالی بزرگ شروع کن. از نام بردن افراد خودداری کن و یک پیام فلسفی و الهام‌بخش ارائه بده.
+  ۱.  **شروع با یک پیام انگیزشی خطاب به کاربر:** تحلیل خود را با یک جمله انگیزشی کوتاه، عمیق و «سنگین» در مورد قدرت اراده، برداشتن قدم اول، و رسیدن به اهداف مالی بزرگ شروع کن. در این بخش کاربر را مستقیماً با نام خطاب قرار بده. (مثال: "علی عزیز، بزرگترین قدم‌ها...")
 
   ۲.  **خلاصه وضعیت مالی (برای فیلد summary):**
       - وضعیت کلی نقدینگی خانواده را بر اساس موجودی حساب‌ها و درآمدها تحلیل کن.
       - بزرگترین منابع درآمد و بیشترین دسته‌بندی‌های هزینه را شناسایی و تحلیل کن. (مثال: "بخش قابل توجهی از هزینه‌ها صرف دسته 'خوراک و پوشاک' شده است.")
-      - به عادت‌های خرید (مثلاً خریدهای زیاد از یک طرف حساب خاص) و الگوی هزینه‌های شخصی (علی در مقابل فاطمه) اشاره کن.
+      - به عادت‌های خرید (مثلاً خریدهای زیاد از یک طرف حساب خاص) و الگوی هزینه‌های شخصی (علی در مقابل فاطمه) اشاره کن و تحلیل خود را برای {{{currentUserName}}} شخصی‌سازی کن.
       - وضعیت کلی بدهی‌ها (چک، وام، بدهی متفرقه) را نسبت به دارایی‌ها و درآمدها بسنج و یک دید کلی از ریسک مالی خانواده ارائه بده.
 
   ۳.  **پیشنهادهای عملی (برای فیلد recommendations):**
@@ -122,7 +119,7 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
       - **راهنمایی‌های عمومی:** نکات کلی برای بهبود سلامت مالی مانند ایجاد صندوق اضطراری، پیشنهاد پس‌انداز ماهانه بر اساس درآمد و غیره ارائه بده.
 
   تحلیل شما باید دقیق، داده‌محور و کاملاً شخصی‌سازی شده بر اساس اطلاعات ورودی باشد.`,
-     model: 'googleai/gemini-2.5-flash',
+    model: 'googleai/gemini-2.5-flash',
   });
 
   const generateFinancialInsightsFlow = ai.defineFlow(
@@ -131,8 +128,8 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
       inputSchema: FinancialInsightsInputSchema,
       outputSchema: FinancialInsightsOutputSchema,
     },
-    async input => {
-      const {output} = await prompt(input);
+    async (input) => {
+      const { output } = await prompt(input);
       return output!;
     }
   );

@@ -6,16 +6,21 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type FinancialInsightsInput } from '@/ai/flows/generate-financial-insights';
 import { USER_DETAILS } from '@/lib/constants';
-
+import { useUser } from '@/firebase';
 
 export default function InsightsPage() {
+  const { user } = useUser();
   const { isLoading, allData } = useDashboardData();
 
   const financialData = useMemo((): FinancialInsightsInput | null => {
-    if (isLoading || !allData) return null;
+    if (isLoading || !allData || !user) return null;
 
     const { incomes, expenses, bankAccounts, categories, payees, users, checks, loans, previousDebts } = allData;
     
+    const currentUserEmail = user.email || '';
+    const currentUserName = currentUserEmail.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+
+
     const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'نامشخص';
     const getPayeeName = (id: string) => payees.find(p => p.id === id)?.name || 'نامشخص';
     const getBankAccountName = (id: string) => {
@@ -59,6 +64,7 @@ export default function InsightsPage() {
 
 
     return {
+      currentUserName,
       incomes: enrichedIncomes,
       expenses: enrichedExpenses,
       bankAccounts,
@@ -66,7 +72,7 @@ export default function InsightsPage() {
       loans: enrichedLoans,
       previousDebts: enrichedDebts,
     };
-  }, [isLoading, allData]);
+  }, [isLoading, allData, user]);
 
 
   return (
