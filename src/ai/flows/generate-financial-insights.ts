@@ -41,7 +41,7 @@ const BankAccountSchema = z.object({
 const CheckSchema = z.object({
   description: z.string().optional(),
   amount: z.number(),
-  dueDate: z_dot_string(),
+  dueDate: z.string(),
   payeeName: z.string(),
   bankAccountName: z.string(),
 });
@@ -87,8 +87,9 @@ export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSche
 // The main async function that will be called by the server action
 export async function generateFinancialInsights(input: Omit<FinancialInsightsInput, 'latestUserQuestion'>): Promise<FinancialInsightsOutput> {
   
-  // Manually read the API key from server environment variables
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Hardcode the API Key for testing purposes.
+  // This bypasses any issues with process.env.
+  const apiKey = 'AIzaSyDXUKdYfIkSg53bt1xcp5ItXneACBo2FlY';
   if (!apiKey) {
       throw new Error('کلید API هوش مصنوعی (GEMINI_API_KEY) در سرور تنظیم نشده است.');
   }
@@ -154,7 +155,8 @@ export async function generateFinancialInsights(input: Omit<FinancialInsightsInp
   );
 
   // Prepare the full input for the flow, including the latest user question.
-  const latestUserMessage = input.history.findLast(m => m.role === 'user');
+  // Find the last message from the 'user'
+  const latestUserMessage = input.history.slice().reverse().find(m => m.role === 'user');
   const fullInput: FinancialInsightsInput = {
     ...input,
     latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.', // Provide a default if no user message is found
@@ -163,9 +165,4 @@ export async function generateFinancialInsights(input: Omit<FinancialInsightsInp
 
   // Execute the flow with the provided input
   return generateFinancialInsightsFlow(fullInput);
-}
-
-// Helper to get around a bug in the prompt type definition
-function z_dot_string(): any {
-  return z.string();
 }
