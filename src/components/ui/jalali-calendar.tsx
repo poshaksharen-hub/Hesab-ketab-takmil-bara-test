@@ -5,12 +5,11 @@ import DatePicker from "@hassanmojab/react-modern-calendar-datepicker";
 import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 import 'react-day-picker/dist/style.css';
 
-
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -75,7 +74,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
         setSelectedDay(null);
         onChange(null);
       }
-      setIsOpen(false); // Close the popover on selection
+      setIsOpen(false); // Close the dialog on selection
   }
 
   const formatInputValue = () => {
@@ -84,8 +83,8 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
         <Button
           variant={"outline"}
           className={cn(
@@ -97,16 +96,19 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           <CalendarIcon className="ml-2 h-4 w-4" />
           {value ? formatInputValue() : <span>{placeholder}</span>}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 calendar-container">
-         <Calendar
-            value={selectedDay}
-            onChange={handleDayChange}
-            shouldHighlightWeekends
-            locale="fa" // This enables the Persian calendar
-            calendarClassName="responsive-calendar" // for custom styling
-        />
-      </PopoverContent>
-    </Popover>
+      </DialogTrigger>
+      {/* We use DialogContent directly to have full control over styling */}
+      <DialogContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+         <div className="bg-background rounded-lg">
+            <Calendar
+                value={selectedDay}
+                onChange={handleDayChange}
+                shouldHighlightWeekends
+                locale="fa" // This enables the Persian calendar
+                calendarClassName="responsive-calendar" // for custom styling
+            />
+         </div>
+      </DialogContent>
+    </Dialog>
   )
 }
