@@ -1,3 +1,4 @@
+
 'use client';
 
 import { type Income, type Expense, type UserProfile, type Category, BankAccount } from '@/lib/types';
@@ -7,6 +8,7 @@ import { Briefcase, ShoppingCart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 import { Badge } from '../ui/badge';
+import { USER_DETAILS } from '@/lib/constants';
 
 
 type RecentTransactionsProps = {
@@ -46,6 +48,22 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
     }
   }
 
+  const getExpenseForBadge = (transaction: Expense) => {
+    if (transaction.type !== 'expense' || !transaction.expenseFor) return null;
+    
+    let text = '';
+    switch(transaction.expenseFor) {
+        case 'ali': text = `برای ${USER_DETAILS.ali.firstName}`; break;
+        case 'fatemeh': text = `برای ${USER_DETAILS.fatemeh.firstName}`; break;
+        case 'shared': return null; // 'مشترک' is the default and doesn't need a specific badge here
+    }
+
+    if (text) {
+        return <Badge variant="outline" className="font-normal">{text}</Badge>;
+    }
+    return null;
+  }
+
   const isShared = (transaction: Income | Expense) => {
       const account = bankAccounts.find(acc => acc.id === transaction.bankAccountId);
       return account?.ownerId === 'shared';
@@ -71,6 +89,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
               <p className="text-sm font-medium leading-none flex items-center gap-2">
                 {transaction.description}
                 {isShared(transaction) && <Badge variant="secondary">مشترک</Badge>}
+                {!isIncome && getExpenseForBadge(transaction as Expense)}
               </p>
               <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transactionDate)}</span></p>
             </div>

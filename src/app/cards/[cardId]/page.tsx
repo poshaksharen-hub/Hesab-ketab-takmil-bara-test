@@ -7,11 +7,12 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, TrendingDown, TrendingUp, ArrowRightLeft } from 'lucide-react';
+import { ArrowRight, TrendingDown, TrendingUp, ArrowRightLeft, User, Users } from 'lucide-react';
 import type { Income, Expense, BankAccount, Transfer } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { USER_DETAILS } from '@/lib/constants';
 
 type Transaction = (Omit<Income, 'date'> | Omit<Expense, 'date'> | Omit<Transfer, 'transferDate'>) & {
   type: 'income' | 'expense' | 'transfer';
@@ -153,6 +154,23 @@ export default function CardTransactionsPage() {
     return 'متفرقه';
   }
 
+  const getExpenseForBadge = (tx: Expense) => {
+    if (!tx.expenseFor || tx.expenseFor === 'shared' || card.ownerId !== 'shared') return null;
+
+    let text: string;
+    let Icon: React.ElementType;
+
+    if (tx.expenseFor === 'ali') {
+      text = USER_DETAILS.ali.firstName;
+      Icon = User;
+    } else {
+      text = USER_DETAILS.fatemeh.firstName;
+      Icon = User;
+    }
+    
+    return <Badge variant="secondary" className="font-normal"><Icon className="ml-1 h-3 w-3"/>{text}</Badge>;
+  }
+
   const getTransactionIcon = (tx: Transaction) => {
       const isDebit = tx.type === 'expense' || (tx.type === 'transfer' && tx.fromBankAccountId === cardId);
       
@@ -214,7 +232,10 @@ export default function CardTransactionsPage() {
                 <div className="flex items-center gap-4 flex-grow">
                      {getTransactionIcon(tx)}
                      <div className="flex-grow">
-                        <p className="font-bold">{tx.description}</p>
+                        <p className="font-bold flex items-center gap-2">
+                          {tx.description}
+                          {tx.type === 'expense' && getExpenseForBadge(tx as Expense)}
+                        </p>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
                             <span>{formatJalaliDate(new Date(tx.date))}</span>
                             <Separator orientation="vertical" className="h-3" />

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect } from 'react';
@@ -173,7 +174,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                             <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
                             </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="max-h-[250px]">
                             {sortedBankAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                                 {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
@@ -197,7 +198,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                             <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
                             </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="max-h-[250px]">
                             {categories.map((category) => (
                             <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                             ))}
@@ -220,7 +221,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                             <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
                             </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="max-h-[250px]">
                              <SelectItem value="none"><em>هیچکدام</em></SelectItem>
                             {payees.map((payee) => (
                             <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
