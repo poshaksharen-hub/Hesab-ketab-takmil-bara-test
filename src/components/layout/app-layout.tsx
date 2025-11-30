@@ -36,7 +36,7 @@ import {
   Landmark,
   Bell,
   Handshake,
-  PanelLeft,
+  Menu as MenuIcon,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -291,9 +291,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
             <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                    <PanelLeft />
-                    <span className="sr-only">Toggle Sidebar</span>
+                  <Button variant="outline" size="sm">
+                    <MenuIcon className="ml-2 h-4 w-4" />
+                    منو
                   </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
