@@ -96,7 +96,10 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           {value ? formatInputValue() : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0" side="bottom" align="center">
+      <PopoverContent 
+        className="p-0 w-auto" 
+        style={{ left: '50%', transform: 'translateX(-50%)' }}
+      >
         <Calendar
             value={selectedDay}
             onChange={handleDayChange}
