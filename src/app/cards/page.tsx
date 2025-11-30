@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Search } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
@@ -15,6 +15,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
+import { Input } from '@/components/ui/input';
+import { toEnglishDigits } from '@/lib/utils';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -24,9 +26,9 @@ export default function CardsPage() {
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
-
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState('');
   
   const { bankAccounts: allBankAccounts = [], users: allUsers = [], goals: allGoals = [] } = allData;
   const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared');
@@ -151,17 +153,42 @@ export default function CardsPage() {
   }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
+  
+  const filteredBankAccounts = React.useMemo(() => {
+    if (!searchQuery) {
+      return allBankAccounts;
+    }
+    const query = toEnglishDigits(searchQuery).toLowerCase();
+    return allBankAccounts.filter(card => 
+      card.bankName.toLowerCase().includes(query) ||
+      card.cardNumber.includes(query) ||
+      card.accountNumber.includes(query)
+    );
+  }, [searchQuery, allBankAccounts]);
+
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="font-headline text-3xl font-bold tracking-tight">
           مدیریت کارت‌های بانکی
         </h1>
-        <Button onClick={handleAddNew}>
-          <PlusCircle className="ml-2 h-4 w-4" />
-          افزودن کارت جدید
-        </Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="جستجو در نام بانک، شماره کارت..."
+                className="w-full pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleAddNew} className="w-full sm:w-auto">
+              <PlusCircle className="ml-2 h-4 w-4" />
+              افزودن کارت جدید
+            </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -181,7 +208,7 @@ export default function CardsPage() {
         />
       ) : (
         <CardList
-          cards={allBankAccounts}
+          cards={filteredBankAccounts}
           onEdit={handleEdit}
           onDelete={handleDelete}
           users={allUsers}
