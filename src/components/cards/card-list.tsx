@@ -113,6 +113,17 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                             </div>
                             <div className="flex items-center justify-center gap-2 text-xs font-mono tracking-wider opacity-80">
                                 <span>{`IR - ${card.accountNumber}`}</span>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Prevent card link navigation
+                                        e.preventDefault();
+                                        handleCopy(card.accountNumber, 'شماره حساب');
+                                    }}
+                                    className="opacity-50 hover:opacity-100 transition-opacity"
+                                    aria-label="کپی شماره حساب"
+                                >
+                                    <Copy className="h-3 w-3" />
+                                </button>
                             </div>
                         </div>
 
