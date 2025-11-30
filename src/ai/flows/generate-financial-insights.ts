@@ -24,8 +24,8 @@ if (!process.env.GEMINI_API_KEY) {
   );
 }
 
-// Configure and export the 'ai' object from this central file.
-export const ai = genkit({
+// Configure the 'ai' object locally within this file. DO NOT EXPORT IT.
+const ai = genkit({
   plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
   model: 'googleai/gemini-2.5-flash',
 });
