@@ -65,7 +65,7 @@ const ChatHistorySchema = z.object({
 });
 
 // Main input schema including all financial data and chat history
-export const FinancialInsightsInputSchema = z.object({
+const FinancialInsightsInputSchema = z.object({
   currentUserName: z.string().describe('The name of the user currently interacting with the system.'),
   incomes: z.array(EnrichedIncomeSchema).describe('List of family incomes, enriched with bank names.'),
   expenses: z.array(EnrichedExpenseSchema).describe('List of family expenses, enriched with bank, category, and payee names.'),
@@ -78,7 +78,7 @@ export const FinancialInsightsInputSchema = z.object({
 export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
 
 // Output schema for the AI's response
-export const FinancialInsightsOutputSchema = z.object({
+const FinancialInsightsOutputSchema = z.object({
   summary: z.string().describe('A detailed, insightful, and friendly analysis of the overall financial situation, directly addressing the current user.'),
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
@@ -112,7 +112,7 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
 
     **Latest User Question:**
     {{#if history}}
-    {{#with (lookup history (Math.sub history.length 1))}}
+    {{#with (lookup history (subtract history.length 1))}}
       "{{content}}"
     {{/with}}
     {{/if}}
@@ -142,9 +142,8 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
     Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,
     model: 'googleai/gemini-2.5-flash',
     config: {
-        // Register a helper to perform subtraction
         customHelpers: {
-            'Math.sub': (a: number, b: number) => a - b,
+            subtract: (a: number, b: number) => a - b,
         }
     }
   });
