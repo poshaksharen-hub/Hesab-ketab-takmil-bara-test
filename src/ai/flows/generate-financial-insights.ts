@@ -65,7 +65,7 @@ const ChatHistorySchema = z.object({
 });
 
 // Main input schema including all financial data and chat history
-export const FinancialInsightsInputSchema = z.object({
+const FinancialInsightsInputSchema = z.object({
   currentUserName: z.string().describe('The name of the user currently interacting with the system.'),
   incomes: z.array(EnrichedIncomeSchema).describe('List of family incomes, enriched with bank names.'),
   expenses: z.array(EnrichedExpenseSchema).describe('List of family expenses, enriched with bank, category, and payee names.'),
@@ -78,14 +78,20 @@ export const FinancialInsightsInputSchema = z.object({
 export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
 
 // Output schema for the AI's response
-export const FinancialInsightsOutputSchema = z.object({
+const FinancialInsightsOutputSchema = z.object({
   summary: z.string().describe('A detailed, insightful, and friendly analysis of the overall financial situation, directly addressing the current user.'),
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
 
 // The main async function that will be called by the server action
-export async function generateFinancialInsights(input: FinancialInsightsInput, apiKey: string): Promise<FinancialInsightsOutput> {
+export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
   
+  // Manually read the API key from server environment variables
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+      throw new Error('کلید API هوش مصنوعی (GEMINI_API_KEY) در سرور تنظیم نشده است.');
+  }
+
   // Configure Genkit locally inside the async server function
   const ai = genkit({
     plugins: [googleAI({ apiKey })],
