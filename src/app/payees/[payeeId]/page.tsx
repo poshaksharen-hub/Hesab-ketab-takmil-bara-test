@@ -7,7 +7,7 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle } from 'lucide-react';
+import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Handshake } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 type CombinedTransaction = {
   date: Date;
   description: string;
-  type: 'expense' | 'check' | 'loan';
+  type: 'expense' | 'check' | 'loan' | 'debt';
   amount: number;
   status?: 'pending' | 'cleared';
   original: any;
@@ -53,7 +53,7 @@ export default function PayeeDetailPage() {
   const payeeId = params.payeeId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { expenses, checks, loans, payees } = allData;
+  const { expenses, checks, loans, payees, previousDebts } = allData;
 
   const { payee, summary, combinedHistory } = useMemo(() => {
     if (isLoading || !payeeId) {
@@ -66,6 +66,7 @@ export default function PayeeDetailPage() {
     const relatedExpenses = expenses.filter(e => e.payeeId === payeeId);
     const relatedChecks = checks.filter(c => c.payeeId === payeeId);
     const relatedLoans = loans.filter(l => l.payeeId === payeeId);
+    const relatedDebts = previousDebts.filter(d => d.payeeId === payeeId);
     
     const clearedCheckExpenses = expenses.filter(e => e.checkId && relatedChecks.some(rc => rc.id === e.checkId));
 
@@ -74,7 +75,9 @@ export default function PayeeDetailPage() {
     const pendingChecks = relatedChecks.filter(c => c.status === 'pending');
     const totalPendingChecksAmount = pendingChecks.reduce((sum, c) => sum + c.amount, 0);
     const totalLoanAmount = relatedLoans.reduce((sum, l) => sum + l.remainingAmount, 0);
-    const totalDebt = totalPendingChecksAmount + totalLoanAmount;
+    const totalPreviousDebtsAmount = relatedDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
+
+    const totalDebt = totalPendingChecksAmount + totalLoanAmount + totalPreviousDebtsAmount;
 
     const expenseHistory: CombinedTransaction[] = relatedExpenses.map(e => ({
       date: new Date(e.date),
@@ -101,8 +104,16 @@ export default function PayeeDetailPage() {
       original: l
     }));
 
+    const debtHistory: CombinedTransaction[] = relatedDebts.map(d => ({
+        date: new Date(d.startDate),
+        description: `بدهی متفرقه: ${d.description}`,
+        type: 'debt',
+        amount: d.amount,
+        original: d
+    }));
 
-    const allHistory = [...expenseHistory, ...checkHistory, ...loanHistory].sort((a,b) => b.date.getTime() - a.date.getTime());
+
+    const allHistory = [...expenseHistory, ...checkHistory, ...loanHistory, ...debtHistory].sort((a,b) => b.date.getTime() - a.date.getTime());
 
     return {
       payee: currentPayee,
@@ -114,7 +125,7 @@ export default function PayeeDetailPage() {
       },
       combinedHistory: allHistory,
     };
-  }, [isLoading, payeeId, payees, expenses, checks, loans]);
+  }, [isLoading, payeeId, payees, expenses, checks, loans, previousDebts]);
 
   if (isLoading) {
     return <PayeeDetailSkeleton />;
@@ -138,11 +149,12 @@ export default function PayeeDetailPage() {
     );
   }
 
-  const getTypeBadge = (type: 'expense' | 'check' | 'loan') => {
+  const getTypeBadge = (type: 'expense' | 'check' | 'loan' | 'debt') => {
       switch(type) {
           case 'expense': return <Badge variant="default" className="bg-fuchsia-600 hover:bg-fuchsia-700">پرداخت نقدی</Badge>;
           case 'check': return <Badge variant="default" className="bg-amber-600 hover:bg-amber-700">چک</Badge>;
           case 'loan': return <Badge variant="default" className="bg-sky-600 hover:bg-sky-700">وام دریافتی</Badge>;
+          case 'debt': return <Badge variant="default" className="bg-indigo-600 hover:bg-indigo-700">بدهی</Badge>;
       }
   }
   
@@ -151,7 +163,25 @@ export default function PayeeDetailPage() {
        if(tx.status === 'cleared') return <Badge className="bg-emerald-500">پاس شده</Badge>;
        return <Badge variant="secondary">در انتظار</Badge>;
     }
+    if (tx.type === 'loan' || tx.type === 'debt') {
+        if(tx.original.remainingAmount <= 0) return <Badge className="bg-emerald-500">تسویه شده</Badge>;
+        return <Badge variant="secondary">در حال پرداخت</Badge>;
+    }
     return null;
+  }
+
+  const getAmountClass = (tx: CombinedTransaction) => {
+    if (tx.type === 'loan' || tx.type === 'debt') {
+      return 'text-emerald-600'; // Received money
+    }
+    return 'text-destructive'; // Paid money
+  }
+
+  const getAmountPrefix = (tx: CombinedTransaction) => {
+      if (tx.type === 'loan' || tx.type === 'debt') {
+        return '+';
+      }
+      return '-';
   }
 
   return (
@@ -179,7 +209,7 @@ export default function PayeeDetailPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-destructive">{formatCurrency(summary.totalDebt || 0, 'IRT')}</div>
-                <p className="text-xs text-muted-foreground">مجموع چک‌های پاس‌نشده و وام‌های باقی‌مانده</p>
+                <p className="text-xs text-muted-foreground">چک‌ها، وام‌ها و بدهی‌های باقی‌مانده</p>
             </CardContent>
         </Card>
         <Card>
@@ -233,8 +263,8 @@ export default function PayeeDetailPage() {
                         <TableCell className="font-medium">{tx.description}</TableCell>
                         <TableCell>{getTypeBadge(tx.type)}</TableCell>
                         <TableCell>{getStatusBadge(tx)}</TableCell>
-                        <TableCell className={cn("text-left font-mono", tx.type === 'loan' ? 'text-emerald-600' : 'text-destructive')}>
-                          {tx.type === 'loan' ? '+' : '-'}{formatCurrency(tx.amount, 'IRT')}
+                        <TableCell className={cn("text-left font-mono", getAmountClass(tx))}>
+                          {getAmountPrefix(tx)}{formatCurrency(tx.amount, 'IRT')}
                         </TableCell>
                     </TableRow>
                     )))}
