@@ -65,7 +65,7 @@ const ChatHistorySchema = z.object({
 });
 
 // Main input schema including all financial data and chat history
-const FinancialInsightsInputSchema = z.object({
+export const FinancialInsightsInputSchema = z.object({
   currentUserName: z.string().describe('The name of the user currently interacting with the system.'),
   incomes: z.array(EnrichedIncomeSchema).describe('List of family incomes, enriched with bank names.'),
   expenses: z.array(EnrichedExpenseSchema).describe('List of family expenses, enriched with bank, category, and payee names.'),
@@ -78,7 +78,7 @@ const FinancialInsightsInputSchema = z.object({
 export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
 
 // Output schema for the AI's response
-const FinancialInsightsOutputSchema = z.object({
+export const FinancialInsightsOutputSchema = z.object({
   summary: z.string().describe('A detailed, insightful, and friendly analysis of the overall financial situation, directly addressing the current user.'),
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
@@ -104,14 +104,18 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
     prompt: `You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is {{{currentUserName}}}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing {{{currentUserName}}} directly.
 
     **Conversation History So Far:**
+    {{#if history}}
     {{#each history}}
     - **{{role}}**: {{content}}
     {{/each}}
+    {{/if}}
 
     **Latest User Question:**
-    {{#with (lookup history (subtract history.length 1))}}
+    {{#if history}}
+    {{#with (lookup history (Math.sub history.length 1))}}
       "{{content}}"
     {{/with}}
+    {{/if}}
 
     Based on the latest user question and the entire conversation history, provide a relevant, helpful, and insightful response. Use the comprehensive financial data below to inform your answer. If the user asks for a general analysis, perform the "Comprehensive Analysis" task. If they ask a specific question, answer it using the data.
 
@@ -137,6 +141,12 @@ export async function generateFinancialInsights(input: FinancialInsightsInput): 
 
     Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,
     model: 'googleai/gemini-2.5-flash',
+    config: {
+        // Register a helper to perform subtraction
+        customHelpers: {
+            'Math.sub': (a: number, b: number) => a - b,
+        }
+    }
   });
 
   // Define the flow, which will be called by the main function
