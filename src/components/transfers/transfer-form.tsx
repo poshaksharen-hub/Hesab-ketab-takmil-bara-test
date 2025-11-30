@@ -142,7 +142,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                       <SelectContent className="max-h-[250px]">
                         {availableToAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
+                            {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
