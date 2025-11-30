@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from "react";
 import DatePicker from "@hassanmojab/react-modern-calendar-datepicker";
 import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
+import 'react-day-picker/dist/style.css';
+
 
 import {
-  Dialog,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { JalaliDialogContent } from "@/components/ui/jalali-dialog-content";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -75,7 +75,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
         setSelectedDay(null);
         onChange(null);
       }
-      setIsOpen(false);
+      setIsOpen(false); // Close the popover on selection
   }
 
   const formatInputValue = () => {
@@ -84,8 +84,8 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
         <Button
           variant={"outline"}
           className={cn(
@@ -97,19 +97,16 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           <CalendarIcon className="ml-2 h-4 w-4" />
           {value ? formatInputValue() : <span>{placeholder}</span>}
         </Button>
-      </DialogTrigger>
-      <JalaliDialogContent>
-        <DialogHeader>
-          <DialogTitle className="sr-only">انتخاب تاریخ</DialogTitle>
-        </DialogHeader>
-        <Calendar
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 calendar-container">
+         <Calendar
             value={selectedDay}
             onChange={handleDayChange}
             shouldHighlightWeekends
             locale="fa" // This enables the Persian calendar
             calendarClassName="responsive-calendar" // for custom styling
         />
-      </JalaliDialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   )
 }
