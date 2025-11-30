@@ -1,7 +1,3 @@
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
-
-export const ai = genkit({
-  plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
-  model: 'googleai/gemini-2.5-flash',
-});
+// This file is intentionally left blank.
+// The Genkit configuration has been moved to src/ai/dev.ts to resolve API key loading issues.
+// Flows should now import the 'ai' object from '@//ai/dev.ts'.

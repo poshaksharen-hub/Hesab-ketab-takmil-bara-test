@@ -9,7 +9,7 @@
  * - FinancialInsightsOutput - The return type for the generateFinancialInsights function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai} from '@/ai/dev'; // IMPORTANT: Changed import path
 import {z} from 'genkit';
 
 const EnrichedIncomeSchema = z.object({
