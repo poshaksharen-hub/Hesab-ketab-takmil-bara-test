@@ -1,20 +1,34 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import { AppLayout } from '@/components/layout/app-layout';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 
+const APP_NAME = "حساب کتاب";
+const APP_DESCRIPTION = "اپلیکیشن حسابداری خانواده شما";
+
 export const metadata: Metadata = {
-  title: 'حساب کتاب',
-  description: 'اپلیکیشن حسابداری خانواده شما',
-  manifest: '/manifest.webmanifest',
-  themeColor: '#2563eb', // A blue color consistent with the theme
+  applicationName: APP_NAME,
+  title: {
+    default: APP_NAME,
+    template: `%s | ${APP_NAME}`,
+  },
+  description: APP_DESCRIPTION,
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
-    title: 'حساب کتاب',
+    statusBarStyle: "default",
+    title: APP_NAME,
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
+
+export const viewport: Viewport = {
+  themeColor: "#FFFFFF",
+};
+
 
 export default function RootLayout({
   children,
