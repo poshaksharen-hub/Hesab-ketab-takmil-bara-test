@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +28,7 @@ import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { USER_DETAILS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import { Textarea } from '../ui/textarea';
+import { AddPayeeDialog } from '../payees/add-payee-dialog';
 
 const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
@@ -50,7 +51,7 @@ type CheckFormValues = z.infer<typeof formSchema>;
 interface CheckFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: CheckFormValues) => void;
+  onSubmit: (data: any) => void;
   initialData: Check | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
@@ -58,6 +59,8 @@ interface CheckFormProps {
 }
 
 export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, categories }: CheckFormProps) {
+  const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
+
   const form = useForm<CheckFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -101,6 +104,15 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
   function handleFormSubmit(data: CheckFormValues) {
     onSubmit(data);
   }
+  
+  const handlePayeeSelection = (value: string) => {
+    if (value === 'add_new') {
+        setIsAddPayeeOpen(true);
+    } else {
+        form.setValue('payeeId', value);
+    }
+  };
+
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
@@ -114,172 +126,184 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
   const checkingAccounts = [...bankAccounts.filter(acc => acc.accountType === 'checking')].sort((a, b) => b.balance - a.balance);
 
   return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">
-            {initialData ? 'ویرایش چک' : 'ثبت چک جدید'}
-          </CardTitle>
-        </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <>
+        <Card>
+            <CardHeader>
+            <CardTitle className="font-headline">
+                {initialData ? 'ویرایش چک' : 'ثبت چک جدید'}
+            </CardTitle>
+            </CardHeader>
+            <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+                <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="payeeId"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>طرف حساب</FormLabel>
+                            <Select onValueChange={handlePayeeSelection} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-[250px]">
+                                <SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>
+                                {payees.map((payee) => (
+                                <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="amount"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>مبلغ (تومان)</FormLabel>
+                            <FormControl>
+                            <CurrencyInput value={field.value} onChange={field.onChange} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="sayadId"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>شماره صیادی</FormLabel>
+                            <FormControl>
+                            <NumericInput dir="ltr" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="checkSerialNumber"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>شماره سری چک</FormLabel>
+                            <FormControl>
+                            <NumericInput dir="ltr" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="bankAccountId"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>از حساب</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="یک حساب دارای دسته‌چک انتخاب کنید" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-[250px]">
+                                {checkingAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                    {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="categoryId"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>دسته‌بندی</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-[250px]">
+                                {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="issueDate"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>تاریخ صدور</FormLabel>
+                            <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="dueDate"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>تاریخ سررسید</FormLabel>
+                            <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
                 <FormField
                     control={form.control}
-                    name="payeeId"
+                    name="description"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>طرف حساب</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <FormLabel>توضیحات (اختیاری)</FormLabel>
                         <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="max-h-[250px]">
-                            {payees.map((payee) => (
-                            <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>مبلغ (تومان)</FormLabel>
-                        <FormControl>
-                          <CurrencyInput value={field.value} onChange={field.onChange} />
+                        <Textarea placeholder="مثال: بابت خرید ..." {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField
-                    control={form.control}
-                    name="sayadId"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>شماره صیادی</FormLabel>
-                        <FormControl>
-                          <NumericInput dir="ltr" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="checkSerialNumber"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>شماره سری چک</FormLabel>
-                        <FormControl>
-                          <NumericInput dir="ltr" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="bankAccountId"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>از حساب</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="یک حساب دارای دسته‌چک انتخاب کنید" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="max-h-[250px]">
-                            {checkingAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                                {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
-                            </SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>دسته‌بندی</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="max-h-[250px]">
-                            {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="issueDate"
-                    render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                        <FormLabel>تاریخ صدور</FormLabel>
-                        <JalaliDatePicker value={field.value} onChange={field.onChange} />
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                        <FormLabel>تاریخ سررسید</FormLabel>
-                        <JalaliDatePicker value={field.value} onChange={field.onChange} />
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>توضیحات (اختیاری)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="مثال: بابت خرید ..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
-                <Button type="submit">ذخیره</Button>
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
+                    <Button type="submit">ذخیره</Button>
+                </CardFooter>
+            </form>
+            </Form>
+        </Card>
+        {isAddPayeeOpen && (
+            <AddPayeeDialog
+                isOpen={isAddPayeeOpen}
+                onOpenChange={setIsAddPayeeOpen}
+                onPayeeAdded={(newPayee) => {
+                    form.setValue('payeeId', newPayee.id);
+                }}
+            />
+        )}
+      </>
   );
 }

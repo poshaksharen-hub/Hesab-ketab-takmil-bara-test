@@ -27,7 +27,7 @@ export default function PayeesPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingPayee, setEditingPayee] = React.useState<Payee | null>(null);
 
-  const { payees, checks, expenses, loans } = allData;
+  const { payees, checks, expenses, loans, previousDebts } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Payee, 'id'>) => {
     if (!user || !firestore) return;
@@ -85,6 +85,10 @@ export default function PayeesPage() {
              if (isUsedInLoans) {
                 throw new Error("امکان حذف وجود ندارد. این طرف حساب در یک یا چند وام استفاده شده است.");
             }
+            const isUsedInDebts = previousDebts.some(d => d.payeeId === payeeId);
+            if (isUsedInDebts) {
+                throw new Error("امکان حذف وجود ندارد. این طرف حساب در یک یا چند بدهی متفرقه استفاده شده است.");
+            }
             
             transaction.delete(payeeRef);
         });
@@ -105,7 +109,7 @@ export default function PayeesPage() {
             });
         }
     }
-  }, [user, firestore, toast, checks, expenses, loans]);
+  }, [user, firestore, toast, checks, expenses, loans, previousDebts]);
 
   const handleEdit = React.useCallback((payee: Payee) => {
     setEditingPayee(payee);
