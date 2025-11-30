@@ -1,19 +1,71 @@
 
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { InsightsGenerator } from '@/components/insights/insights-generator';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
+import { type FinancialInsightsInput } from '@/ai/flows/generate-financial-insights';
+import { USER_DETAILS } from '@/lib/constants';
+
 
 export default function InsightsPage() {
   const { isLoading, allData } = useDashboardData();
 
-  const transactionHistory = React.useMemo(() => {
-    if (isLoading || !allData) return "[]";
-    const allTransactions = [...allData.incomes, ...allData.expenses];
-    // Sort by date to have a chronological history
-    allTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    return JSON.stringify(allTransactions, null, 2);
+  const financialData = useMemo((): FinancialInsightsInput | null => {
+    if (isLoading || !allData) return null;
+
+    const { incomes, expenses, bankAccounts, categories, payees, users, checks, loans, previousDebts } = allData;
+    
+    const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'نامشخص';
+    const getPayeeName = (id: string) => payees.find(p => p.id === id)?.name || 'نامشخص';
+    const getBankAccountName = (id: string) => {
+        const account = bankAccounts.find(b => b.id === id);
+        if (!account) return 'نامشخص';
+        const ownerName = account.ownerId === 'shared' ? 'مشترک' : USER_DETAILS[account.ownerId]?.firstName || 'ناشناس';
+        return `${account.bankName} (${ownerName})`;
+    };
+    const getUserName = (id: string) => users.find(u => u.id === id)?.firstName || 'ناشناس';
+    
+    const enrichedIncomes = incomes.map(income => ({
+        ...income,
+        bankAccountName: getBankAccountName(income.bankAccountId),
+        registeredBy: getUserName(income.registeredByUserId),
+    }));
+
+    const enrichedExpenses = expenses.map(expense => ({
+        ...expense,
+        bankAccountName: getBankAccountName(expense.bankAccountId),
+        categoryName: getCategoryName(expense.categoryId),
+        payeeName: expense.payeeId ? getPayeeName(expense.payeeId) : undefined,
+        registeredBy: getUserName(expense.registeredByUserId),
+        expenseFor: expense.expenseFor ? USER_DETAILS[expense.expenseFor]?.firstName || 'مشترک' : 'مشترک'
+    }));
+
+    const enrichedChecks = checks.filter(c => c.status === 'pending').map(check => ({
+        ...check,
+        payeeName: getPayeeName(check.payeeId),
+        bankAccountName: getBankAccountName(check.bankAccountId),
+    }));
+
+    const enrichedLoans = loans.filter(l => l.remainingAmount > 0).map(loan => ({
+        ...loan,
+        payeeName: loan.payeeId ? getPayeeName(loan.payeeId) : 'نامشخص',
+    }));
+
+    const enrichedDebts = previousDebts.filter(d => d.remainingAmount > 0).map(debt => ({
+        ...debt,
+        payeeName: getPayeeName(debt.payeeId),
+    }));
+
+
+    return {
+      incomes: enrichedIncomes,
+      expenses: enrichedExpenses,
+      bankAccounts,
+      checks: enrichedChecks,
+      loans: enrichedLoans,
+      previousDebts: enrichedDebts,
+    };
   }, [isLoading, allData]);
 
 
@@ -37,7 +89,7 @@ export default function InsightsPage() {
             </div>
         </div>
       ) : (
-        <InsightsGenerator transactionHistory={transactionHistory} />
+        <InsightsGenerator financialData={financialData} />
       )}
     </main>
   );

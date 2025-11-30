@@ -6,16 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, BrainCircuit } from 'lucide-react';
 import { getFinancialInsightsAction } from '@/app/insights/actions';
-import { type FinancialInsightsOutput } from '@/ai/flows/generate-financial-insights';
+import { type FinancialInsightsOutput, type FinancialInsightsInput } from '@/ai/flows/generate-financial-insights';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 
 interface InsightsGeneratorProps {
-  transactionHistory: string;
+  financialData: FinancialInsightsInput | null;
 }
 
-export function InsightsGenerator({ transactionHistory }: InsightsGeneratorProps) {
+export function InsightsGenerator({ financialData }: InsightsGeneratorProps) {
   const [isPending, startTransition] = useTransition();
   const [insights, setInsights] = useState<FinancialInsightsOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function InsightsGenerator({ transactionHistory }: InsightsGeneratorProps
     startTransition(async () => {
       setError(null);
       setInsights(null);
-      const result = await getFinancialInsightsAction(transactionHistory);
+      const result = await getFinancialInsightsAction(financialData);
       if (result.success && result.data) {
         setInsights(result.data);
       } else {
@@ -43,12 +43,12 @@ export function InsightsGenerator({ transactionHistory }: InsightsGeneratorProps
             <div>
                 <CardTitle className="font-headline">تحلیل وضعیت مالی</CardTitle>
                 <CardDescription>
-                    برای پردازش تراکنش‌های اخیر و دریافت خلاصه و پیشنهادهای هوش مصنوعی، روی دکمه زیر کلیک کنید.
+                    برای پردازش داده‌های مالی اخیر و دریافت خلاصه و پیشنهادهای هوش مصنوعی، روی دکمه زیر کلیک کنید.
                 </CardDescription>
             </div>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleGenerate} disabled={isPending || transactionHistory === "[]"}>
+          <Button onClick={handleGenerate} disabled={isPending || !financialData}>
             <Sparkles className="ml-2 h-4 w-4" />
             {isPending ? 'در حال تحلیل...' : 'شروع تحلیل'}
           </Button>
