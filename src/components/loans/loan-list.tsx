@@ -109,53 +109,51 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
                                      </CardDescription>
                                 )}
                             </div>
-                           <div className="flex gap-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                               <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
-                                            <MoreVertical className="h-5 w-5" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem asChild>
-                                           <Link href={`/loans/${loan.id}`}>
-                                            <History className="ml-2 h-4 w-4" />
-                                            مشاهده تاریخچه
-                                           </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted}>
-                                            <Edit className="ml-2 h-4 w-4" />
-                                            ویرایش وام
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
-                                                    <Trash2 className="ml-2 h-4 w-4" />
-                                                    حذف وام
-                                                </div>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                   این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط (مانند واریز اولیه) معکوس و وام حذف خواهد شد.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    className="bg-destructive hover:bg-destructive/90"
-                                                    disabled={loan.paidInstallments > 0}
-                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
-                                                    بله، حذف کن
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                           </div>
+                           <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                        <MoreVertical className="h-5 w-5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem asChild>
+                                       <Link href={`/loans/${loan.id}`}>
+                                        <History className="ml-2 h-4 w-4" />
+                                        مشاهده تاریخچه
+                                       </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted}>
+                                        <Edit className="ml-2 h-4 w-4" />
+                                        ویرایش وام
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                <Trash2 className="ml-2 h-4 w-4" />
+                                                حذف وام
+                                            </div>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                               این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط (مانند واریز اولیه) معکوس و وام حذف خواهد شد.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                className="bg-destructive hover:bg-destructive/90"
+                                                disabled={loan.paidInstallments > 0}
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
+                                                بله، حذف کن
+                                            </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </CardHeader>
                     <CardContent>
