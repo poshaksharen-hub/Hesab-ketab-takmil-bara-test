@@ -148,11 +148,11 @@ export default function LoginPage() {
           });
         }
       } else {
-        // Handle other sign-in errors
+        // Handle other sign-in errors like wrong password
         toast({
           variant: 'destructive',
           title: 'خطا در ورود',
-          description: 'ایمیل یا رمز عبور اشتباه است. لطفاً دوباره تلاش کنید.',
+          description: 'ایمیل یا رمز عبور اشتباه است.',
         });
       }
     } finally {
