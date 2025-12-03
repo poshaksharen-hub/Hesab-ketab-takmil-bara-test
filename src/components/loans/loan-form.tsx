@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useEffect, useCallback, useState } from 'react';
 import { z } from 'zod';
@@ -35,10 +34,10 @@ const formSchema = z.object({
   payeeId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'مبلغ وام باید یک عدد مثبت باشد.' }),
   ownerId: z.enum(['ali', 'fatemeh', 'shared']).optional(),
-  installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').optional(),
-  numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').optional(),
+  installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').default(0),
+  numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').default(0),
   startDate: z.date({ required_error: 'لطفا تاریخ شروع را انتخاب کنید.' }),
-  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').optional(),
+  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').default(1),
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
 }).refine(data => {
@@ -72,9 +71,9 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             amount: 0,
             ownerId: 'shared',
             installmentAmount: 0,
-            numberOfInstallments: undefined,
+            numberOfInstallments: 0,
             startDate: new Date(),
-            paymentDay: undefined,
+            paymentDay: 1,
             depositOnCreate: false,
             depositToAccountId: '',
         },
@@ -96,8 +95,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 startDate: new Date(initialData.startDate),
                 payeeId: initialData.payeeId || '',
                 installmentAmount: initialData.installmentAmount || 0,
-                numberOfInstallments: initialData.numberOfInstallments || undefined,
-                paymentDay: initialData.paymentDay || undefined,
+                numberOfInstallments: initialData.numberOfInstallments || 0,
+                paymentDay: initialData.paymentDay || 1,
                 depositOnCreate: !!initialData.depositToAccountId,
                 depositToAccountId: initialData.depositToAccountId || '',
             });
@@ -108,9 +107,9 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 amount: 0,
                 ownerId: 'shared',
                 installmentAmount: 0,
-                numberOfInstallments: undefined,
+                numberOfInstallments: 0,
                 startDate: new Date(),
-                paymentDay: undefined,
+                paymentDay: 1,
                 depositOnCreate: false,
                 depositToAccountId: '',
             });
@@ -123,8 +122,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         const submissionData = {
             ...data,
             startDate: data.startDate.toISOString(),
-            payeeId: data.payeeId,
-            ownerId: data.ownerId
         };
         onSubmit(submissionData);
     }, [onSubmit]);
@@ -235,7 +232,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 <FormItem>
                                     <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
                                     <FormControl>
-                                    <CurrencyInput value={field.value || 0} onChange={field.onChange} />
+                                    <CurrencyInput value={field.value} onChange={field.onChange} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -251,8 +248,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         <Input
                                             type="number"
                                             {...field}
-                                            value={field.value ?? ''}
-                                            onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                                            value={field.value}
+                                            onChange={e => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value, 10))}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -274,8 +271,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         min="1"
                                         max="30"
                                         {...field}
-                                        value={field.value ?? ''}
-                                        onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                                        value={field.value}
+                                        onChange={e => field.onChange(e.target.value === '' ? 1 : parseInt(e.target.value, 10))}
                                     />
                                 </FormControl>
                                 <FormDescription>
