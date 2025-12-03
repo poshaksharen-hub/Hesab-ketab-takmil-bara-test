@@ -56,6 +56,8 @@ export default function LoansPage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const loansCollectionRef = collection(familyDataRef, 'loans');
+            const newLoanRef = doc(loansCollectionRef);
             
             let bankAccountDoc = null;
             let bankAccountData: BankAccount | null = null;
@@ -72,8 +74,6 @@ export default function LoansPage() {
                 finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
             }
             
-            const newLoanRef = doc(collection(familyDataRef, 'loans'));
-
             const newLoanData: Loan = {
                 id: newLoanRef.id,
                 registeredByUserId: user.uid,
