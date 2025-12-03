@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -20,14 +19,45 @@ service cloud.firestore {
     }
 
     // Rule for all shared family data, which lives under a single document 'shared-data'.
-    // This provides a single entry point for securing all subcollections.
     match /family-data/shared-data {
-      // Allow reading/writing the document itself if needed in the future,
-      // but the main purpose is to secure its subcollections.
+      // Allow reading/writing the document itself, which is needed to access subcollections.
       allow read, write: if isFamilyMember();
-      
-      // Generic rule for ALL subcollections under 'shared-data'
-      match /{subcollection}/{docId} {
+
+      // Specific rules for EACH subcollection under 'shared-data'
+      match /bankAccounts/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /incomes/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /expenses/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /categories/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /payees/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /checks/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /financialGoals/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /loans/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /loanPayments/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /previousDebts/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /debtPayments/{docId} {
+        allow read, write: if isFamilyMember();
+      }
+      match /transfers/{docId} {
         allow read, write: if isFamilyMember();
       }
     }
