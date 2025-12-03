@@ -86,8 +86,8 @@ export default function LoansPage() {
                 paymentDay: paymentDay || 1,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
-                remainingAmount: amount, // Initialize remainingAmount with the full loan amount
-                paidInstallments: 0, // Initialize paidInstallments to 0
+                remainingAmount: amount,
+                paidInstallments: 0,
             };
             
             transaction.set(newLoanRef, newLoanData);
