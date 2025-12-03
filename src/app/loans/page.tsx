@@ -84,6 +84,7 @@ export default function LoansPage() {
 
         if (values.depositOnCreate && values.depositToAccountId) {
             const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
+            // Re-get inside transaction for consistency
             const bankAccountDoc = await transaction.get(bankAccountRef);
             if (bankAccountDoc.exists()) {
                  const bankAccountData = bankAccountDoc.data() as BankAccount;
@@ -258,10 +259,10 @@ export default function LoansPage() {
     setIsFormOpen(true);
   };
 
-  const handleEdit = (loan: Loan) => {
+  const handleEdit = useCallback((loan: Loan) => {
     setEditingLoan(loan);
     setIsFormOpen(true);
-  }
+  }, []);
   
   const handleCancel = () => {
     setIsFormOpen(false);
