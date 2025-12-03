@@ -72,7 +72,6 @@ export default function LoansPage() {
                 finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
             }
 
-            // This is the main data for the loan, ensuring all required fields are present.
             const loanData: Omit<Loan, 'id' | 'registeredByUserId'> = {
                 title,
                 amount,
@@ -83,8 +82,8 @@ export default function LoansPage() {
                 paymentDay: paymentDay || 1,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
-                remainingAmount: amount, // Correctly initialize remainingAmount
-                paidInstallments: 0,   // Correctly initialize paidInstallments
+                remainingAmount: amount,
+                paidInstallments: 0,
             };
 
             const newLoanRef = doc(collection(familyDataRef, 'loans'));
