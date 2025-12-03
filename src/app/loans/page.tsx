@@ -40,19 +40,6 @@ export default function LoansPage() {
   const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
 
-    const {
-        title,
-        amount,
-        installmentAmount,
-        numberOfInstallments,
-        startDate,
-        paymentDay,
-        payeeId,
-        ownerId,
-        depositOnCreate,
-        depositToAccountId,
-    } = values;
-
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
@@ -61,10 +48,10 @@ export default function LoansPage() {
             
             let bankAccountDoc = null;
             let bankAccountData: BankAccount | null = null;
-            let finalOwnerId: OwnerId = ownerId;
+            let finalOwnerId: OwnerId = values.ownerId;
 
-            if (depositOnCreate && depositToAccountId) {
-                const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
+            if (values.depositOnCreate && values.depositToAccountId) {
+                const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
                 bankAccountDoc = await transaction.get(bankAccountRef);
 
                 if (!bankAccountDoc.exists()) {
@@ -74,25 +61,27 @@ export default function LoansPage() {
                 finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
             }
             
+            // Create the complete, valid Loan object directly
             const newLoanData: Loan = {
                 id: newLoanRef.id,
                 registeredByUserId: user.uid,
-                title,
-                amount,
+                title: values.title,
+                amount: values.amount,
                 ownerId: finalOwnerId,
-                installmentAmount: installmentAmount || 0,
-                numberOfInstallments: numberOfInstallments || 0,
-                startDate: startDate,
-                paymentDay: paymentDay || 1,
-                payeeId: payeeId || undefined,
-                depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
-                remainingAmount: amount,
-                paidInstallments: 0,
+                installmentAmount: values.installmentAmount || 0,
+                numberOfInstallments: values.numberOfInstallments || 0,
+                startDate: values.startDate,
+                paymentDay: values.paymentDay || 1,
+                payeeId: values.payeeId || undefined,
+                depositToAccountId: (values.depositOnCreate && values.depositToAccountId) ? values.depositToAccountId : undefined,
+                remainingAmount: values.amount, // Explicitly set remainingAmount
+                paidInstallments: 0, // Explicitly set paidInstallments
             };
             
+            // Set the complete object in the transaction
             transaction.set(newLoanRef, newLoanData);
 
-            if (depositOnCreate && depositToAccountId && bankAccountDoc && bankAccountData) {
+            if (values.depositOnCreate && values.depositToAccountId && bankAccountDoc && bankAccountData) {
                 const bankAccountRef = bankAccountDoc.ref;
                 const balanceAfter = bankAccountData.balance + newLoanData.amount;
                 transaction.update(bankAccountRef, { balance: balanceAfter });
