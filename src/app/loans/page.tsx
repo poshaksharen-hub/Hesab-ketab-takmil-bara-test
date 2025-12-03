@@ -82,8 +82,8 @@ export default function LoansPage() {
                 paymentDay: paymentDay || 1,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
-                remainingAmount: amount,
-                paidInstallments: 0,
+                remainingAmount: amount, // Initialize remaining amount
+                paidInstallments: 0, // Initialize paid installments
             };
 
             const newLoanRef = doc(collection(familyDataRef, 'loans'));
