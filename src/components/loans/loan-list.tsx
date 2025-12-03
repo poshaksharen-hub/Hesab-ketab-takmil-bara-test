@@ -1,11 +1,9 @@
-
-
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History } from 'lucide-react';
+import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History, Edit } from 'lucide-react';
 import type { Loan, LoanPayment, Payee, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -41,9 +39,10 @@ interface LoanListProps {
   bankAccounts: BankAccount[];
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
+  onEdit: (loan: Loan) => void;
 }
 
-export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanListProps) {
+export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -123,6 +122,10 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay }: LoanL
                                             <History className="ml-2 h-4 w-4" />
                                             مشاهده تاریخچه
                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted}>
+                                            <Edit className="ml-2 h-4 w-4" />
+                                            ویرایش وام
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <AlertDialog>

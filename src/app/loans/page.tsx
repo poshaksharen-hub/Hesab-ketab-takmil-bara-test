@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -65,12 +64,12 @@ export default function LoansPage() {
             title: values.title,
             amount: values.amount,
             ownerId: finalOwnerId,
-            installmentAmount: values.installmentAmount || 0,
-            numberOfInstallments: values.numberOfInstallments || 0,
+            installmentAmount: values.installmentAmount,
+            numberOfInstallments: values.numberOfInstallments,
             startDate: values.startDate,
-            paymentDay: values.paymentDay || 1,
-            remainingAmount: values.amount, // Always initialize remaining amount
-            paidInstallments: 0, // Always initialize paid installments
+            paymentDay: values.paymentDay,
+            remainingAmount: values.amount, 
+            paidInstallments: 0,
         };
 
         // Conditionally add optional fields ONLY if they have a value
@@ -258,6 +257,11 @@ export default function LoansPage() {
     setEditingLoan(null);
     setIsFormOpen(true);
   };
+
+  const handleEdit = (loan: Loan) => {
+    setEditingLoan(loan);
+    setIsFormOpen(true);
+  }
   
   const handleCancel = () => {
     setIsFormOpen(false);
@@ -303,6 +307,7 @@ export default function LoansPage() {
                 bankAccounts={bankAccounts || []}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
+                onEdit={handleEdit}
             />
             {payingLoan && (
                 <LoanPaymentDialog
