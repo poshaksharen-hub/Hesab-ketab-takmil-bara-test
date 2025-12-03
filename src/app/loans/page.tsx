@@ -41,55 +41,62 @@ export default function LoansPage() {
     if (!user || !firestore) return;
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            
-            let finalOwnerId: OwnerId = values.ownerId;
-            if (values.depositOnCreate && values.depositToAccountId) {
-                const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
-                const bankAccountDoc = await transaction.get(bankAccountRef);
+      await runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        
+        let finalOwnerId: OwnerId = values.ownerId;
+        if (values.depositOnCreate && values.depositToAccountId) {
+            const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
+            const bankAccountDoc = await transaction.get(bankAccountRef);
 
-                if (!bankAccountDoc.exists()) {
-                    throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
-                }
-                const bankAccountData = bankAccountDoc.data() as BankAccount;
-                finalOwnerId = bankAccountData.ownerId;
+            if (!bankAccountDoc.exists()) {
+                throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
             }
+            const bankAccountData = bankAccountDoc.data() as BankAccount;
+            finalOwnerId = bankAccountData.ownerId;
+        }
 
-            const newLoanRef = doc(collection(familyDataRef, 'loans'));
+        const newLoanRef = doc(collection(familyDataRef, 'loans'));
 
-            const newLoanData: Loan = {
-                id: newLoanRef.id,
-                registeredByUserId: user.uid,
-                title: values.title,
-                amount: values.amount,
-                ownerId: finalOwnerId,
-                installmentAmount: values.installmentAmount,
-                numberOfInstallments: values.numberOfInstallments,
-                startDate: values.startDate,
-                paymentDay: values.paymentDay,
-                payeeId: values.payeeId || undefined,
-                depositToAccountId: (values.depositOnCreate && values.depositToAccountId) ? values.depositToAccountId : undefined,
-                remainingAmount: values.amount,
-                paidInstallments: 0,
-            };
+        // Build the complete and valid Loan object
+        const newLoanData: Loan = {
+            id: newLoanRef.id,
+            registeredByUserId: user.uid,
+            title: values.title,
+            amount: values.amount,
+            ownerId: finalOwnerId,
+            installmentAmount: values.installmentAmount || 0,
+            numberOfInstallments: values.numberOfInstallments || 0,
+            startDate: values.startDate,
+            paymentDay: values.paymentDay || 1,
+            remainingAmount: values.amount, // Always initialize remaining amount
+            paidInstallments: 0, // Always initialize paid installments
+        };
 
-            transaction.set(newLoanRef, newLoanData);
+        // Conditionally add optional fields ONLY if they have a value
+        if (values.payeeId) {
+            newLoanData.payeeId = values.payeeId;
+        }
+        if (values.depositOnCreate && values.depositToAccountId) {
+            newLoanData.depositToAccountId = values.depositToAccountId;
+        }
+        
+        transaction.set(newLoanRef, newLoanData);
 
-            if (values.depositOnCreate && values.depositToAccountId) {
-                const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
-                const bankAccountDoc = await transaction.get(bankAccountRef);
-                if (bankAccountDoc.exists()) {
-                     const bankAccountData = bankAccountDoc.data() as BankAccount;
-                     const balanceAfter = bankAccountData.balance + newLoanData.amount;
-                     transaction.update(bankAccountRef, { balance: balanceAfter });
-                }
+        if (values.depositOnCreate && values.depositToAccountId) {
+            const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
+            const bankAccountDoc = await transaction.get(bankAccountRef);
+            if (bankAccountDoc.exists()) {
+                 const bankAccountData = bankAccountDoc.data() as BankAccount;
+                 const balanceAfter = bankAccountData.balance + newLoanData.amount;
+                 transaction.update(bankAccountRef, { balance: balanceAfter });
             }
-        });
+        }
+      });
 
-        toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
-        setIsFormOpen(false);
-        setEditingLoan(null);
+      toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
+      setIsFormOpen(false);
+      setEditingLoan(null);
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
