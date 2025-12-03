@@ -72,7 +72,11 @@ export default function LoansPage() {
                 finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
             }
 
-            const loanData: Omit<Loan, 'id' | 'registeredByUserId'> = {
+            const newLoanRef = doc(collection(familyDataRef, 'loans'));
+
+            const newLoanData: Loan = {
+                id: newLoanRef.id,
+                registeredByUserId: user.uid,
                 title,
                 amount,
                 ownerId: finalOwnerId,
@@ -82,20 +86,15 @@ export default function LoansPage() {
                 paymentDay: paymentDay || 1,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
-                remainingAmount: amount, // Initialize remaining amount
-                paidInstallments: 0, // Initialize paid installments
+                remainingAmount: amount, // Always initialize remaining amount to the full amount
+                paidInstallments: 0,   // Always initialize paid installments to zero
             };
-
-            const newLoanRef = doc(collection(familyDataRef, 'loans'));
-            transaction.set(newLoanRef, {
-                ...loanData,
-                id: newLoanRef.id,
-                registeredByUserId: user.uid,
-            });
+            
+            transaction.set(newLoanRef, newLoanData);
 
             if (depositOnCreate && depositToAccountId && bankAccountDoc && bankAccountData) {
                 const bankAccountRef = bankAccountDoc.ref;
-                const balanceAfter = bankAccountData.balance + loanData.amount;
+                const balanceAfter = bankAccountData.balance + newLoanData.amount;
                 transaction.update(bankAccountRef, { balance: balanceAfter });
             }
         });
