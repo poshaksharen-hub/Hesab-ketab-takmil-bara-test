@@ -13,7 +13,7 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
-import { Input, CurrencyInput } from '@/components/ui/input';
+import { Input, CurrencyInput, NumericInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -245,11 +245,9 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 <FormItem>
                                     <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
                                     <FormControl>
-                                        <Input
-                                            type="number"
+                                        <NumericInput
                                             {...field}
-                                            value={field.value}
-                                            onChange={e => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value, 10))}
+                                            onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -266,13 +264,11 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             <FormItem>
                                 <FormLabel>روز یادآوری پرداخت در ماه</FormLabel>
                                 <FormControl>
-                                    <Input
-                                        type="number"
+                                    <NumericInput
                                         min="1"
                                         max="30"
                                         {...field}
-                                        value={field.value}
-                                        onChange={e => field.onChange(e.target.value === '' ? 1 : parseInt(e.target.value, 10))}
+                                        onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 1)}
                                     />
                                 </FormControl>
                                 <FormDescription>
