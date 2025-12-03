@@ -86,11 +86,11 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
               </AvatarFallback>
             </Avatar>
             <div className="ml-4 space-y-1">
-              <p className="text-sm font-medium leading-none flex items-center gap-2">
+              <div className="text-sm font-medium leading-none flex items-center gap-2">
                 {transaction.description}
                 {isShared(transaction) && <Badge variant="secondary">مشترک</Badge>}
                 {!isIncome && getExpenseForBadge(transaction as Expense)}
-              </p>
+              </div>
               <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transactionDate)}</span></p>
             </div>
             <div
