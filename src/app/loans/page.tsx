@@ -72,6 +72,7 @@ export default function LoansPage() {
                 finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
             }
 
+            // This is the main data for the loan, ensuring all required fields are present.
             const loanData: Omit<Loan, 'id' | 'registeredByUserId'> = {
                 title,
                 amount,
@@ -82,8 +83,8 @@ export default function LoansPage() {
                 paymentDay: paymentDay || 1,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
-                remainingAmount: amount, // Initialize remainingAmount here
-                paidInstallments: 0 // Initialize paidInstallments here
+                remainingAmount: amount, // Correctly initialize remainingAmount
+                paidInstallments: 0,   // Correctly initialize paidInstallments
             };
 
             const newLoanRef = doc(collection(familyDataRef, 'loans'));
@@ -120,7 +121,7 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, editingLoan, toast, payees]);
+}, [user, firestore, toast, payees]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
