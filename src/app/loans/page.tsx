@@ -209,6 +209,7 @@ export default function LoansPage() {
         return;
     }
     
+    // Prevent deletion if there's a payment history.
     if (loanToDelete.paidInstallments > 0) {
         toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌ها را به صورت دستی برگردانید و سپس وام را حذف کنید.' });
         return;
@@ -227,10 +228,12 @@ export default function LoansPage() {
                     const accountData = depositAccountDoc.data() as BankAccount;
                     transaction.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
                 } else {
+                    // This warning is helpful for debugging but won't stop the deletion.
                     console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found. The deletion will proceed without reversing the initial deposit.`);
                 }
             }
             
+            // Finally, delete the loan document itself.
             transaction.delete(loanRef);
         });
 
