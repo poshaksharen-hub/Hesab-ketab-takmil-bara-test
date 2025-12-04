@@ -37,7 +37,7 @@ const formSchema = z.object({
   installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').default(0),
   numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').default(0),
   startDate: z.date({ required_error: 'لطفا تاریخ شروع را انتخاب کنید.' }),
-  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').default(1),
+  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').default(5),
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
 }).refine(data => {
@@ -73,7 +73,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             installmentAmount: 0,
             numberOfInstallments: 0,
             startDate: new Date(),
-            paymentDay: 1,
+            paymentDay: 5,
             depositOnCreate: false,
             depositToAccountId: '',
         },
@@ -96,7 +96,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 payeeId: initialData.payeeId || '',
                 installmentAmount: initialData.installmentAmount || 0,
                 numberOfInstallments: initialData.numberOfInstallments || 0,
-                paymentDay: initialData.paymentDay || 1,
+                paymentDay: initialData.paymentDay || 5,
                 depositOnCreate: !!initialData.depositToAccountId,
                 depositToAccountId: initialData.depositToAccountId || '',
             });
@@ -109,7 +109,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 installmentAmount: 0,
                 numberOfInstallments: 0,
                 startDate: new Date(),
-                paymentDay: 1,
+                paymentDay: 5,
                 depositOnCreate: false,
                 depositToAccountId: '',
             });
@@ -245,10 +245,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 <FormItem>
                                     <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
                                     <FormControl>
-                                        <NumericInput
-                                            {...field}
-                                            onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
-                                        />
+                                        <NumericInput {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -268,7 +265,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         min="1"
                                         max="30"
                                         {...field}
-                                        onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 1)}
                                     />
                                 </FormControl>
                                 <FormDescription>
