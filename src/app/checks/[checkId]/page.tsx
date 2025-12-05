@@ -7,7 +7,7 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, User, Users } from 'lucide-react';
+import { ArrowRight, User, Users, Calendar, PenSquare } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
@@ -32,7 +32,7 @@ export default function CheckDetailPage() {
   const checkId = params.checkId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { checks, bankAccounts, payees, categories } = allData;
+  const { checks, bankAccounts, payees, categories, users } = allData;
 
   const { check } = useMemo(() => {
     if (isLoading || !checkId) {
@@ -85,9 +85,14 @@ export default function CheckDetailPage() {
     if (!userDetail) return { name: "ناشناس" };
     return { name: `${userDetail.firstName} ${userDetail.lastName}`};
   };
+
+  const getRegisteredByUserName = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    return user ? user.firstName : 'نامشخص';
+  };
   
   const bankAccount = getBankAccount(check.bankAccountId);
-  const { name: ownerName } = getOwnerDetails(check.liabilityOwnerId);
+  const { name: ownerName } = bankAccount ? getOwnerDetails(bankAccount.ownerId) : { name: "ناشناس" };
   const expenseForName = check.expenseFor && USER_DETAILS[check.expenseFor] ? USER_DETAILS[check.expenseFor].firstName : 'مشترک';
   const isCleared = check.status === 'cleared';
 
@@ -112,7 +117,7 @@ export default function CheckDetailPage() {
         </Button>
       </div>
 
-       <div className="max-w-2xl mx-auto">
+       <div className="max-w-2xl mx-auto space-y-4">
          <Card className={cn("overflow-hidden shadow-2xl h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
             {isCleared && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform rotate-[-15deg] border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-4xl font-black uppercase opacity-60 select-none z-20">
@@ -136,7 +141,7 @@ export default function CheckDetailPage() {
                 
                 {/* Right Side: Date */}
                 <div className="text-right w-1/3 flex flex-col items-end">
-                     <p className="text-xs text-muted-foreground font-body">تاریخ:</p>
+                     <p className="text-xs text-muted-foreground font-body">تاریخ سررسید:</p>
                      <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                 </div>
             </div>
@@ -172,9 +177,9 @@ export default function CheckDetailPage() {
                         <span className="text-xs text-muted-foreground">صاحب حساب:</span>
                         <p className="font-body text-sm font-semibold">{ownerName}</p>
                         <div className="absolute -bottom-5 -right-2 w-24 h-12 pointer-events-none opacity-80">
-                            {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
-                            {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
-                            {check.liabilityOwnerId === 'shared_account' && (
+                            {bankAccount?.ownerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
+                            {bankAccount?.ownerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
+                            {bankAccount?.ownerId === 'shared_account' && (
                                 <>
                                     <SignatureAli className="w-20 h-10 absolute -top-2 right-4 text-gray-700 dark:text-gray-300" />
                                     <SignatureFatemeh className="w-20 h-10 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300" />
@@ -185,7 +190,30 @@ export default function CheckDetailPage() {
                 </div>
             </div>
         </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-lg">اطلاعات تکمیلی</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                        <p className="text-sm text-muted-foreground">تاریخ صدور</p>
+                        <p className="font-semibold">{formatJalaliDate(new Date(check.issueDate))}</p>
+                    </div>
+                </div>
+                 <div className="flex items-center gap-2">
+                    <PenSquare className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                        <p className="text-sm text-muted-foreground">ثبت توسط</p>
+                        <p className="font-semibold">{getRegisteredByUserName(check.registeredByUserId)}</p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
       </div>
     </main>
   );
 }
+

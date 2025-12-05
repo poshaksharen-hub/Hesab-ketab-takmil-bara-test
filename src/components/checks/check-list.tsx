@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, MoreVertical, History, Edit, Users, User } from 'lucide-react';
+import { Trash2, MoreVertical, History, Edit, Users, User, CheckCircle } from 'lucide-react';
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import {
@@ -90,7 +90,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                         
                         {/* Right Side: Date */}
                         <div className="text-right w-1/3 flex flex-col items-end">
-                             <p className="text-xs text-muted-foreground font-body">تاریخ:</p>
+                             <p className="text-xs text-muted-foreground font-body">تاریخ سررسید:</p>
                              <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                         </div>
                         
@@ -102,6 +102,12 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start">
+                                    {!isCleared && (
+                                        <DropdownMenuItem onSelect={() => onClear(check)}>
+                                            <CheckCircle className="ml-2 h-4 w-4" />
+                                            پاس کردن چک
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared}>
                                         <Edit className="ml-2 h-4 w-4" />
                                         ویرایش چک
@@ -216,3 +222,4 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
       </div>
   );
 }
+
