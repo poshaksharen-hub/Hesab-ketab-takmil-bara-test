@@ -90,10 +90,15 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
 
   const availableAccounts = useMemo(() => {
     if (!selectedOwnerId || !bankAccounts) return [];
+    
+    let ownerFilter: OwnerId;
     if (selectedOwnerId === 'daramad_moshtarak') {
-        return [...bankAccounts.filter(acc => acc.ownerId === 'shared_account')].sort((a, b) => b.balance - a.balance);
+        ownerFilter = 'shared_account';
+    } else {
+        ownerFilter = selectedOwnerId;
     }
-    return [...bankAccounts.filter(acc => acc.ownerId === selectedOwnerId)].sort((a, b) => b.balance - a.balance);
+    
+    return [...bankAccounts.filter(acc => acc.ownerId === ownerFilter)].sort((a, b) => b.balance - a.balance);
   }, [selectedOwnerId, bankAccounts]);
 
   useEffect(() => {
