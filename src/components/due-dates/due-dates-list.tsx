@@ -49,7 +49,7 @@ const ItemIcon = ({ type }: { type: Deadline['type'] }) => {
 const getOwnerDetails = (ownerId: OwnerId | 'shared_account') => {
     if (ownerId === 'shared' || ownerId === 'shared_account') return { name: "مشترک", Icon: Users };
     const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
-    if (!userDetail) return { name: "نامشخص", Icon: User };
+    if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
 };
 
@@ -131,9 +131,7 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 text-xs pt-4">
                         <DetailItem icon={BookUser} label="طرف حساب" value={item.details.payeeName} />
                         <DetailItem icon={FolderKanban} label="بابت" value={item.details.categoryName} />
-                         {item.details.bankAccountName !== '---' && (
-                            <DetailItem icon={Landmark} label="صاحب حساب" value={`${ownerName} (${item.details.bankAccountName})`} />
-                         )}
+                        <DetailItem icon={Landmark} label="صاحب حساب" value={`${ownerName} (${item.details.bankAccountName})`} />
                         <DetailItem icon={BeneficiaryIcon} label="تراکنش برای" value={beneficiaryName} />
                         <DetailItem icon={PenSquare} label="ثبت توسط" value={item.details.registeredBy} />
                         {item.details.description && <div className="col-span-full"><DetailItem icon={MessageSquareText} label="توضیحات" value={item.details.description} /></div>}
