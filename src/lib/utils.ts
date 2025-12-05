@@ -18,6 +18,12 @@ export function toEnglishDigits(str: string): string {
     return newStr;
 }
 
+export function toPersianDigits(str: string | number): string {
+  if (str === null || str === undefined) return '';
+  const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return String(str).replace(/\d/g, (d) => persianNumbers[parseInt(d)]);
+}
+
 export function formatCurrency(amount: number, currency: 'USD' | 'IRT' = 'USD') {
     const numericAmount = (typeof amount !== 'number' || isNaN(amount)) ? 0 : amount;
     if (currency === 'IRT') {

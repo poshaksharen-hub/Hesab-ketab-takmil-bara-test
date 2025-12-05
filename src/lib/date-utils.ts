@@ -4,8 +4,9 @@ import { faIR } from 'date-fns/locale';
 import { toDate } from 'date-fns-jalali';
 
 /**
- * Calculates the next upcoming due date for a recurring loan payment.
- * @param startDate - The initial start date of the loan (ISO string or Date object).
+ * Calculates the next upcoming due date for a recurring payment.
+ * If the start date is very close to this month's payment day, it rolls over to the next month.
+ * @param startDate - The initial start date of the loan/debt (ISO string or Date object).
  * @param paymentDay - The day of the month the payment is due (1-31).
  * @returns A Date object representing the next upcoming due date.
  */
@@ -13,22 +14,22 @@ export function getNextDueDate(startDate: string | Date, paymentDay: number): Da
     const loanStartDate = startOfDay(new Date(startDate));
     const today = startOfDay(new Date());
 
-    // Calculate the first-ever payment date based on the loan start date
+    // Determine the first-ever payment date.
     let firstPaymentDate = set(loanStartDate, { date: paymentDay });
+    // If the loan started after this month's payment day, the first payment is next month.
     if (getDate(loanStartDate) > paymentDay) {
-        // If the loan starts after the payment day of its starting month, the first payment is next month.
         firstPaymentDate = addMonths(firstPaymentDate, 1);
     }
-
-    // If the very first payment date is in the future, that's our next due date.
+    
+    // If the very first calculated payment date is in the future from today, it's our next due date.
     if (isAfter(firstPaymentDate, today) || isToday(firstPaymentDate)) {
         return firstPaymentDate;
     }
 
-    // If the first payment date is in the past, we need to find the next one from today.
+    // If we're past the first payment, find the next due date relative to today.
     let nextDueDate = set(today, { date: paymentDay });
+    // If this month's payment day has already passed, the next one is next month.
     if (isPast(nextDueDate) && !isToday(nextDueDate)) {
-        // If this month's payment day has already passed, the next one is next month.
         nextDueDate = addMonths(nextDueDate, 1);
     }
 

@@ -2,20 +2,26 @@
 'use client';
 
 import React from 'react';
-import type { Check, Loan } from '@/lib/types';
-import { formatCurrency, formatJalaliDate } from '@/lib/utils';
+import type { Check, Loan, PreviousDebt, ExpenseFor } from '@/lib/types';
+import { formatCurrency, formatJalaliDate, toPersianDigits } from '@/lib/utils';
 import { differenceInDays, isPast, isToday } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, CalendarClock, HandCoins, AlertTriangle } from 'lucide-react';
+import { FileText, Handshake, Landmark, HandCoins, AlertTriangle, User, Users } from 'lucide-react';
+import { USER_DETAILS } from '@/lib/constants';
 
 export type Deadline = {
   id: string;
-  type: 'check' | 'loan';
+  type: 'check' | 'loan' | 'debt';
   date: Date;
   title: string;
   amount: number;
-  originalItem: Check | Loan;
+  details: {
+    expenseFor: ExpenseFor;
+    bankAccountName: string;
+    registeredBy: string;
+  };
+  originalItem: Check | Loan | PreviousDebt;
 };
 
 interface DueDatesListProps {
@@ -23,79 +29,103 @@ interface DueDatesListProps {
   onAction: (item: Deadline) => void;
 }
 
+const ItemIcon = ({ type }: { type: Deadline['type'] }) => {
+  const baseClasses = "h-8 w-8";
+  switch (type) {
+    case 'check':
+      return <FileText className={`${baseClasses} text-amber-600`} />;
+    case 'loan':
+      return <Landmark className={`${baseClasses} text-sky-600`} />;
+    case 'debt':
+      return <Handshake className={`${baseClasses} text-indigo-600`} />;
+  }
+};
+
+const getOwnerDetails = (ownerId: ExpenseFor) => {
+    if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
+    const userDetail = USER_DETAILS[ownerId];
+    if (!userDetail) return { name: "ناشناس", Icon: User };
+    return { name: userDetail.firstName, Icon: User };
+};
+
+const renderStatus = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(date);
+    dueDate.setHours(0, 0, 0, 0);
+
+    const daysDiff = differenceInDays(dueDate, today);
+
+    if (daysDiff === 0) {
+      return <span className="font-bold text-amber-600">امروز</span>;
+    }
+    if (daysDiff < 0) {
+      return <span className="text-destructive font-bold flex items-center gap-1"><AlertTriangle className="h-4 w-4" />{toPersianDigits(Math.abs(daysDiff))} روز گذشته</span>;
+    }
+    return <span className="text-muted-foreground">{toPersianDigits(daysDiff)} روز دیگر</span>;
+};
+
 export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
   if (deadlines.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>همه چیز پرداخت شده!</CardTitle>
-          <CardDescription>هیچ سررسید نزدیک یا پرداخت معوقی برای شما وجود ندارد.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="flex h-48 flex-col items-center justify-center gap-4 text-center">
             <HandCoins className="h-16 w-16 text-emerald-500" />
-            <p className="text-muted-foreground">شما هیچ تعهد مالی فعالی ندارید. آفرین!</p>
+            <h3 className="text-xl font-bold">تبریک!</h3>
+            <p className="text-muted-foreground">شما هیچ تعهد مالی نزدیک یا پرداخت معوقی ندارید.</p>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  const renderStatus = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dueDate = new Date(date);
-    dueDate.setHours(0, 0, 0, 0);
-
-    if (isToday(dueDate)) {
-      return <span className="font-bold text-amber-600">امروز</span>;
-    }
-    
-    const daysDiff = differenceInDays(dueDate, today);
-
-    if (daysDiff < 0) {
-      return (
-        <div className="flex items-center gap-2 text-destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <span>{Math.abs(daysDiff)} روز گذشته</span>
-        </div>
-      );
-    }
-    
-    return <span>{daysDiff} روز دیگر</span>;
-  };
-
   return (
     <div className="space-y-4">
       {deadlines.map((item) => {
+        const { Icon: OwnerIcon, name: ownerName } = getOwnerDetails(item.details.expenseFor);
         const isOverdue = isPast(item.date) && !isToday(item.date);
+        
+        let cardClasses = "shadow-md transition-shadow hover:shadow-lg";
+        let titleClasses = "font-bold";
+        if(isOverdue) {
+            cardClasses += " border-destructive bg-destructive/5";
+            titleClasses += " text-destructive";
+        }
+
+
         return (
-            <Card key={`${item.type}-${item.id}`} className={isOverdue ? 'border-destructive' : ''}>
-                <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                    <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-lg ${
-                        item.type === 'check'
-                            ? 'bg-amber-100 text-amber-600 dark:bg-amber-900'
-                            : 'bg-sky-100 text-sky-600 dark:bg-sky-900'
-                        }`}
-                    >
-                        {item.type === 'check' ? <FileText className="h-6 w-6" /> : <CalendarClock className="h-6 w-6" />}
-                    </div>
-                    <div className="space-y-1">
-                        <p className="font-semibold">{item.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                            مبلغ: <span className="font-mono font-semibold">{formatCurrency(item.amount, 'IRT')}</span>
-                        </p>
-                    </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className='text-center'>
-                            <p className="font-bold text-lg">{formatJalaliDate(item.date)}</p>
-                            <p className="text-sm text-muted-foreground">{renderStatus(item.date)}</p>
+            <Card key={`${item.type}-${item.id}`} className={cardClasses}>
+                <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-grow">
+                        <ItemIcon type={item.type} />
+                        <div className="space-y-1.5 flex-grow">
+                            <p className={titleClasses}>{item.title}</p>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1" title="برای">
+                                    <OwnerIcon className="h-4 w-4" />
+                                    <span>{ownerName}</span>
+                                </div>
+                                {item.details.bankAccountName !== '---' && (
+                                    <div className="flex items-center gap-1" title="از حساب">
+                                        <Landmark className="h-4 w-4" />
+                                        <span>{item.details.bankAccountName}</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-1" title="ثبت توسط">
+                                    <User className="h-4 w-4" />
+                                    <span>{item.details.registeredBy}</span>
+                                </div>
+                            </div>
                         </div>
-                        <Button onClick={() => onAction(item)}>
-                            {item.type === 'check' ? 'پاس کردن چک' : 'پرداخت قسط'}
+                    </div>
+                    <div className="flex items-center justify-between w-full sm:w-auto sm:justify-end sm:gap-6">
+                        <div className='text-center sm:text-right'>
+                            <p className="font-bold text-lg font-mono tracking-tighter">{formatCurrency(item.amount, 'IRT')}</p>
+                            <p className="text-xs">{renderStatus(item.date)}</p>
+                        </div>
+                        <Button onClick={() => onAction(item)} size="sm">
+                            {item.type === 'check' ? 'مدیریت چک' : 'پرداخت'}
                         </Button>
                     </div>
                 </CardContent>

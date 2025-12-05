@@ -7,6 +7,7 @@ import { DueDatesList, type Deadline } from '@/components/due-dates/due-dates-li
 import { getNextDueDate } from '@/lib/date-utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import type { Check, Loan, PreviousDebt } from '@/lib/types';
 
 
 export default function DueDatesPage() {
@@ -17,48 +18,85 @@ export default function DueDatesPage() {
   const deadlines = useMemo(() => {
     if (isLoading) return [];
     
-    const { checks, loans, payees } = allData;
+    const { checks, loans, payees, previousDebts, users, categories, bankAccounts } = allData;
 
-    const upcomingChecks = (checks || [])
+    const upcomingChecks: Deadline[] = (checks || [])
       .filter(c => c.status === 'pending')
       .map(c => ({
         id: c.id,
-        type: 'check' as const,
+        type: 'check',
         date: new Date(c.dueDate),
-        title: `چک برای ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناс'}`,
+        title: `چک به ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناس'}`,
         amount: c.amount,
+        details: {
+          expenseFor: c.expenseFor,
+          bankAccountName: bankAccounts.find(b => b.id === c.bankAccountId)?.bankName || 'نامشخص',
+          registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص'
+        },
         originalItem: c,
       }));
 
-    const upcomingLoanPayments = (loans || [])
-      .filter(l => l.paidInstallments < l.numberOfInstallments)
+    const upcomingLoanPayments: Deadline[] = (loans || [])
+      .filter(l => l.remainingAmount > 0)
       .map(l => ({
         id: l.id,
-        type: 'loan' as const,
+        type: 'loan',
         date: getNextDueDate(l.startDate, l.paymentDay),
         title: `قسط وام: ${l.title}`,
         amount: l.installmentAmount,
+         details: {
+          expenseFor: l.expenseFor,
+          bankAccountName: '---', // Not applicable for loan itself
+          registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص'
+        },
         originalItem: l,
       }));
 
-    return [...upcomingChecks, ...upcomingLoanPayments]
+     const upcomingDebts: Deadline[] = (previousDebts || [])
+      .filter(d => d.remainingAmount > 0 && d.paymentDay)
+      .map(d => ({
+        id: d.id,
+        type: 'debt',
+        date: getNextDueDate(d.startDate, d.paymentDay!),
+        title: `پرداخت بدهی: ${d.description}`,
+        amount: d.remainingAmount, // Or a calculated installment
+         details: {
+          expenseFor: d.expenseFor,
+          bankAccountName: '---',
+          registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص'
+        },
+        originalItem: d,
+      }));
+
+
+    return [...upcomingChecks, ...upcomingLoanPayments, ...upcomingDebts]
       .sort((a, b) => a.date.getTime() - b.date.getTime());
       
   }, [isLoading, allData]);
   
   const handleAction = (item: Deadline) => {
-    if (item.type === 'check') {
-        router.push('/checks');
-        toast({
-            title: "انتقال به صفحه چک‌ها",
-            description: `چک برای ${allData.payees.find(p => p.id === (item.originalItem as any).payeeId)?.name || 'ناشناс'} انتخاب شد.`,
-        });
-    } else {
-        router.push('/loans');
-        toast({
-            title: "انتقال به صفحه وام‌ها",
-            description: `وام "${item.title}" برای پرداخت قسط انتخاب شد.`,
-        });
+    switch (item.type) {
+        case 'check':
+            router.push('/checks');
+            toast({
+                title: "انتقال به صفحه چک‌ها",
+                description: `چک برای ${allData.payees.find(p => p.id === (item.originalItem as Check).payeeId)?.name || 'ناشناس'} انتخاب شد.`,
+            });
+            break;
+        case 'loan':
+            router.push('/loans');
+            toast({
+                title: "انتقال به صفحه وام‌ها",
+                description: `وام "${item.title}" برای پرداخت قسط انتخاب شد.`,
+            });
+            break;
+        case 'debt':
+             router.push('/debts');
+            toast({
+                title: "انتقال به صفحه بدهی‌ها",
+                description: `بدهی "${item.title}" برای پرداخت انتخاب شد.`,
+            });
+            break;
     }
   };
 
@@ -69,10 +107,9 @@ export default function DueDatesPage() {
             <h1 className="font-headline text-3xl font-bold tracking-tight">سررسیدهای نزدیک</h1>
             <p className="text-muted-foreground">تعهدات مالی پیش روی شما در اینجا نمایش داده می‌شود.</p>
             <div className="space-y-4">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-28 w-full rounded-xl" />
+                <Skeleton className="h-28 w-full rounded-xl" />
+                <Skeleton className="h-28 w-full rounded-xl" />
             </div>
         </main>
     )
@@ -84,7 +121,7 @@ export default function DueDatesPage() {
        <div className="flex items-center justify-between">
             <div className='space-y-2'>
                 <h1 className="font-headline text-3xl font-bold tracking-tight">سررسیدهای نزدیک</h1>
-                <p className="text-muted-foreground">تعهدات مالی پیش روی شما (چک‌ها و اقساط وام) در اینجا نمایش داده می‌شود.</p>
+                <p className="text-muted-foreground">چک‌ها، اقساط وام و بدهی‌های پیش روی شما در اینجا نمایش داده می‌شود.</p>
             </div>
         </div>
         <DueDatesList deadlines={deadlines} onAction={handleAction} />

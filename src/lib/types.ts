@@ -3,9 +3,9 @@ import type { LucideIcon } from 'lucide-react';
 
 // Defines who OWNS an asset (BankAccount) or income source (Income).
 // 'ali', 'fatemeh': Personal ownership
-// 'daramad_moshtarak': Represents the shared business/income source. Used ONLY for Incomes.
 // 'shared_account': Represents the shared bank account. Used ONLY for BankAccounts.
-export type OwnerId = 'ali' | 'fatemeh' | 'daramad_moshtarak' | 'shared_account';
+// 'daramad_moshtarak': Represents the shared business/income source. Used ONLY for Incomes.
+export type OwnerId = 'ali' | 'fatemeh' | 'shared_account' | 'daramad_moshtarak';
 
 // Defines who an EXPENSE, LIABILITY or GOAL is FOR. This is about the beneficiary.
 // This is completely separate from OwnerId.
@@ -161,6 +161,7 @@ export type PreviousDebt = {
     amount: number;
     remainingAmount: number;
     startDate: string;
+    paymentDay?: number; // Optional day for recurring payment reminders
 }
 
 export type DebtPayment = {

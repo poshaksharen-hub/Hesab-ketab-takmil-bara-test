@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState } from 'react';
 import { z } from 'zod';
@@ -11,8 +12,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
-import { Input, CurrencyInput } from '@/components/ui/input';
+import { Input, CurrencyInput, NumericInput } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -34,6 +36,7 @@ const formSchema = z.object({
   expenseFor: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این بدهی برای کیست.' }),
   amount: z.coerce.number().positive({ message: 'مبلغ بدهی باید یک عدد مثبت باشد.' }),
   startDate: z.date({ required_error: 'لطفا تاریخ ایجاد بدهی را انتخاب کنید.' }),
+  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').optional(),
 });
 
 type DebtFormValues = z.infer<typeof formSchema>;
@@ -172,6 +175,29 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
                         )}
                     />
                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="paymentDay"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>روز یادآوری پرداخت در ماه (اختیاری)</FormLabel>
+                            <FormControl>
+                                <NumericInput
+                                    min="1"
+                                    max="30"
+                                    {...field}
+                                    value={field.value || ''}
+                                />
+                            </FormControl>
+                             <FormDescription>
+                                اگر پرداخت به صورت اقساطی است، روز آن را وارد کنید.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                 </div>
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
