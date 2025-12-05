@@ -6,8 +6,9 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, ArrowLeft } from 'lucide-react';
 import type { Category } from '@/lib/types';
+import Link from 'next/link';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +46,7 @@ export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">لیست دسته‌بندی‌ها</CardTitle>
-        <CardDescription>دسته‌بندی‌های هزینه و چک شما در اینجا نمایش داده می‌شوند.</CardDescription>
+        <CardDescription>دسته‌بندی‌های هزینه شما در اینجا نمایش داده می‌شوند. برای مشاهده جزئیات روی هر مورد کلیک کنید.</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
@@ -53,16 +54,20 @@ export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps
             <TableRow>
               <TableHead>نام دسته‌بندی</TableHead>
               <TableHead className="hidden sm:table-cell">توضیحات</TableHead>
-              <TableHead className="text-left">عملیات</TableHead>
+              <TableHead className="text-left w-[150px]">عملیات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {categories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell className="font-medium">{category.name}</TableCell>
+              <TableRow key={category.id} className="group cursor-pointer">
+                <TableCell className="font-medium">
+                    <Link href={`/categories/${category.id}`} className="flex items-center gap-2 group-hover:underline">
+                        {category.name}
+                    </Link>
+                </TableCell>
                 <TableCell className="hidden sm:table-cell">{category.description || '-'}</TableCell>
                 <TableCell className="text-left">
-                    <div className='flex gap-2 justify-end'>
+                    <div className='flex items-center gap-0 justify-end'>
                         <Button variant="ghost" size="icon" onClick={() => onEdit(category)} aria-label="Edit">
                             <Edit className="h-4 w-4" />
                         </Button>
@@ -87,6 +92,11 @@ export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
+                        <Button variant="ghost" size="icon" asChild className="opacity-0 group-hover:opacity-100 transition-opacity">
+                           <Link href={`/categories/${category.id}`}>
+                            <ArrowLeft className="h-4 w-4" />
+                           </Link>
+                        </Button>
                     </div>
                 </TableCell>
               </TableRow>
