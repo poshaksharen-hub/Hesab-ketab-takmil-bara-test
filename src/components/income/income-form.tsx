@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useMemo, useCallback } from 'react';
@@ -42,7 +43,7 @@ type IncomeFormValues = z.infer<typeof formSchema>;
 interface IncomeFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Income, 'id' | 'createdAt' | 'updatedAt' >) => void;
+  onSubmit: (data: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => void;
   initialData: Income | null;
   bankAccounts: BankAccount[];
   user: AuthUser | null;
@@ -83,7 +84,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   
   const getOwnerName = useCallback((account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId];
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   }, []);
 
@@ -114,7 +115,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         date: data.date.toISOString(),
         type: 'income' as 'income',
         category: 'درآمد',
-        registeredByUserId: user.uid,
         source: data.source || data.description, 
     };
     onSubmit(submissionData);

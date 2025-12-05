@@ -30,7 +30,7 @@ export default function IncomePage() {
 
   const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' >) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => {
     if (!user || !firestore || !allBankAccounts) return;
   
     try {
@@ -56,6 +56,7 @@ export default function IncomePage() {
         transaction.set(newIncomeRef, {
             ...values,
             id: newIncomeRef.id,
+            registeredByUserId: user.uid,
             createdAt: serverTimestamp(),
             balanceAfter: balanceAfter,
         });

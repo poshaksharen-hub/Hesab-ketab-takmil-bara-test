@@ -75,7 +75,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
         const isIncome = 'source' in transaction;
         const categoryId = 'categoryId' in transaction ? transaction.categoryId : 'درآمد';
         const categoryName = getCategoryName(categoryId);
-        const registeredById = 'registeredByUserId' in transaction ? (transaction as any).registeredByUserId : (transaction as any).userId;
+        const registeredById = transaction.registeredByUserId;
         const transactionDate = 'createdAt' in transaction && transaction.createdAt ? transaction.createdAt : transaction.date;
         
         return (
