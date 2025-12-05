@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  @font-face {
+    font-family: 'Dastnevis';
+    src: url('/fonts/Dastnevis.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
   :root {
     --background: 226 100% 98%; /* Very Light Blue */
     --foreground: 236 65% 20%;

@@ -24,9 +24,9 @@ export default {
     extend: {
       fontFamily: {
         body: ['Vazirmatn', 'sans-serif'],
-        headline: ['Alegreya', 'serif'],
+        headline: ['Vazirmatn', 'serif'],
         code: ['monospace'],
-        handwriting: ['Alegreya', 'serif'],
+        handwriting: ['Dastnevis', 'cursive'],
       },
       colors: {
         background: 'hsl(var(--background))',
