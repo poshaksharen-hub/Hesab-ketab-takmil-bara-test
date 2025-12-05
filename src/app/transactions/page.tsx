@@ -41,12 +41,11 @@ export default function ExpensesPage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const expenseData = { ...values };
             
-            const account = allBankAccounts.find(acc => acc.id === expenseData.bankAccountId);
+            const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
             if (!account) throw new Error("کارت بانکی یافت نشد");
             
-            const ownerId: OwnerId = account.ownerId;
+            const ownerId = account.ownerId; // Get the ownerId from the selected bank account
             const fromCardRef = doc(familyDataRef, 'bankAccounts', account.id);
             const fromCardDoc = await transaction.get(fromCardRef);
 
@@ -56,26 +55,31 @@ export default function ExpensesPage() {
             const fromCardData = fromCardDoc.data()!;
             const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
             
-            if (availableBalance < expenseData.amount) {
+            if (availableBalance < values.amount) {
                 throw new Error("موجودی حساب برای انجام این هزینه کافی نیست.");
             }
             
             const balanceBefore = fromCardData.balance;
-            const balanceAfter = balanceBefore - expenseData.amount;
+            const balanceAfter = balanceBefore - values.amount;
             
             transaction.update(fromCardRef, { balance: balanceAfter });
 
             const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
             
-            transaction.set(newExpenseRef, {
-                ...expenseData,
-                id: newExpenseRef.id,
+            // The complete expense object including the new expenseFor field
+            const newExpenseData: Omit<Expense, 'id' | 'createdAt' | 'type'> = {
+                ...values,
                 ownerId: ownerId,
-                type: 'expense',
                 registeredByUserId: user.uid,
-                createdAt: serverTimestamp(),
                 balanceBefore,
                 balanceAfter,
+            };
+
+            transaction.set(newExpenseRef, {
+                ...newExpenseData,
+                id: newExpenseRef.id,
+                type: 'expense',
+                createdAt: serverTimestamp(),
             });
         });
         

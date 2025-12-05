@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Expense, BankAccount, Category, Payee } from '@/lib/types';
+import type { Expense, BankAccount, Category, Payee, ExpenseFor } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
@@ -74,7 +74,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
   });
 
   const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
+    if (account.ownerId === 'shared_account') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
@@ -83,7 +83,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
   const selectedAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
 
   useEffect(() => {
-    if (selectedAccount && selectedAccount.ownerId === 'shared') {
+    if (selectedAccount && selectedAccount.ownerId === 'shared_account') {
       form.setValue('expenseFor', 'shared');
     }
   }, [selectedAccount, form]);
@@ -264,7 +264,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>این هزینه برای کیست؟</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={selectedAccount?.ownerId === 'shared'}>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={selectedAccount?.ownerId === 'shared_account'}>
                             <FormControl>
                                 <SelectTrigger>
                                 <SelectValue placeholder="شخص یا مورد هزینه را انتخاب کنید" />

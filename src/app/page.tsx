@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
-import { OwnerId } from '@/lib/types';
+import { OwnerId, ExpenseFor } from '@/lib/types';
 import { getDateRange } from '@/lib/date-utils';
 
 type DatePreset = 'thisWeek' | 'thisMonth' | 'thisYear';
@@ -72,7 +72,7 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const { isUserLoading } = useUser();
-  const [ownerFilter, setOwnerFilter] = useState<OwnerId | 'all'>('all');
+  const [ownerFilter, setOwnerFilter] = useState<OwnerId | ExpenseFor | 'all'>('all');
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
@@ -116,7 +116,7 @@ export default function DashboardPage() {
           داشبورد جامع مالی
         </h1>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
-           <Select onValueChange={(value) => setOwnerFilter(value as OwnerId | 'all')} defaultValue="all">
+           <Select onValueChange={(value) => setOwnerFilter(value as OwnerId | ExpenseFor | 'all')} defaultValue="all">
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="نمایش داده‌های..." />
               </SelectTrigger>

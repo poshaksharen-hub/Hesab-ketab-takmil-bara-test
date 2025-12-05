@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { type Income, type Expense, type UserProfile, type Category, BankAccount } from '@/lib/types';
+import { type Income, type Expense, type UserProfile, type Category, BankAccount, ExpenseFor } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Briefcase, ShoppingCart } from 'lucide-react';
@@ -52,7 +53,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
     if (transaction.type !== 'expense' || !transaction.expenseFor || transaction.expenseFor === 'shared') return null;
     
     let text = '';
-    switch(transaction.expenseFor) {
+    switch(transaction.expenseFor as ExpenseFor) {
         case 'ali': text = `برای ${USER_DETAILS.ali.firstName}`; break;
         case 'fatemeh': text = `برای ${USER_DETAILS.fatemeh.firstName}`; break;
     }
@@ -65,7 +66,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
 
   const isSharedAccount = (transaction: Income | Expense) => {
       const account = bankAccounts.find(acc => acc.id === transaction.bankAccountId);
-      return account?.ownerId === 'shared';
+      return account?.ownerId === 'shared_account';
   }
 
   return (

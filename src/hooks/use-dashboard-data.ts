@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
@@ -16,6 +17,7 @@ import type {
   Transfer,
   LoanPayment,
   OwnerId,
+  ExpenseFor,
   PreviousDebt,
   DebtPayment,
 } from '@/lib/types';
@@ -81,7 +83,7 @@ export function useDashboardData() {
     }), [users, bankAccounts, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
 
 
-  const getFilteredData = (ownerFilter: OwnerId | 'all', dateRange?: DateRange) => {
+  const getFilteredData = (ownerFilter: OwnerId | ExpenseFor | 'all', dateRange?: DateRange) => {
     
     const dateMatches = (dateStr: string) => {
         if (!dateRange || !dateRange.from || !dateRange.to) return true;
@@ -90,12 +92,20 @@ export function useDashboardData() {
     };
     
     const filterByOwner = <T extends { ownerId: OwnerId }>(item: T) => {
-        if (ownerFilter === 'all') return true;
+        if (ownerFilter === 'all' || ownerFilter === 'shared') return true;
+        if (ownerFilter === 'daramad_moshtarak') return item.ownerId === 'daramad_moshtarak';
+        if (ownerFilter === 'shared_account') return item.ownerId === 'shared_account';
         return item.ownerId === ownerFilter;
     };
+    
+    const filterExpenseFor = (item: Expense) => {
+        if (ownerFilter === 'all') return true;
+        return item.expenseFor === ownerFilter;
+    };
+
 
     const filteredIncomes = allData.incomes.filter(i => dateMatches(i.date) && filterByOwner(i));
-    const filteredExpenses = allData.expenses.filter(e => dateMatches(e.date) && filterByOwner(e));
+    const filteredExpenses = allData.expenses.filter(e => dateMatches(e.date) && filterExpenseFor(e));
     
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
@@ -129,7 +139,7 @@ export function useDashboardData() {
         return {
             aliBalance: allData.bankAccounts.filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0),
             fatemehBalance: allData.bankAccounts.filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0),
-            sharedBalance: allData.bankAccounts.filter(b => b.ownerId === 'shared').reduce((sum, acc) => sum + acc.balance, 0),
+            sharedBalance: allData.bankAccounts.filter(b => b.ownerId === 'shared_account').reduce((sum, acc) => sum + acc.balance, 0),
             netWorth: globalTotalAssets - globalTotalLiabilities,
             totalAssets: globalTotalAssets,
             pendingChecksAmount: globalPendingChecksAmount,

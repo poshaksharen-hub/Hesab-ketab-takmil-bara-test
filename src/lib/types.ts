@@ -2,7 +2,14 @@
 
 import type { LucideIcon } from 'lucide-react';
 
-export type OwnerId = 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak' | 'shared_account';
+// Defines who OWNS an asset (like a bank account) or an income source.
+// This is about the source of funds or assets.
+export type OwnerId = 'ali' | 'fatemeh' | 'shared_account' | 'daramad_moshtarak';
+
+// Defines who an EXPENSE is FOR. This is about the beneficiary of a spending.
+// This is completely separate from OwnerId.
+export type ExpenseFor = 'ali' | 'fatemeh' | 'shared';
+
 
 export type Income = {
   id: string;
@@ -11,7 +18,7 @@ export type Income = {
   amount: number;
   type: 'income';
   source: string; // The original source of income text
-  ownerId: OwnerId; // 'ali', 'fatemeh', or 'daramad_moshtarak'
+  ownerId: 'ali' | 'fatemeh' | 'daramad_moshtarak'; // Income can only belong to a person or the shared business
   category: string; // This is 'درآمد' for all incomes
   registeredByUserId: string;
   bankAccountId: string;
@@ -22,7 +29,7 @@ export type Income = {
 
 export type Expense = {
   id: string;
-  ownerId: OwnerId; // Owner of the bank account used for payment
+  ownerId: 'ali' | 'fatemeh' | 'shared_account'; // Owner of the bank account used for payment
   registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;
@@ -32,7 +39,7 @@ export type Expense = {
   description: string;
   type: 'expense';
   subType?: 'goal_saved_portion' | 'goal_cash_portion' | 'debt_payment'; // For differentiating special expenses
-  expenseFor: 'ali' | 'fatemeh' | 'shared'; // The person/entity this expense was for.
+  expenseFor: ExpenseFor; // The person/entity this expense was for.
   checkId?: string;
   goalId?: string;
   loanPaymentId?: string;
@@ -46,7 +53,7 @@ export type Expense = {
 
 export type BankAccount = {
     id: string;
-    ownerId: OwnerId;
+    ownerId: 'ali' | 'fatemeh' | 'shared_account'; // A bank account can be personal or a shared account
     bankName: string;
     accountNumber: string;
     cardNumber: string;
@@ -81,7 +88,7 @@ export type Payee = {
 export type Check = {
     id: string;
     registeredByUserId: string;
-    ownerId: OwnerId;
+    ownerId: 'ali' | 'fatemeh' | 'shared_account'; // The liability belongs to a person or the shared account
     bankAccountId: string;
     payeeId: string;
     categoryId: string;
@@ -104,7 +111,7 @@ export type FinancialGoalContribution = {
 export type FinancialGoal = {
     id: string;
     registeredByUserId: string;
-    ownerId: OwnerId; // Who this goal is for
+    ownerId: 'ali' | 'fatemeh' | 'shared'; // A goal can be for a person or a shared family goal
     name: string;
     targetAmount: number;
     currentAmount: number;
@@ -119,7 +126,7 @@ export type FinancialGoal = {
 export type Loan = {
     id: string;
     registeredByUserId: string;
-    ownerId: OwnerId;
+    ownerId: 'ali' | 'fatemeh' | 'shared'; // A loan liability can be personal or shared
     payeeId?: string;
     title: string;
     amount: number;
@@ -144,7 +151,7 @@ export type LoanPayment = {
 export type PreviousDebt = {
     id: string;
     registeredByUserId: string;
-    ownerId: OwnerId;
+    ownerId: 'ali' | 'fatemeh' | 'shared'; // A debt liability can be personal or shared
     payeeId: string;
     description: string;
     amount: number;

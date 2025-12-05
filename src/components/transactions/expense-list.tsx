@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -21,7 +22,7 @@ import {
   Trash2,
   Receipt,
 } from 'lucide-react';
-import type { Expense, BankAccount, Category, UserProfile, OwnerId } from '@/lib/types';
+import type { Expense, BankAccount, Category, UserProfile, ExpenseFor } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
@@ -77,7 +78,7 @@ export function ExpenseList({
     const user = users.find((u) => u.id === userId);
     return user ? user.firstName : 'نامشخص';
   };
-  const getExpenseForText = (expenseFor?: 'ali' | 'fatemeh' | 'shared') => {
+  const getExpenseForText = (expenseFor?: ExpenseFor) => {
     if (!expenseFor) return 'نامشخص';
     switch (expenseFor) {
         case 'ali': return USER_DETAILS.ali.firstName;
@@ -87,7 +88,7 @@ export function ExpenseList({
   }
    const getAccountOwnerName = (account?: BankAccount) => {
     if (!account) return '';
-    if (account.ownerId === 'shared') return ' (مشترک)';
+    if (account.ownerId === 'shared_account') return ' (مشترک)';
     const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return ` (${userDetail.firstName})`;
   };
@@ -138,7 +139,7 @@ export function ExpenseList({
                         <p className="text-2xl font-bold text-destructive">
                             {`-${formatCurrency(expense.amount, 'IRT')}`}
                         </p>
-                         {bankAccount?.ownerId === 'shared' && expense.expenseFor !== 'shared' && (
+                         {bankAccount?.ownerId === 'shared_account' && expense.expenseFor !== 'shared' && (
                             <Badge variant="secondary">{`برای ${getExpenseForText(expense.expenseFor)}`}</Badge>
                         )}
                         </div>
