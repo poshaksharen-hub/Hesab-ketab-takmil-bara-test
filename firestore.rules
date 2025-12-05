@@ -3,28 +3,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Function to check if the user is an authenticated family member based on their email.
     function isFamilyMember() {
       return request.auth != null && 
              request.auth.token.email in ['ali@khanevadati.app', 'fatemeh@khanevadati.app'];
     }
     
-    // Rule for user-specific data (profiles)
-    // Any family member can read or write any user profile.
     match /users/{userId} {
       allow read, write: if isFamilyMember();
     }
 
-    // Rule for all shared family data, which lives under a single document 'shared-data'.
-    match /family-data/shared-data {
-      // Allow reading/writing the document itself, which is needed to access subcollections.
+    match /family-data/{familyId} {
       allow read, write: if isFamilyMember();
 
-      // Wildcard rule to apply to ALL subcollections under 'shared-data'.
-      // This ensures that any authenticated family member can perform any action
-      // on any document within any of the subcollections.
       match /{subcollection}/{docId} {
-        allow read, write, create, update, delete: if isFamilyMember();
+        allow read, write: if isFamilyMember();
       }
     }
   }
