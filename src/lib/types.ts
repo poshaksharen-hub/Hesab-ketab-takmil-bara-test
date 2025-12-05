@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 
-export type OwnerId = 'ali' | 'fatemeh' | 'shared';
+export type OwnerId = 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
 
 export type Income = {
   id: string;
@@ -11,7 +11,7 @@ export type Income = {
   amount: number;
   type: 'income';
   source: string; // The original source of income text
-  ownerId: OwnerId; // 'ali', 'fatemeh', or 'shared'
+  ownerId: OwnerId; // 'ali', 'fatemeh', or 'daramad_moshtarak'
   category: string; // This is 'درآمد' for all incomes
   registeredByUserId: string;
   bankAccountId: string;
