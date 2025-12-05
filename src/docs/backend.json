@@ -52,7 +52,7 @@
         "blockedBalance": { "type": "number", "description": "Amount blocked for financial goals."},
         "theme": { "type": "string" }
       },
-      "required": ["id", "ownerId", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance"]
+      "required": ["id", "ownerId", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance", "blockedBalance"]
     },
     "Income": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -321,5 +321,3 @@
     ]
   }
 }
-
-

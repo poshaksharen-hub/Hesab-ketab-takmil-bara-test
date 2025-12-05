@@ -51,7 +51,7 @@ export function useDashboardData() {
     const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
 
     const { data: usersData, isLoading: isLoadingUsers } = useCollection<UserProfile>(useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'users') : null), [collectionsEnabled, firestore]));
-    const { data: bankAccounts, isLoading: ilba } = useCollection<BankAccount>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
+    const { data: bankAccountsData, isLoading: ilba } = useCollection<BankAccount>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
     const { data: incomes, isLoading: ili } = useCollection<Income>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]));
     const { data: expenses, isLoading: ile } = useCollection<Expense>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]));
     const { data: categories, isLoading: ilc } = useCollection<Category>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'categories') : null), [baseDocRef]));
@@ -66,21 +66,43 @@ export function useDashboardData() {
     
     const isLoading = isAuthLoading || isLoadingUsers || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
 
-    const allData = useMemo<AllData>(() => ({
-        users: usersData || [],
-        incomes: incomes || [],
-        expenses: expenses || [],
-        bankAccounts: bankAccounts || [],
-        categories: categories || [],
-        checks: checks || [],
-        goals: goals || [],
-        loans: loans || [],
-        payees: payees || [],
-        transfers: transfers || [],
-        loanPayments: loanPayments || [],
-        previousDebts: previousDebts || [],
-        debtPayments: debtPayments || [],
-    }), [usersData, bankAccounts, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
+    const allData = useMemo<AllData>(() => {
+        const activeGoals = goals || [];
+        
+        // Recalculate blockedBalance for each bank account
+        const calculatedBankAccounts = (bankAccountsData || []).map(account => {
+            const blockedForGoals = activeGoals.reduce((total, goal) => {
+                if (!goal.isAchieved && goal.contributions) {
+                    const contributionFromThisAccount = goal.contributions
+                        .filter(c => c.bankAccountId === account.id)
+                        .reduce((sum, c) => sum + c.amount, 0);
+                    return total + contributionFromThisAccount;
+                }
+                return total;
+            }, 0);
+
+            return {
+                ...account,
+                blockedBalance: blockedForGoals
+            };
+        });
+
+        return {
+            users: usersData || [],
+            incomes: incomes || [],
+            expenses: expenses || [],
+            bankAccounts: calculatedBankAccounts,
+            categories: categories || [],
+            checks: checks || [],
+            goals: activeGoals,
+            loans: loans || [],
+            payees: payees || [],
+            transfers: transfers || [],
+            loanPayments: loanPayments || [],
+            previousDebts: previousDebts || [],
+            debtPayments: debtPayments || [],
+        };
+    }, [usersData, bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
 
 
   const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {
@@ -126,7 +148,6 @@ export function useDashboardData() {
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
     
-    // Recalculate totalAssets to EXCLUDE money saved for goals, as it's no longer a "blockedBalance"
     const totalAssets = filteredAccounts.reduce((sum, acc) => sum + acc.balance, 0);
     const totalSavedForGoals = filteredGoals.reduce((sum, g) => sum + g.currentAmount, 0);
 

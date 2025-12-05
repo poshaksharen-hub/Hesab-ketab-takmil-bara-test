@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, MoreVertical, Wifi, Users, User, History, Copy, WalletCards, PiggyBank } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, Wifi, Users, User, History, Copy, Wallet, PiggyBank } from 'lucide-react';
 import type { BankAccount, UserProfile, FinancialGoal, OwnerId } from '@/lib/types';
 import { formatCurrency, cn, formatCardNumber } from '@/lib/utils';
 import {
@@ -29,6 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getBankTheme } from '@/lib/bank-data';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useUser } from '@/firebase';
+import { Separator } from '../ui/separator';
 
 const ChipIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none" className="w-10 h-auto sm:w-12">
@@ -57,7 +58,7 @@ const OWNER_DETAILS_CARDS: Record<'ali' | 'fatemeh' | 'shared_account', { name: 
 };
 
 
-function CardItem({ card, onEdit, onDelete, allGoals }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; allGoals: FinancialGoal[]}) {
+function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
 
@@ -71,20 +72,8 @@ function CardItem({ card, onEdit, onDelete, allGoals }: { card: BankAccount; onE
 
     const { name: ownerName, Icon: OwnerIcon } = OWNER_DETAILS_CARDS[card.ownerId];
     
-    // Calculate blocked balance based on contributions to active goals
-    const blockedForGoals = allGoals.reduce((total, goal) => {
-        if (!goal.isAchieved && goal.contributions) {
-            const contributionFromThisAccount = goal.contributions
-                .filter(c => c.bankAccountId === card.id)
-                .reduce((sum, c) => sum + c.amount, 0);
-            return total + contributionFromThisAccount;
-        }
-        return total;
-    }, 0);
-    
-    const availableBalance = card.balance; // Balance already reflects deductions for goals.
-    
     const themeClasses = getBankTheme(card.theme as any);
+    const availableBalance = card.balance - (card.blockedBalance || 0);
 
     return (
         <>
@@ -161,14 +150,31 @@ function CardItem({ card, onEdit, onDelete, allGoals }: { card: BankAccount; onE
                             </span>
                             <div className='text-left'>
                                 <p className="text-base sm:text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
-                                <p className="text-[10px] sm:text-xs opacity-80">موجودی</p>
+                                <p className="text-[10px] sm:text-xs opacity-80">موجودی واقعی</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-muted p-4 rounded-b-xl border-t mt-[-2px] space-y-3">
-                   <div className="flex gap-2 pt-2">
+                 <div className="bg-muted p-4 rounded-b-xl border-t mt-[-2px] space-y-3 text-sm">
+                    {card.blockedBalance && card.blockedBalance > 0 ? (
+                        <>
+                            <div className='flex items-center justify-between text-destructive'>
+                                <span className='flex items-center gap-1.5'><PiggyBank className="w-4 h-4" /> مسدود برای اهداف</span>
+                                <span className='font-mono font-semibold'>-{formatCurrency(card.blockedBalance, 'IRT')}</span>
+                            </div>
+                            <Separator />
+                        </>
+                    ) : null}
+
+                    <div className='flex items-center justify-between font-bold text-primary'>
+                        <span className='flex items-center gap-1.5'><Wallet className="w-4 h-4" /> موجودی قابل استفاده</span>
+                        <span className='font-mono'>{formatCurrency(availableBalance, 'IRT')}</span>
+                    </div>
+                    
+                    <Separator />
+
+                    <div className="flex gap-2 pt-2">
                         <Button size="sm" variant="ghost" className="w-full" onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}>
                             <Copy className="ml-2 h-4 w-4" />
                             کپی شماره کارت
@@ -207,10 +213,9 @@ interface CardListProps {
   onEdit: (card: BankAccount) => void;
   onDelete: (cardId: string) => void;
   users: UserProfile[];
-  goals: FinancialGoal[];
 }
 
-export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProps) {
+export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   const { user } = useUser();
   const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
 
@@ -260,7 +265,7 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
             <CardContent>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {cardList.map((card) => (
-                        <CardItem key={card.id} card={card} onEdit={onEdit} onDelete={onDelete} allGoals={goals} />
+                        <CardItem key={card.id} card={card} onEdit={onEdit} onDelete={onDelete} />
                     ))}
                 </div>
             </CardContent>
