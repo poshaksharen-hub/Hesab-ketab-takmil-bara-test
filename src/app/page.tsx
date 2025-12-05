@@ -156,7 +156,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <OverallSummary 
             filteredSummary={summary} 
-            globalSummary={globalSummary}
+            globalSummary={globalSummary as any}
         />
       </div>
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -228,5 +228,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-
-    

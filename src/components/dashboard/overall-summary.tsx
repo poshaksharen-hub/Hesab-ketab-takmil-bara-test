@@ -75,7 +75,7 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
             <Landmark className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(globalSummary.remainingLoanAmount, 'IRT')}</div>
+            <div className="text-2xl font-bold">{formatCurrency(filteredSummary.remainingLoanAmount, 'IRT')}</div>
             <p className="text-xs text-muted-foreground">کل مبلغ باقی‌مانده وام‌ها</p>
             </CardContent>
         </Card>
@@ -85,7 +85,7 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
             <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(globalSummary.pendingChecksAmount, 'IRT')}</div>
+            <div className="text-2xl font-bold">{formatCurrency(filteredSummary.pendingChecksAmount, 'IRT')}</div>
             <p className="text-xs text-muted-foreground">کل چک‌های پاس نشده</p>
             </CardContent>
         </Card>
@@ -95,7 +95,7 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
             <Handshake className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(globalSummary.remainingDebtsAmount, 'IRT')}</div>
+            <div className="text-2xl font-bold">{formatCurrency(filteredSummary.remainingDebtsAmount, 'IRT')}</div>
             <p className="text-xs text-muted-foreground">کل بدهی‌های ثبت شده به افراد</p>
             </CardContent>
         </Card>
