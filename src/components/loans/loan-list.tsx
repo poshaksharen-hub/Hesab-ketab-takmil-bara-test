@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -171,12 +172,12 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
                             </div>
                             <Progress value={progress} className="h-2" />
                             <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
-                                <span>{`${loan.numberOfInstallments - loan.paidInstallments} قسط باقی‌مانده`}</span>
+                                <span>{`${loan.numberOfInstallments > 0 ? (loan.numberOfInstallments - loan.paidInstallments) + ' قسط باقی‌مانده' : 'پرداخت نشده'}`}</span>
                                 <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(loan.registeredByUserId)}`}>
                                   <PenSquare className="h-3 w-3" />
                                   <span>{getUserName(loan.registeredByUserId)}</span>
                                 </div>
-                                <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments} قسط`}</span>
+                                <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments || '؟'} قسط`}</span>
                             </div>
                         </div>
                     </CardContent>

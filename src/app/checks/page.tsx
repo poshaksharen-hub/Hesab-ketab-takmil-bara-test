@@ -48,7 +48,7 @@ export default function ChecksPage() {
         ...values,
         issueDate: values.issueDate.toISOString(),
         dueDate: values.dueDate.toISOString(),
-        ownerId: bankAccount.ownerId // Automatically set ownerId from bank account
+        liabilityOwnerId: bankAccount.ownerId // Automatically set ownerId from bank account
       }
       updateDoc(checkRef, updatedCheck)
         .then(() => {
@@ -69,7 +69,7 @@ export default function ChecksPage() {
         dueDate: values.dueDate.toISOString(),
         registeredByUserId: user.uid,
         status: 'pending' as 'pending',
-        ownerId: bankAccount.ownerId, // Automatically set ownerId from bank account
+        liabilityOwnerId: bankAccount.ownerId, // Automatically set ownerId from bank account
       };
       addDoc(checksColRef, newCheck)
         .then((docRef) => {
@@ -225,6 +225,11 @@ export default function ChecksPage() {
     setIsFormOpen(true);
   }, []);
   
+  const handleEdit = React.useCallback((check: Check) => {
+    setEditingCheck(check);
+    setIsFormOpen(true);
+  }, []);
+
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
@@ -263,6 +268,7 @@ export default function ChecksPage() {
           categories={categories || []}
           onClear={handleClearCheck}
           onDelete={handleDeleteCheck}
+          onEdit={handleEdit}
         />
       )}
     </main>

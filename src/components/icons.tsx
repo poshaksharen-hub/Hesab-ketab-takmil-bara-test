@@ -24,13 +24,13 @@ export const HesabKetabLogo = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export const SignatureAli = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M10 70 Q 20 10, 80 40 T 150 50 Q 180 60, 190 20" stroke="currentColor" fill="transparent" strokeWidth="4" strokeLinecap="round"/>
+    <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M10 50 C 30 10, 70 20, 90 40 S 150 60, 190 20" stroke="currentColor" fill="transparent" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
 );
   
 export const SignatureFatemeh = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" {...props}>
-        <path d="M10 40 Q 50 80, 90 40 T 190 40" stroke="currentColor" fill="transparent" strokeWidth="4" strokeLinecap="round"/>
+    <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="M10 30 C 40 60, 70 10, 100 30 S 160 50, 190 30" stroke="currentColor" fill="transparent" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
 );
