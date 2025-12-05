@@ -2,11 +2,11 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, MoreVertical, History, Edit } from 'lucide-react';
+import { Trash2, MoreVertical, History, Edit, Users, User } from 'lucide-react';
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
-import { formatCurrency, formatJalaliDate, cn, amountToWords, toPersianDigits } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,7 +56,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
         const category = categories.find(c => c.id === item.categoryId)?.name || 'نامشخص';
         const bankAccount = bankAccounts.find(b => b.id === item.bankAccountId);
         const ownerId = bankAccount?.ownerId;
-        const ownerName = ownerId === 'shared_account' ? 'علی کاکایی و فاطمه صالح' : (ownerId && USER_DETAILS[ownerId] ? `${USER_DETAILS[ownerId].firstName} ${USER_DETAILS[ownerId].lastName}` : 'ناشناس');
+        const ownerName = ownerId === 'shared_account' ? 'علی کاکایی و فاطمه صالح' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName} ${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].lastName}` : 'ناشناس');
         const expenseForName = item.expenseFor && USER_DETAILS[item.expenseFor] ? USER_DETAILS[item.expenseFor].firstName : 'مشترک';
         return { payee, category, bankAccount, ownerId, ownerName, expenseForName };
     }
@@ -66,7 +66,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
 
     return (
         <div className="relative group">
-            <Link href={`/checks/${check.id}`} className="block h-full cursor-pointer">
+            <Link href={`/checks/${check.id}`} className="block h-full cursor-pointer" aria-label={`View details for check to ${payee}`}>
                 <Card className={cn("overflow-hidden shadow-lg h-full flex flex-col group-hover:shadow-xl transition-shadow bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
                     {isCleared && (
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform rotate-[-15deg] border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-4xl font-black uppercase opacity-60 select-none z-20">
@@ -75,50 +75,10 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                     )}
                     
                     {/* Header */}
-                    <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
-                        <div className="text-left w-1/3 space-y-2">
-                             <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="relative z-20">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Actions">
-                                            <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start">
-                                        <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared}>
-                                            <Edit className="ml-2 h-4 w-4" />
-                                            ویرایش چک
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
-                                                    <Trash2 className="ml-2 h-4 w-4" />
-                                                    حذف چک
-                                                </div>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، هزینه مربوط به آن نیز حذف و مبلغ به حساب شما بازگردانده می‌شود. در غیر اینصورت فقط خود چک حذف می‌شود.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(check)}>
-                                                        بله، حذف کن
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                            <div className="text-left">
-                                <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
-                                <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
-                            </div>
+                    <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start font-body">
+                        <div className="text-left w-1/3 space-y-1">
+                            <p className="text-[10px] text-muted-foreground">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
+                            <p className="text-[10px] text-muted-foreground">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
                         </div>
 
                         <div className="text-center w-1/3">
@@ -127,24 +87,63 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                         </div>
                         
                         <div className="text-right w-1/3">
-                             <p className="text-xs text-muted-foreground font-sans">تاریخ:</p>
+                             <p className="text-xs text-muted-foreground">تاریخ:</p>
                              <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
+                        </div>
+                        
+                         <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Actions">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                    <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared}>
+                                        <Edit className="ml-2 h-4 w-4" />
+                                        ویرایش چک
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                <Trash2 className="ml-2 h-4 w-4" />
+                                                حذف چک
+                                            </div>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، هزینه مربوط به آن نیز حذف و مبلغ به حساب شما بازگردانده می‌شود. در غیر اینصورت فقط خود چک حذف می‌شود.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(check)}>
+                                                    بله، حذف کن
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
 
                     {/* Body */}
-                    <div className="p-4 space-y-2 flex-grow flex flex-col text-sm">
-                        <div className="flex items-center gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                            <span className="font-body shrink-0">به موجب این چک مبلغ</span>
+                    <div className="p-4 space-y-2 flex-grow flex flex-col text-sm font-body">
+                         <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                            <span className="shrink-0">به موجب این چک مبلغ</span>
                             <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
                                 {amountToWords(check.amount)}
                             </span>
-                            <span className="font-body shrink-0">تومان</span>
+                            <span className="shrink-0">تومان</span>
                         </div>
-                        <div className="flex items-center gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                            <span className="font-body shrink-0">در وجه:</span>
-                            <span className="font-handwriting font-bold text-base">{payee}</span>
-                            <span className="font-body ml-auto">برای:</span>
+                        <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                            <span className="shrink-0">در وجه:</span>
+                            <span className="font-handwriting font-bold text-base w-1/2">{payee}</span>
+                            <span className="shrink-0 ml-auto">برای:</span>
                             <span className="font-handwriting font-bold text-base">{expenseForName}</span>
                         </div>
                         <div className="flex-grow"></div>

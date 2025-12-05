@@ -53,8 +53,9 @@ export function formatCardNumber(cardNumber?: string) {
 };
 
 export function amountToWords(amount: number): string {
-    if (typeof amount !== 'number' || isNaN(amount) || amount === 0) return 'صفر';
+    if (typeof amount !== 'number' || isNaN(amount)) return 'صفر';
     try {
+        // The library expects the number in Tomans to correctly convert it to words.
         return numberToWords(amount);
     } catch {
         return '';
