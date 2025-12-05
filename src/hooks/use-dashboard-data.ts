@@ -50,7 +50,7 @@ export function useDashboardData() {
 
     const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
 
-    const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'users') : null), [collectionsEnabled, firestore]));
+    const { data: usersData, isLoading: isLoadingUsers } = useCollection<UserProfile>(useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'users') : null), [collectionsEnabled, firestore]));
     const { data: bankAccounts, isLoading: ilba } = useCollection<BankAccount>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
     const { data: incomes, isLoading: ili } = useCollection<Income>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]));
     const { data: expenses, isLoading: ile } = useCollection<Expense>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]));
@@ -67,7 +67,7 @@ export function useDashboardData() {
     const isLoading = isAuthLoading || isLoadingUsers || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
 
     const allData = useMemo<AllData>(() => ({
-        users: users || [],
+        users: usersData || [],
         incomes: incomes || [],
         expenses: expenses || [],
         bankAccounts: bankAccounts || [],
@@ -80,7 +80,7 @@ export function useDashboardData() {
         loanPayments: loanPayments || [],
         previousDebts: previousDebts || [],
         debtPayments: debtPayments || [],
-    }), [users, bankAccounts, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
+    }), [usersData, bankAccounts, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
 
 
   const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {
