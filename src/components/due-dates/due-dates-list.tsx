@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Check, Loan, PreviousDebt, ExpenseFor } from '@/lib/types';
+import type { Check, Loan, PreviousDebt, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, toPersianDigits } from '@/lib/utils';
 import { differenceInDays, isPast, isToday } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,7 +17,7 @@ export type Deadline = {
   title: string;
   amount: number;
   details: {
-    expenseFor: ExpenseFor;
+    expenseFor: OwnerId;
     bankAccountName: string;
     registeredBy: string;
   };
@@ -41,9 +41,9 @@ const ItemIcon = ({ type }: { type: Deadline['type'] }) => {
   }
 };
 
-const getOwnerDetails = (ownerId: ExpenseFor) => {
+const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = USER_DETAILS[ownerId];
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
 };

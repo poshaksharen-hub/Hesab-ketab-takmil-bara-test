@@ -45,7 +45,7 @@ export default function DueDatesPage() {
         title: `قسط وام: ${l.title}`,
         amount: l.installmentAmount,
          details: {
-          expenseFor: l.expenseFor,
+          expenseFor: l.ownerId,
           bankAccountName: '---', // Not applicable for loan itself
           registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص'
         },
@@ -73,7 +73,7 @@ export default function DueDatesPage() {
           title: `پرداخت بدهی: ${d.description}`,
           amount: amount,
           details: {
-            expenseFor: d.expenseFor,
+            expenseFor: d.ownerId,
             bankAccountName: '---',
             registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص'
           },
