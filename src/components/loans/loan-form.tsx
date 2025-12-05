@@ -35,10 +35,10 @@ const formSchema = z.object({
   payeeId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'مبلغ وام باید یک عدد مثبت باشد.' }),
   ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این وام برای کیست.'}),
-  installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').default(0),
-  numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').default(0),
+  installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').optional(),
+  numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').optional(),
   startDate: z.date({ required_error: 'لطفا تاریخ شروع را انتخاب کنید.' }),
-  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').default(5),
+  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').optional(),
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
 });
@@ -223,7 +223,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 <FormItem>
                                     <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
                                     <FormControl>
-                                    <CurrencyInput value={field.value} onChange={field.onChange} />
+                                    <CurrencyInput value={field.value || 0} onChange={field.onChange} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -236,7 +236,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 <FormItem>
                                     <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
                                     <FormControl>
-                                        <NumericInput {...field} />
+                                        <NumericInput {...field} value={field.value || ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -256,6 +256,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         min="1"
                                         max="30"
                                         {...field}
+                                        value={field.value || ''}
                                     />
                                 </FormControl>
                                 <FormDescription>
@@ -313,7 +314,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         <SelectContent className="max-h-[250px]">
                                             {sortedBankAccounts.map((account) => (
                                             <SelectItem key={account.id} value={account.id}>
-                                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                                             </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -350,3 +351,5 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </>
     );
 }
+
+    

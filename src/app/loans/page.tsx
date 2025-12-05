@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -45,12 +44,12 @@ export default function LoansPage() {
     const {
         title,
         amount,
-        ownerId,
         installmentAmount,
         numberOfInstallments,
         startDate,
         paymentDay,
         payeeId,
+        ownerId, // This now correctly represents the beneficiary
         depositOnCreate,
         depositToAccountId,
     } = values;
@@ -59,12 +58,10 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            const newLoanRef = doc(collection(familyDataRef, 'loans'));
-
-            const newLoanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
+            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
                 title,
                 amount,
-                ownerId,
+                ownerId, // Use the ownerId directly from the form
                 installmentAmount: installmentAmount || 0,
                 numberOfInstallments: numberOfInstallments || 0,
                 startDate: startDate,
@@ -73,22 +70,24 @@ export default function LoansPage() {
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
             };
 
+            const newLoanRef = doc(collection(familyDataRef, 'loans'));
             transaction.set(newLoanRef, {
-                ...newLoanData,
+                ...loanData,
                 id: newLoanRef.id,
                 registeredByUserId: user.uid,
                 paidInstallments: 0,
-                remainingAmount: newLoanData.amount,
+                remainingAmount: loanData.amount,
             });
 
             if (depositOnCreate && depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
                 const bankAccountDoc = await transaction.get(bankAccountRef);
+
                 if (!bankAccountDoc.exists()) {
                     throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
                 }
                 const bankAccountData = bankAccountDoc.data() as BankAccount;
-                const balanceAfter = bankAccountData.balance + newLoanData.amount;
+                const balanceAfter = bankAccountData.balance + loanData.amount;
                 transaction.update(bankAccountRef, { balance: balanceAfter });
             }
         });
@@ -113,7 +112,7 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, editingLoan, toast, payees]);
+}, [user, firestore, toast]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
@@ -138,7 +137,7 @@ export default function LoansPage() {
             
             const currentLoanData = loanDoc.data() as Loan;
             const accountData = accountToPayFromDoc.data() as BankAccount;
-            const availableBalance = accountData.balance;
+            const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
 
             if (installmentAmount > currentLoanData.remainingAmount) {
                 throw new Error(`مبلغ پرداختی (${formatCurrency(installmentAmount, 'IRT')}) نمی‌تواند از مبلغ باقی‌مانده وام (${formatCurrency(currentLoanData.remainingAmount, 'IRT')}) بیشتر باشد.`);
@@ -326,3 +325,5 @@ export default function LoansPage() {
     </main>
   );
 }
+
+    

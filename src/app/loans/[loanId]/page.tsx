@@ -7,11 +7,14 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle } from 'lucide-react';
+import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Calendar, User, Users, PenSquare } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { USER_DETAILS } from '@/lib/constants';
+import { Separator } from '@/components/ui/separator';
+import type { OwnerId } from '@/lib/types';
+
 
 function LoanDetailSkeleton() {
   return (
@@ -20,7 +23,7 @@ function LoanDetailSkeleton() {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-10 w-24" />
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />
@@ -38,6 +41,19 @@ function LoanDetailSkeleton() {
     </main>
   );
 }
+
+const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
+    if (!value) return null;
+    return (
+        <div className="flex items-center gap-2 text-sm">
+            <Icon className="h-4 w-4 text-muted-foreground" />
+            <div>
+                <span className="text-muted-foreground">{label}: </span>
+                <span className="font-semibold">{value}</span>
+            </div>
+        </div>
+    );
+};
 
 export default function LoanDetailPage() {
   const router = useRouter();
@@ -101,6 +117,10 @@ export default function LoanDetailPage() {
     if (!payeeId) return 'نامشخص';
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
+  
+  const getUserName = (userId: string) => users.find(u => u.id === userId)?.firstName || 'نامشخص';
+  const getOwnerName = (ownerId: OwnerId) => USER_DETAILS[ownerId]?.firstName || 'مشترک';
+
 
   const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
 
@@ -122,18 +142,27 @@ export default function LoanDetailPage() {
       </div>
 
        <Card>
-            <CardContent className='pt-6'>
+            <CardHeader>
+                <CardTitle>خلاصه وضعیت</CardTitle>
+            </CardHeader>
+            <CardContent className='pt-0'>
                 <div className="space-y-3">
                     <div className="flex justify-between text-sm font-medium">
-                        <span>{formatCurrency(loan.amount - loan.remainingAmount, 'IRT')}</span>
-                        <span>{formatCurrency(loan.amount, 'IRT')}</span>
+                        <span>پرداخت شده: {formatCurrency(loan.amount - loan.remainingAmount, 'IRT')}</span>
+                        <span>مبلغ کل: {formatCurrency(loan.amount, 'IRT')}</span>
                     </div>
                     <Progress value={progress} className="h-2" />
                     <div className="flex justify-between text-sm text-muted-foreground text-center">
                         <span>{`${progress.toFixed(0)}٪ پرداخت شده`}</span>
-                        <span>مبلغ باقی‌مانده: <span className='font-bold'>{formatCurrency(loan.remainingAmount, 'IRT')}</span></span>
+                        <span>مبلغ باقی‌مانده: <span className='font-bold text-destructive'>{formatCurrency(loan.remainingAmount, 'IRT')}</span></span>
                     </div>
                 </div>
+                 <Separator className="my-4" />
+                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <DetailItem icon={loan.ownerId === 'shared' ? Users : User} label="وام برای" value={getOwnerName(loan.ownerId)} />
+                    <DetailItem icon={Calendar} label="تاریخ دریافت" value={formatJalaliDate(new Date(loan.startDate))} />
+                    <DetailItem icon={PenSquare} label="ثبت توسط" value={getUserName(loan.registeredByUserId)} />
+                 </div>
             </CardContent>
        </Card>
       
@@ -174,3 +203,5 @@ export default function LoanDetailPage() {
     </main>
   );
 }
+
+    

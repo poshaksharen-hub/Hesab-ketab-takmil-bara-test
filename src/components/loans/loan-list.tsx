@@ -4,8 +4,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History, Edit, PenSquare } from 'lucide-react';
-import type { Loan, LoanPayment, Payee, BankAccount, UserProfile } from '@/lib/types';
+import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History, Edit, PenSquare, User, Users } from 'lucide-react';
+import type { Loan, LoanPayment, Payee, BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -90,6 +90,13 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
     return <Badge variant="secondary">در حال پرداخت</Badge>;
   };
 
+  const getOwnerDetails = (ownerId: OwnerId) => {
+    if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
+    if (!userDetail) return { name: "ناشناس", Icon: User };
+    return { name: userDetail.firstName, Icon: User };
+  };
+
 
   return (
     <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
@@ -97,6 +104,7 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
             const depositAccountInfo = getAccountInfo(loan.depositToAccountId);
+            const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(loan.ownerId);
 
             return (
              <div key={loan.id} className="relative group">
@@ -105,7 +113,10 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
                         <CardHeader>
                             <div className='flex justify-between items-start'>
                                 <div className="space-y-1">
-                                    <CardTitle className={cn("font-headline", isCompleted && "text-muted-foreground line-through")}>{loan.title}</CardTitle>
+                                    <CardTitle className={cn("font-headline flex items-center gap-2", isCompleted && "text-muted-foreground line-through")}>
+                                      <OwnerIcon className="h-5 w-5 text-muted-foreground" />
+                                      {loan.title}
+                                    </CardTitle>
                                     <CardDescription className='flex items-center gap-2'>
                                         {getLoanStatus(loan)}
                                         {loan.payeeId && <span className="text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
@@ -174,8 +185,8 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
                                 <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
                                     <span>{`${loan.numberOfInstallments > 0 ? (loan.numberOfInstallments - loan.paidInstallments) + ' قسط باقی‌مانده' : 'پرداخت نشده'}`}</span>
                                     <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(loan.registeredByUserId)}`}>
-                                    <PenSquare className="h-3 w-3" />
-                                    <span>{getUserName(loan.registeredByUserId)}</span>
+                                      <PenSquare className="h-3 w-3" />
+                                      <span>{getUserName(loan.registeredByUserId)}</span>
                                     </div>
                                     <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments || '؟'} قسط`}</span>
                                 </div>
@@ -201,3 +212,5 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
     </div>
   );
 }
+
+    
