@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -45,7 +44,7 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
 
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = USER_DETAILS[ownerId];
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };

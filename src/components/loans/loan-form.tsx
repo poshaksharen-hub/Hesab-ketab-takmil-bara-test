@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Loan, BankAccount, Payee, ExpenseFor } from '@/lib/types';
+import type { Loan, BankAccount, Payee, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
@@ -34,7 +34,7 @@ const formSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
   payeeId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'مبلغ وام باید یک عدد مثبت باشد.' }),
-  expenseFor: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این بدهی برای کیست.'}),
+  ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این بدهی برای کیست.'}),
   installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').default(0),
   numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').default(0),
   startDate: z.date({ required_error: 'لطفا تاریخ شروع را انتخاب کنید.' }),
@@ -62,7 +62,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             title: '',
             payeeId: '',
             amount: 0,
-            expenseFor: 'shared',
+            ownerId: 'shared',
             installmentAmount: 0,
             numberOfInstallments: 0,
             startDate: new Date(),
@@ -98,7 +98,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 title: '',
                 payeeId: '',
                 amount: 0,
-                expenseFor: 'shared',
+                ownerId: 'shared',
                 installmentAmount: 0,
                 numberOfInstallments: 0,
                 startDate: new Date(),
@@ -192,10 +192,10 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         />
                         <FormField
                             control={form.control}
-                            name="expenseFor"
+                            name="ownerId"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>این بدهی برای کیست؟</FormLabel>
+                                <FormLabel>این وام برای کیست؟</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                     <SelectTrigger>

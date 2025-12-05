@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Payee } from '@/lib/types';
+import type { Payee, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
@@ -34,7 +34,7 @@ import { Switch } from '../ui/switch';
 const formSchema = z.object({
   description: z.string().min(2, { message: 'شرح بدهی باید حداقل ۲ حرف داشته باشد.' }),
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
-  expenseFor: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این بدهی برای کیست.' }),
+  ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این بدهی برای کیست.' }),
   amount: z.coerce.number().positive({ message: 'مبلغ بدهی باید یک عدد مثبت باشد.' }),
   startDate: z.date({ required_error: 'لطفا تاریخ ایجاد بدهی را انتخاب کنید.' }),
   isInstallment: z.boolean().default(false),
@@ -69,7 +69,7 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
     defaultValues: {
       description: '',
       payeeId: '',
-      expenseFor: 'shared',
+      ownerId: 'shared',
       amount: 0,
       startDate: new Date(),
       isInstallment: false,
@@ -161,7 +161,7 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
-                        name="expenseFor"
+                        name="ownerId"
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>این بدهی برای کیست؟</FormLabel>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
-import type { Loan, LoanPayment, BankAccount, Category, Payee, ExpenseFor } from '@/lib/types';
+import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
@@ -39,65 +40,60 @@ export default function LoansPage() {
   const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
 
+    const {
+        title,
+        amount,
+        ownerId,
+        installmentAmount,
+        numberOfInstallments,
+        startDate,
+        paymentDay,
+        payeeId,
+        depositOnCreate,
+        depositToAccountId,
+    } = values;
+
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        
-        let liabilityOwnerId: 'ali' | 'fatemeh' | 'shared_account' = 'shared_account'; // Default
-        if (values.depositOnCreate && values.depositToAccountId) {
-            const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
-            const bankAccountDoc = await transaction.get(bankAccountRef);
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            
+            const newLoanRef = doc(collection(familyDataRef, 'loans'));
 
-            if (!bankAccountDoc.exists()) {
-                throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
+            const newLoanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
+                title,
+                amount,
+                ownerId,
+                installmentAmount: installmentAmount || 0,
+                numberOfInstallments: numberOfInstallments || 0,
+                startDate: startDate,
+                paymentDay: paymentDay || 1,
+                payeeId: payeeId || undefined,
+                depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
+            };
+
+            transaction.set(newLoanRef, {
+                ...newLoanData,
+                id: newLoanRef.id,
+                registeredByUserId: user.uid,
+                paidInstallments: 0,
+                remainingAmount: newLoanData.amount,
+            });
+
+            if (depositOnCreate && depositToAccountId) {
+                const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
+                const bankAccountDoc = await transaction.get(bankAccountRef);
+                if (!bankAccountDoc.exists()) {
+                    throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
+                }
+                const bankAccountData = bankAccountDoc.data() as BankAccount;
+                const balanceAfter = bankAccountData.balance + newLoanData.amount;
+                transaction.update(bankAccountRef, { balance: balanceAfter });
             }
-            const bankAccountData = bankAccountDoc.data() as BankAccount;
-            liabilityOwnerId = bankAccountData.ownerId;
-        }
+        });
 
-        const newLoanRef = doc(collection(familyDataRef, 'loans'));
-
-        // Build the complete and valid Loan object
-        const newLoanData: Loan = {
-            id: newLoanRef.id,
-            registeredByUserId: user.uid,
-            title: values.title,
-            amount: values.amount,
-            expenseFor: values.expenseFor,
-            liabilityOwnerId: liabilityOwnerId,
-            installmentAmount: values.installmentAmount,
-            numberOfInstallments: values.numberOfInstallments,
-            startDate: values.startDate,
-            paymentDay: values.paymentDay,
-            remainingAmount: values.amount, 
-            paidInstallments: 0,
-        };
-
-        // Conditionally add optional fields ONLY if they have a value
-        if (values.payeeId) {
-            newLoanData.payeeId = values.payeeId;
-        }
-        if (values.depositOnCreate && values.depositToAccountId) {
-            newLoanData.depositToAccountId = values.depositToAccountId;
-        }
-        
-        transaction.set(newLoanRef, newLoanData);
-
-        if (values.depositOnCreate && values.depositToAccountId) {
-            const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
-            // Re-get inside transaction for consistency
-            const bankAccountDoc = await transaction.get(bankAccountRef);
-            if (bankAccountDoc.exists()) {
-                 const bankAccountData = bankAccountDoc.data() as BankAccount;
-                 const balanceAfter = bankAccountData.balance + newLoanData.amount;
-                 transaction.update(bankAccountRef, { balance: balanceAfter });
-            }
-        }
-      });
-
-      toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
-      setIsFormOpen(false);
-      setEditingLoan(null);
+        toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
+        setIsFormOpen(false);
+        setEditingLoan(null);
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -115,7 +111,7 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, toast]);
+}, [user, firestore, editingLoan, toast, payees]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
@@ -176,7 +172,7 @@ export default function LoansPage() {
             const expenseCategory = categories?.find(c => c.name.includes('قسط')) || categories?.[0];
             transaction.set(expenseRef, {
                 id: expenseRef.id,
-                liabilityOwnerId: accountData.ownerId,
+                ownerId: accountData.ownerId,
                 registeredByUserId: user.uid,
                 amount: installmentAmount,
                 bankAccountId: paymentBankAccountId,
@@ -184,8 +180,9 @@ export default function LoansPage() {
                 date: new Date().toISOString(),
                 description: `پرداخت قسط وام: ${loan.title}`,
                 type: 'expense',
+                subType: 'loan_payment',
+                expenseFor: loan.ownerId, // Use the beneficiary from the loan itself
                 loanPaymentId: paymentRef.id,
-                expenseFor: loan.expenseFor, // Use the beneficiary from the loan itself
                 createdAt: serverTimestamp(),
                 balanceBefore: balanceBefore,
                 balanceAfter: balanceAfter,
@@ -211,7 +208,6 @@ export default function LoansPage() {
         return;
     }
     
-    // Prevent deletion if there's a payment history.
     if (loanToDelete.paidInstallments > 0) {
         toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌ها را به صورت دستی برگردانید و سپس وام را حذف کنید.' });
         return;
@@ -230,12 +226,10 @@ export default function LoansPage() {
                     const accountData = depositAccountDoc.data() as BankAccount;
                     transaction.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
                 } else {
-                    // This warning is helpful for debugging but won't stop the deletion.
                     console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found. The deletion will proceed without reversing the initial deposit.`);
                 }
             }
             
-            // Finally, delete the loan document itself.
             transaction.delete(loanRef);
         });
 
