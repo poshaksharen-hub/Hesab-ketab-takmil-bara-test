@@ -10,6 +10,7 @@ export type OwnerId = 'ali' | 'fatemeh' | 'shared_account' | 'daramad_moshtarak'
 // This is completely separate from OwnerId.
 export type ExpenseFor = 'ali' | 'fatemeh' | 'shared';
 
+export type BankTheme = 'blue' | 'green' | 'purple' | 'orange' | 'gray' | 'red' | 'teal' | 'cyan' | 'pink' | 'indigo';
 
 export type Income = {
   id: string;
@@ -63,7 +64,7 @@ export type BankAccount = {
     balance: number;
     initialBalance: number;
     blockedBalance?: number;
-    theme: 'blue' | 'green' | 'purple' | 'orange' | 'gray';
+    theme: BankTheme;
 }
 
 export type Category = {

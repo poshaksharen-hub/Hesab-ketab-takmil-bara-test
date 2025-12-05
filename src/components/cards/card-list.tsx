@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, MoreVertical, Wifi, Users, User, History, Copy, WalletCards, PiggyBank } from 'lucide-react';
-import type { BankAccount, UserProfile, OwnerId, FinancialGoal } from '@/lib/types';
+import type { BankAccount, UserProfile, FinancialGoal } from '@/lib/types';
 import { formatCurrency, cn, formatCardNumber } from '@/lib/utils';
 import {
   AlertDialog,
@@ -22,19 +22,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-
-const themeClasses = {
-    blue: 'from-blue-500 to-blue-700',
-    green: 'from-emerald-500 to-green-700',
-    purple: 'from-violet-500 to-purple-700',
-    orange: 'from-orange-500 to-amber-700',
-    gray: 'from-slate-600 to-gray-800',
-};
+import { getBankTheme } from '@/lib/bank-data';
 
 const ChipIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none" className="w-10 h-auto sm:w-12">
@@ -59,9 +51,9 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
         });
     };
 
-    const getOwnerDetails = (ownerId: OwnerId) => {
+    const getOwnerDetails = (ownerId: 'ali' | 'fatemeh' | 'shared_account') => {
         if (ownerId === 'shared_account') return { name: "حساب مشترک", Icon: Users };
-        const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
+        const userDetail = USER_DETAILS[ownerId];
         return { name: `${userDetail.firstName} ${userDetail.lastName}`, Icon: User };
     };
     
@@ -69,11 +61,13 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
 
     const blockedForGoals = card.blockedBalance || 0;
     const availableBalance = card.balance - blockedForGoals;
+    
+    const themeClasses = getBankTheme(card.theme);
 
     return (
         <>
             <div className="relative group p-1">
-                <div className={cn("relative rounded-xl p-4 sm:p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses[card.theme || 'blue'])}>
+                <div className={cn("relative rounded-xl p-4 sm:p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses)}>
                     <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
                     <div className='relative z-10 flex justify-between items-start'>
                         <span className="font-bold text-base sm:text-lg tracking-wider">{card.bankName}</span>
@@ -115,7 +109,7 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                                 <span>{`IR - ${card.accountNumber}`}</span>
                                 <button
                                     onClick={(e) => {
-                                        e.stopPropagation(); // Prevent card link navigation
+                                        e.stopPropagation(); 
                                         e.preventDefault();
                                         handleCopy(card.accountNumber, 'شماره حساب');
                                     }}

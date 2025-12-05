@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,15 +23,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { BankAccount, UserProfile } from '@/lib/types';
+import type { BankAccount, UserProfile, BankTheme } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
+import { BANK_DATA, type BankInfo } from '@/lib/bank-data';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const expiryDateRegex = /^(0[1-9]|1[0-2])\/?([0-9]{2})$/;
 
 const formSchema = z.object({
-  bankName: z.string().min(2, { message: 'نام بانک باید حداقل ۲ حرف داشته باشد.' }),
+  bankName: z.string().min(1, { message: 'لطفا یک بانک را انتخاب کنید.' }),
   accountNumber: z.string().min(5, { message: 'شماره حساب معتبر نیست.' }),
   cardNumber: z.string().regex(/^\d{16}$/, { message: 'شماره کارت باید ۱۶ رقم باشد.' }),
   expiryDate: z.string().regex(expiryDateRegex, { message: 'تاریخ انقضا را با فرمت MM/YY وارد کنید.' }),
@@ -39,7 +44,7 @@ const formSchema = z.object({
   accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
   ownerId: z.enum(['ali', 'fatemeh', 'shared_account'], { required_error: 'لطفا صاحب حساب را مشخص کنید.' }),
-  theme: z.enum(['blue', 'green', 'purple', 'orange', 'gray']).default('blue'),
+  theme: z.string().min(1, { message: 'لطفا یک طرح برای کارت انتخاب کنید.' }),
 });
 
 type CardFormValues = z.infer<typeof formSchema>;
@@ -55,6 +60,8 @@ interface CardFormProps {
 }
 
 export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users, hasSharedAccount }: CardFormProps) {
+  const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
+  
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,7 +73,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
       accountType: 'savings',
       initialBalance: 0,
       ownerId: 'ali',
-      theme: 'blue'
+      theme: '',
     },
   });
   
@@ -76,7 +83,8 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
     if (initialData) {
       form.reset({
          ...initialData,
-         ownerId: initialData.ownerId, // Explicitly set ownerId for editing
+         ownerId: initialData.ownerId, 
+         theme: initialData.theme || (BANK_DATA.find(b => b.name === initialData.bankName)?.themes[0]?.id || 'blue'),
         } as CardFormValues);
     } else {
       form.reset({
@@ -88,19 +96,20 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         accountType: 'savings',
         initialBalance: 0,
         ownerId: loggedInUserOwnerId as 'ali' | 'fatemeh',
-        theme: 'blue',
+        theme: '',
       });
     }
   }, [initialData, form, loggedInUserOwnerId]);
 
   function handleFormSubmit(data: CardFormValues) {
-    // Reformat expiry date before submission to ensure it's always MM/YY
     data.expiryDate = data.expiryDate.replace(/\/?/g, '');
     data.expiryDate = data.expiryDate.slice(0, 2) + '/' + data.expiryDate.slice(2, 4);
-
     onSubmit(data as any);
   }
   
+  const selectedBankName = form.watch('bankName');
+  const selectedBankInfo = BANK_DATA.find(b => b.name === selectedBankName);
+
   return (
       <Card>
         <CardHeader>
@@ -140,15 +149,76 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                 control={form.control}
                 name="bankName"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>نام بانک</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مثال: بانک ملی" {...field} />
-                    </FormControl>
+                    <Popover open={bankPopoverOpen} onOpenChange={setBankPopoverOpen}>
+                        <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                                >
+                                {field.value ? BANK_DATA.find(b => b.name === field.value)?.name : "یک بانک را انتخاب کنید"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                            <Command>
+                                <CommandInput placeholder="جستجوی بانک..." />
+                                <CommandList>
+                                  <CommandEmpty>بانکی یافت نشد.</CommandEmpty>
+                                  <CommandGroup>
+                                    {BANK_DATA.map((bank) => (
+                                      <CommandItem
+                                        value={bank.name}
+                                        key={bank.name}
+                                        onSelect={() => {
+                                          form.setValue("bankName", bank.name);
+                                          form.setValue("theme", bank.themes[0].id); // Set default theme
+                                          setBankPopoverOpen(false);
+                                        }}
+                                      >
+                                        <Check className={cn("mr-2 h-4 w-4", bank.name === field.value ? "opacity-100" : "opacity-0")} />
+                                        {bank.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {selectedBankInfo && (
+                <FormField
+                  control={form.control}
+                  name="theme"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>طرح کارت</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="یک طرح برای کارت انتخاب کنید" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {selectedBankInfo.themes.map((theme) => (
+                            <SelectItem key={theme.id} value={theme.id}>
+                              {theme.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="accountNumber"
@@ -232,30 +302,6 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                       <SelectContent>
                         <SelectItem value="savings">پس‌انداز / کوتاه مدت</SelectItem>
                         <SelectItem value="checking">جاری / دسته‌چک دار</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="theme"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>رنگ تم کارت</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="یک رنگ انتخاب کنید" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="blue">آبی</SelectItem>
-                        <SelectItem value="green">سبز</SelectItem>
-                        <SelectItem value="purple">بنفش</SelectItem>
-                        <SelectItem value="orange">نارنجی</SelectItem>
-                        <SelectItem value="gray">خاکستری</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
