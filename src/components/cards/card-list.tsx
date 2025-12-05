@@ -73,7 +73,6 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
     const { name: ownerName, Icon: OwnerIcon } = OWNER_DETAILS_CARDS[card.ownerId];
     
     const themeClasses = getBankTheme(card.theme as any);
-    const availableBalance = card.balance - (card.blockedBalance || 0);
 
     return (
         <>
@@ -150,36 +149,19 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                             </span>
                             <div className='text-left'>
                                 <p className="text-base sm:text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
-                                <p className="text-[10px] sm:text-xs opacity-80">موجودی واقعی</p>
+                                <p className="text-[10px] sm:text-xs opacity-80">موجودی</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                 <div className="bg-muted p-4 rounded-b-xl border-t mt-[-2px] space-y-3 text-sm">
-                    {card.blockedBalance && card.blockedBalance > 0 ? (
-                        <>
-                            <div className='flex items-center justify-between text-destructive'>
-                                <span className='flex items-center gap-1.5'><PiggyBank className="w-4 h-4" /> مسدود برای اهداف</span>
-                                <span className='font-mono font-semibold'>-{formatCurrency(card.blockedBalance, 'IRT')}</span>
-                            </div>
-                            <Separator />
-                        </>
-                    ) : null}
-
-                    <div className='flex items-center justify-between font-bold text-primary'>
-                        <span className='flex items-center gap-1.5'><Wallet className="w-4 h-4" /> موجودی قابل استفاده</span>
-                        <span className='font-mono'>{formatCurrency(availableBalance, 'IRT')}</span>
-                    </div>
-                    
-                    <Separator />
-
-                    <div className="flex gap-2 pt-2">
-                        <Button size="sm" variant="ghost" className="w-full" onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}>
+                 <div className="bg-muted p-2 rounded-b-xl border-t mt-[-2px]">
+                    <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" className="w-full text-xs" onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}>
                             <Copy className="ml-2 h-4 w-4" />
                             کپی شماره کارت
                         </Button>
-                        <Button size="sm" variant="ghost" className="w-full" asChild>
+                        <Button size="sm" variant="ghost" className="w-full text-xs" asChild>
                             <Link href={`/cards/${card.id}`}>
                                 <History className="ml-2 h-4 w-4" />
                                 تاریخچه

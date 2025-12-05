@@ -67,34 +67,14 @@ export function useDashboardData() {
     const isLoading = isAuthLoading || isLoadingUsers || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
 
     const allData = useMemo<AllData>(() => {
-        const activeGoals = goals || [];
-        
-        // Recalculate blockedBalance for each bank account
-        const calculatedBankAccounts = (bankAccountsData || []).map(account => {
-            const blockedForGoals = activeGoals.reduce((total, goal) => {
-                if (!goal.isAchieved && goal.contributions) {
-                    const contributionFromThisAccount = goal.contributions
-                        .filter(c => c.bankAccountId === account.id)
-                        .reduce((sum, c) => sum + c.amount, 0);
-                    return total + contributionFromThisAccount;
-                }
-                return total;
-            }, 0);
-
-            return {
-                ...account,
-                blockedBalance: blockedForGoals
-            };
-        });
-
         return {
             users: usersData || [],
             incomes: incomes || [],
             expenses: expenses || [],
-            bankAccounts: calculatedBankAccounts,
+            bankAccounts: bankAccountsData || [],
             categories: categories || [],
             checks: checks || [],
-            goals: activeGoals,
+            goals: goals || [],
             loans: loans || [],
             payees: payees || [],
             transfers: transfers || [],

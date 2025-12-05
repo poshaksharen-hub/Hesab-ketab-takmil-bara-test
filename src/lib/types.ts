@@ -61,7 +61,7 @@ export type BankAccount = {
     accountType: 'checking' | 'savings';
     balance: number;
     initialBalance: number;
-    blockedBalance: number;
+    blockedBalance?: number;
     theme: BankTheme;
 }
 
