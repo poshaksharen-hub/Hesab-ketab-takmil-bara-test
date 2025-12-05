@@ -37,24 +37,32 @@ export function getNextDueDate(startDate: string | Date, paymentDay: number): Da
 }
 
 
-export function getDateRange(range: 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'thisYear'): { from: Date, to: Date } {
+export function getDateRange(preset: 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'thisYear'): { range: { from: Date, to: Date }, preset: typeof preset } {
     const now = new Date();
-    switch (range) {
+    let range: { from: Date, to: Date };
+
+    switch (preset) {
         case 'thisWeek':
-            return { from: startOfWeek(now, { locale: faIR }), to: endOfWeek(now, { locale: faIR }) };
+            range = { from: startOfWeek(now, { locale: faIR }), to: endOfWeek(now, { locale: faIR }) };
+            break;
         case 'lastWeek':
             const lastWeekStart = startOfWeek(sub(now, { weeks: 1 }), { locale: faIR });
             const lastWeekEnd = endOfWeek(sub(now, { weeks: 1 }), { locale: faIR });
-            return { from: lastWeekStart, to: lastWeekEnd };
+            range = { from: lastWeekStart, to: lastWeekEnd };
+            break;
         case 'thisMonth':
-            return { from: startOfMonth(now), to: endOfMonth(now) };
+            range = { from: startOfMonth(now), to: endOfMonth(now) };
+            break;
         case 'lastMonth':
             const lastMonthStart = startOfMonth(sub(now, { months: 1 }));
             const lastMonthEnd = endOfMonth(sub(now, { months: 1 }));
-            return { from: lastMonthStart, to: lastMonthEnd };
+            range = { from: lastMonthStart, to: lastMonthEnd };
+            break;
         case 'thisYear':
-            return { from: startOfYear(now), to: endOfYear(now) };
+            range = { from: startOfYear(now), to: endOfYear(now) };
+            break;
         default:
-            return { from: startOfMonth(now), to: endOfMonth(now) };
+            range = { from: startOfMonth(now), to: endOfMonth(now) };
     }
+    return { range, preset };
 }

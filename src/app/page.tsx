@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
-import { subDays, isEqual } from 'date-fns';
+import { isEqual } from 'date-fns';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
@@ -27,11 +27,8 @@ import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
-import { OwnerId, ExpenseFor } from '@/lib/types';
 import { getDateRange } from '@/lib/date-utils';
-
-type DatePreset = 'thisWeek' | 'thisMonth' | 'thisYear';
-type DashboardFilter = 'all' | 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
+import type { DashboardFilter } from '@/hooks/use-dashboard-data';
 
 
 function DashboardSkeleton() {
@@ -75,11 +72,8 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const { isUserLoading } = useUser();
   const [ownerFilter, setOwnerFilter] = useState<DashboardFilter>('all');
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 29),
-    to: new Date(),
-  });
-  const [activePreset, setActivePreset] = useState<DatePreset | null>('thisMonth');
+  const [date, setDate] = useState<DateRange | undefined>(getDateRange('thisMonth'));
+  const [activePreset, setActivePreset] = useState<ReturnType<typeof getDateRange>['preset']>('thisMonth');
 
   const { isLoading, getFilteredData, allData } = useDashboardData();
 
@@ -89,11 +83,10 @@ export default function DashboardPage() {
   const effectiveLoading = isUserLoading || isLoading;
 
   useEffect(() => {
-    // Check if the current date range matches any preset
-    const presets: DatePreset[] = ['thisWeek', 'thisMonth', 'thisYear'];
-    let matchedPreset: DatePreset | null = null;
+    let matchedPreset: ReturnType<typeof getDateRange>['preset'] | null = null;
+    const presets: Array<Parameters<typeof getDateRange>[0]> = ['thisWeek', 'thisMonth', 'thisYear'];
     for (const preset of presets) {
-        const presetRange = getDateRange(preset);
+        const presetRange = getDateRange(preset).range;
         if (date?.from && date?.to && isEqual(date.from, presetRange.from) && isEqual(date.to, presetRange.to)) {
             matchedPreset = preset;
             break;
@@ -107,8 +100,9 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const handleDatePreset = (preset: DatePreset) => {
-      setDate(getDateRange(preset));
+  const handleDatePreset = (preset: Parameters<typeof getDateRange>[0]) => {
+      setDate(getDateRange(preset).range);
+      setActivePreset(preset);
   }
   
   return (
@@ -139,7 +133,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Overall Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <OverallSummary 
             filteredSummary={summary} 
@@ -189,6 +182,7 @@ export default function DashboardPage() {
                         checks={allData.checks} 
                         loans={allData.loans}
                         payees={allData.payees}
+                        previousDebts={allData.previousDebts}
                     />
                     </CardContent>
                 </Card>

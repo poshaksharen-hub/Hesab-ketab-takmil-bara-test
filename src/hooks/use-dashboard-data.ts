@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
@@ -16,7 +15,6 @@ import type {
   Payee,
   Transfer,
   LoanPayment,
-  OwnerId,
   ExpenseFor,
   PreviousDebt,
   DebtPayment,
@@ -42,13 +40,12 @@ type AllData = {
   debtPayments: DebtPayment[];
 };
 
-type DashboardFilter = 'all' | 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
+export type DashboardFilter = 'all' | 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
 
 
 export function useDashboardData() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
-    // Ensure we only enable collection queries when the user is fully authenticated.
     const collectionsEnabled = !isAuthLoading && !!user && !!firestore;
 
     const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
@@ -100,6 +97,7 @@ export function useDashboardData() {
     let filteredLoans: Loan[] = [];
     let filteredDebts: PreviousDebt[] = [];
     let filteredAccounts: BankAccount[] = [];
+    let filteredGoals: FinancialGoal[] = [];
 
     if (ownerFilter === 'all') {
         filteredIncomes = allData.incomes.filter(i => dateMatches(i.date));
@@ -108,23 +106,27 @@ export function useDashboardData() {
         filteredChecks = allData.checks;
         filteredLoans = allData.loans;
         filteredDebts = allData.previousDebts;
+        filteredGoals = allData.goals;
     } else if (ownerFilter === 'daramad_moshtarak') {
         filteredIncomes = allData.incomes.filter(i => i.ownerId === 'daramad_moshtarak' && dateMatches(i.date));
         filteredAccounts = allData.bankAccounts.filter(b => b.ownerId === 'shared_account');
-        // No expenses/liabilities are shown for this filter
-    } else { // 'ali', 'fatemeh', or 'shared' for expenses
-        filteredIncomes = allData.incomes.filter(i => i.ownerId === ownerFilter && dateMatches(i.date));
+        // No expenses/liabilities are shown for this business-focused filter
+    } else { // 'ali', 'fatemeh', or 'shared' (for expenses/liabilities)
+        if (ownerFilter === 'ali' || ownerFilter === 'fatemeh') {
+             filteredIncomes = allData.incomes.filter(i => i.ownerId === ownerFilter && dateMatches(i.date));
+             filteredAccounts = allData.bankAccounts.filter(b => b.ownerId === ownerFilter);
+        }
         filteredExpenses = allData.expenses.filter(e => e.expenseFor === ownerFilter && dateMatches(e.date));
-        filteredAccounts = allData.bankAccounts.filter(b => b.ownerId === ownerFilter);
         filteredChecks = allData.checks.filter(c => c.expenseFor === ownerFilter);
         filteredLoans = allData.loans.filter(l => l.expenseFor === ownerFilter);
         filteredDebts = allData.previousDebts.filter(d => d.expenseFor === ownerFilter);
+        filteredGoals = allData.goals.filter(g => g.ownerId === ownerFilter);
     }
     
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
-    
     const totalAssets = filteredAccounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalSavedForGoals = filteredGoals.reduce((sum, g) => sum + g.currentAmount, 0);
 
     const pendingChecks = filteredChecks.filter(c => c.status === 'pending');
     const pendingChecksAmount = pendingChecks.reduce((sum, c) => sum + c.amount, 0);
@@ -146,15 +148,11 @@ export function useDashboardData() {
         const globalPendingChecksAmount = globalPendingChecks.reduce((sum, c) => sum + c.amount, 0);
         const globalRemainingLoanAmount = allData.loans.reduce((sum, l) => sum + l.remainingAmount, 0);
         const globalRemainingDebtsAmount = allData.previousDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
-        const globalTotalAssets = allData.bankAccounts.reduce((sum, acc) => sum + acc.balance, 0);
-        const globalTotalLiabilities = globalPendingChecksAmount + globalRemainingLoanAmount + globalRemainingDebtsAmount;
 
         return {
             aliBalance: allData.bankAccounts.filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0),
             fatemehBalance: allData.bankAccounts.filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0),
             sharedBalance: allData.bankAccounts.filter(b => b.ownerId === 'shared_account').reduce((sum, acc) => sum + acc.balance, 0),
-            netWorth: globalTotalAssets - globalTotalLiabilities,
-            totalAssets: globalTotalAssets,
             pendingChecksAmount: globalPendingChecksAmount,
             remainingLoanAmount: globalRemainingLoanAmount,
             remainingDebtsAmount: globalRemainingDebtsAmount,
@@ -172,6 +170,7 @@ export function useDashboardData() {
         pendingChecksAmount,
         remainingLoanAmount,
         remainingDebtsAmount,
+        totalSavedForGoals,
       },
       globalSummary,
       details: {

@@ -2,7 +2,7 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Wallet, Landmark, Scale, PiggyBank, Handshake, FileText } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Landmark, Scale, PiggyBank, Handshake, FileText, Target } from 'lucide-react';
 import React from 'react';
 
 type SummaryData = {
@@ -14,12 +14,13 @@ type SummaryData = {
   pendingChecksAmount: number;
   remainingLoanAmount: number;
   remainingDebtsAmount: number;
+  totalSavedForGoals: number;
 };
 
 
 type OverallSummaryProps = {
   filteredSummary: SummaryData;
-  globalSummary: Pick<SummaryData, 'netWorth' | 'totalAssets' | 'pendingChecksAmount' | 'remainingLoanAmount' | 'remainingDebtsAmount'>;
+  globalSummary: Pick<SummaryData, 'pendingChecksAmount' | 'remainingLoanAmount' | 'remainingDebtsAmount'>;
 };
 
 export function OverallSummary({ filteredSummary, globalSummary }: OverallSummaryProps) {
@@ -33,7 +34,7 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.netWorth, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">تفاضل دارایی و بدهی (فیلتر شده)</p>
+            <p className="text-xs text-muted-foreground">دارایی‌ها منهای بدهی‌ها (فیلتر شده)</p>
           </CardContent>
         </Card>
         <Card>
@@ -43,7 +44,7 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.totalAssets, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">موجودی حساب‌های بانکی (فیلتر شده)</p>
+            <p className="text-xs text-muted-foreground">موجودی حساب‌ها (فیلتر شده)</p>
           </CardContent>
         </Card>
         <Card>

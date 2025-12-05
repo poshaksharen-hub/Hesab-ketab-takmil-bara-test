@@ -1,9 +1,8 @@
 
-
 'use client';
 
 import { type Income, type Expense, type UserProfile, type Category, BankAccount, ExpenseFor } from '@/lib/types';
-import { formatCurrency, formatJalaliDate } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Briefcase, ShoppingCart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -23,8 +22,8 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
     
   if (!transactions || transactions.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">تراکنش اخیر یافت نشد.</p>
+      <div className="flex h-full items-center justify-center py-10">
+        <p className="text-sm text-muted-foreground">تراکنش اخیر در این بازه زمانی یافت نشد.</p>
       </div>
     );
   }
@@ -50,12 +49,13 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
   }
 
   const getExpenseForBadge = (transaction: Expense) => {
-    if (transaction.type !== 'expense' || !transaction.expenseFor || transaction.expenseFor === 'shared') return null;
+    if (transaction.type !== 'expense' || !transaction.expenseFor) return null;
     
     let text = '';
     switch(transaction.expenseFor as ExpenseFor) {
         case 'ali': text = `برای ${USER_DETAILS.ali.firstName}`; break;
         case 'fatemeh': text = `برای ${USER_DETAILS.fatemeh.firstName}`; break;
+        case 'shared': text = 'هزینه مشترک'; break;
     }
 
     if (text) {
@@ -64,9 +64,16 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
     return null;
   }
 
-  const isSharedAccount = (transaction: Income | Expense) => {
+  const getAccountOwnerBadge = (transaction: Income | Expense) => {
       const account = bankAccounts.find(acc => acc.id === transaction.bankAccountId);
-      return account?.ownerId === 'shared_account';
+      if (!account) return null;
+      
+      let text = '';
+      if(account.ownerId === 'ali') text = `حساب ${USER_DETAILS.ali.firstName}`;
+      if(account.ownerId === 'fatemeh') text = `حساب ${USER_DETAILS.fatemeh.firstName}`;
+      if(account.ownerId === 'shared_account') text = 'حساب مشترک';
+
+      return <Badge variant="secondary">{text}</Badge>;
   }
 
   return (
@@ -88,7 +95,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
             <div className="ml-4 space-y-1">
               <div className="text-sm font-medium leading-none flex items-center gap-2">
                 {transaction.description}
-                {isSharedAccount(transaction) && <Badge variant="secondary">حساب مشترک</Badge>}
+                {getAccountOwnerBadge(transaction)}
                 {!isIncome && getExpenseForBadge(transaction as Expense)}
               </div>
               <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transactionDate)}</span></p>
