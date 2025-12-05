@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
@@ -119,79 +119,75 @@ export default function CheckDetailPage() {
                     پاس شد
                 </div>
             )}
-            <div className="p-4 relative bg-gray-100 dark:bg-gray-800/50">
-                <div className="flex justify-between items-start">
-                     <div className="text-left w-1/3 space-y-2">
-                        <div>
-                            <p className="text-xs text-muted-foreground font-sans">شناسه صیاد</p>
-                            <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground font-sans">شماره سریال چک</p>
-                            <p className="font-mono text-sm font-bold tracking-tight">{check.checkSerialNumber}</p>
-                        </div>
+             {/* Header */}
+            <div className="p-4 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
+                <div className="text-left w-1/3 space-y-1">
+                    <div>
+                        <p className="text-xs text-muted-foreground font-sans">شناسه صیاد</p>
+                        <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
                     </div>
-                    <div className="text-center w-1/3">
-                         <HesabKetabLogo className="w-8 h-8 mx-auto text-primary/70" />
-                        <p className="font-bold text-lg">{bankAccount?.bankName}</p>
+                    <div>
+                        <p className="text-xs text-muted-foreground font-sans">شماره سریال چک</p>
+                        <p className="font-mono text-sm font-bold tracking-tight">{check.checkSerialNumber}</p>
                     </div>
-                    <div className="text-right w-1/3">
-                         <p className="text-xs text-muted-foreground font-sans">تاریخ</p>
-                         <p className="font-handwriting font-bold text-xl">{formatJalaliDate(new Date(check.dueDate))}</p>
-                    </div>
+                </div>
+                <div className="text-center w-1/3">
+                    <HesabKetabLogo className="w-8 h-8 mx-auto text-primary/70" />
+                    <p className="font-bold text-lg">{bankAccount?.bankName}</p>
+                </div>
+                <div className="text-right w-1/3">
+                    <p className="text-xs text-muted-foreground font-sans">تاریخ</p>
+                    <p className="font-handwriting font-bold text-xl">{formatJalaliDate(new Date(check.dueDate))}</p>
                 </div>
             </div>
 
-            <CardContent className="p-6 space-y-4 flex-grow flex flex-col justify-between">
-                <div>
+            {/* Body */}
+            <div className="p-6 space-y-3 flex-grow flex flex-col justify-between">
+                <div className="space-y-2">
                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
                         <span className="shrink-0">به موجب این چک مبلغ</span>
-                        <span className="font-handwriting font-bold text-lg text-center flex-grow">
-                             {amountToWords(check.amount) || '...'}
+                        <span className="font-handwriting font-bold text-lg text-center flex-grow px-2">
+                            {amountToWords(check.amount) || '...'}
                         </span>
-                         <span className="shrink-0">تومان</span>
+                        <span className="shrink-0">تومان</span>
                     </div>
-                     <div className="flex items-baseline gap-4 border-b-2 border-dotted border-gray-400 pb-2 mt-4">
+                    <div className="flex items-baseline gap-4 border-b-2 border-dotted border-gray-400 pb-2 mt-2">
                         <span className="shrink-0">در وجه:</span>
-                         <span className="font-handwriting font-bold text-lg w-1/2">{getPayeeName(check.payeeId)}</span>
-                        <span className="shrink-0">برای:</span>
-                         <span className="font-handwriting font-bold text-lg">{expenseForName}</span>
+                        <span className="font-handwriting font-bold text-lg">{getPayeeName(check.payeeId)}</span>
+                        <span className="shrink-0 ml-auto">برای:</span>
+                        <span className="font-handwriting font-bold text-lg">{expenseForName}</span>
                     </div>
                 </div>
 
                 <div className="flex justify-between items-end pt-4">
-                     <div className="flex flex-col items-start">
-                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
-                        <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
-                    </div>
-                     <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-start">
                         <span className="text-xs text-muted-foreground">مبلغ</span>
                         <span className="font-handwriting font-bold text-xl">
                             {formatCurrency(check.amount, 'IRT')}
                         </span>
                     </div>
+                    <div className="flex flex-col items-center">
+                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
+                        <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
+                    </div>
+                    <div className="relative text-right">
+                        <p className="font-sans text-xs">صاحب حساب:</p>
+                        <p className="font-sans text-sm font-bold">{ownerName}</p>
+                        <div className="absolute -bottom-6 -right-4 w-24 h-12 pointer-events-none opacity-80">
+                            {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
+                            {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
+                            {check.liabilityOwnerId === 'shared_account' && (
+                                <>
+                                    <SignatureAli className="w-20 h-10 absolute -top-2 right-4 text-gray-700 dark:text-gray-300" />
+                                    <SignatureFatemeh className="w-20 h-10 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300" />
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </CardContent>
-
-            <CardFooter className="p-4 flex justify-end items-end">
-                 <div className="relative text-right">
-                     <p className="font-sans text-sm font-bold">{ownerName}</p>
-                     <div className="absolute -bottom-4 -right-2 w-24 h-12 pointer-events-none">
-                         {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
-                         {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
-                         {check.liabilityOwnerId === 'shared_account' && (
-                             <>
-                                 <SignatureAli className="w-20 h-10 absolute -top-2 right-4 text-gray-700 dark:text-gray-300 opacity-80" />
-                                 <SignatureFatemeh className="w-20 h-10 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300 opacity-80" />
-                             </>
-                         )}
-                     </div>
-                 </div>
-            </CardFooter>
+            </div>
         </Card>
       </div>
     </main>
   );
 }
-
-    
