@@ -68,7 +68,7 @@ export default function PayeeDetailPage() {
     const relatedLoans = loans.filter(l => l.payeeId === payeeId);
     const relatedDebts = previousDebts.filter(d => d.payeeId === payeeId);
     
-    const clearedCheckExpenses = expenses.filter(e => e.checkId && relatedChecks.some(rc => rc.id === e.checkId));
+    const clearedCheckExpenses = expenses.filter(e => e.checkId && relatedChecks.some(rc => rc.id === e.checkId && rc.status === 'cleared'));
 
     const totalCashPayment = relatedExpenses.reduce((sum, e) => sum + e.amount, 0) + clearedCheckExpenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -89,7 +89,7 @@ export default function PayeeDetailPage() {
     
     const checkHistory: CombinedTransaction[] = relatedChecks.map(c => ({
       date: new Date(c.issueDate),
-      description: c.description || `چک شماره`,
+      description: c.description || `چک به شماره صیادی ${c.sayadId}`,
       type: 'check',
       amount: c.amount,
       status: c.status,

@@ -49,7 +49,7 @@ export function PayeeList({ payees, onEdit, onDelete }: PayeeListProps) {
           </TableHeader>
           <TableBody>
             {payees.map((payee) => (
-              <TableRow key={payee.id} className="group">
+              <TableRow key={payee.id} className="group cursor-pointer">
                 <TableCell className="font-medium">
                     <Link href={`/payees/${payee.id}`} className="flex items-center gap-2 group-hover:underline">
                         {payee.name}
