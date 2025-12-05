@@ -24,8 +24,7 @@ export default function DueDatesPage() {
       .filter(c => c.status === 'pending')
       .map(c => {
         const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
-        const ownerId = bankAccount?.ownerId as OwnerId | 'shared_account' | undefined;
-
+        
         return {
           id: c.id,
           type: 'check' as const,
@@ -33,12 +32,12 @@ export default function DueDatesPage() {
           title: c.description || `چک به ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناس'}`,
           amount: c.amount,
           details: {
-            ownerId: ownerId || 'shared', // Fallback, though ownerId should exist
+            ownerId: bankAccount?.ownerId || 'shared_account',
             expenseFor: c.expenseFor,
             bankAccountName: bankAccount?.bankName || 'نامشخص',
             registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص',
             categoryName: categories.find(cat => cat.id === c.categoryId)?.name || 'نامشخص',
-            payeeName: payees.find(p => p.id === c.payeeId)?.name || 'ناشناس',
+            payeeName: payees.find(p => p.id === c.payeeId)?.name,
             description: c.description,
           },
           originalItem: c,
@@ -54,7 +53,7 @@ export default function DueDatesPage() {
         title: `قسط وام: ${l.title}`,
         amount: l.installmentAmount,
          details: {
-          ownerId: l.ownerId, // Loan owner is the person responsible for payment
+          ownerId: l.ownerId, 
           expenseFor: l.ownerId,
           bankAccountName: '---', // Not applicable for loan itself
           registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص',
@@ -86,7 +85,7 @@ export default function DueDatesPage() {
           title: `پرداخت بدهی: ${d.description}`,
           amount: amount,
           details: {
-            ownerId: d.ownerId, // Debt owner is responsible
+            ownerId: d.ownerId,
             expenseFor: d.ownerId,
             bankAccountName: '---',
             registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص',

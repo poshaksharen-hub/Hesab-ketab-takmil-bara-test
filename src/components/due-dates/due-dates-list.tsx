@@ -18,7 +18,7 @@ export type Deadline = {
   title: string;
   amount: number;
   details: {
-    ownerId: OwnerId | 'shared_account'; // The actual account owner
+    ownerId: OwnerId | 'shared_account'; // The actual account owner or the beneficiary
     expenseFor: OwnerId; // The beneficiary
     bankAccountName: string;
     registeredBy: string;
@@ -46,10 +46,10 @@ const ItemIcon = ({ type }: { type: Deadline['type'] }) => {
   }
 };
 
-const getOwnerDetails = (ownerId: OwnerId | 'shared_account' | 'daramad_moshtarak') => {
+const getOwnerDetails = (ownerId: OwnerId | 'shared_account') => {
     if (ownerId === 'shared' || ownerId === 'shared_account') return { name: "مشترک", Icon: Users };
     const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
-    if (!userDetail) return { name: "ناشناس", Icon: User };
+    if (!userDetail) return { name: "نامشخص", Icon: User };
     return { name: userDetail.firstName, Icon: User };
 };
 
@@ -101,6 +101,7 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
     <div className="space-y-4">
       {deadlines.map((item) => {
         const { Icon: BeneficiaryIcon, name: beneficiaryName } = getOwnerDetails(item.details.expenseFor);
+        const { Icon: OwnerIcon, name: ownerName } = getOwnerDetails(item.details.ownerId);
         const isOverdue = isPast(item.date) && !isToday(item.date);
         
         let cardClasses = "shadow-md transition-shadow hover:shadow-lg";
@@ -131,7 +132,7 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
                         <DetailItem icon={BookUser} label="طرف حساب" value={item.details.payeeName} />
                         <DetailItem icon={FolderKanban} label="بابت" value={item.details.categoryName} />
                          {item.details.bankAccountName !== '---' && (
-                            <DetailItem icon={Landmark} label="از حساب" value={item.details.bankAccountName} />
+                            <DetailItem icon={Landmark} label="صاحب حساب" value={`${ownerName} (${item.details.bankAccountName})`} />
                          )}
                         <DetailItem icon={BeneficiaryIcon} label="تراکنش برای" value={beneficiaryName} />
                         <DetailItem icon={PenSquare} label="ثبت توسط" value={item.details.registeredBy} />
