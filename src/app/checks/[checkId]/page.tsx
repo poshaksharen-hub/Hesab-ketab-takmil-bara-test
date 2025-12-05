@@ -8,9 +8,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Calendar, User, Users, FolderKanban } from 'lucide-react';
-import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate, cn, toPersianDigits, amountToWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
+import { SignatureAli, SignatureFatemeh, HesabKetabLogo } from '@/components/icons';
 
 function CheckDetailSkeleton() {
   return (
@@ -19,18 +20,8 @@ function CheckDetailSkeleton() {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-10 w-24" />
       </div>
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
-      </div>
-      <Card>
-        <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
-        <CardContent>
-            <div className="space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-            </div>
-        </CardContent>
-      </Card>
+      <Skeleton className="h-56 w-full max-w-2xl mx-auto" />
+      <Skeleton className="h-24 w-full max-w-2xl mx-auto" />
     </main>
   );
 }
@@ -88,33 +79,31 @@ export default function CheckDetailPage() {
     return bankAccounts.find(b => b.id === bankAccountId);
   }
 
-  const getOwnerDetails = (ownerId: 'ali' | 'fatemeh' | 'shared') => {
-    if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
+  const getOwnerDetails = (ownerId: 'ali' | 'fatemeh' | 'shared_account') => {
+    if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح", Icon: Users };
     const userDetail = USER_DETAILS[ownerId];
     if (!userDetail) return { name: "ناشناس", Icon: User };
-    return { name: userDetail.firstName, Icon: User };
+    return { name: `${userDetail.firstName} ${userDetail.lastName}`, Icon: User };
   };
   
   const bankAccount = getBankAccount(check.bankAccountId);
-  const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(check.ownerId);
-
-  const getStatusBadge = (status: 'pending' | 'cleared') => {
-      switch(status) {
-          case 'pending': return <Badge variant="destructive">در انتظار پاس</Badge>;
-          case 'cleared': return <Badge className="bg-emerald-500 text-white">پاس شده</Badge>;
-      }
-  }
+  const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(check.liabilityOwnerId);
+  const expenseForName = check.expenseFor && USER_DETAILS[check.expenseFor] ? USER_DETAILS[check.expenseFor].firstName : 'مشترک';
+  const isCleared = check.status === 'cleared';
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div className="space-y-1">
           <h1 className="font-headline text-3xl font-bold tracking-tight">
             جزئیات چک
           </h1>
           <div className="text-muted-foreground flex items-center gap-2">
             <span>{check.description || `چک به ${getPayeeName(check.payeeId)}`}</span>
-            {getStatusBadge(check.status)}
+            {isCleared ? 
+                <Badge className="bg-emerald-500 text-white">پاس شده</Badge> : 
+                <Badge variant="destructive">در انتظار پاس</Badge>
+            }
           </div>
         </div>
         <Button onClick={() => router.push('/checks')} variant="outline">
@@ -123,96 +112,79 @@ export default function CheckDetailPage() {
         </Button>
       </div>
 
-       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">مبلغ چک</CardTitle>
-                <HandCoins className="h-4 w-4 text-muted-foreground" />
+       <div className="max-w-2xl mx-auto">
+         <Card className={cn("overflow-hidden shadow-2xl h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
+            {isCleared && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform rotate-[-15deg] border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-4xl font-black uppercase opacity-60 select-none z-20">
+                    پاس شد
+                </div>
+            )}
+            {/* --- Check Header --- */}
+            <CardHeader className="p-4 relative bg-gray-100 dark:bg-gray-800/50">
+                <div className="flex justify-between items-center">
+                    <div className="text-left w-1/3">
+                        <p className="text-xs text-muted-foreground">شناسه صیاد</p>
+                        <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
+                        <p className="text-xs text-muted-foreground mt-2">شماره سریال چک</p>
+                        <p className="font-mono text-sm font-bold tracking-tight">{check.checkSerialNumber}</p>
+                    </div>
+                    <div className="text-center w-1/3">
+                         <HesabKetabLogo className="w-8 h-8 mx-auto text-primary/70" />
+                        <p className="font-bold text-lg">{bankAccount?.bankName}</p>
+                    </div>
+                    <div className="text-right w-1/3">
+                         <p className="text-xs text-muted-foreground">تاریخ</p>
+                         <p className="font-handwriting font-bold text-xl">{formatJalaliDate(new Date(check.dueDate))}</p>
+                    </div>
+                </div>
             </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(check.amount, 'IRT')}</div>
+
+            {/* --- Check Body --- */}
+            <CardContent className="p-6 space-y-4 flex-grow">
+                <div className="flex items-center gap-2">
+                    <span className="shrink-0">به موجب این چک مبلغ</span>
+                    <span className="font-handwriting font-bold text-xl border-b-2 border-dotted border-gray-400 px-2 flex-grow text-center">
+                        {amountToWords(check.amount)} ریال
+                    </span>
+                </div>
+                 <div className="flex items-center gap-2">
+                    <span className="shrink-0">معادل</span>
+                     <span className="font-handwriting font-bold text-xl bg-gray-200 dark:bg-gray-700 rounded-md px-3 py-1">
+                        {toPersianDigits(new Intl.NumberFormat('fa-IR').format(check.amount * 10))} ریال
+                    </span>
+                </div>
+                 <div className="flex items-center gap-2">
+                    <span className="shrink-0">در وجه</span>
+                     <span className="font-handwriting font-bold text-xl border-b-2 border-dotted border-gray-400 px-2 flex-grow">
+                        {getPayeeName(check.payeeId)}
+                    </span>
+                     <span className="shrink-0">بابت</span>
+                     <span className="font-handwriting font-bold text-xl border-b-2 border-dotted border-gray-400 px-2">
+                       {expenseForName}
+                    </span>
+                </div>
             </CardContent>
-        </Card>
-         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">تاریخ سررسید</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold font-mono">{formatJalaliDate(new Date(check.dueDate))}</div>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">طرف حساب</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-lg font-bold">{getPayeeName(check.payeeId)}</div>
-            </CardContent>
-        </Card>
-         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">دسته‌بندی</CardTitle>
-                <FolderKanban className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-lg font-bold">{getCategoryName(check.categoryId)}</div>
-            </CardContent>
+
+            {/* --- Check Footer --- */}
+            <CardFooter className="p-4 flex justify-between items-end">
+                <div className="text-sm">
+                    <p className="font-semibold">صاحب حساب:</p>
+                    <p className="text-muted-foreground">{ownerName}</p>
+                </div>
+                <div className="w-32 h-16 relative">
+                    {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
+                    {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
+                    {check.liabilityOwnerId === 'shared_account' && (
+                        <>
+                            <SignatureAli className="w-24 h-12 absolute bottom-0 right-0 text-gray-700 dark:text-gray-300" />
+                            <SignatureFatemeh className="w-24 h-12 absolute bottom-0 left-[-10px] text-gray-700 dark:text-gray-300" />
+                        </>
+                    )}
+                </div>
+            </CardFooter>
         </Card>
       </div>
-      
-      <Card>
-          <CardHeader>
-              <CardTitle>اطلاعات حساب و صیادی</CardTitle>
-          </CardHeader>
-          <CardContent className="grid md:grid-cols-2 gap-x-8 gap-y-6">
-               <div className="flex items-center gap-3">
-                    <Landmark className="h-6 w-6 text-muted-foreground" />
-                    <div>
-                        <p className="text-sm text-muted-foreground">از حساب بانکی</p>
-                        <p className="font-semibold">{bankAccount?.bankName || 'نامشخص'}</p>
-                    </div>
-                </div>
-                 <div className="flex items-center gap-3">
-                    <OwnerIcon className="h-6 w-6 text-muted-foreground" />
-                    <div>
-                        <p className="text-sm text-muted-foreground">تعهد برای</p>
-                        <p className="font-semibold">{ownerName}</p>
-                    </div>
-                </div>
-                 <div className="flex items-center gap-3">
-                    <BookCopy className="h-6 w-6 text-muted-foreground" />
-                    <div>
-                        <p className="text-sm text-muted-foreground">شماره صیادی</p>
-                        <p className="font-semibold font-mono tracking-wider">{check.sayadId}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <BookCopy className="h-6 w-6 text-muted-foreground" />
-                    <div>
-                        <p className="text-sm text-muted-foreground">شماره سریال چک</p>
-                        <p className="font-semibold font-mono tracking-wider">{check.checkSerialNumber}</p>
-                    </div>
-                </div>
-                 <div className="flex items-center gap-3">
-                    <Calendar className="h-6 w-6 text-muted-foreground" />
-                    <div>
-                        <p className="text-sm text-muted-foreground">تاریخ صدور</p>
-                        <p className="font-semibold font-mono">{formatJalaliDate(new Date(check.issueDate))}</p>
-                    </div>
-                </div>
-                {check.clearedDate && (
-                    <div className="flex items-center gap-3">
-                        <Calendar className="h-6 w-6 text-emerald-500" />
-                        <div>
-                            <p className="text-sm text-muted-foreground">تاریخ پاس شدن</p>
-                            <p className="font-semibold font-mono">{formatJalaliDate(new Date(check.clearedDate))}</p>
-                        </div>
-                    </div>
-                )}
-          </CardContent>
-      </Card>
+
     </main>
   );
 }

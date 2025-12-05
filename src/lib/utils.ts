@@ -2,6 +2,8 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from 'date-fns-jalali';
+import { numberToWords } from '@persian-tools/persian-tools';
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -49,3 +51,13 @@ export function formatCardNumber(cardNumber?: string) {
     if (!cardNumber) return '---- ---- ---- ----';
     return cardNumber.replace(/(\d{4})/g, '$1 ').trim();
 };
+
+export function amountToWords(amount: number): string {
+    if (typeof amount !== 'number' || isNaN(amount)) return '';
+    try {
+        return numberToWords(amount * 10); // Convert Toman to Rial for words
+    } catch {
+        return '';
+    }
+}
+
