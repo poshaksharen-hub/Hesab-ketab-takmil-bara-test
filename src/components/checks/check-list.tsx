@@ -75,18 +75,18 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                             پاس شد
                         </div>
                     )}
-                    <CardHeader className="p-3 relative bg-gray-100 dark:bg-gray-800/50">
+                    <CardHeader className="p-4 relative bg-gray-100 dark:bg-gray-800/50">
                         <div className="flex justify-between items-start">
-                            <div className="text-left w-1/3 space-y-1">
+                             <div className="text-left w-1/3 space-y-2">
                                 <div>
                                     <p className="text-xs text-muted-foreground font-sans">شناسه صیاد</p>
-                                    <p className="font-mono text-xs font-bold tracking-wider">{check.sayadId}</p>
+                                    <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground font-sans">سریال چک</p>
-                                    <p className="font-mono text-xs font-bold tracking-tight">{check.checkSerialNumber}</p>
+                                    <p className="text-xs text-muted-foreground font-sans">شماره سریال چک</p>
+                                    <p className="font-mono text-sm font-bold tracking-tight">{check.checkSerialNumber}</p>
                                 </div>
-                                <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-1 left-1 z-20">
+                                 <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-1 left-1 z-20">
                                    <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
@@ -126,35 +126,36 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                                </div>
                             </div>
                             <div className="text-center w-1/3">
-                                <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
-                                <p className="font-bold text-sm">{bankAccount?.bankName}</p>
+                                 <HesabKetabLogo className="w-8 h-8 mx-auto text-primary/70" />
+                                <p className="font-bold text-lg">{bankAccount?.bankName}</p>
                             </div>
                             <div className="text-right w-1/3">
-                                <p className="text-xs text-muted-foreground font-sans">تاریخ</p>
-                                <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
+                                 <p className="text-xs text-muted-foreground font-sans">تاریخ</p>
+                                 <p className="font-handwriting font-bold text-xl">{formatJalaliDate(new Date(check.dueDate))}</p>
                             </div>
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-4 space-y-2 flex-grow">
-                        <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                            <span className="shrink-0 text-sm">به موجب این چک مبلغ</span>
-                            <span className="font-handwriting font-bold text-base text-center flex-grow">
-                                {amountToWords(check.amount)} تومان
+                    <CardContent className="p-6 space-y-4 flex-grow">
+                        <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
+                            <span className="shrink-0">به موجب این چک مبلغ</span>
+                            <span className="font-handwriting font-bold text-lg text-center flex-grow">
+                                {amountToWords(check.amount)}
                             </span>
+                             <span className="shrink-0">تومان</span>
                         </div>
-                        <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                             <span className="shrink-0 text-sm">در وجه:</span>
-                             <span className="font-handwriting font-bold text-base w-1/2">{payee}</span>
-                             <span className="shrink-0 text-sm">برای:</span>
-                             <span className="font-handwriting font-bold text-base">{expenseForName}</span>
+                         <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
+                            <span className="shrink-0">در وجه:</span>
+                             <span className="font-handwriting font-bold text-lg w-1/2">{payee}</span>
+                            <span className="shrink-0">برای:</span>
+                             <span className="font-handwriting font-bold text-lg">{expenseForName}</span>
                         </div>
-                         <div className="flex justify-between items-end pt-2">
-                             <div className="flex flex-col items-start">
+                        <div className="grid grid-cols-2 gap-4 pt-4">
+                            <div className="flex flex-col items-start">
                                 <span className="text-xs text-muted-foreground">دسته‌بندی</span>
-                                <span className="font-handwriting font-bold text-base">{category}</span>
+                                <span className="font-handwriting font-bold text-lg">{category}</span>
                             </div>
-                            <div className="flex flex-col items-end">
+                             <div className="flex flex-col items-end">
                                 <span className="text-xs text-muted-foreground">مبلغ</span>
                                 <span className="font-handwriting font-bold text-xl">
                                     {formatCurrency(check.amount, 'IRT')}
@@ -163,8 +164,8 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                         </div>
                     </CardContent>
 
-                    <CardFooter className="p-3 flex justify-end items-end">
-                        <div className="relative text-right">
+                    <CardFooter className="p-4 flex justify-end items-end">
+                         <div className="relative text-right">
                              <p className="font-sans text-xs">صاحب حساب:</p>
                              <p className="font-sans text-sm font-bold">{ownerName}</p>
                              <div className="absolute -bottom-2 -right-4 w-32 h-16 pointer-events-none">

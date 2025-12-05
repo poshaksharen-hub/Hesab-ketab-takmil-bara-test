@@ -147,8 +147,9 @@ export default function CheckDetailPage() {
                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
                     <span className="shrink-0">به موجب این چک مبلغ</span>
                     <span className="font-handwriting font-bold text-lg text-center flex-grow">
-                        {amountToWords(check.amount)} تومان
+                        {amountToWords(check.amount)}
                     </span>
+                    <span className="shrink-0">تومان</span>
                 </div>
                  <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
                     <span className="shrink-0">در وجه:</span>
@@ -158,14 +159,14 @@ export default function CheckDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-4">
                      <div className="flex flex-col items-start">
+                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
+                        <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
+                    </div>
+                     <div className="flex flex-col items-end">
                         <span className="text-xs text-muted-foreground">مبلغ</span>
                         <span className="font-handwriting font-bold text-xl">
                             {formatCurrency(check.amount, 'IRT')}
                         </span>
-                    </div>
-                     <div className="flex flex-col items-end">
-                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
-                        <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
                     </div>
                 </div>
             </CardContent>
