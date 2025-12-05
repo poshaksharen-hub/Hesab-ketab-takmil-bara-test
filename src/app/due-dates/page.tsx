@@ -24,19 +24,21 @@ export default function DueDatesPage() {
       .filter(c => c.status === 'pending')
       .map(c => {
         const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
-        const ownerId = bankAccount?.ownerId as OwnerId | undefined;
+        const ownerId = bankAccount?.ownerId as OwnerId | 'shared_account' | undefined;
 
         return {
           id: c.id,
           type: 'check' as const,
           date: new Date(c.dueDate),
-          title: `چک به ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناس'}`,
+          title: c.description || `چک به ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناس'}`,
           amount: c.amount,
           details: {
             ownerId: ownerId || 'shared', // Fallback, though ownerId should exist
             expenseFor: c.expenseFor,
             bankAccountName: bankAccount?.bankName || 'نامشخص',
-            registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص'
+            registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص',
+            categoryName: categories.find(cat => cat.id === c.categoryId)?.name || 'نامشخص',
+            payeeName: payees.find(p => p.id === c.payeeId)?.name || 'ناشناس',
           },
           originalItem: c,
         };
@@ -54,7 +56,9 @@ export default function DueDatesPage() {
           ownerId: l.ownerId, // Loan owner is the person responsible for payment
           expenseFor: l.ownerId,
           bankAccountName: '---', // Not applicable for loan itself
-          registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص'
+          registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص',
+          categoryName: 'اقساط و بدهی',
+          payeeName: payees.find(p => p.id === l.payeeId)?.name,
         },
         originalItem: l,
       }));
@@ -83,7 +87,9 @@ export default function DueDatesPage() {
             ownerId: d.ownerId, // Debt owner is responsible
             expenseFor: d.ownerId,
             bankAccountName: '---',
-            registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص'
+            registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص',
+            categoryName: 'اقساط و بدهی',
+            payeeName: payees.find(p => p.id === d.payeeId)?.name,
           },
           originalItem: d,
         };
@@ -101,21 +107,21 @@ export default function DueDatesPage() {
             router.push('/checks');
             toast({
                 title: "انتقال به صفحه چک‌ها",
-                description: `چک برای ${allData.payees.find(p => p.id === (item.originalItem as Check).payeeId)?.name || 'ناشناس'} انتخاب شد.`,
+                description: `برای مدیریت چک مورد نظر به صفحه چک‌ها منتقل شدید.`,
             });
             break;
         case 'loan':
             router.push('/loans');
             toast({
                 title: "انتقال به صفحه وام‌ها",
-                description: `وام "${item.title}" برای پرداخت قسط انتخاب شد.`,
+                description: `برای پرداخت قسط وام "${(item.originalItem as Loan).title}" به صفحه وام‌ها منتقل شدید.`,
             });
             break;
         case 'debt':
              router.push('/debts');
             toast({
                 title: "انتقال به صفحه بدهی‌ها",
-                description: `بدهی "${item.title}" برای پرداخت انتخاب شد.`,
+                description: `برای پرداخت بدهی "${(item.originalItem as PreviousDebt).description}" به صفحه بدهی‌ها منتقل شدید.`,
             });
             break;
     }

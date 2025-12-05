@@ -5,9 +5,9 @@ import React from 'react';
 import type { Check, Loan, PreviousDebt, OwnerId } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, toPersianDigits } from '@/lib/utils';
 import { differenceInDays, isPast, isToday } from 'date-fns';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Handshake, Landmark, HandCoins, AlertTriangle, User, Users } from 'lucide-react';
+import { FileText, Handshake, Landmark, HandCoins, AlertTriangle, User, Users, FolderKanban, BookUser, PenSquare, MessageSquareText } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
 
 export type Deadline = {
@@ -21,6 +21,8 @@ export type Deadline = {
     expenseFor: OwnerId; // The beneficiary
     bankAccountName: string;
     registeredBy: string;
+    categoryName: string;
+    payeeName?: string;
   };
   originalItem: Check | Loan | PreviousDebt;
 };
@@ -66,6 +68,17 @@ const renderStatus = (date: Date) => {
     return <span className="text-muted-foreground">{toPersianDigits(daysDiff)} روز دیگر</span>;
 };
 
+const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
+    if (!value) return null;
+    return (
+        <div className="flex items-center gap-2" title={label}>
+            <Icon className="h-4 w-4 text-muted-foreground" />
+            <span>{value}</span>
+        </div>
+    );
+};
+
+
 export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
   if (deadlines.length === 0) {
     return (
@@ -89,54 +102,44 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
         const isOverdue = isPast(item.date) && !isToday(item.date);
         
         let cardClasses = "shadow-md transition-shadow hover:shadow-lg";
-        let titleClasses = "font-bold";
         if(isOverdue) {
             cardClasses += " border-destructive bg-destructive/5";
-            titleClasses += " text-destructive";
         }
 
 
         return (
             <Card key={`${item.type}-${item.id}`} className={cardClasses}>
-                <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-grow">
+                <CardHeader className="flex-row items-start justify-between gap-4 pb-4">
+                    <div className="flex items-start gap-4">
                         <ItemIcon type={item.type} />
-                        <div className="space-y-1.5 flex-grow">
-                            <p className={titleClasses}>{item.title}</p>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                {item.type === 'check' && (
-                                  <div className="flex items-center gap-1" title="صاحب حساب">
-                                    <OwnerIcon className="h-4 w-4" />
-                                    <span>{ownerName}</span>
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-1" title="برای">
-                                    <BeneficiaryIcon className="h-4 w-4" />
-                                    <span>{beneficiaryName}</span>
-                                </div>
-                                {item.details.bankAccountName !== '---' && (
-                                    <div className="flex items-center gap-1" title="از حساب">
-                                        <Landmark className="h-4 w-4" />
-                                        <span>{item.details.bankAccountName}</span>
-                                    </div>
-                                )}
-                                <div className="flex items-center gap-1" title="ثبت توسط">
-                                    <User className="h-4 w-4" />
-                                    <span>{item.details.registeredBy}</span>
-                                </div>
-                            </div>
+                        <div className="space-y-1">
+                            <CardTitle className={`text-lg ${isOverdue ? 'text-destructive' : ''}`}>{item.title}</CardTitle>
+                            <p className="text-xs text-muted-foreground font-mono">
+                                {formatJalaliDate(item.date)}
+                            </p>
                         </div>
                     </div>
-                    <div className="flex items-center justify-between w-full sm:w-auto sm:justify-end sm:gap-6">
-                        <div className='text-center sm:text-right'>
-                            <p className="font-bold text-lg font-mono tracking-tighter">{formatCurrency(item.amount, 'IRT')}</p>
-                            <p className="text-xs">{renderStatus(item.date)}</p>
-                        </div>
-                        <Button onClick={() => onAction(item)} size="sm">
-                            {item.type === 'check' ? 'مدیریت چک' : 'پرداخت'}
-                        </Button>
+                    <div className="text-left">
+                        <p className="font-bold text-xl font-mono tracking-tighter">{formatCurrency(item.amount, 'IRT')}</p>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 text-xs">
+                        <DetailItem icon={BookUser} label="طرف حساب" value={item.details.payeeName} />
+                        <DetailItem icon={FolderKanban} label="بابت" value={item.details.categoryName} />
+                         {item.details.bankAccountName !== '---' && (
+                            <DetailItem icon={Landmark} label="از حساب" value={`${item.details.bankAccountName} (${ownerName})`} />
+                         )}
+                        <DetailItem icon={BeneficiaryIcon} label="تراکنش برای" value={beneficiaryName} />
+                        <DetailItem icon={PenSquare} label="ثبت توسط" value={item.details.registeredBy} />
                     </div>
                 </CardContent>
+                <CardFooter className="flex items-center justify-between bg-muted/50 p-3">
+                     <p className="text-sm font-semibold">{renderStatus(item.date)}</p>
+                     <Button onClick={() => onAction(item)} size="sm">
+                        {item.type === 'check' ? 'مدیریت چک' : 'پرداخت'}
+                    </Button>
+                </CardFooter>
             </Card>
       )})}
     </div>
