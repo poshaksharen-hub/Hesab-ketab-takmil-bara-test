@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -80,6 +80,13 @@ export default function DashboardPage() {
   const { isLoading, getFilteredData, allData } = useDashboardData();
   const { seedDatabase, isSeeding } = useInitialData();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      const defaultFilter = user.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+      setOwnerFilter(defaultFilter);
+    }
+  }, [user, isUserLoading]);
 
   const { summary, details, globalSummary } = getFilteredData(ownerFilter, date);
   
@@ -132,7 +139,7 @@ export default function DashboardPage() {
               <DatabaseZap className="ml-2 h-4 w-4" />
               {isSeeding ? 'در حال پردازش...' : 'ایجاد داده تستی'}
            </Button>
-           <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} defaultValue="all">
+           <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} value={ownerFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="نمایش داده‌های..." />
               </SelectTrigger>
@@ -156,7 +163,6 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <OverallSummary 
             filteredSummary={summary} 
-            globalSummary={globalSummary as any}
         />
       </div>
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -164,6 +170,7 @@ export default function DashboardPage() {
             aliBalance={globalSummary.aliBalance}
             fatemehBalance={globalSummary.fatemehBalance}
             sharedBalance={globalSummary.sharedBalance}
+            currentUser={user}
         />
       </div>
 

@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getBankTheme } from '@/lib/bank-data';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useUser } from '@/firebase';
 
 const ChipIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none" className="w-10 h-auto sm:w-12">
@@ -210,12 +211,25 @@ interface CardListProps {
 }
 
 export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProps) {
+  const { user } = useUser();
+  const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
 
   const sortedCards = [...(cards || [])].sort((a, b) => {
-    if (a.ownerId === 'shared_account' && b.ownerId !== 'shared_account') return -1;
-    if (a.ownerId !== 'shared_account' && b.ownerId === 'shared_account') return 1;
-    if (a.ownerId < b.ownerId) return -1;
-    if (a.ownerId > b.ownerId) return 1;
+    // Grouping logic: shared, then logged-in user, then other user
+    const getGroup = (ownerId: string) => {
+        if (ownerId === 'shared_account') return 0;
+        if (ownerId === loggedInUserOwnerId) return 1;
+        return 2;
+    };
+    
+    const groupA = getGroup(a.ownerId);
+    const groupB = getGroup(b.ownerId);
+
+    if (groupA !== groupB) {
+        return groupA - groupB;
+    }
+
+    // Sort by balance within each group
     return b.balance - a.balance;
   });
 
@@ -254,11 +268,22 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
     )
   }
 
+  // Determine the order to render sections
+  const sections = [
+    { id: 'shared', title: 'کارت‌های مشترک', data: sharedCards },
+    { id: 'ali', title: `کارت‌های ${USER_DETAILS.ali.firstName}`, data: aliCards },
+    { id: 'fatemeh', title: `کارت‌های ${USER_DETAILS.fatemeh.firstName}`, data: fatemehCards },
+  ].sort((a,b) => {
+     if (a.id === 'shared') return -1;
+     if (b.id === 'shared') return 1;
+     if (a.id === loggedInUserOwnerId) return -1;
+     if (b.id === loggedInUserOwnerId) return 1;
+     return 0;
+  });
+
   return (
     <div className='space-y-6'>
-       {renderCardSection(sharedCards, 'کارت‌های مشترک')}
-       {renderCardSection(aliCards, `کارت‌های ${USER_DETAILS.ali.firstName}`)}
-       {renderCardSection(fatemehCards, `کارت‌های ${USER_DETAILS.fatemeh.firstName}`)}
+       {sections.map(section => renderCardSection(section.data, section.title))}
     </div>
   );
 }

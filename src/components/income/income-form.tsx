@@ -51,13 +51,15 @@ interface IncomeFormProps {
 }
 
 export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user }: IncomeFormProps) {
+  const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+  
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
         description: '',
         amount: 0,
         date: new Date(),
-        ownerId: 'ali',
+        ownerId: loggedInUserOwnerId,
         bankAccountId: '',
         source: ''
     },
@@ -74,12 +76,12 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         description: '',
         amount: 0,
         date: new Date(),
-        ownerId: user?.email?.startsWith('ali') ? 'ali' : 'fatemeh',
+        ownerId: loggedInUserOwnerId,
         bankAccountId: '',
         source: ''
       });
     }
-  }, [initialData, form, user]);
+  }, [initialData, form, user, loggedInUserOwnerId]);
 
   const selectedOwnerId = form.watch('ownerId');
   
@@ -92,26 +94,34 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   const availableAccounts = useMemo(() => {
     if (!selectedOwnerId || !bankAccounts) return [];
     
-    let targetOwnerId: 'ali' | 'fatemeh' | 'shared_account';
+    let targetOwnerIds: ('ali' | 'fatemeh' | 'shared_account')[] = [];
     if (selectedOwnerId === 'daramad_moshtarak') {
-        targetOwnerId = 'shared_account';
+        targetOwnerIds = ['shared_account', 'ali', 'fatemeh']; // Shared business can deposit to any account
     } else {
-        targetOwnerId = selectedOwnerId;
+        targetOwnerIds = [selectedOwnerId];
     }
-
-    return [...bankAccounts.filter(acc => acc.ownerId === targetOwnerId)].sort((a, b) => b.balance - a.balance);
-  }, [selectedOwnerId, bankAccounts]);
+    
+    return [...bankAccounts.filter(acc => targetOwnerIds.includes(acc.ownerId))].sort((a, b) => {
+      const getGroup = (ownerId: string) => {
+          if (ownerId === 'shared_account') return 0;
+          if (ownerId === loggedInUserOwnerId) return 1;
+          return 2;
+      }
+      const groupA = getGroup(a.ownerId);
+      const groupB = getGroup(b.ownerId);
+      if (groupA !== groupB) {
+          return groupA - groupB;
+      }
+      return b.balance - a.balance;
+    });
+  }, [selectedOwnerId, bankAccounts, loggedInUserOwnerId]);
 
   useEffect(() => {
       const currentBankAccountId = form.getValues('bankAccountId');
       const isCurrentAccountStillValid = availableAccounts.some(acc => acc.id === currentBankAccountId);
 
       if (!isCurrentAccountStillValid) {
-          if (availableAccounts.length > 0) {
-              form.setValue('bankAccountId', availableAccounts[0].id);
-          } else {
-              form.setValue('bankAccountId', '');
-          }
+          form.setValue('bankAccountId', '');
       }
   }, [selectedOwnerId, availableAccounts, form]);
 
@@ -214,10 +224,10 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                           <SelectValue placeholder={!selectedOwnerId ? "ابتدا منبع درآمد را انتخاب کنید" : (availableAccounts.length === 0 ? "کارتی برای این منبع یافت نشد" : "یک کارت بانکی انتخاب کنید")} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="max-h-[250px]">
                         {availableAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
+                            {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>

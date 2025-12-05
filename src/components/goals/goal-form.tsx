@@ -51,6 +51,8 @@ interface GoalFormProps {
 }
 
 export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user }: GoalFormProps) {
+  const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,7 +60,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
       targetAmount: 0,
       targetDate: new Date(),
       priority: 'medium',
-      ownerId: user?.email?.startsWith('ali') ? 'ali' : 'fatemeh',
+      ownerId: loggedInUserOwnerId,
       initialContributionAmount: 0,
       initialContributionBankAccountId: '',
     },
@@ -71,11 +73,11 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
       targetAmount: 0,
       targetDate: new Date(),
       priority: 'medium',
-      ownerId: user?.email?.startsWith('ali') ? 'ali' : 'fatemeh',
+      ownerId: loggedInUserOwnerId,
       initialContributionAmount: 0,
       initialContributionBankAccountId: '',
     });
-  }, [form, user]);
+  }, [form, user, loggedInUserOwnerId]);
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";
@@ -96,7 +98,19 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     onSubmit(submissionData);
   }
 
-  const sortedBankAccounts = [...bankAccounts].sort((a,b) => b.balance - a.balance);
+  const sortedBankAccounts = [...bankAccounts].sort((a,b) => {
+    const getGroup = (ownerId: string) => {
+      if (ownerId === 'shared_account') return 0;
+      if (ownerId === loggedInUserOwnerId) return 1;
+      return 2;
+    }
+    const groupA = getGroup(a.ownerId);
+    const groupB = getGroup(b.ownerId);
+    if (groupA !== groupB) {
+      return groupA - groupB;
+    }
+    return b.balance - a.balance;
+  });
 
   return (
     <Card>
@@ -211,7 +225,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                                 <SelectValue placeholder="یک کارت انتخاب کنید" />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="max-h-[250px]">
                                 {sortedBankAccounts.map((account) => {
                                   const currentAvailableBalance = account.balance;
                                   return (

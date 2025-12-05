@@ -20,10 +20,9 @@ type SummaryData = {
 
 type OverallSummaryProps = {
   filteredSummary: SummaryData;
-  globalSummary: Pick<SummaryData, 'pendingChecksAmount' | 'remainingLoanAmount' | 'remainingDebtsAmount'>;
 };
 
-export function OverallSummary({ filteredSummary, globalSummary }: OverallSummaryProps) {
+export function OverallSummary({ filteredSummary }: OverallSummaryProps) {
   return (
     <>
       <div className='lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -76,7 +75,7 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
             </CardHeader>
             <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.remainingLoanAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">کل مبلغ باقی‌مانده وام‌ها</p>
+            <p className="text-xs text-muted-foreground">باقیمانده وام‌ها (فیلتر شده)</p>
             </CardContent>
         </Card>
         <Card>
@@ -86,7 +85,7 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
             </CardHeader>
             <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.pendingChecksAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">کل چک‌های پاس نشده</p>
+            <p className="text-xs text-muted-foreground">چک‌های پاس نشده (فیلتر شده)</p>
             </CardContent>
         </Card>
         <Card>
@@ -96,7 +95,7 @@ export function OverallSummary({ filteredSummary, globalSummary }: OverallSummar
             </CardHeader>
             <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.remainingDebtsAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">کل بدهی‌های ثبت شده به افراد</p>
+            <p className="text-xs text-muted-foreground">بدهی به افراد (فیلتر شده)</p>
             </CardContent>
         </Card>
        </div>
