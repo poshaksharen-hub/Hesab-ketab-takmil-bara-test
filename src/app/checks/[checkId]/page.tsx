@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Calendar, User, Users, FolderKanban } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn, toPersianDigits, amountToWords } from '@/lib/utils';
@@ -119,10 +120,9 @@ export default function CheckDetailPage() {
                     پاس شد
                 </div>
             )}
-            {/* --- Check Header --- */}
             <CardHeader className="p-4 relative bg-gray-100 dark:bg-gray-800/50">
                 <div className="flex justify-between items-start">
-                    <div className="text-left w-1/3 space-y-2">
+                     <div className="text-left w-1/3 space-y-2">
                         <div>
                             <p className="text-xs text-muted-foreground font-sans">شناسه صیاد</p>
                             <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
@@ -143,23 +143,18 @@ export default function CheckDetailPage() {
                 </div>
             </CardHeader>
 
-            {/* --- Check Body --- */}
             <CardContent className="p-6 space-y-4 flex-grow">
-                <div className="flex items-center gap-2">
+                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
                     <span className="shrink-0">به موجب این چک مبلغ</span>
-                    <span className="font-handwriting font-bold text-lg border-b-2 border-dotted border-gray-400 px-2 flex-grow text-center">
-                        {amountToWords(check.amount)} ریال
+                    <span className="font-handwriting font-bold text-lg text-center flex-grow">
+                        {amountToWords(check.amount)} تومان
                     </span>
                 </div>
-                 <div className="flex items-center gap-2">
-                    <span className="shrink-0">در وجه</span>
-                     <span className="font-handwriting font-bold text-xl border-b-2 border-dotted border-gray-400 px-2 flex-grow">
-                        {getPayeeName(check.payeeId)}
-                    </span>
-                     <span className="shrink-0">بابت</span>
-                     <span className="font-handwriting font-bold text-xl border-b-2 border-dotted border-gray-400 px-2">
-                       {expenseForName}
-                    </span>
+                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
+                    <span className="shrink-0">در وجه:</span>
+                     <span className="font-handwriting font-bold text-lg w-1/2">{getPayeeName(check.payeeId)}</span>
+                    <span className="shrink-0">برای:</span>
+                     <span className="font-handwriting font-bold text-lg">{expenseForName}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-4">
                      <div className="flex flex-col items-start">
@@ -175,26 +170,24 @@ export default function CheckDetailPage() {
                 </div>
             </CardContent>
 
-            {/* --- Check Footer --- */}
-            <CardFooter className="p-4 flex justify-between items-end">
-                <div className="text-sm">
-                    <p className="font-semibold">صاحب حساب:</p>
-                    <p className="text-muted-foreground">{ownerName}</p>
-                </div>
-                <div className="w-32 h-16 relative">
-                    {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
-                    {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
-                    {check.liabilityOwnerId === 'shared_account' && (
-                        <>
-                            <SignatureAli className="w-24 h-12 absolute bottom-0 right-0 text-gray-700 dark:text-gray-300" />
-                            <SignatureFatemeh className="w-24 h-12 absolute bottom-0 left-[-10px] text-gray-700 dark:text-gray-300" />
-                        </>
-                    )}
-                </div>
+            <CardFooter className="p-4 flex justify-end items-end">
+                 <div className="relative text-right">
+                     <p className="font-sans text-xs">صاحب حساب:</p>
+                     <p className="font-sans text-sm font-bold">{ownerName}</p>
+                     <div className="absolute -bottom-2 -right-4 w-32 h-16 pointer-events-none">
+                         {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
+                         {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
+                         {check.liabilityOwnerId === 'shared_account' && (
+                             <>
+                                 <SignatureAli className="w-24 h-12 absolute -top-2 right-4 text-gray-700 dark:text-gray-300 opacity-80" />
+                                 <SignatureFatemeh className="w-24 h-12 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300 opacity-80" />
+                             </>
+                         )}
+                     </div>
+                 </div>
             </CardFooter>
         </Card>
       </div>
-
     </main>
   );
 }
