@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState } from 'react';
 import { useFirestore } from '@/firebase';
@@ -18,13 +17,27 @@ export const useInitialData = () => {
         try {
             const familyDataRef = doc(firestore, 'family-data', 'shared-data');
             
-            // Check if data already exists to prevent accidental re-seeding
-            const bankAccountsSnap = await getDocs(query(collection(familyDataRef, 'bankAccounts')));
-            if (!bankAccountsSnap.empty) {
-                throw new Error("Database already contains data. Seeding aborted to prevent duplicates.");
-            }
+            const collectionsToDelete: string[] = [
+                'bankAccounts', 'categories', 'payees', 'incomes', 'expenses',
+                'checks', 'loans', 'loanPayments', 'previousDebts', 'debtPayments',
+                'financialGoals', 'transfers'
+            ];
 
-            const batch = writeBatch(firestore);
+            // --- DELETION PHASE ---
+            const deleteBatch = writeBatch(firestore);
+            for (const collectionName of collectionsToDelete) {
+                const collectionRef = collection(familyDataRef, collectionName);
+                const snapshot = await getDocs(query(collectionRef));
+                if (!snapshot.empty) {
+                    snapshot.docs.forEach(doc => {
+                        deleteBatch.delete(doc.ref);
+                    });
+                }
+            }
+            await deleteBatch.commit();
+            
+            // --- SEEDING PHASE ---
+            const seedBatch = writeBatch(firestore);
             const {
                 bankAccounts,
                 categories,
@@ -40,7 +53,7 @@ export const useInitialData = () => {
                 transfers
             } = getSeedData(userId);
 
-            const collections: { name: string, data: any[] }[] = [
+            const collectionsToSeed: { name: string, data: any[] }[] = [
                 { name: 'bankAccounts', data: bankAccounts },
                 { name: 'categories', data: categories },
                 { name: 'payees', data: payees },
@@ -55,15 +68,15 @@ export const useInitialData = () => {
                 { name: 'transfers', data: transfers },
             ];
 
-            for (const { name, data } of collections) {
+            for (const { name, data } of collectionsToSeed) {
                 const collectionRef = collection(familyDataRef, name);
                 for (const item of data) {
                     const docRef = doc(collectionRef, item.id);
-                    batch.set(docRef, item);
+                    seedBatch.set(docRef, item);
                 }
             }
 
-            await batch.commit();
+            await seedBatch.commit();
         } catch (error: any) {
             console.error("Error seeding database: ", error);
             throw error; // Re-throw to be caught by the calling function
@@ -74,5 +87,3 @@ export const useInitialData = () => {
 
     return { seedDatabase, isSeeding };
 };
-
-    
