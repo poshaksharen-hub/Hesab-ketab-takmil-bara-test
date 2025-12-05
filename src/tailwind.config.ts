@@ -26,7 +26,7 @@ export default {
         body: ['Vazirmatn', 'sans-serif'],
         headline: ['Alegreya', 'serif'],
         code: ['monospace'],
-        handwriting: ['Vazirmatn', 'sans-serif'],
+        handwriting: ['Alegreya', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
