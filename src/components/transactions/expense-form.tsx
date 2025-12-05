@@ -83,9 +83,10 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
   const selectedAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
 
   useEffect(() => {
-    if (selectedAccount && selectedAccount.ownerId === 'shared_account') {
-      form.setValue('expenseFor', 'shared');
-    }
+    // This logic is now removed to allow user to always choose.
+    // if (selectedAccount && selectedAccount.ownerId === 'shared_account') {
+    //   form.setValue('expenseFor', 'shared');
+    // }
   }, [selectedAccount, form]);
 
 
@@ -264,7 +265,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>این هزینه برای کیست؟</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={selectedAccount?.ownerId === 'shared_account'}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                 <SelectValue placeholder="شخص یا مورد هزینه را انتخاب کنید" />
