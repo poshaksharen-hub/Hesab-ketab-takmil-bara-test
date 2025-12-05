@@ -5,7 +5,7 @@
 @layer base {
   @font-face {
     font-family: 'Dastnevis';
-    src: url('/fonts/Dastnevis.ttf') format('truetype');
+    src: url('https://github.com/poshaksharen-hub/Fontdastnevisfarsi/raw/8c4229b9b4fba90419dd3f0989775467309ac237/Far_DastNevis.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
