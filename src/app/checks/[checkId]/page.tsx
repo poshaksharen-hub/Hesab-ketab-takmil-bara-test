@@ -135,8 +135,8 @@ export default function CheckDetailPage() {
                 </div>
                 
                 {/* Right Side: Date */}
-                <div className="text-right w-1/3">
-                     <p className="text-xs text-muted-foreground">تاریخ:</p>
+                <div className="text-right w-1/3 flex flex-col items-end">
+                     <p className="text-xs text-muted-foreground font-body">تاریخ:</p>
                      <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                 </div>
             </div>

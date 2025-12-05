@@ -89,8 +89,8 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                         </div>
                         
                         {/* Right Side: Date */}
-                        <div className="text-right w-1/3">
-                             <p className="text-xs text-muted-foreground">تاریخ:</p>
+                        <div className="text-right w-1/3 flex flex-col items-end">
+                             <p className="text-xs text-muted-foreground font-body">تاریخ:</p>
                              <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                         </div>
                         
@@ -147,7 +147,9 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                             <span className="shrink-0">در وجه:</span>
                             <span className="font-handwriting font-bold text-base">{payee}</span>
                             <span className="shrink-0 ml-4">برای:</span>
-                            <span className="font-handwriting font-bold text-base flex-grow">{expenseForName}</span>
+                            <span className="font-handwriting font-bold text-base flex-grow">
+                               {expenseForName}
+                            </span>
                         </div>
                         <div className="flex-grow"></div>
                         <div className="flex justify-between items-end pt-4">
