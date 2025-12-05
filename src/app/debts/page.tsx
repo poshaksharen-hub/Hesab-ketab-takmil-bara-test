@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import {
   updateDoc,
   getDoc
 } from 'firebase/firestore';
-import type { PreviousDebt, BankAccount, Category, Payee, Expense } from '@/lib/types';
+import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -43,6 +44,7 @@ export default function DebtsPage() {
     bankAccounts,
     categories,
     payees,
+    users,
   } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
@@ -231,6 +233,7 @@ export default function DebtsPage() {
             <DebtList
                 debts={previousDebts || []}
                 payees={payees || []}
+                users={users || []}
                 onPay={setPayingDebt}
                 onDelete={handleDeleteDebt}
             />

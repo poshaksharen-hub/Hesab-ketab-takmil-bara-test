@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
-import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId } from '@/lib/types';
+import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
@@ -35,6 +36,7 @@ export default function LoansPage() {
     bankAccounts,
     categories,
     payees,
+    users,
   } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
@@ -305,6 +307,7 @@ export default function LoansPage() {
                 loans={loans || []}
                 payees={payees || []}
                 bankAccounts={bankAccounts || []}
+                users={users || []}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
                 onEdit={handleEdit}

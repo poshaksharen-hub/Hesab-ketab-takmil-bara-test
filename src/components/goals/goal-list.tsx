@@ -5,8 +5,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CheckCircle, RotateCcw, Target, PlusCircle, User, Users, ArrowLeft, History, MoreVertical } from 'lucide-react';
-import type { FinancialGoal, OwnerId } from '@/lib/types';
+import { Edit, Trash2, CheckCircle, RotateCcw, Target, PlusCircle, User, Users, ArrowLeft, History, MoreVertical, PenSquare } from 'lucide-react';
+import type { FinancialGoal, OwnerId, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -36,13 +36,14 @@ import Link from 'next/link';
 
 interface GoalListProps {
   goals: FinancialGoal[];
+  users: UserProfile[];
   onContribute: (goal: FinancialGoal) => void;
   onAchieve: (goal: FinancialGoal) => void;
   onRevert: (goal: FinancialGoal) => void;
   onDelete: (goalId: string) => void;
 }
 
-export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }: GoalListProps) {
+export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDelete }: GoalListProps) {
   
   if (goals.length === 0) {
     return (
@@ -67,9 +68,13 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
 
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = USER_DETAILS[ownerId];
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
+  };
+
+  const getUserName = (userId: string) => {
+    return users.find(u => u.id === userId)?.firstName || 'نامشخص';
   };
 
 
@@ -160,9 +165,13 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
                                 <span>{formatCurrency(goal.targetAmount, 'IRT')}</span>
                             </div>
                             <Progress value={progress} className="h-2" />
-                             <div className="flex justify-between text-xs text-muted-foreground text-center">
+                             <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
                                 <span>{Math.round(progress)}٪ تکمیل شده</span>
-                                <span>تا تاریخ: {formatJalaliDate(new Date(goal.targetDate))}</span>
+                                <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(goal.registeredByUserId)}`}>
+                                  <PenSquare className="h-3 w-3" />
+                                  <span>{getUserName(goal.registeredByUserId)}</span>
+                                </div>
+                                <span>تا: {formatJalaliDate(new Date(goal.targetDate))}</span>
                             </div>
                         </div>
                     </CardContent>

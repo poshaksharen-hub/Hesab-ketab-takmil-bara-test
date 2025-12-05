@@ -1,10 +1,11 @@
+
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History, Edit } from 'lucide-react';
-import type { Loan, LoanPayment, Payee, BankAccount } from '@/lib/types';
+import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History, Edit, PenSquare } from 'lucide-react';
+import type { Loan, LoanPayment, Payee, BankAccount, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -37,12 +38,13 @@ interface LoanListProps {
   loans: Loan[];
   payees: Payee[];
   bankAccounts: BankAccount[];
+  users: UserProfile[];
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
   onEdit: (loan: Loan) => void;
 }
 
-export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit }: LoanListProps) {
+export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit, users }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -53,9 +55,14 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
     if (!accountId) return null;
     const account = bankAccounts.find(acc => acc.id === accountId);
     if (!account) return null;
-    const ownerName = account.ownerId === 'shared' ? 'حساب مشترک' : USER_DETAILS[account.ownerId]?.firstName || '';
+    const ownerName = account.ownerId === 'shared_account' ? 'حساب مشترک' : (USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || '');
     return { bankName: account.bankName, ownerName };
   };
+
+  const getUserName = (userId: string) => {
+    return users.find(u => u.id === userId)?.firstName || 'نامشخص';
+  };
+
 
   if (loans.length === 0) {
     return (
@@ -163,9 +170,13 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
                                 <span>{formatCurrency(loan.amount, 'IRT')}</span>
                             </div>
                             <Progress value={progress} className="h-2" />
-                            <div className="flex justify-between text-xs text-muted-foreground text-center">
+                            <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
                                 <span>{`${loan.numberOfInstallments - loan.paidInstallments} قسط باقی‌مانده`}</span>
-                                <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments} قسط پرداخت شده`}</span>
+                                <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(loan.registeredByUserId)}`}>
+                                  <PenSquare className="h-3 w-3" />
+                                  <span>{getUserName(loan.registeredByUserId)}</span>
+                                </div>
+                                <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments} قسط`}</span>
                             </div>
                         </div>
                     </CardContent>

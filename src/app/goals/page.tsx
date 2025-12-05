@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useCallback } from 'react';
@@ -19,7 +20,7 @@ import {
   deleteDoc,
   updateDoc
 } from 'firebase/firestore';
-import type { FinancialGoal, BankAccount, Category, FinancialGoalContribution, Expense, OwnerId } from '@/lib/types';
+import type { FinancialGoal, BankAccount, Category, FinancialGoalContribution, Expense, OwnerId, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { GoalList } from '@/components/goals/goal-list';
@@ -45,7 +46,7 @@ export default function GoalsPage() {
   const [contributingGoal, setContributingGoal] = useState<FinancialGoal | null>(null);
 
 
-  const { goals, bankAccounts, categories } = allData;
+  const { goals, bankAccounts, categories, users } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
@@ -240,6 +241,7 @@ export default function GoalsPage() {
                     type: 'expense' as const,
                     subType: 'goal_saved_portion' as const,
                     goalId: goal.id,
+                    expenseFor: goal.ownerId,
                 });
             }
             
@@ -264,6 +266,7 @@ export default function GoalsPage() {
                     type: 'expense' as const,
                     subType: 'goal_cash_portion' as const,
                     goalId: goal.id,
+                    expenseFor: goal.ownerId,
                  });
             }
 
@@ -441,6 +444,7 @@ export default function GoalsPage() {
         <>
           <GoalList
             goals={goals || []}
+            users={users || []}
             onContribute={handleOpenContributeDialog}
             onAchieve={handleOpenAchieveDialog}
             onRevert={handleRevertGoal}

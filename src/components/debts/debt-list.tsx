@@ -4,8 +4,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, History } from 'lucide-react';
-import type { PreviousDebt, Payee, OwnerId } from '@/lib/types';
+import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, History, PenSquare } from 'lucide-react';
+import type { PreviousDebt, Payee, OwnerId, UserProfile } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '../ui/badge';
@@ -18,15 +18,20 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 interface DebtListProps {
   debts: PreviousDebt[];
   payees: Payee[];
+  users: UserProfile[];
   onPay: (debt: PreviousDebt) => void;
   onDelete: (debtId: string) => void;
 }
 
-export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
+export function DebtList({ debts, payees, users, onPay, onDelete }: DebtListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+  };
+
+  const getUserName = (userId: string) => {
+    return users.find(u => u.id === userId)?.firstName || 'نامشخص';
   };
 
   if (debts.length === 0) {
@@ -123,8 +128,12 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
                                 <span>{formatCurrency(debt.amount, 'IRT')}</span>
                             </div>
                             <Progress value={progress} className="h-2" />
-                            <div className="flex justify-between text-xs text-muted-foreground text-center">
+                            <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
                                 <span>{`${Math.round(progress)}٪ پرداخت شده`}</span>
+                                 <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(debt.registeredByUserId)}`}>
+                                  <PenSquare className="h-3 w-3" />
+                                  <span>{getUserName(debt.registeredByUserId)}</span>
+                                </div>
                             </div>
                         </div>
                     </CardContent>
