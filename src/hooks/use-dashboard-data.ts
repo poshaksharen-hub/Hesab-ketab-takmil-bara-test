@@ -118,8 +118,8 @@ export function useDashboardData() {
         }
         filteredExpenses = allData.expenses.filter(e => e.expenseFor === ownerFilter && dateMatches(e.date));
         filteredChecks = allData.checks.filter(c => c.expenseFor === ownerFilter);
-        filteredLoans = allData.loans.filter(l => l.expenseFor === ownerFilter);
-        filteredDebts = allData.previousDebts.filter(d => d.expenseFor === ownerFilter);
+        filteredLoans = allData.loans.filter(l => l.ownerId === ownerFilter);
+        filteredDebts = allData.previousDebts.filter(d => d.ownerId === ownerFilter);
         filteredGoals = allData.goals.filter(g => g.ownerId === ownerFilter);
     }
     
