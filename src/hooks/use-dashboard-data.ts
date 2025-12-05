@@ -89,13 +89,14 @@ export function useDashboardData() {
             categories: categories || [],
             checks: checks || [],
             goals: goals || [],
+            loans: loans || [],
             payees: payees || [],
             transfers: transfers || [],
             loanPayments: loanPayments || [],
             previousDebts: previousDebts || [],
             debtPayments: debtPayments || [],
         };
-    }, [usersData, bankAccountsData, incomes, expenses, categories, checks, goals, payees, transfers, loanPayments, previousDebts, debtPayments]);
+    }, [usersData, bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
 
 
   const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {
@@ -115,27 +116,27 @@ export function useDashboardData() {
     let filteredGoals: FinancialGoal[] = [];
 
     if (ownerFilter === 'all') {
-        filteredIncomes = allData.incomes.filter(i => dateMatches(i.date));
-        filteredExpenses = allData.expenses.filter(e => dateMatches(e.date));
-        filteredAccounts = allData.bankAccounts;
-        filteredChecks = allData.checks;
-        filteredLoans = allData.loans;
-        filteredDebts = allData.previousDebts;
-        filteredGoals = allData.goals;
+        filteredIncomes = (allData.incomes || []).filter(i => dateMatches(i.date));
+        filteredExpenses = (allData.expenses || []).filter(e => dateMatches(e.date));
+        filteredAccounts = allData.bankAccounts || [];
+        filteredChecks = allData.checks || [];
+        filteredLoans = allData.loans || [];
+        filteredDebts = allData.previousDebts || [];
+        filteredGoals = allData.goals || [];
     } else if (ownerFilter === 'daramad_moshtarak') {
-        filteredIncomes = allData.incomes.filter(i => i.ownerId === 'daramad_moshtarak' && dateMatches(i.date));
-        filteredAccounts = allData.bankAccounts.filter(b => b.ownerId === 'shared_account');
+        filteredIncomes = (allData.incomes || []).filter(i => i.ownerId === 'daramad_moshtarak' && dateMatches(i.date));
+        filteredAccounts = (allData.bankAccounts || []).filter(b => b.ownerId === 'shared_account');
         // No expenses/liabilities are shown for this business-focused filter
     } else { // 'ali', 'fatemeh', or 'shared' (for expenses/liabilities)
         if (ownerFilter === 'ali' || ownerFilter === 'fatemeh') {
-             filteredIncomes = allData.incomes.filter(i => i.ownerId === ownerFilter && dateMatches(i.date));
-             filteredAccounts = allData.bankAccounts.filter(b => b.ownerId === ownerFilter);
+             filteredIncomes = (allData.incomes || []).filter(i => i.ownerId === ownerFilter && dateMatches(i.date));
+             filteredAccounts = (allData.bankAccounts || []).filter(b => b.ownerId === ownerFilter);
         }
-        filteredExpenses = allData.expenses.filter(e => e.expenseFor === ownerFilter && dateMatches(e.date));
-        filteredChecks = allData.checks.filter(c => c.expenseFor === ownerFilter);
-        filteredLoans = allData.loans.filter(l => l.ownerId === ownerFilter);
-        filteredDebts = allData.previousDebts.filter(d => d.ownerId === ownerFilter);
-        filteredGoals = allData.goals.filter(g => g.ownerId === ownerFilter);
+        filteredExpenses = (allData.expenses || []).filter(e => e.expenseFor === ownerFilter && dateMatches(e.date));
+        filteredChecks = (allData.checks || []).filter(c => c.expenseFor === ownerFilter);
+        filteredLoans = (allData.loans || []).filter(l => l.ownerId === ownerFilter);
+        filteredDebts = (allData.previousDebts || []).filter(d => d.ownerId === ownerFilter);
+        filteredGoals = (allData.goals || []).filter(g => g.ownerId === ownerFilter);
     }
     
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -161,9 +162,9 @@ export function useDashboardData() {
 
     const globalSummary = useMemo(() => {
         return {
-            aliBalance: allData.bankAccounts.filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0),
-            fatemehBalance: allData.bankAccounts.filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0),
-            sharedBalance: allData.bankAccounts.filter(b => b.ownerId === 'shared_account').reduce((sum, acc) => sum + acc.balance, 0),
+            aliBalance: (allData.bankAccounts || []).filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0),
+            fatemehBalance: (allData.bankAccounts || []).filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0),
+            sharedBalance: (allData.bankAccounts || []).filter(b => b.ownerId === 'shared_account').reduce((sum, acc) => sum + acc.balance, 0),
         };
     }, [allData.bankAccounts]);
 
