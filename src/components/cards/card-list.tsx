@@ -61,7 +61,7 @@ const OWNER_DETAILS_CARDS: Record<'ali' | 'fatemeh' | 'shared_account', { name: 
 function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
-    const availableBalance = card.balance - card.blockedBalance;
+    const availableBalance = card.balance - (card.blockedBalance || 0);
 
 
     const handleCopy = (text: string, label: string) => {
@@ -82,7 +82,10 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                 <div className={cn("relative rounded-t-xl p-4 sm:p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses)}>
                     <div className="absolute inset-0 bg-black/10 rounded-t-xl"></div>
                     <div className='relative z-10 flex justify-between items-start'>
-                        <span className="font-bold text-base sm:text-lg tracking-wider">{card.bankName}</span>
+                        <span className="font-bold text-base sm:text-lg tracking-wider">
+                            {card.bankName}
+                            {card.accountType === 'checking' && ' (جاری)'}
+                        </span>
                          <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -158,12 +161,12 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                 </div>
 
                  <div className="bg-muted p-2 rounded-b-xl border-t">
-                    {card.blockedBalance > 0 && (
+                    {(card.blockedBalance || 0) > 0 && (
                          <>
                             <div className='px-2 py-1 text-xs'>
                                 <div className="flex justify-between items-center text-muted-foreground">
                                     <span className="flex items-center gap-1"><PiggyBank className="w-3 h-3" /> مسدود برای اهداف</span>
-                                    <span>{formatCurrency(card.blockedBalance, 'IRT')}</span>
+                                    <span>{formatCurrency(card.blockedBalance || 0, 'IRT')}</span>
                                 </div>
                                 <div className="flex justify-between items-center font-bold mt-1">
                                     <span>موجودی قابل استفاده</span>
@@ -254,10 +257,10 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   const aliCards = sortedCards.filter(c => c.ownerId === 'ali');
   const fatemehCards = sortedCards.filter(c => c.ownerId === 'fatemeh');
 
-  const renderCardSection = (cardList: BankAccount[], title: string) => {
+  const renderCardSection = (cardList: BankAccount[], title: string, key: string) => {
     if (cardList.length === 0) return null;
     return (
-        <Card>
+        <Card key={key}>
             <CardHeader>
                 <CardTitle className="font-headline">{title}</CardTitle>
             </CardHeader>
@@ -287,7 +290,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
 
   return (
     <div className='space-y-6'>
-       {sections.map(section => section.data.length > 0 && renderCardSection(section.data, section.title))}
+       {sections.map(section => renderCardSection(section.data, section.title, section.id))}
     </div>
   );
 }
