@@ -22,7 +22,7 @@ export type Income = {
 
 export type Expense = {
   id: string;
-  ownerId: OwnerId; // Owner of the bank account used
+  ownerId: OwnerId; // Owner of the bank account used for payment
   registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;
