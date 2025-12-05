@@ -55,9 +55,8 @@ export function formatCardNumber(cardNumber?: string) {
 export function amountToWords(amount: number): string {
     if (typeof amount !== 'number' || isNaN(amount)) return '';
     try {
-        return numberToWords(amount * 10); // Convert Toman to Rial for words
+        return numberToWords(amount);
     } catch {
         return '';
     }
 }
-

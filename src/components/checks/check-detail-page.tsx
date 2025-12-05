@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Calendar, User, Users, FolderKanban } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn, toPersianDigits, amountToWords } from '@/lib/utils';
@@ -145,43 +145,42 @@ export default function CheckDetailPage() {
 
             {/* --- Check Body --- */}
             <CardContent className="p-6 space-y-4 flex-grow">
-                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
+                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
                     <span className="shrink-0">به موجب این چک مبلغ</span>
                     <span className="font-handwriting font-bold text-lg text-center flex-grow">
-                        {amountToWords(check.amount)} ریال
+                        {amountToWords(check.amount)} تومان
                     </span>
-                </div>
-                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
+                 </div>
+                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
                     <span className="shrink-0">در وجه:</span>
-                     <span className="font-handwriting font-bold text-lg">
+                     <span className="font-handwriting font-bold text-lg flex-grow">
                         {getPayeeName(check.payeeId)}
                     </span>
-                    <span className="shrink-0 ml-auto">این چک برای:</span>
+                    <span className="shrink-0 ml-auto">برای:</span>
                      <span className="font-handwriting font-bold text-lg">
                        {expenseForName}
                     </span>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4 pt-4">
+                     <div className="flex flex-col items-end">
+                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
+                        <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
+                    </div>
                      <div className="flex flex-col items-start">
                         <span className="text-xs text-muted-foreground">مبلغ</span>
                         <span className="font-handwriting font-bold text-xl">
                             {formatCurrency(check.amount, 'IRT')}
                         </span>
                     </div>
-                     <div className="flex flex-col items-end">
-                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
-                        <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
-                    </div>
                 </div>
             </CardContent>
 
             {/* --- Check Footer --- */}
-            <CardFooter className="p-4 flex justify-end items-end">
-                 <div className="relative text-right">
+            <CardFooter className="p-4 flex justify-between items-end">
+                <div className="relative text-right">
                     <p className="font-sans text-xs">صاحب حساب:</p>
                     <p className="font-sans text-sm font-bold">{ownerName}</p>
-                    <div className="absolute -top-6 right-0 w-32 h-16 pointer-events-none">
+                    <div className="absolute -bottom-2 -right-4 w-32 h-16 pointer-events-none">
                         {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
                         {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
                         {check.liabilityOwnerId === 'shared_account' && (

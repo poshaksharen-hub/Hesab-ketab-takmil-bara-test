@@ -23,9 +23,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['PT Sans', 'sans-serif'],
+        body: ['Vazirmatn', 'sans-serif'],
         headline: ['Alegreya', 'serif'],
         code: ['monospace'],
+        handwriting: ['Alegreya', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',

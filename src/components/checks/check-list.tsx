@@ -79,7 +79,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                 <CardHeader className="p-3 relative bg-gray-100 dark:bg-gray-800/50">
                     <div className="flex justify-between items-start">
                         <div className="text-left w-1/3 space-y-1">
-                            <div>
+                           <div>
                                <p className="text-xs text-muted-foreground font-sans">شناسه صیاد</p>
                                <p className="font-mono text-xs font-bold tracking-wider">{check.sayadId}</p>
                             </div>
@@ -142,12 +142,12 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
                         <span className="shrink-0 text-sm">به موجب این چک مبلغ</span>
                         <span className="font-handwriting font-bold text-base text-center flex-grow">
-                            {amountToWords(check.amount)} ریال
+                             {amountToWords(check.amount)} تومان
                         </span>
                     </div>
                      <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
                         <span className="shrink-0 text-sm">در وجه:</span>
-                         <span className="font-handwriting font-bold text-base">
+                         <span className="font-handwriting font-bold text-base flex-grow">
                             {payee}
                         </span>
                          <span className="shrink-0 text-sm ml-auto">برای:</span>
@@ -158,15 +158,15 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                 </CardContent>
 
                 {/* --- Check Footer --- */}
-                <CardFooter className="p-3 flex justify-between items-end">
+                 <CardFooter className="p-3 flex justify-between items-end">
                     <div className="flex flex-col items-start">
                         <span className="text-xs text-muted-foreground">دسته‌بندی</span>
                         <span className="font-handwriting font-bold text-base">{getDetails(check).category}</span>
                     </div>
-                     <div className="relative text-right">
+                    <div className="relative text-right">
                         <p className="font-sans text-xs">صاحب حساب:</p>
                         <p className="font-sans text-sm font-bold">{ownerName}</p>
-                        <div className="absolute -top-5 right-0 w-24 h-12 pointer-events-none">
+                        <div className="absolute -bottom-1 -right-2 w-24 h-12 pointer-events-none">
                             {ownerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
                             {ownerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
                             {ownerId === 'shared_account' && (
