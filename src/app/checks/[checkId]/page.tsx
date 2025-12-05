@@ -120,60 +120,50 @@ export default function CheckDetailPage() {
                 </div>
             )}
              {/* Header */}
-            <div className="p-4 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
-                <div className="text-left w-1/3 space-y-1">
-                    <div>
-                        <p className="text-xs text-muted-foreground font-sans">شناسه صیاد</p>
-                        <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground font-sans">شماره سریال چک</p>
-                        <p className="font-mono text-sm font-bold tracking-tight">{check.checkSerialNumber}</p>
-                    </div>
+            <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
+                 {/* Top Left Corner */}
+                <div className="text-left space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
+                    <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
                 </div>
-                <div className="text-center w-1/3">
-                    <HesabKetabLogo className="w-8 h-8 mx-auto text-primary/70" />
-                    <p className="font-bold text-lg">{bankAccount?.bankName}</p>
+                {/* Top Center */}
+                <div className="text-center">
+                    <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
+                    <p className="font-bold text-sm">{bankAccount?.bankName}</p>
                 </div>
-                <div className="text-right w-1/3">
-                    <p className="text-xs text-muted-foreground font-sans">تاریخ</p>
-                    <p className="font-handwriting font-bold text-xl">{formatJalaliDate(new Date(check.dueDate))}</p>
+                {/* Top Right Corner */}
+                <div className="text-right">
+                    <p className="text-xs text-muted-foreground font-sans">تاریخ:</p>
+                    <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                 </div>
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-3 flex-grow flex flex-col justify-between">
+            <div className="p-4 space-y-2 flex-grow flex flex-col justify-between text-sm">
                 <div className="space-y-2">
-                    <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
-                        <span className="shrink-0">به موجب این چک مبلغ</span>
-                        <span className="font-handwriting font-bold text-lg text-center flex-grow px-2">
-                            {amountToWords(check.amount) || '...'}
+                    <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                        <span className="shrink-0 font-body">به موجب این چک مبلغ</span>
+                        <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
+                            {amountToWords(check.amount)}
                         </span>
-                        <span className="shrink-0">تومان</span>
+                        <span className="shrink-0 font-body">تومان</span>
                     </div>
-                    <div className="flex items-baseline gap-4 border-b-2 border-dotted border-gray-400 pb-2 mt-2">
-                        <span className="shrink-0">در وجه:</span>
-                        <span className="font-handwriting font-bold text-lg">{getPayeeName(check.payeeId)}</span>
-                        <span className="shrink-0 ml-auto">برای:</span>
-                        <span className="font-handwriting font-bold text-lg">{expenseForName}</span>
+                    <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                        <span className="font-body">در وجه:</span>
+                        <span className="font-handwriting font-bold text-base flex-grow">{getPayeeName(check.payeeId)}</span>
+                        <span className="font-body ml-auto">برای:</span>
+                        <span className="font-handwriting font-bold text-base">{expenseForName}</span>
                     </div>
                 </div>
 
                 <div className="flex justify-between items-end pt-4">
-                    <div className="flex flex-col items-start">
-                        <span className="text-xs text-muted-foreground">مبلغ</span>
-                        <span className="font-handwriting font-bold text-xl">
-                            {formatCurrency(check.amount, 'IRT')}
-                        </span>
+                    <div className="text-left">
+                        <p className="font-handwriting font-bold text-lg">{formatCurrency(check.amount, 'IRT')}</p>
                     </div>
-                    <div className="flex flex-col items-center">
-                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
-                        <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
-                    </div>
-                    <div className="relative text-right">
-                        <p className="font-sans text-xs">صاحب حساب:</p>
-                        <p className="font-sans text-sm font-bold">{ownerName}</p>
-                        <div className="absolute -bottom-6 -right-4 w-24 h-12 pointer-events-none opacity-80">
+                    <div className="text-right relative">
+                        <p className="font-handwriting text-base">{getCategoryName(check.categoryId)}</p>
+                        <p className="font-body text-xs font-semibold">{ownerName}</p>
+                        <div className="absolute -bottom-5 right-0 w-24 h-12 pointer-events-none opacity-80">
                             {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
                             {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
                             {check.liabilityOwnerId === 'shared_account' && (
@@ -191,3 +181,4 @@ export default function CheckDetailPage() {
     </main>
   );
 }
+

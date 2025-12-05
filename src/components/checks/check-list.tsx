@@ -2,11 +2,11 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trash2, MoreVertical, History, Edit } from 'lucide-react';
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
-import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate, cn, amountToWords, toPersianDigits } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +23,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
@@ -75,104 +75,100 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                     )}
                     
                     {/* Header */}
-                    <div className="p-4 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
-                        <div className="text-left w-1/3 space-y-1">
-                             <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
-                                <DropdownMenu>
+                    <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
+                        {/* Top Left Corner */}
+                        <div className="text-left space-y-1 w-1/3">
+                            <div className="flex items-start gap-2">
+                                <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="relative z-20">
+                                    <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
-                                                <MoreVertical className="h-5 w-5" />
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Actions">
+                                                <MoreVertical className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
+                                        <DropdownMenuContent align="start">
                                             <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared}>
                                                 <Edit className="ml-2 h-4 w-4" />
                                                 ویرایش چک
                                             </DropdownMenuItem>
                                             <DropdownMenuItem asChild>
-                                            <Link href={`/checks/${check.id}`}>
-                                                <History className="ml-2 h-4 w-4" />
-                                                مشاهده جزئیات
-                                            </Link>
+                                                <Link href={`/checks/${check.id}`}>
+                                                    <History className="ml-2 h-4 w-4" />
+                                                    مشاهده جزئیات
+                                                </Link>
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                    <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
                                                         <Trash2 className="ml-2 h-4 w-4" />
                                                         حذف چک
                                                     </div>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
-                                                    <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، هزینه مربوط به آن نیز حذف و مبلغ به حساب شما بازگردانده می‌شود. در غیر اینصورت فقط خود چک حذف می‌شود.
-                                                    </AlertDialogDescription>
+                                                        <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، هزینه مربوط به آن نیز حذف و مبلغ به حساب شما بازگردانده می‌شود. در غیر اینصورت فقط خود چک حذف می‌شود.
+                                                        </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
-                                                    <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(check)}>
-                                                        بله، حذف کن
-                                                    </AlertDialogAction>
+                                                        <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                                        <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(check)}>
+                                                            بله، حذف کن
+                                                        </AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground font-sans">شناسه صیاد</p>
-                                <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground font-sans">شماره سریال چک</p>
-                                <p className="font-mono text-sm font-bold tracking-tight">{check.checkSerialNumber}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
+                                    <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Top Center */}
                         <div className="text-center w-1/3">
-                            <HesabKetabLogo className="w-8 h-8 mx-auto text-primary/70" />
-                            <p className="font-bold text-lg">{bankAccount?.bankName}</p>
+                            <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
+                            <p className="font-bold text-sm">{bankAccount?.bankName}</p>
                         </div>
+                        
+                        {/* Top Right Corner */}
                         <div className="text-right w-1/3">
-                            <p className="text-xs text-muted-foreground font-sans">تاریخ</p>
-                            <p className="font-handwriting font-bold text-xl">{formatJalaliDate(new Date(check.dueDate))}</p>
+                             <p className="text-xs text-muted-foreground font-sans">تاریخ:</p>
+                             <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                         </div>
                     </div>
 
                     {/* Body */}
-                    <div className="p-6 space-y-3 flex-grow flex flex-col justify-between">
+                    <div className="p-4 space-y-2 flex-grow flex flex-col justify-between text-sm">
                         <div className="space-y-2">
-                             <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
-                                <span className="shrink-0">به موجب این چک مبلغ</span>
-                                <span className="font-handwriting font-bold text-lg text-center flex-grow px-2">
-                                    {amountToWords(check.amount) || '...'}
+                             <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                                <span className="shrink-0 font-body">به موجب این چک مبلغ</span>
+                                <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
+                                    {amountToWords(check.amount)}
                                 </span>
-                                <span className="shrink-0">تومان</span>
+                                <span className="shrink-0 font-body">تومان</span>
                             </div>
-                             <div className="flex items-baseline gap-4 border-b-2 border-dotted border-gray-400 pb-2 mt-2">
-                                <span className="shrink-0">در وجه:</span>
-                                <span className="font-handwriting font-bold text-lg">{payee}</span>
-                                <span className="shrink-0 ml-auto">برای:</span>
-                                <span className="font-handwriting font-bold text-lg">{expenseForName}</span>
+                             <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                                <span className="font-body">در وجه:</span>
+                                <span className="font-handwriting font-bold text-base flex-grow">{payee}</span>
+                                <span className="font-body ml-auto">برای:</span>
+                                <span className="font-handwriting font-bold text-base">{expenseForName}</span>
                             </div>
                         </div>
 
                         <div className="flex justify-between items-end pt-4">
-                            <div className="flex flex-col items-start">
-                                <span className="text-xs text-muted-foreground">مبلغ</span>
-                                <span className="font-handwriting font-bold text-xl">
-                                    {formatCurrency(check.amount, 'IRT')}
-                                </span>
+                            <div className="text-left">
+                                <p className="font-handwriting font-bold text-lg">{formatCurrency(check.amount, 'IRT')}</p>
                             </div>
-                            <div className="flex flex-col items-center">
-                                <span className="text-xs text-muted-foreground">دسته‌بندی</span>
-                                <span className="font-handwriting font-bold text-lg">{category}</span>
-                            </div>
-                            <div className="relative text-right">
-                                <p className="font-sans text-xs">صاحب حساب:</p>
-                                <p className="font-sans text-sm font-bold">{ownerName}</p>
-                                 <div className="absolute -bottom-6 -right-4 w-24 h-12 pointer-events-none opacity-80">
+                            <div className="text-right relative">
+                                <p className="font-handwriting text-base">{category}</p>
+                                <p className="font-body text-xs font-semibold">{ownerName}</p>
+                                <div className="absolute -bottom-5 right-0 w-24 h-12 pointer-events-none opacity-80">
                                     {ownerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
                                     {ownerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
                                     {ownerId === 'shared_account' && (
@@ -225,3 +221,4 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
       </div>
   );
 }
+
