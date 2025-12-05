@@ -1,5 +1,5 @@
 
-import type { User, Users } from 'lucide-react';
+import { User, Users } from 'lucide-react';
 import type { OwnerId } from './types';
 
 export const ALLOWED_USERS = [
