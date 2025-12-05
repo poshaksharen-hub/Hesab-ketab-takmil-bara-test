@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, MoreVertical, Wifi, Users, User, History, Copy, WalletCards, PiggyBank } from 'lucide-react';
-import type { BankAccount, UserProfile, FinancialGoal } from '@/lib/types';
+import type { BankAccount, UserProfile, FinancialGoal, OwnerId } from '@/lib/types';
 import { formatCurrency, cn, formatCardNumber } from '@/lib/utils';
 import {
   AlertDialog,
@@ -23,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { USER_DETAILS } from '@/lib/constants';
+import { USER_DETAILS, OWNER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getBankTheme } from '@/lib/bank-data';
@@ -51,14 +51,8 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
         });
     };
 
-    const getOwnerDetails = (ownerId: 'ali' | 'fatemeh' | 'shared_account') => {
-        if (ownerId === 'shared_account') return { name: "حساب مشترک", Icon: Users };
-        const userDetail = USER_DETAILS[ownerId];
-        return { name: `${userDetail.firstName} ${userDetail.lastName}`, Icon: User };
-    };
+    const { name: ownerName, Icon: OwnerIcon } = OWNER_DETAILS[card.ownerId];
     
-    const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(card.ownerId);
-
     const blockedForGoals = card.blockedBalance || 0;
     const availableBalance = card.balance - blockedForGoals;
     
@@ -201,8 +195,8 @@ interface CardListProps {
 export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProps) {
 
   const sortedCards = [...(cards || [])].sort((a, b) => {
-    if (a.ownerId === 'shared_account' && b.ownerId !== 'shared_account') return -1;
-    if (a.ownerId !== 'shared_account' && b.ownerId === 'shared_account') return 1;
+    if (a.ownerId === 'shared' && b.ownerId !== 'shared') return -1;
+    if (a.ownerId !== 'shared' && b.ownerId === 'shared') return 1;
     if (a.ownerId < b.ownerId) return -1;
     if (a.ownerId > b.ownerId) return 1;
     return b.balance - a.balance;
@@ -221,7 +215,7 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
     )
   }
   
-  const sharedCards = sortedCards.filter(c => c.ownerId === 'shared_account');
+  const sharedCards = sortedCards.filter(c => c.ownerId === 'shared');
   const aliCards = sortedCards.filter(c => c.ownerId === 'ali');
   const fatemehCards = sortedCards.filter(c => c.ownerId === 'fatemeh');
 

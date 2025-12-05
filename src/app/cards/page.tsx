@@ -8,7 +8,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
 import { CardForm } from '@/components/cards/card-form';
-import type { BankAccount, UserProfile } from '@/lib/types';
+import type { BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -31,7 +31,7 @@ export default function CardsPage() {
   const [searchQuery, setSearchQuery] = React.useState('');
   
   const { bankAccounts: allBankAccounts = [], users: allUsers = [], goals: allGoals = [] } = allData;
-  const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared_account');
+  const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared');
 
 
   const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance'>) => {

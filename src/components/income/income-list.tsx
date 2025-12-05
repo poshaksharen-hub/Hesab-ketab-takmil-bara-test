@@ -80,7 +80,7 @@ export function IncomeList({
         return `درآمد ${USER_DETAILS.ali.firstName}`;
       case 'fatemeh':
         return `درآمد ${USER_DETAILS.fatemeh.firstName}`;
-      case 'daramad_moshtarak':
+      case 'shared':
         return 'شغل مشترک';
       default:
         return 'نامشخص';
@@ -132,7 +132,7 @@ export function IncomeList({
                       <p className="text-2xl font-bold text-emerald-500">
                         {`+${formatCurrency(income.amount, 'IRT')}`}
                       </p>
-                      {income.ownerId === 'daramad_moshtarak' && (
+                      {income.ownerId === 'shared' && (
                         <Badge variant="secondary">مشترک</Badge>
                       )}
                     </div>

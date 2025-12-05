@@ -2,9 +2,9 @@
 
 import type { LucideIcon } from 'lucide-react';
 
-// Defines who OWNS an asset (like a bank account) or an income source.
+// Defines who OWNS an asset, liability, or income source.
 // This is about the source of funds or assets.
-export type OwnerId = 'ali' | 'fatemeh' | 'shared_account' | 'daramad_moshtarak';
+export type OwnerId = 'ali' | 'fatemeh' | 'shared';
 
 // Defines who an EXPENSE is FOR. This is about the beneficiary of a spending.
 // This is completely separate from OwnerId.
@@ -19,7 +19,7 @@ export type Income = {
   amount: number;
   type: 'income';
   source: string; // The original source of income text
-  ownerId: 'ali' | 'fatemeh' | 'daramad_moshtarak'; // Income can only belong to a person or the shared business
+  ownerId: OwnerId; // An income can belong to a person or the shared household/business
   category: string; // This is 'درآمد' for all incomes
   registeredByUserId: string;
   bankAccountId: string;
@@ -30,7 +30,7 @@ export type Income = {
 
 export type Expense = {
   id: string;
-  ownerId: 'ali' | 'fatemeh' | 'shared_account'; // Owner of the bank account used for payment
+  ownerId: OwnerId; // Owner of the bank account used for payment
   registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;
@@ -54,7 +54,7 @@ export type Expense = {
 
 export type BankAccount = {
     id: string;
-    ownerId: 'ali' | 'fatemeh' | 'shared_account'; // A bank account can be personal or a shared account
+    ownerId: OwnerId; // A bank account can be personal ('ali', 'fatemeh') or shared
     bankName: string;
     accountNumber: string;
     cardNumber: string;
@@ -89,7 +89,7 @@ export type Payee = {
 export type Check = {
     id: string;
     registeredByUserId: string;
-    ownerId: 'ali' | 'fatemeh' | 'shared_account'; // The liability belongs to a person or the shared account
+    ownerId: OwnerId; // The liability belongs to a person or the shared account
     bankAccountId: string;
     payeeId: string;
     categoryId: string;

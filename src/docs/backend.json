@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "User": {
@@ -39,7 +40,7 @@
       "description": "Represents a bank account. Ownership is determined by the ownerId field.",
       "properties": {
         "id": { "type": "string" },
-        "ownerId": { "type": "string", "description": "The ID of the user who owns this account. Can be 'ali', 'fatemeh', or 'shared'." },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The owner of this account. Can be a person or the family's shared account." },
         "bankName": { "type": "string" },
         "accountNumber": { "type": "string" },
         "cardNumber": { "type": "string" },
@@ -60,7 +61,7 @@
       "description": "Represents an income transaction.",
       "properties": {
         "id": { "type": "string" },
-        "ownerId": { "type": "string", "description": "The ownership category of the income source ('ali', 'fatemeh', or 'shared')." },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The ownership category of the income source (a person or the shared business)." },
         "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
         "bankAccountId": { "type": "string" },
         "amount": { "type": "number" },
@@ -81,7 +82,7 @@
       "description": "Represents an expense transaction.",
       "properties": {
         "id": { "type": "string" },
-        "ownerId": { "type": "string", "description": "The owner of the bank account from which the expense was made." },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The owner of the bank account from which the expense was made." },
         "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
         "bankAccountId": { "type": "string" },
         "categoryId": { "type": "string" },
@@ -91,7 +92,7 @@
         "description": { "type": "string" },
         "type": { "type": "string", "enum": ["expense"] },
         "subType": { "type": "string", "enum": ["goal_saved_portion", "goal_cash_portion", "debt_payment"], "description": "Differentiates special expenses." },
-        "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person this expense was for."},
+        "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this expense was for (beneficiary)." },
         "checkId": { "type": "string" },
         "goalId": { "type": "string" },
         "loanPaymentId": { "type": "string" },
@@ -100,7 +101,7 @@
         "balanceBefore": { "type": "number" },
         "balanceAfter": { "type": "number" }
       },
-      "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt"]
+      "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt", "expenseFor"]
     },
     "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -134,7 +135,7 @@
       "properties": {
         "id": { "type": "string" },
         "registeredByUserId": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who owns this liability." },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who owns this liability (person or shared account)." },
         "bankAccountId": { "type": "string" },
         "payeeId": { "type": "string" },
         "categoryId": { "type": "string" },
@@ -168,7 +169,7 @@
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who this goal is for." },
+            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who this goal is for (beneficiary)." },
             "name": { "type": "string" },
             "targetAmount": { "type": "number" },
             "currentAmount": { "type": "number" },
@@ -193,7 +194,7 @@
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who owns this liability." },
+            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who owns this liability (beneficiary)." },
             "payeeId": { "type": "string" },
             "title": { "type": "string" },
             "amount": { "type": "number" },
@@ -230,7 +231,7 @@
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who owns this liability." },
+            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who owns this liability (beneficiary)." },
             "payeeId": { "type": "string" },
             "description": { "type": "string" },
             "amount": { "type": "number" },
@@ -313,5 +314,3 @@
     ]
   }
 }
-
-    
