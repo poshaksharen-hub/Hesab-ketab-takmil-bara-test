@@ -51,8 +51,8 @@ export default function ExpensesPage() {
             if (!fromCardDoc.exists()) {
                 throw new Error("کارت بانکی مورد نظر یافت نشد.");
             }
-            const fromCardData = fromCardDoc.data()!;
-            const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
+            const fromCardData = fromCardDoc.data() as BankAccount;
+            const availableBalance = fromCardData.balance;
             
             if (availableBalance < values.amount) {
                 throw new Error("موجودی حساب برای انجام این هزینه کافی نیست.");
