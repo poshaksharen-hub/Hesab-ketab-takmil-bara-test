@@ -119,50 +119,53 @@ export default function CheckDetailPage() {
                     پاس شد
                 </div>
             )}
-             {/* Header */}
+            
+            {/* Header */}
             <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
-                 {/* Top Left Corner */}
-                <div className="text-left space-y-1">
+                <div className="text-left w-1/3">
                     <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
                     <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
                 </div>
-                {/* Top Center */}
-                <div className="text-center">
+
+                <div className="text-center w-1/3">
                     <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
                     <p className="font-bold text-sm">{bankAccount?.bankName}</p>
                 </div>
-                {/* Top Right Corner */}
-                <div className="text-right">
-                    <p className="text-xs text-muted-foreground font-sans">تاریخ:</p>
-                    <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
+                
+                <div className="text-right w-1/3">
+                     <p className="text-xs text-muted-foreground font-sans">تاریخ:</p>
+                     <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                 </div>
             </div>
 
             {/* Body */}
-            <div className="p-4 space-y-2 flex-grow flex flex-col justify-between text-sm">
-                <div className="space-y-2">
-                    <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                        <span className="shrink-0 font-body">به موجب این چک مبلغ</span>
-                        <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
-                            {amountToWords(check.amount)}
-                        </span>
-                        <span className="shrink-0 font-body">تومان</span>
-                    </div>
-                    <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                        <span className="font-body">در وجه:</span>
-                        <span className="font-handwriting font-bold text-base flex-grow">{getPayeeName(check.payeeId)}</span>
-                        <span className="font-body ml-auto">برای:</span>
-                        <span className="font-handwriting font-bold text-base">{expenseForName}</span>
-                    </div>
+            <div className="p-4 space-y-2 flex-grow flex flex-col text-sm">
+                <div className="flex items-center gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                    <span className="font-body shrink-0">به موجب این چک مبلغ</span>
+                    <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
+                        {amountToWords(check.amount)}
+                    </span>
+                    <span className="font-body shrink-0">تومان</span>
                 </div>
-
+                <div className="flex items-center gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                    <span className="font-body shrink-0">در وجه:</span>
+                    <span className="font-handwriting font-bold text-base">{getPayeeName(check.payeeId)}</span>
+                    <span className="font-body ml-auto">برای:</span>
+                    <span className="font-handwriting font-bold text-base">{expenseForName}</span>
+                </div>
+                <div className="flex-grow"></div>
                 <div className="flex justify-between items-end pt-4">
-                    <div className="text-left">
-                        <p className="font-handwriting font-bold text-lg">{formatCurrency(check.amount, 'IRT')}</p>
+                     <div className="text-left">
+                        <span className="text-xs text-muted-foreground">مبلغ</span>
+                        <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
                     </div>
                     <div className="text-right relative">
-                        <p className="font-handwriting text-base">{getCategoryName(check.categoryId)}</p>
-                        <p className="font-body text-xs font-semibold">{ownerName}</p>
+                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
+                        <p className="font-handwriting font-bold text-base">{getCategoryName(check.categoryId)}</p>
+                    </div>
+                    <div className="text-right relative">
+                        <span className="text-xs text-muted-foreground">صاحب حساب</span>
+                        <p className="font-body text-sm font-semibold">{ownerName}</p>
                         <div className="absolute -bottom-5 right-0 w-24 h-12 pointer-events-none opacity-80">
                             {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
                             {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
@@ -181,4 +184,3 @@ export default function CheckDetailPage() {
     </main>
   );
 }
-

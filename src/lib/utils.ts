@@ -55,9 +55,7 @@ export function formatCardNumber(cardNumber?: string) {
 export function amountToWords(amount: number): string {
     if (typeof amount !== 'number' || isNaN(amount) || amount === 0) return 'صفر';
     try {
-        // We divide by 10 because the library converts to Rial, but our app uses Toman.
-        // This is a common practice for cheque writing in Iran.
-        return numberToWords(amount / 10);
+        return numberToWords(amount);
     } catch {
         return '';
     }
