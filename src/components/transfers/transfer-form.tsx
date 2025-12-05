@@ -57,7 +57,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
   });
   
   const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
+    if (account.ownerId === 'shared_account') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
@@ -142,7 +142,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                       <SelectContent className="max-h-[250px]">
                         {availableToAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                            {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>

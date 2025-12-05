@@ -125,7 +125,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
 
 
   const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
+    if (account.ownerId === 'shared_account') return "(مشترک)";
     if (account.ownerId in USER_DETAILS) {
       const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
       return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";

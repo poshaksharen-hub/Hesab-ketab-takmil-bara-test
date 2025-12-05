@@ -33,7 +33,7 @@ const formSchema = z.object({
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
   description: z.string().min(2, { message: 'شرح باید حداقل ۲ حرف داشته باشد.' }),
   date: z.date({ required_error: 'لطفا تاریخ را انتخاب کنید.' }),
-  ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا منبع درآمد را مشخص کنید.' }),
+  ownerId: z.enum(['ali', 'fatemeh', 'daramad_moshtarak'], { required_error: 'لطفا منبع درآمد را مشخص کنید.' }),
   bankAccountId: z.string().min(1, { message: 'لطفا کارت مقصد را انتخاب کنید.' }),
   source: z.string().optional(), // Original source of income text
 });
@@ -83,7 +83,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   const selectedOwnerId = form.watch('ownerId');
   
   const getOwnerName = useCallback((account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
+    if (account.ownerId === 'shared_account') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   }, []);
@@ -91,7 +91,14 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   const availableAccounts = useMemo(() => {
     if (!selectedOwnerId || !bankAccounts) return [];
     
-    return [...bankAccounts.filter(acc => acc.ownerId === selectedOwnerId)].sort((a, b) => b.balance - a.balance);
+    let targetOwnerId: 'ali' | 'fatemeh' | 'shared_account';
+    if (selectedOwnerId === 'daramad_moshtarak') {
+        targetOwnerId = 'shared_account';
+    } else {
+        targetOwnerId = selectedOwnerId;
+    }
+
+    return [...bankAccounts.filter(acc => acc.ownerId === targetOwnerId)].sort((a, b) => b.balance - a.balance);
   }, [selectedOwnerId, bankAccounts]);
 
   useEffect(() => {
@@ -183,7 +190,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                       <SelectContent>
                         <SelectItem value='ali'>درآمد {USER_DETAILS.ali.firstName}</SelectItem>
                         <SelectItem value='fatemeh'>درآمد {USER_DETAILS.fatemeh.firstName}</SelectItem>
-                        <SelectItem value="shared">شغل مشترک</SelectItem>
+                        <SelectItem value="daramad_moshtarak">شغل مشترک</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

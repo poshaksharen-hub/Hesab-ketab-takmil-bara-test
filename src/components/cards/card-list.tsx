@@ -23,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { USER_DETAILS, OWNER_DETAILS } from '@/lib/constants';
+import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getBankTheme } from '@/lib/bank-data';
@@ -39,6 +39,22 @@ const ChipIcon = () => (
     </svg>
 );
 
+const OWNER_DETAILS_CARDS: Record<'ali' | 'fatemeh' | 'shared_account', { name: string; Icon: React.ElementType }> = {
+    ali: {
+        name: USER_DETAILS.ali.firstName,
+        Icon: User,
+    },
+    fatemeh: {
+        name: USER_DETAILS.fatemeh.firstName,
+        Icon: User,
+    },
+    shared_account: {
+        name: "مشترک",
+        Icon: Users,
+    }
+};
+
+
 function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void;}) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
@@ -51,7 +67,7 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
         });
     };
 
-    const { name: ownerName, Icon: OwnerIcon } = OWNER_DETAILS[card.ownerId];
+    const { name: ownerName, Icon: OwnerIcon } = OWNER_DETAILS_CARDS[card.ownerId];
     
     const blockedForGoals = card.blockedBalance || 0;
     const availableBalance = card.balance - blockedForGoals;
@@ -195,8 +211,8 @@ interface CardListProps {
 export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProps) {
 
   const sortedCards = [...(cards || [])].sort((a, b) => {
-    if (a.ownerId === 'shared' && b.ownerId !== 'shared') return -1;
-    if (a.ownerId !== 'shared' && b.ownerId === 'shared') return 1;
+    if (a.ownerId === 'shared_account' && b.ownerId !== 'shared_account') return -1;
+    if (a.ownerId !== 'shared_account' && b.ownerId === 'shared_account') return 1;
     if (a.ownerId < b.ownerId) return -1;
     if (a.ownerId > b.ownerId) return 1;
     return b.balance - a.balance;
@@ -215,7 +231,7 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
     )
   }
   
-  const sharedCards = sortedCards.filter(c => c.ownerId === 'shared');
+  const sharedCards = sortedCards.filter(c => c.ownerId === 'shared_account');
   const aliCards = sortedCards.filter(c => c.ownerId === 'ali');
   const fatemehCards = sortedCards.filter(c => c.ownerId === 'fatemeh');
 

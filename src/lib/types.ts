@@ -3,8 +3,10 @@
 import type { LucideIcon } from 'lucide-react';
 
 // Defines who OWNS an asset, liability, or income source.
-// This is about the source of funds or assets.
-export type OwnerId = 'ali' | 'fatemeh' | 'shared';
+// 'ali', 'fatemeh': Personal ownership
+// 'daramad_moshtarak': Represents the shared business/income source. Used ONLY for Incomes.
+// 'shared_account': Represents the shared bank account. Used ONLY for BankAccounts.
+export type OwnerId = 'ali' | 'fatemeh' | 'daramad_moshtarak' | 'shared_account';
 
 // Defines who an EXPENSE is FOR. This is about the beneficiary of a spending.
 // This is completely separate from OwnerId.
@@ -19,7 +21,7 @@ export type Income = {
   amount: number;
   type: 'income';
   source: string; // The original source of income text
-  ownerId: OwnerId; // An income can belong to a person or the shared household/business
+  ownerId: 'ali' | 'fatemeh' | 'daramad_moshtarak'; // An income can belong to a person or the shared business
   category: string; // This is 'درآمد' for all incomes
   registeredByUserId: string;
   bankAccountId: string;
@@ -30,7 +32,7 @@ export type Income = {
 
 export type Expense = {
   id: string;
-  ownerId: OwnerId; // Owner of the bank account used for payment
+  ownerId: 'ali' | 'fatemeh' | 'shared_account'; // Owner of the bank account used for payment
   registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;
@@ -54,7 +56,7 @@ export type Expense = {
 
 export type BankAccount = {
     id: string;
-    ownerId: OwnerId; // A bank account can be personal ('ali', 'fatemeh') or shared
+    ownerId: 'ali' | 'fatemeh' | 'shared_account'; // A bank account can be personal ('ali', 'fatemeh') or the single shared account
     bankName: string;
     accountNumber: string;
     cardNumber: string;
@@ -89,7 +91,7 @@ export type Payee = {
 export type Check = {
     id: string;
     registeredByUserId: string;
-    ownerId: OwnerId; // The liability belongs to a person or the shared account
+    ownerId: 'ali' | 'fatemeh' | 'shared_account'; // The liability belongs to a person or the shared account
     bankAccountId: string;
     payeeId: string;
     categoryId: string;
