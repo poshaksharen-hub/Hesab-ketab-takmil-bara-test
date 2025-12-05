@@ -138,7 +138,7 @@ export default function LoansPage() {
             
             const currentLoanData = loanDoc.data() as Loan;
             const accountData = accountToPayFromDoc.data() as BankAccount;
-            const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
+            const availableBalance = accountData.balance;
 
             if (installmentAmount > currentLoanData.remainingAmount) {
                 throw new Error(`مبلغ پرداختی (${formatCurrency(installmentAmount, 'IRT')}) نمی‌تواند از مبلغ باقی‌مانده وام (${formatCurrency(currentLoanData.remainingAmount, 'IRT')}) بیشتر باشد.`);

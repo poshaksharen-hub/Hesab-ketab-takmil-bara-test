@@ -104,7 +104,7 @@ export default function DebtsPage() {
             
             const currentDebtData = debtDoc.data() as PreviousDebt;
             const accountData = accountDoc.data() as BankAccount;
-            const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
+            const availableBalance = accountData.balance;
 
             if (amount > currentDebtData.remainingAmount) {
                 throw new Error(`مبلغ پرداختی (${formatCurrency(amount, 'IRT')}) نمی‌تواند از مبلغ باقی‌مانده بدهی (${formatCurrency(currentDebtData.remainingAmount, 'IRT')}) بیشتر باشد.`);

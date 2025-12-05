@@ -73,7 +73,7 @@ export default function CheckDetailPage() {
         if (!bankAccountDoc.exists()) throw new Error("حساب بانکی یافت نشد.");
 
         const bankAccountData = bankAccountDoc.data()!;
-        const availableBalance = bankAccountData.balance - (bankAccountData.blockedBalance || 0);
+        const availableBalance = bankAccountData.balance;
 
         if (availableBalance < checkToClear.amount) {
           throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
@@ -192,7 +192,7 @@ export default function CheckDetailPage() {
   const expenseForName = getExpenseForName(check.expenseFor);
   const isCleared = check.status === 'cleared';
 
-  const hasSufficientFunds = bankAccount ? bankAccount.balance - (bankAccount.blockedBalance || 0) >= check.amount : false;
+  const hasSufficientFunds = bankAccount ? bankAccount.balance >= check.amount : false;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -351,3 +351,4 @@ export default function CheckDetailPage() {
     
 
     
+

@@ -91,7 +91,7 @@
         "date": { "type": "string", "format": "date-time" },
         "description": { "type": "string" },
         "type": { "type": "string", "enum": ["expense"] },
-        "subType": { "type": "string", "enum": ["goal_saved_portion", "goal_cash_portion", "loan_payment", "debt_payment"], "description": "Differentiates special expenses." },
+        "subType": { "type": "string", "enum": ["goal_saved_portion", "goal_cash_portion", "loan_payment", "debt_payment", "goal_contribution"], "description": "Differentiates special expenses." },
         "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this expense was for (beneficiary)." },
         "checkId": { "type": "string" },
         "goalId": { "type": "string" },
@@ -321,4 +321,5 @@
     ]
   }
 }
+
 
