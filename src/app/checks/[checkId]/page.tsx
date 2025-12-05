@@ -122,16 +122,19 @@ export default function CheckDetailPage() {
             
             {/* Header */}
             <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start font-body">
+                {/* Left Side: IDs */}
                 <div className="text-left w-1/3 space-y-1">
                     <p className="text-[10px] text-muted-foreground">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
                     <p className="text-[10px] text-muted-foreground">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
                 </div>
 
+                {/* Center: Bank Name */}
                 <div className="text-center w-1/3">
                     <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
                     <p className="font-bold text-sm">{bankAccount?.bankName}</p>
                 </div>
                 
+                {/* Right Side: Date */}
                 <div className="text-right w-1/3">
                      <p className="text-xs text-muted-foreground">تاریخ:</p>
                      <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
@@ -149,42 +152,38 @@ export default function CheckDetailPage() {
                  </div>
                  <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
                     <span className="shrink-0">در وجه:</span>
-                     <span className="font-handwriting font-bold text-base w-1/2">{getPayeeName(check.payeeId)}</span>
-                    <span className="shrink-0 ml-auto">برای:</span>
-                     <span className="font-handwriting font-bold text-base">
+                     <span className="font-handwriting font-bold text-base">{getPayeeName(check.payeeId)}</span>
+                    <span className="shrink-0 ml-4">برای:</span>
+                     <span className="font-handwriting font-bold text-base flex-grow">
                        {expenseForName}
                     </span>
                 </div>
                  <div className="flex-grow"></div>
-                <div className="grid grid-cols-2 items-end pt-4">
-                     <div className="text-left">
+                <div className="flex justify-between items-end pt-4">
+                    <div className="text-left">
                         <span className="text-xs text-muted-foreground">مبلغ</span>
                         <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
                     </div>
-                     <div className="text-right">
+                    <div className="text-center">
                         <span className="text-xs text-muted-foreground">دسته‌بندی</span>
                         <p className="font-handwriting font-bold text-base">{getCategoryName(check.categoryId)}</p>
                     </div>
-                </div>
-            </div>
-
-            {/* --- Check Footer --- */}
-            <CardFooter className="p-4 flex justify-between items-end">
-                <div className="relative text-right">
-                    <p className="font-body text-xs">صاحب حساب:</p>
-                    <p className="font-body text-sm font-semibold">{ownerName}</p>
-                    <div className="absolute -bottom-2 -right-4 w-32 h-16 pointer-events-none">
-                        {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
-                        {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
-                        {check.liabilityOwnerId === 'shared_account' && (
-                            <>
-                                <SignatureAli className="w-24 h-12 absolute -top-2 right-4 text-gray-700 dark:text-gray-300 opacity-80" />
-                                <SignatureFatemeh className="w-24 h-12 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300 opacity-80" />
-                            </>
-                        )}
+                    <div className="text-right relative">
+                        <span className="text-xs text-muted-foreground">صاحب حساب:</span>
+                        <p className="font-body text-sm font-semibold">{ownerName}</p>
+                        <div className="absolute -bottom-5 -right-2 w-24 h-12 pointer-events-none opacity-80">
+                            {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
+                            {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
+                            {check.liabilityOwnerId === 'shared_account' && (
+                                <>
+                                    <SignatureAli className="w-20 h-10 absolute -top-2 right-4 text-gray-700 dark:text-gray-300" />
+                                    <SignatureFatemeh className="w-20 h-10 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300" />
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </CardFooter>
+            </div>
         </Card>
       </div>
     </main>
