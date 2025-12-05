@@ -12,6 +12,22 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'genkit';
+import { onCallGenkit, type HttpsOptions } from 'firebase-functions/v2/https';
+import { defineSecret } from 'firebase-functions/params';
+
+// Define the secret for the API key
+const geminiApiKey = defineSecret('GEMINI_API_KEY');
+
+
+// Initialize Genkit with the Google AI plugin
+const ai = genkit({
+  plugins: [
+    googleAI({
+      apiKey: geminiApiKey.value(),
+    }),
+  ],
+});
+
 
 // Define schemas for structured data
 const EnrichedIncomeSchema = z.object({
@@ -63,7 +79,7 @@ const FinancialGoalSchema = z.object({
   name: z.string(),
   targetAmount: z.number(),
   currentAmount: z.number(),
-  targetDate: z.string(),
+  targetDate: z_DOT_string(),
   priority: z.string(),
   isAchieved: z.boolean(),
 });
@@ -94,22 +110,8 @@ const FinancialInsightsOutputSchema = z.object({
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
 
-// The main async function that will be called by the server action
-export async function generateFinancialInsights(input: Omit<FinancialInsightsInput, 'latestUserQuestion'>): Promise<FinancialInsightsOutput> {
-  
-  // Hardcode the API Key for testing purposes.
-  // This bypasses any issues with process.env.
-  const apiKey = 'AIzaSyDXUKdYfIkSg53bt1xcp5ItXneACBo2FlY';
-  if (!apiKey) {
-      throw new Error('کلید API هوش مصنوعی (GEMINI_API_KEY) در سرور تنظیم نشده است.');
-  }
 
-  // Configure Genkit locally inside the async server function
-  const ai = genkit({
-    plugins: [googleAI({ apiKey })],
-  });
-
-  const prompt = ai.definePrompt({
+const prompt = ai.definePrompt({
     name: 'financialInsightsPrompt',
     input: { schema: FinancialInsightsInputSchema },
     output: { schema: FinancialInsightsOutputSchema },
@@ -152,10 +154,10 @@ export async function generateFinancialInsights(input: Omit<FinancialInsightsInp
 
     Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,
     model: 'googleai/gemini-2.5-flash',
-  });
+});
 
-  // Define the flow, which will be called by the main function
-  const generateFinancialInsightsFlow = ai.defineFlow(
+// Define the flow, which will be called by the main function
+const generateFinancialInsightsFlow = ai.defineFlow(
     {
       name: 'generateFinancialInsightsFlow',
       inputSchema: FinancialInsightsInputSchema,
@@ -165,17 +167,29 @@ export async function generateFinancialInsights(input: Omit<FinancialInsightsInp
       const { output } = await prompt(input);
       return output!;
     }
-  );
-
-  // Prepare the full input for the flow, including the latest user question.
-  // Find the last message from the 'user'
-  const latestUserMessage = input.history.slice().reverse().find(m => m.role === 'user');
-  const fullInput: FinancialInsightsInput = {
-    ...input,
-    latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.', // Provide a default if no user message is found
-  };
+);
 
 
-  // Execute the flow with the provided input
-  return generateFinancialInsightsFlow(fullInput);
-}
+// This is the function that will be called by the client
+export const generateFinancialInsights = onCallGenkit(
+  {
+    secrets: [geminiApiKey],
+    authPolicy: (auth, context) => {
+      if (!auth) {
+        // Throwing an HttpsError is the standard way to handle auth errors.
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+      }
+      return true; // Allow access for any authenticated user
+    },
+  },
+  // The flow to wrap
+  (input: Omit<FinancialInsightsInput, 'latestUserQuestion'>): Promise<FinancialInsightsOutput> => {
+    // Find the last message from the 'user'
+    const latestUserMessage = input.history.slice().reverse().find(m => m.role === 'user');
+    const fullInput: FinancialInsightsInput = {
+      ...input,
+      latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.', // Provide a default if no user message is found
+    };
+    return generateFinancialInsightsFlow(fullInput);
+  }
+);

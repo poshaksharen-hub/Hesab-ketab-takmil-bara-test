@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, type ReactNode } from 'react';
@@ -6,6 +7,8 @@ import { initializeFirebase, getSdks } from '@/firebase';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
+import type { Functions } from 'firebase/functions';
+
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -15,6 +18,7 @@ type FirebaseServices = {
   firebaseApp: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
+  functions: Functions;
 };
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
@@ -36,6 +40,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       firebaseApp={firebaseServices.firebaseApp}
       auth={firebaseServices.auth}
       firestore={firebaseServices.firestore}
+      functions={firebaseServices.functions}
     >
       {children}
     </FirebaseProvider>
