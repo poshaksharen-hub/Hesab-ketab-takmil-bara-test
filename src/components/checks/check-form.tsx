@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -128,11 +129,8 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";
-    if (account.ownerId in USER_DETAILS) {
-      const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
-      return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
-    }
-    return "(ناشناس)";
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
   const checkingAccounts = [...bankAccounts.filter(acc => acc.accountType === 'checking')].sort((a, b) => b.balance - a.balance);
