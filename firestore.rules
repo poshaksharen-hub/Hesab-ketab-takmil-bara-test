@@ -6,10 +6,7 @@ service cloud.firestore {
     // Function to check if the user is an authenticated family member based on their email.
     function isFamilyMember() {
       return request.auth != null && 
-             request.auth.token.email in [
-                'ali@khanevadati.app', 
-                'fatemeh@khanevadati.app'
-             ];
+             request.auth.token.email in ['ali@khanevadati.app', 'fatemeh@khanevadati.app'];
     }
     
     // Rule for user-specific data (profiles)
