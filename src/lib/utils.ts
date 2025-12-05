@@ -2,8 +2,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from 'date-fns-jalali';
-import { numberToWords } from '@persian-tools/persian-tools';
-
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -52,14 +50,51 @@ export function formatCardNumber(cardNumber?: string) {
     return cardNumber.replace(/(\d{4})/g, '$1 ').trim();
 };
 
-export function amountToWords(amount: number): string {
-    if (typeof amount !== 'number' || isNaN(amount)) return 'صفر';
-    if (amount === 0) return 'صفر';
-    try {
-        // The library converts the number to words in Toman by default.
-        // No need to divide by 10.
-        return numberToWords(amount);
-    } catch {
-        return '';
+// --- START REPLACEMENT ---
+const units = ["", "یک", "دو", "سه", "چهار", "پنج", "شش", "هفت", "هشت", "نه"];
+const teens = ["ده", "یازده", "دوازده", "سیزده", "چهارده", "پانزده", "شانزده", "هفده", "هجده", "نوزده"];
+const tens = ["", "ده", "بیست", "سی", "چهل", "پنجاه", "شصت", "هفتاد", "هشتاد", "نود"];
+const hundreds = ["", "یکصد", "دویست", "سیصد", "چهارصد", "پانصد", "ششصد", "هفتصد", "هشتصد", "نهصد"];
+const thousands = ["", " هزار", " میلیون", " میلیارد", " تریلیون"];
+
+function convertThreeDigits(num: number): string {
+    if (num === 0) return "";
+    let str = "";
+    if (num >= 100) {
+        str += hundreds[Math.floor(num / 100)] + " و ";
+        num %= 100;
     }
+    if (num >= 10 && num < 20) {
+        str += teens[num - 10];
+    } else if (num >= 20) {
+        str += tens[Math.floor(num / 10)];
+        if (num % 10 !== 0) {
+            str += " و " + units[num % 10];
+        }
+    } else if (num > 0) {
+        str += units[num];
+    }
+    return str.replace(/ و $/, ""); // Remove trailing " و "
 }
+
+export function amountToWords(amount: number): string {
+    if (typeof amount !== 'number' || isNaN(amount) || amount === 0) return 'صفر';
+
+    let numStr = Math.floor(amount).toString();
+    let result = [];
+    let i = numStr.length;
+
+    while (i > 0) {
+        let chunk = parseInt(numStr.substring(Math.max(0, i - 3), i));
+        if (chunk > 0) {
+            let chunkStr = convertThreeDigits(chunk);
+            let thousand = thousands[Math.floor((numStr.length - i) / 3)];
+            result.push(chunkStr + thousand);
+        }
+        i -= 3;
+    }
+    
+    return result.reverse().join(" و ").trim();
+}
+// --- END REPLACEMENT ---
+
