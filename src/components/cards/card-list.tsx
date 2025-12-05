@@ -61,6 +61,8 @@ const OWNER_DETAILS_CARDS: Record<'ali' | 'fatemeh' | 'shared_account', { name: 
 function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
+    const availableBalance = card.balance - card.blockedBalance;
+
 
     const handleCopy = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
@@ -76,9 +78,9 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
 
     return (
         <>
-            <div className="relative group p-1">
-                <div className={cn("relative rounded-xl p-4 sm:p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses)}>
-                    <div className="absolute inset-0 bg-black/10 rounded-xl"></div>
+            <div className="relative group flex flex-col">
+                <div className={cn("relative rounded-t-xl p-4 sm:p-6 text-white flex flex-col justify-between shadow-lg aspect-[1.586] bg-gradient-to-br transition-transform", themeClasses)}>
+                    <div className="absolute inset-0 bg-black/10 rounded-t-xl"></div>
                     <div className='relative z-10 flex justify-between items-start'>
                         <span className="font-bold text-base sm:text-lg tracking-wider">{card.bankName}</span>
                          <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
@@ -149,13 +151,28 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                             </span>
                             <div className='text-left'>
                                 <p className="text-base sm:text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
-                                <p className="text-[10px] sm:text-xs opacity-80">موجودی</p>
+                                <p className="text-[10px] sm:text-xs opacity-80">موجودی کل</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                 <div className="bg-muted p-2 rounded-b-xl border-t mt-[-2px]">
+                 <div className="bg-muted p-2 rounded-b-xl border-t">
+                    {card.blockedBalance > 0 && (
+                         <>
+                            <div className='px-2 py-1 text-xs'>
+                                <div className="flex justify-between items-center text-muted-foreground">
+                                    <span className="flex items-center gap-1"><PiggyBank className="w-3 h-3" /> مسدود برای اهداف</span>
+                                    <span>{formatCurrency(card.blockedBalance, 'IRT')}</span>
+                                </div>
+                                <div className="flex justify-between items-center font-bold mt-1">
+                                    <span>موجودی قابل استفاده</span>
+                                    <span>{formatCurrency(availableBalance, 'IRT')}</span>
+                                </div>
+                            </div>
+                            <Separator className='my-1' />
+                        </>
+                    )}
                     <div className="flex gap-2">
                         <Button size="sm" variant="ghost" className="w-full text-xs" onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}>
                             <Copy className="ml-2 h-4 w-4" />
@@ -237,10 +254,10 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
   const aliCards = sortedCards.filter(c => c.ownerId === 'ali');
   const fatemehCards = sortedCards.filter(c => c.ownerId === 'fatemeh');
 
-  const renderCardSection = (cardList: BankAccount[], title: string, key: string) => {
+  const renderCardSection = (cardList: BankAccount[], title: string) => {
     if (cardList.length === 0) return null;
     return (
-        <Card key={key}>
+        <Card>
             <CardHeader>
                 <CardTitle className="font-headline">{title}</CardTitle>
             </CardHeader>
@@ -270,7 +287,7 @@ export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
 
   return (
     <div className='space-y-6'>
-       {sections.map(section => renderCardSection(section.data, section.title, section.id))}
+       {sections.map(section => section.data.length > 0 && renderCardSection(section.data, section.title))}
     </div>
   );
 }

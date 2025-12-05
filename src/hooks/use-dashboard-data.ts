@@ -67,22 +67,35 @@ export function useDashboardData() {
     const isLoading = isAuthLoading || isLoadingUsers || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
 
     const allData = useMemo<AllData>(() => {
+        const rawBankAccounts = bankAccountsData || [];
+        const activeGoals = (goals || []).filter(g => !g.isAchieved);
+        
+        // Calculate blocked balances for each account
+        const blockedBalances = activeGoals.flatMap(g => g.contributions).reduce((acc, contribution) => {
+            acc[contribution.bankAccountId] = (acc[contribution.bankAccountId] || 0) + contribution.amount;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const processedBankAccounts = rawBankAccounts.map(acc => ({
+            ...acc,
+            blockedBalance: blockedBalances[acc.id] || 0,
+        }));
+
         return {
             users: usersData || [],
             incomes: incomes || [],
             expenses: expenses || [],
-            bankAccounts: bankAccountsData || [],
+            bankAccounts: processedBankAccounts,
             categories: categories || [],
             checks: checks || [],
             goals: goals || [],
-            loans: loans || [],
             payees: payees || [],
             transfers: transfers || [],
             loanPayments: loanPayments || [],
             previousDebts: previousDebts || [],
             debtPayments: debtPayments || [],
         };
-    }, [usersData, bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
+    }, [usersData, bankAccountsData, incomes, expenses, categories, checks, goals, payees, transfers, loanPayments, previousDebts, debtPayments]);
 
 
   const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {

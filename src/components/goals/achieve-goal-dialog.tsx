@@ -142,7 +142,7 @@ export function AchieveGoalDialog({
                         <SelectContent>
                         {availablePaymentAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
-                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
                             </SelectItem>
                         ))}
                         </SelectContent>

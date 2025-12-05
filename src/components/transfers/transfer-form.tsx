@@ -69,6 +69,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
 
   const fromAccountId = form.watch('fromBankAccountId');
   const fromAccount = bankAccounts.find(acc => acc.id === fromAccountId);
+  const fromAccountAvailableBalance = fromAccount ? fromAccount.balance - fromAccount.blockedBalance : 0;
 
   const sortedFromAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
 
@@ -113,7 +114,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                       <SelectContent className="max-h-[250px]">
                         {sortedFromAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                            {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -142,7 +143,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                       <SelectContent className="max-h-[250px]">
                         {availableToAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                           {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                            {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -162,7 +163,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                     </FormControl>
                     {fromAccount && (
                         <p className="text-xs text-muted-foreground pt-1">
-                            موجودی قابل استفاده مبدا: {formatCurrency(fromAccount.balance - (fromAccount.blockedBalance || 0), 'IRT')}
+                            موجودی قابل استفاده مبدا: {formatCurrency(fromAccountAvailableBalance, 'IRT')}
                         </p>
                     )}
                     <FormMessage />

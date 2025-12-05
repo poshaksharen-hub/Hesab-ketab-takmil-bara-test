@@ -91,7 +91,7 @@ export function AddToGoalDialog({
 
   const selectedBankAccountId = form.watch('bankAccountId');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
-  const availableBalance = selectedBankAccount ? selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0) : 0;
+  const availableBalance = selectedBankAccount ? selectedBankAccount.balance - selectedBankAccount.blockedBalance : 0;
 
   function handleFormSubmit(data: AddToGoalFormValues) {
     onSubmit({
@@ -135,7 +135,7 @@ export function AddToGoalDialog({
                     <SelectContent>
                       {sortedBankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                           {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                           {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
