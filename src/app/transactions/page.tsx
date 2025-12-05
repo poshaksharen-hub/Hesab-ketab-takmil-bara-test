@@ -35,7 +35,7 @@ export default function ExpensesPage() {
     users: allUsers,
   } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'liabilityOwnerId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
     if (!user || !firestore || !allBankAccounts) return;
     
     try {
@@ -45,7 +45,6 @@ export default function ExpensesPage() {
             const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
             if (!account) throw new Error("کارت بانکی یافت نشد");
             
-            const liabilityOwnerId = account.ownerId; // Get the ownerId from the selected bank account
             const fromCardRef = doc(familyDataRef, 'bankAccounts', account.id);
             const fromCardDoc = await transaction.get(fromCardRef);
 
@@ -66,9 +65,9 @@ export default function ExpensesPage() {
 
             const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
             
-            const newExpenseData: Omit<Expense, 'id' | 'createdAt' | 'type'> = {
+            const newExpenseData: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId'> = {
                 ...values,
-                liabilityOwnerId: liabilityOwnerId,
+                ownerId: account.ownerId,
                 registeredByUserId: user.uid,
                 balanceBefore,
                 balanceAfter,
@@ -188,6 +187,7 @@ export default function ExpensesPage() {
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
           users={allUsers || []}
+          payees={allPayees || []}
           onDelete={handleDelete}
         />
       )}
