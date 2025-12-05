@@ -26,9 +26,11 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { LogOut, DatabaseZap } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
 import type { DashboardFilter } from '@/hooks/use-dashboard-data';
+import { useInitialData } from '@/hooks/use-initial-data';
+import { useToast } from '@/hooks/use-toast';
 
 
 function DashboardSkeleton() {
@@ -70,12 +72,14 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardPage() {
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const [ownerFilter, setOwnerFilter] = useState<DashboardFilter>('all');
   const [date, setDate] = useState<DateRange | undefined>(getDateRange('thisMonth'));
   const [activePreset, setActivePreset] = useState<ReturnType<typeof getDateRange>['preset']>('thisMonth');
 
   const { isLoading, getFilteredData, allData } = useDashboardData();
+  const { seedDatabase, isSeeding } = useInitialData();
+  const { toast } = useToast();
 
   const { summary, details, globalSummary } = getFilteredData(ownerFilter, date);
   
@@ -99,6 +103,18 @@ export default function DashboardPage() {
   if (effectiveLoading) {
     return <DashboardSkeleton />;
   }
+  
+  const handleSeedData = async () => {
+    if (!user) return;
+    toast({ title: 'شروع عملیات', description: 'در حال افزودن داده‌های تستی به پایگاه داده...'});
+    try {
+      await seedDatabase(user.uid);
+      toast({ title: 'موفقیت', description: 'داده‌های تستی با موفقیت به پایگاه داده اضافه شدند.' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'خطا', description: error.message });
+    }
+  }
+
 
   const handleDatePreset = (preset: Parameters<typeof getDateRange>[0]) => {
       setDate(getDateRange(preset).range);
@@ -112,6 +128,10 @@ export default function DashboardPage() {
           داشبورد جامع مالی
         </h1>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
+           <Button onClick={handleSeedData} disabled={isSeeding} variant="outline">
+              <DatabaseZap className="ml-2 h-4 w-4" />
+              {isSeeding ? 'در حال پردازش...' : 'ایجاد داده تستی'}
+           </Button>
            <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} defaultValue="all">
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="نمایش داده‌های..." />
@@ -208,3 +228,5 @@ export default function DashboardPage() {
     </main>
   );
 }
+
+    
