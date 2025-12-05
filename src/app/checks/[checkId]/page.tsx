@@ -346,11 +346,3 @@ export default function CheckDetailPage() {
     </main>
   );
 }
-
-    
-
-    
-
-    
-
-

@@ -60,7 +60,7 @@ export default function LoanDetailPage() {
         .map(p => {
             const bankAccount = bankAccounts.find(b => b.id === p.bankAccountId);
             const ownerId = bankAccount?.ownerId;
-            const ownerName = ownerId === 'shared' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId] ? `${USER_DETAILS[ownerId].firstName} ${USER_DETAILS[ownerId].lastName}` : 'ناشناس');
+            const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
             return {
                 ...p,
                 bankName: bankAccount?.bankName || 'نامشخص',

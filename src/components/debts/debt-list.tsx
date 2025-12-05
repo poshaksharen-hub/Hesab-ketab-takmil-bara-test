@@ -63,20 +63,21 @@ export function DebtList({ debts, payees, users, onPay, onDelete }: DebtListProp
 
             return (
              <div key={debt.id} className="relative group">
-                <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
-                    <CardHeader>
-                        <div className='flex justify-between items-start'>
-                            <div className="space-y-1">
-                                <CardTitle className={cn("flex items-center gap-2", isCompleted && "text-muted-foreground line-through")}>
-                                     <OwnerIcon className="h-5 w-5 text-muted-foreground" />
-                                     <span>{debt.description}</span>
-                                </CardTitle>
-                                <CardDescription className='flex items-center gap-2'>
-                                     {isCompleted ? <Badge className="bg-emerald-500 text-white">تسویه شده</Badge> : <Badge variant="destructive">در حال پرداخت</Badge>}
-                                    <span className="text-xs">(به: {getPayeeName(debt.payeeId)})</span>
-                                </CardDescription>
-                            </div>
-                           <div className="flex gap-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                <Link href={`/debts/${debt.id}`} className="block h-full cursor-pointer" aria-label={`View details for debt: ${debt.description}`}>
+                    <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
+                        <CardHeader>
+                            <div className='flex justify-between items-start'>
+                                <div className="space-y-1">
+                                    <CardTitle className={cn("flex items-center gap-2", isCompleted && "text-muted-foreground line-through")}>
+                                        <OwnerIcon className="h-5 w-5 text-muted-foreground" />
+                                        <span>{debt.description}</span>
+                                    </CardTitle>
+                                    <CardDescription className='flex items-center gap-2'>
+                                        {isCompleted ? <Badge className="bg-emerald-500 text-white">تسویه شده</Badge> : <Badge variant="destructive">در حال پرداخت</Badge>}
+                                        <span className="text-xs">(به: {getPayeeName(debt.payeeId)})</span>
+                                    </CardDescription>
+                                </div>
+                            <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
@@ -84,14 +85,12 @@ export function DebtList({ debts, payees, users, onPay, onDelete }: DebtListProp
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem asChild>
-                                            <Link href={`/debts/${debt.id}`}>
-                                                <History className="ml-2 h-4 w-4" />
-                                                مشاهده تاریخچه
-                                            </Link>
+                                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); const router = (e.target as HTMLElement).closest('a')?.href; if (router) window.location.href = router; }}>
+                                            <History className="ml-2 h-4 w-4" />
+                                            مشاهده تاریخچه
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                         <AlertDialog>
+                                        <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
                                                     <Trash2 className="ml-2 h-4 w-4" />
@@ -118,41 +117,42 @@ export function DebtList({ debts, payees, users, onPay, onDelete }: DebtListProp
                                         </AlertDialog>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                           </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                                <span>{formatCurrency(debt.remainingAmount, 'IRT')}</span>
-                                <span>{formatCurrency(debt.amount, 'IRT')}</span>
                             </div>
-                            <Progress value={progress} className="h-2" />
-                            <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
-                                <span>{`${Math.round(progress)}٪ پرداخت شده`}</span>
-                                 <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(debt.registeredByUserId)}`}>
-                                  <PenSquare className="h-3 w-3" />
-                                  <span>{getUserName(debt.registeredByUserId)}</span>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                    <span>{formatCurrency(debt.remainingAmount, 'IRT')}</span>
+                                    <span>{formatCurrency(debt.amount, 'IRT')}</span>
+                                </div>
+                                <Progress value={progress} className="h-2" />
+                                <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
+                                    <span>{`${Math.round(progress)}٪ پرداخت شده`}</span>
+                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(debt.registeredByUserId)}`}>
+                                    <PenSquare className="h-3 w-3" />
+                                    <span>{getUserName(debt.registeredByUserId)}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </CardContent>
-                     <CardFooter>
-                        {isCompleted ? (
-                            <div className="w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
-                                <CheckCircle className="h-5 w-5" />
-                                <span>بدهی تسویه شد!</span>
-                            </div>
-                        ) : (
-                             <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(debt);}} className="w-full">
-                                <Button className="w-full">
-                                    <Handshake className="ml-2 h-4 w-4" />
-                                    پرداخت بدهی
-                                </Button>
-                            </div>
-                        )}
-                    </CardFooter>
-                </Card>
+                        </CardContent>
+                        <CardFooter>
+                            {isCompleted ? (
+                                <div className="w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span>بدهی تسویه شد!</span>
+                                </div>
+                            ) : (
+                                <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(debt);}} className="w-full">
+                                    <Button className="w-full">
+                                        <Handshake className="ml-2 h-4 w-4" />
+                                        پرداخت بدهی
+                                    </Button>
+                                </div>
+                            )}
+                        </CardFooter>
+                    </Card>
+                </Link>
              </div>
         )})}
     </div>

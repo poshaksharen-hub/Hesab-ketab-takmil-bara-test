@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -101,100 +100,102 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
 
             return (
              <div key={loan.id} className="relative group">
-                <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
-                    <CardHeader>
-                        <div className='flex justify-between items-start'>
-                            <div className="space-y-1">
-                                <CardTitle className={cn("font-headline", isCompleted && "text-muted-foreground line-through")}>{loan.title}</CardTitle>
-                                <CardDescription className='flex items-center gap-2'>
-                                    {getLoanStatus(loan)}
-                                    {loan.payeeId && <span className="text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
-                                </CardDescription>
-                                {depositAccountInfo && (
-                                     <CardDescription className="flex items-center gap-2 text-xs text-primary pt-1">
-                                        <Landmark className="h-3 w-3" />
-                                        <span>واریز شده به: {depositAccountInfo.bankName} ({depositAccountInfo.ownerName})</span>
-                                     </CardDescription>
-                                )}
-                            </div>
-                           <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
-                                        <MoreVertical className="h-5 w-5" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem asChild>
-                                       <Link href={`/loans/${loan.id}`}>
-                                        <History className="ml-2 h-4 w-4" />
-                                        مشاهده تاریخچه
-                                       </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted}>
-                                        <Edit className="ml-2 h-4 w-4" />
-                                        ویرایش وام
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
-                                                <Trash2 className="ml-2 h-4 w-4" />
-                                                حذف وام
-                                            </div>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                               این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط (مانند واریز اولیه) معکوس و وام حذف خواهد شد.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                className="bg-destructive hover:bg-destructive/90"
-                                                disabled={loan.paidInstallments > 0}
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
-                                                بله، حذف کن
-                                            </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                                <span>{formatCurrency(loan.remainingAmount, 'IRT')}</span>
-                                <span>{formatCurrency(loan.amount, 'IRT')}</span>
-                            </div>
-                            <Progress value={progress} className="h-2" />
-                            <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
-                                <span>{`${loan.numberOfInstallments > 0 ? (loan.numberOfInstallments - loan.paidInstallments) + ' قسط باقی‌مانده' : 'پرداخت نشده'}`}</span>
-                                <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(loan.registeredByUserId)}`}>
-                                  <PenSquare className="h-3 w-3" />
-                                  <span>{getUserName(loan.registeredByUserId)}</span>
+                <Link href={`/loans/${loan.id}`} className="block h-full cursor-pointer" aria-label={`View details for loan ${loan.title}`}>
+                    <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
+                        <CardHeader>
+                            <div className='flex justify-between items-start'>
+                                <div className="space-y-1">
+                                    <CardTitle className={cn("font-headline", isCompleted && "text-muted-foreground line-through")}>{loan.title}</CardTitle>
+                                    <CardDescription className='flex items-center gap-2'>
+                                        {getLoanStatus(loan)}
+                                        {loan.payeeId && <span className="text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
+                                    </CardDescription>
+                                    {depositAccountInfo && (
+                                        <CardDescription className="flex items-center gap-2 text-xs text-primary pt-1">
+                                            <Landmark className="h-3 w-3" />
+                                            <span>واریز شده به: {depositAccountInfo.bankName} ({depositAccountInfo.ownerName})</span>
+                                        </CardDescription>
+                                    )}
                                 </div>
-                                <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments || '؟'} قسط`}</span>
+                            <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                               <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                            <MoreVertical className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={(e) => {e.preventDefault(); const router = (e.target as HTMLElement).closest('a')?.href; if(router) window.location.href = router; }}>
+                                            <History className="ml-2 h-4 w-4" />
+                                            مشاهده تاریخچه
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted}>
+                                            <Edit className="ml-2 h-4 w-4" />
+                                            ویرایش وام
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                    <Trash2 className="ml-2 h-4 w-4" />
+                                                    حذف وام
+                                                </div>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط (مانند واریز اولیه) معکوس و وام حذف خواهد شد.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    className="bg-destructive hover:bg-destructive/90"
+                                                    disabled={loan.paidInstallments > 0}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
+                                                    بله، حذف کن
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                </div>
                             </div>
-                        </div>
-                    </CardContent>
-                     <CardFooter className="grid grid-cols-2 gap-2">
-                        {isCompleted ? (
-                            <div className="col-span-2 w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
-                                <CheckCircle className="h-5 w-5" />
-                                <span>وام تسویه شد!</span>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                    <span>{formatCurrency(loan.remainingAmount, 'IRT')}</span>
+                                    <span>{formatCurrency(loan.amount, 'IRT')}</span>
+                                </div>
+                                <Progress value={progress} className="h-2" />
+                                <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
+                                    <span>{`${loan.numberOfInstallments > 0 ? (loan.numberOfInstallments - loan.paidInstallments) + ' قسط باقی‌مانده' : 'پرداخت نشده'}`}</span>
+                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(loan.registeredByUserId)}`}>
+                                    <PenSquare className="h-3 w-3" />
+                                    <span>{getUserName(loan.registeredByUserId)}</span>
+                                    </div>
+                                    <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments || '؟'} قسط`}</span>
+                                </div>
                             </div>
-                        ) : (
-                            <Button className="w-full col-span-2" onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}}>
-                                <CalendarCheck2 className="ml-2 h-4 w-4" />
-                                پرداخت قسط
-                            </Button>
-                        )}
-                    </CardFooter>
-                </Card>
+                        </CardContent>
+                        <CardFooter className="grid grid-cols-2 gap-2">
+                            {isCompleted ? (
+                                <div className="col-span-2 w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span>وام تسویه شد!</span>
+                                </div>
+                            ) : (
+                                <Button className="w-full col-span-2" onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}}>
+                                    <CalendarCheck2 className="ml-2 h-4 w-4" />
+                                    پرداخت قسط
+                                </Button>
+                            )}
+                        </CardFooter>
+                    </Card>
+                </Link>
              </div>
         )})}
     </div>

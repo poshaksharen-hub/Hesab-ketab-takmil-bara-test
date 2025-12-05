@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -87,21 +86,22 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
 
             return (
             <div key={goal.id} className="relative group">
-                <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isAchieved && "bg-muted/50")}>
-                    <CardHeader>
-                        <div className='flex justify-between items-start'>
-                            <div className="space-y-1">
-                                <CardTitle className={cn("flex items-center gap-2", isAchieved && "text-muted-foreground line-through")}>
-                                    <OwnerIcon className="h-5 w-5 text-muted-foreground" />
-                                    <span>{goal.name}</span>
-                                </CardTitle>
-                                <CardDescription>
-                                    <span className='ml-2'>هدف برای: {ownerName}</span>
-                                    |
-                                    <span className='mr-2'>اولویت: {getPriorityBadge(goal.priority)}</span>
-                                </CardDescription>
-                            </div>
-                            <div className="flex gap-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                 <Link href={`/goals/${goal.id}`} className="block h-full cursor-pointer" aria-label={`View details for goal ${goal.name}`}>
+                    <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isAchieved && "bg-muted/50")}>
+                        <CardHeader>
+                            <div className='flex justify-between items-start'>
+                                <div className="space-y-1">
+                                    <CardTitle className={cn("flex items-center gap-2", isAchieved && "text-muted-foreground line-through")}>
+                                        <OwnerIcon className="h-5 w-5 text-muted-foreground" />
+                                        <span>{goal.name}</span>
+                                    </CardTitle>
+                                    <CardDescription>
+                                        <span className='ml-2'>هدف برای: {ownerName}</span>
+                                        |
+                                        <span className='mr-2'>اولویت: {getPriorityBadge(goal.priority)}</span>
+                                    </CardDescription>
+                                </div>
+                                <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
@@ -109,11 +109,9 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem asChild>
-                                            <Link href={`/goals/${goal.id}`}>
-                                                <History className="ml-2 h-4 w-4" />
-                                                مشاهده تاریخچه
-                                            </Link>
+                                         <DropdownMenuItem onSelect={(e) => { e.preventDefault(); const router = (e.target as HTMLElement).closest('a')?.href; if (router) window.location.href = router; }}>
+                                            <History className="ml-2 h-4 w-4" />
+                                            مشاهده تاریخچه
                                         </DropdownMenuItem>
                                         {!isAchieved && (
                                             <DropdownMenuItem disabled>
@@ -128,7 +126,7 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
                                             </DropdownMenuItem>
                                         )}
                                         <DropdownMenuSeparator />
-                                         <AlertDialog>
+                                        <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
                                                     <Trash2 className="ml-2 h-4 w-4" />
@@ -155,46 +153,47 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
                                         </AlertDialog>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                                <span>{formatCurrency(goal.currentAmount, 'IRT')}</span>
-                                <span>{formatCurrency(goal.targetAmount, 'IRT')}</span>
-                            </div>
-                            <Progress value={progress} className="h-2" />
-                             <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
-                                <span>{Math.round(progress)}٪ تکمیل شده</span>
-                                <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(goal.registeredByUserId)}`}>
-                                  <PenSquare className="h-3 w-3" />
-                                  <span>{getUserName(goal.registeredByUserId)}</span>
                                 </div>
-                                <span>تا: {formatJalaliDate(new Date(goal.targetDate))}</span>
                             </div>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="grid grid-cols-2 gap-2">
-                        {isAchieved ? (
-                            <div className="col-span-2 flex items-center justify-center text-emerald-600 gap-2 font-bold">
-                                <CheckCircle className="h-5 w-5" />
-                                <span>هدف محقق شد!</span>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                    <span>{formatCurrency(goal.currentAmount, 'IRT')}</span>
+                                    <span>{formatCurrency(goal.targetAmount, 'IRT')}</span>
+                                </div>
+                                <Progress value={progress} className="h-2" />
+                                <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
+                                    <span>{Math.round(progress)}٪ تکمیل شده</span>
+                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(goal.registeredByUserId)}`}>
+                                    <PenSquare className="h-3 w-3" />
+                                    <span>{getUserName(goal.registeredByUserId)}</span>
+                                    </div>
+                                    <span>تا: {formatJalaliDate(new Date(goal.targetDate))}</span>
+                                </div>
                             </div>
-                        ) : (
-                            <>
-                                <Button className="w-full" variant="outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onContribute(goal); }}>
-                                    <PlusCircle className="ml-2 h-4 w-4" />
-                                    افزودن به پس‌انداز
-                                </Button>
-                                <Button className="w-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAchieve(goal); }}>
-                                    <Target className="ml-2 h-4 w-4" />
-                                    رسیدم به هدف!
-                                </Button>
-                            </>
-                        )}
-                    </CardFooter>
-                </Card>
+                        </CardContent>
+                        <CardFooter className="grid grid-cols-2 gap-2">
+                            {isAchieved ? (
+                                <div className="col-span-2 flex items-center justify-center text-emerald-600 gap-2 font-bold">
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span>هدف محقق شد!</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <Button className="w-full" variant="outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onContribute(goal); }}>
+                                        <PlusCircle className="ml-2 h-4 w-4" />
+                                        افزودن به پس‌انداز
+                                    </Button>
+                                    <Button className="w-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAchieve(goal); }}>
+                                        <Target className="ml-2 h-4 w-4" />
+                                        رسیدم به هدف!
+                                    </Button>
+                                </>
+                            )}
+                        </CardFooter>
+                    </Card>
+                 </Link>
             </div>
         )})}
     </div>

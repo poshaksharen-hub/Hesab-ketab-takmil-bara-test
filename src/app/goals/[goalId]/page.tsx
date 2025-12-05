@@ -62,7 +62,7 @@ export default function GoalDetailPage() {
         .map(c => {
             const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
             const ownerId = bankAccount?.ownerId;
-            const ownerName = ownerId === 'shared' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId] ? `${USER_DETAILS[ownerId].firstName}` : 'ناشناس');
+            const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
             return {
                 ...c,
                 bankName: bankAccount?.bankName || 'نامشخص',
@@ -101,7 +101,7 @@ export default function GoalDetailPage() {
   
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = USER_DETAILS[ownerId];
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };

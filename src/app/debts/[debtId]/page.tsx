@@ -56,7 +56,7 @@ export default function DebtDetailPage() {
         .map(p => {
             const bankAccount = bankAccounts.find(b => b.id === p.bankAccountId);
             const ownerId = bankAccount?.ownerId;
-            const ownerName = ownerId === 'shared' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId] ? `${USER_DETAILS[ownerId].firstName}` : 'ناشناس');
+            const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
             return {
                 ...p,
                 bankName: bankAccount?.bankName || 'نامشخص',
@@ -113,7 +113,7 @@ export default function DebtDetailPage() {
         </div>
         <Button onClick={() => router.push('/debts')} variant="outline">
           <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به لیست
+          بازگشت به لیست بدهی‌ها
         </Button>
       </div>
 
@@ -170,5 +170,3 @@ export default function DebtDetailPage() {
     </main>
   );
 }
-
-    
