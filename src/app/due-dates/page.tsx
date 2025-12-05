@@ -33,7 +33,7 @@ export default function DueDatesPage() {
           amount: c.amount,
           details: {
             ownerId: bankAccount?.ownerId || 'shared_account',
-            expenseFor: c.expenseFor,
+            expenseFor: c.expenseFor, // Correctly use the check's expenseFor
             bankAccountName: bankAccount?.bankName || 'نامشخص',
             registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص',
             categoryName: categories.find(cat => cat.id === c.categoryId)?.name || 'نامشخص',
