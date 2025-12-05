@@ -27,6 +27,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getBankTheme } from '@/lib/bank-data';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 const ChipIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none" className="w-10 h-auto sm:w-12">
@@ -55,7 +56,7 @@ const OWNER_DETAILS_CARDS: Record<'ali' | 'fatemeh' | 'shared_account', { name: 
 };
 
 
-function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void;}) {
+function CardItem({ card, onEdit, onDelete, allGoals }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; allGoals: FinancialGoal[]}) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
 
@@ -69,8 +70,18 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
 
     const { name: ownerName, Icon: OwnerIcon } = OWNER_DETAILS_CARDS[card.ownerId];
     
-    const blockedForGoals = card.blockedBalance || 0;
-    const availableBalance = card.balance - blockedForGoals;
+    // Calculate blocked balance based on contributions to active goals
+    const blockedForGoals = allGoals.reduce((total, goal) => {
+        if (!goal.isAchieved && goal.contributions) {
+            const contributionFromThisAccount = goal.contributions
+                .filter(c => c.bankAccountId === card.id)
+                .reduce((sum, c) => sum + c.amount, 0);
+            return total + contributionFromThisAccount;
+        }
+        return total;
+    }, 0);
+    
+    const availableBalance = card.balance; // Balance already reflects deductions for goals.
     
     const themeClasses = getBankTheme(card.theme);
 
@@ -149,23 +160,13 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                             </span>
                             <div className='text-left'>
                                 <p className="text-base sm:text-xl font-mono tracking-widest font-bold">{formatCurrency(card.balance, 'IRT').replace(' تومان', '')}</p>
-                                <p className="text-[10px] sm:text-xs opacity-80">موجودی کل</p>
+                                <p className="text-[10px] sm:text-xs opacity-80">موجودی</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="bg-muted p-4 rounded-b-xl border-t mt-[-2px] space-y-3">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                        <div className="border-l pl-2">
-                           <p className="text-sm font-semibold text-emerald-600">{formatCurrency(availableBalance, 'IRT')}</p>
-                           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><WalletCards className="w-3 h-3" /> قابل استفاده</p>
-                        </div>
-                        <div>
-                           <p className="text-sm font-semibold text-destructive">{formatCurrency(blockedForGoals, 'IRT')}</p>
-                           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><PiggyBank className="w-3 h-3" /> مسدود برای اهداف</p>
-                        </div>
-                   </div>
                    <div className="flex gap-2 pt-2">
                         <Button size="sm" variant="ghost" className="w-full" onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}>
                             <Copy className="ml-2 h-4 w-4" />
@@ -245,7 +246,7 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
             <CardContent>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {cardList.map((card) => (
-                        <CardItem key={card.id} card={card} onEdit={onEdit} onDelete={onDelete} />
+                        <CardItem key={card.id} card={card} onEdit={onEdit} onDelete={onDelete} allGoals={goals} />
                     ))}
                 </div>
             </CardContent>

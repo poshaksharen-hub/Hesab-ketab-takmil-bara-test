@@ -21,8 +21,8 @@ type Transaction = (Omit<Income, 'date'> | Omit<Expense, 'date'> | Omit<Transfer
 
 
 type TransactionWithBalances = Transaction & {
-  balanceBefore?: number;
-  balanceAfter?: number;
+  balanceBefore: number;
+  balanceAfter: number;
 };
 
 function TransactionLedgerSkeleton() {
@@ -75,52 +75,54 @@ export default function CardTransactionsPage() {
     if (!cardAccount) {
       return { card: null, ledger: [] };
     }
-    
-    // Process incomes: use 'balanceAfter' as balanceAfter, balanceBefore is not stored for incomes
-    const cardIncomes: TransactionWithBalances[] = incomes
-        .filter(t => t.bankAccountId === cardId)
-        .map(t => ({ 
-            ...t, 
-            type: 'income' as const,
-            balanceAfter: t.balanceAfter,
-            balanceBefore: t.balanceAfter !== undefined ? t.balanceAfter - t.amount : undefined
-        }));
 
-    // Process expenses: use stored 'balanceBefore' and 'balanceAfter'
-    const cardExpenses: TransactionWithBalances[] = expenses
-        .filter(t => t.bankAccountId === cardId)
-        .map(t => ({ ...t, type: 'expense' as const }));
+    const cardIncomes: Transaction[] = incomes.filter(t => t.bankAccountId === cardId);
+    const cardExpenses: Transaction[] = expenses.filter(t => t.bankAccountId === cardId);
+    const cardTransfers: Transaction[] = transfers
+        .filter(t => t.fromBankAccountId === cardId || t.toBankAccountId === cardId)
+        .map(t => {
+            const isDebit = t.fromBankAccountId === cardId;
+            const toAccount = bankAccounts.find(b => b.id === t.toBankAccountId);
+            const fromAccount = bankAccounts.find(b => b.id === t.fromBankAccountId);
+            const { transferDate, ...restOfT } = t;
 
-    // Process transfers: use stored balances depending on if it's debit or credit
-    const cardTransfers: TransactionWithBalances[] = transfers
-      .filter(t => t.fromBankAccountId === cardId || t.toBankAccountId === cardId)
-      .map(t => {
-          const isDebit = t.fromBankAccountId === cardId;
-          const toAccount = bankAccounts.find(b => b.id === t.toBankAccountId);
-          const fromAccount = bankAccounts.find(b => b.id === t.fromBankAccountId);
-          const { transferDate, ...restOfT } = t;
+            return {
+                ...restOfT,
+                type: 'transfer' as const,
+                date: transferDate,
+                description: isDebit
+                    ? `انتقال به ${toAccount?.bankName || 'ناشناس'}`
+                    : `دریافت از ${fromAccount?.bankName || 'ناشناس'}`,
+            };
+        });
+        
+    const allTransactions = [...cardIncomes, ...cardExpenses, ...cardTransfers]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-          return {
-              ...restOfT,
-              type: 'transfer' as const,
-              date: transferDate, // Use 'date' property consistently
-              amount: t.amount,
-              description: isDebit 
-                ? `انتقال به ${toAccount?.bankName || 'ناشناس'}`
-                : `دریافت از ${fromAccount?.bankName || 'ناشناس'}`,
-              balanceBefore: isDebit ? t.fromAccountBalanceBefore : t.toAccountBalanceBefore,
-              balanceAfter: isDebit ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter,
-          };
-      });
+    let runningBalance = cardAccount.balance;
+    const ledgerWithBalances: TransactionWithBalances[] = allTransactions.map(tx => {
+        const balanceAfter = runningBalance;
+        let balanceBefore = 0;
+        
+        if (tx.type === 'income') {
+            balanceBefore = runningBalance - tx.amount;
+            runningBalance = balanceBefore;
+        } else if (tx.type === 'expense') {
+            balanceBefore = runningBalance + tx.amount;
+            runningBalance = balanceBefore;
+        } else if (tx.type === 'transfer') {
+             if ((tx as Transfer).fromBankAccountId === cardId) { // Debit
+                balanceBefore = runningBalance + tx.amount;
+            } else { // Credit
+                balanceBefore = runningBalance - tx.amount;
+            }
+            runningBalance = balanceBefore;
+        }
 
-    // Combine all transactions and sort them by date descending (most recent first)
-    const allTransactions: TransactionWithBalances[] = [
-      ...cardIncomes,
-      ...cardExpenses,
-      ...cardTransfers,
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    return { card: cardAccount, ledger: allTransactions };
+        return { ...tx, balanceBefore, balanceAfter };
+    });
+
+    return { card: cardAccount, ledger: ledgerWithBalances };
   }, [isLoading, cardId, incomes, expenses, transfers, bankAccounts]);
 
   if (isLoading) {
@@ -155,7 +157,7 @@ export default function CardTransactionsPage() {
   }
 
   const getExpenseForBadge = (tx: Expense) => {
-    if (!tx.expenseFor || tx.expenseFor === 'shared' || card.ownerId !== 'shared') return null;
+    if (!tx.expenseFor || tx.expenseFor === 'shared' || card.ownerId !== 'shared_account') return null;
 
     let text: string;
     let Icon: React.ElementType;
@@ -248,7 +250,7 @@ export default function CardTransactionsPage() {
                 <div className="grid grid-cols-3 gap-2 text-center md:text-left text-sm md:w-auto w-full pt-2 md:pt-0">
                     <div className="space-y-1 p-2 rounded-md bg-muted/50">
                         <p className="text-xs text-muted-foreground">موجودی قبل</p>
-                        <p className="font-mono font-semibold">{tx.balanceBefore !== undefined ? formatCurrency(tx.balanceBefore, 'IRT').replace(' تومان', '') : 'N/A'}</p>
+                        <p className="font-mono font-semibold">{formatCurrency(tx.balanceBefore, 'IRT').replace(' تومان', '')}</p>
                     </div>
                      <div className="space-y-1 p-2 rounded-md bg-muted/50">
                         <p className={cn("text-xs font-bold", getTransactionAmountClass(tx))}>مبلغ تراکنش</p>
@@ -258,7 +260,7 @@ export default function CardTransactionsPage() {
                     </div>
                      <div className="space-y-1 p-2 rounded-md bg-muted/50">
                         <p className="text-xs text-muted-foreground">موجودی بعد</p>
-                        <p className="font-mono font-semibold">{tx.balanceAfter !== undefined ? formatCurrency(tx.balanceAfter, 'IRT').replace(' تومان', '') : 'N/A'}</p>
+                        <p className="font-mono font-semibold">{formatCurrency(tx.balanceAfter, 'IRT').replace(' تومان', '')}</p>
                     </div>
                 </div>
 

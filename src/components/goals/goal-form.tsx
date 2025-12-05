@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useEffect } from 'react';
 import { z } from 'zod';
@@ -77,14 +78,14 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
   }, [form, user]);
 
   const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId];
+    if (account.ownerId === 'shared_account') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
   const selectedBankAccountId = form.watch('initialContributionBankAccountId');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
-  const availableBalance = selectedBankAccount ? selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0) : 0;
+  const availableBalance = selectedBankAccount ? selectedBankAccount.balance : 0;
 
 
   function handleFormSubmit(data: GoalFormValues) {
@@ -195,7 +196,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
             <div className="space-y-2 rounded-lg border p-4">
                 <h3 className="font-semibold">پس‌انداز اولیه (اختیاری)</h3>
                 <p className="text-sm text-muted-foreground">
-                    می‌توانید بخشی از مبلغ هدف را از همین الان از موجودی یکی از کارت‌ها مسدود کنید.
+                    می‌توانید بخشی از مبلغ هدف را از همین الان از موجودی یکی از کارت‌ها کسر و به عنوان هزینه ثبت کنید.
                 </p>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <FormField
@@ -212,10 +213,10 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                             </FormControl>
                             <SelectContent>
                                 {sortedBankAccounts.map((account) => {
-                                  const currentAvailableBalance = account.balance - (account.blockedBalance || 0);
+                                  const currentAvailableBalance = account.balance;
                                   return (
                                     <SelectItem key={account.id} value={account.id}>
-                                        {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(currentAvailableBalance, 'IRT')})`}
+                                        {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(currentAvailableBalance, 'IRT')})`}
                                     </SelectItem>
                                   )
                                 })}
@@ -236,7 +237,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                             </FormControl>
                             {selectedBankAccount && (
                                 <FormDescription className={cn(availableBalance < (field.value || 0) && "text-destructive")}>
-                                    موجودی قابل استفاده: {formatCurrency(availableBalance, 'IRT')}
+                                    موجودی حساب: {formatCurrency(availableBalance, 'IRT')}
                                 </FormDescription>
                             )}
                             <FormMessage />

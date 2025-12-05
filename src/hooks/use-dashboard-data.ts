@@ -125,6 +125,8 @@ export function useDashboardData() {
     
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
+    
+    // Recalculate totalAssets to EXCLUDE money saved for goals, as it's no longer a "blockedBalance"
     const totalAssets = filteredAccounts.reduce((sum, acc) => sum + acc.balance, 0);
     const totalSavedForGoals = filteredGoals.reduce((sum, g) => sum + g.currentAmount, 0);
 

@@ -31,7 +31,7 @@ export default function CardsPage() {
   const [searchQuery, setSearchQuery] = React.useState('');
   
   const { bankAccounts: allBankAccounts = [], users: allUsers = [], goals: allGoals = [] } = allData;
-  const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared');
+  const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared_account');
 
 
   const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance'>) => {
@@ -115,11 +115,7 @@ export default function CardsPage() {
                     throw new Error(`امکان حذف وجود ندارد. این کارت در یک یا چند تراکنش (${dep.name}) استفاده شده است.`);
                 }
             }
-            
-            if(cardToDelete.blockedBalance && cardToDelete.blockedBalance > 0) {
-                 throw new Error("امکان حذف وجود ندارد. این کارت دارای مبلغ مسدود شده برای اهداف مالی است. ابتدا هدف‌های مرتبط را حذف یا ویرایش کنید.");
-            }
-             
+                         
              transaction.delete(cardToDeleteRef);
         });
 
@@ -178,7 +174,7 @@ export default function CardsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="جستجو در نام بانک، شماره کارت..."
+                placeholder="جستجو در نام بانک, شماره کارت..."
                 className="w-full pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

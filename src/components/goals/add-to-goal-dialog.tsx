@@ -84,14 +84,14 @@ export function AddToGoalDialog({
 
 
   const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
+    if (account.ownerId === 'shared_account') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
   const selectedBankAccountId = form.watch('bankAccountId');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
-  const availableBalance = selectedBankAccount ? selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0) : 0;
+  const availableBalance = selectedBankAccount ? selectedBankAccount.balance : 0;
 
   function handleFormSubmit(data: AddToGoalFormValues) {
     onSubmit({
@@ -132,10 +132,10 @@ export function AddToGoalDialog({
                         <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="max-h-[250px]">
+                    <SelectContent>
                       {sortedBankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                           {`${account.bankName} ${getOwnerName(account)} (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                           {`${account.bankName} ${getOwnerName(account)} (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -156,7 +156,7 @@ export function AddToGoalDialog({
                   </FormControl>
                   {selectedBankAccount && (
                     <FormDescription className={cn(availableBalance < field.value && "text-destructive")}>
-                        موجودی قابل استفاده: {formatCurrency(availableBalance, 'IRT')}
+                        موجودی حساب: {formatCurrency(availableBalance, 'IRT')}
                     </FormDescription>
                   )}
                   <FormMessage />
@@ -168,7 +168,7 @@ export function AddToGoalDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 انصراف
               </Button>
-              <Button type="submit">افزودن و مسدود کردن</Button>
+              <Button type="submit">افزودن و ثبت هزینه</Button>
             </DialogFooter>
           </form>
         </Form>
