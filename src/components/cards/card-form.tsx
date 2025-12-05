@@ -38,7 +38,7 @@ const formSchema = z.object({
   cvv2: z.string().min(3, { message: 'CVV2 حداقل ۳ رقم است.' }).max(4, { message: 'CVV2 حداکثر ۴ رقم است.' }),
   accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
-  ownerId: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا صاحب حساب را مشخص کنید.' }),
+  ownerId: z.enum(['ali', 'fatemeh', 'shared_account'], { required_error: 'لطفا صاحب حساب را مشخص کنید.' }),
   theme: z.enum(['blue', 'green', 'purple', 'orange', 'gray']).default('blue'),
 });
 
@@ -47,7 +47,7 @@ type CardFormValues = z.infer<typeof formSchema>;
 interface CardFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<CardFormValues, 'isShared' | 'owner'> & { ownerId: 'ali' | 'fatemeh' | 'shared' }) => void;
+  onSubmit: (data: Omit<CardFormValues, 'isShared' | 'owner'> & { ownerId: 'ali' | 'fatemeh' | 'shared_account' }) => void;
   initialData: BankAccount | null;
   user: User | null;
   users: UserProfile[];
@@ -77,7 +77,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
       form.reset({
          ...initialData,
          ownerId: initialData.ownerId, // Explicitly set ownerId for editing
-        });
+        } as CardFormValues);
     } else {
       form.reset({
         bankName: '',
@@ -87,7 +87,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
         cvv2: '',
         accountType: 'savings',
         initialBalance: 0,
-        ownerId: loggedInUserOwnerId,
+        ownerId: loggedInUserOwnerId as 'ali' | 'fatemeh',
         theme: 'blue',
       });
     }
@@ -98,7 +98,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
     data.expiryDate = data.expiryDate.replace(/\/?/g, '');
     data.expiryDate = data.expiryDate.slice(0, 2) + '/' + data.expiryDate.slice(2, 4);
 
-    onSubmit(data);
+    onSubmit(data as any);
   }
   
   return (
@@ -126,7 +126,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
                         <SelectContent>
                             <SelectItem value="ali">{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>
                             <SelectItem value="fatemeh">{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>
-                            <SelectItem value="shared" disabled={hasSharedAccount && !(initialData && initialData.ownerId === 'shared')}>حساب مشترک</SelectItem>
+                            <SelectItem value="shared_account" disabled={hasSharedAccount && !(initialData && initialData.ownerId === 'shared_account')}>حساب مشترک</SelectItem>
                         </SelectContent>
                         </Select>
                          <FormDescription>

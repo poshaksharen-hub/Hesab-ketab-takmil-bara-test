@@ -60,8 +60,8 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
     };
 
     const getOwnerDetails = (ownerId: OwnerId) => {
-        if (ownerId === 'shared') return { name: "حساب مشترک", Icon: Users };
-        const userDetail = USER_DETAILS[ownerId];
+        if (ownerId === 'shared_account') return { name: "حساب مشترک", Icon: Users };
+        const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
         return { name: `${userDetail.firstName} ${userDetail.lastName}`, Icon: User };
     };
     
@@ -207,8 +207,8 @@ interface CardListProps {
 export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProps) {
 
   const sortedCards = [...(cards || [])].sort((a, b) => {
-    if (a.ownerId === 'shared' && b.ownerId !== 'shared') return -1;
-    if (a.ownerId !== 'shared' && b.ownerId === 'shared') return 1;
+    if (a.ownerId === 'shared_account' && b.ownerId !== 'shared_account') return -1;
+    if (a.ownerId !== 'shared_account' && b.ownerId === 'shared_account') return 1;
     if (a.ownerId < b.ownerId) return -1;
     if (a.ownerId > b.ownerId) return 1;
     return b.balance - a.balance;
@@ -227,7 +227,7 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
     )
   }
   
-  const sharedCards = sortedCards.filter(c => c.ownerId === 'shared');
+  const sharedCards = sortedCards.filter(c => c.ownerId === 'shared_account');
   const aliCards = sortedCards.filter(c => c.ownerId === 'ali');
   const fatemehCards = sortedCards.filter(c => c.ownerId === 'fatemeh');
 

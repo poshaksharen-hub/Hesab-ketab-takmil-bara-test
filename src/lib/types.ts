@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 
-export type OwnerId = 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
+export type OwnerId = 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak' | 'shared_account';
 
 export type Income = {
   id: string;

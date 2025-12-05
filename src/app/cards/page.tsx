@@ -31,7 +31,7 @@ export default function CardsPage() {
   const [searchQuery, setSearchQuery] = React.useState('');
   
   const { bankAccounts: allBankAccounts = [], users: allUsers = [], goals: allGoals = [] } = allData;
-  const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared');
+  const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared_account');
 
 
   const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance'>) => {

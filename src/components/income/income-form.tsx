@@ -83,7 +83,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   const selectedOwnerId = form.watch('ownerId');
   
   const getOwnerName = useCallback((account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
+    if (account.ownerId === 'shared_account') return "(مشترک)";
     const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   }, []);
@@ -91,7 +91,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   const availableAccounts = useMemo(() => {
     if (!selectedOwnerId || !bankAccounts) return [];
     if (selectedOwnerId === 'daramad_moshtarak') {
-        return [...bankAccounts.filter(acc => acc.ownerId === 'shared')].sort((a, b) => b.balance - a.balance);
+        return [...bankAccounts.filter(acc => acc.ownerId === 'shared_account')].sort((a, b) => b.balance - a.balance);
     }
     return [...bankAccounts.filter(acc => acc.ownerId === selectedOwnerId)].sort((a, b) => b.balance - a.balance);
   }, [selectedOwnerId, bankAccounts]);
