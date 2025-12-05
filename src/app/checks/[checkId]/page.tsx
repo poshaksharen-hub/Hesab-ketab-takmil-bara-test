@@ -1,17 +1,24 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, User, Users, Calendar, PenSquare } from 'lucide-react';
+import { ArrowRight, User, Users, Calendar, PenSquare, AlertCircle, CheckCircle } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
 import { SignatureAli, SignatureFatemeh, HesabKetabLogo } from '@/components/icons';
+import { useUser, useFirestore } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { runTransaction, doc, collection, serverTimestamp } from 'firebase/firestore';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
+
 
 function CheckDetailSkeleton() {
   return (
@@ -31,6 +38,9 @@ export default function CheckDetailPage() {
   const params = useParams();
   const checkId = params.checkId as string;
 
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
   const { isLoading, allData } = useDashboardData();
   const { checks, bankAccounts, payees, categories, users } = allData;
 
@@ -41,6 +51,85 @@ export default function CheckDetailPage() {
     const currentCheck = checks.find((c) => c.id === checkId);
     return { check: currentCheck };
   }, [isLoading, checkId, checks]);
+
+  const handleClearCheck = useCallback(async (checkToClear: typeof check) => {
+    if (!user || !firestore || !checkToClear || checkToClear.status === 'cleared') return;
+    
+    const familyDataRef = doc(firestore, 'family-data', 'shared-data');
+    const checkRef = doc(familyDataRef, 'checks', checkToClear.id);
+    
+    const account = bankAccounts.find(acc => acc.id === checkToClear.bankAccountId);
+    if (!account) {
+        toast({ variant: 'destructive', title: "خطا", description: "حساب بانکی چک یافت نشد." });
+        return;
+    }
+    const bankAccountRef = doc(familyDataRef, 'bankAccounts', account.id);
+    const expensesColRef = collection(familyDataRef, 'expenses');
+    const payeeName = payees?.find(p => p.id === checkToClear.payeeId)?.name || 'نامشخص';
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const bankAccountDoc = await transaction.get(bankAccountRef);
+        if (!bankAccountDoc.exists()) throw new Error("حساب بانکی یافت نشد.");
+
+        const bankAccountData = bankAccountDoc.data()!;
+        const availableBalance = bankAccountData.balance - (bankAccountData.blockedBalance || 0);
+
+        if (availableBalance < checkToClear.amount) {
+          throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
+        }
+
+        const clearedDate = new Date().toISOString();
+        const balanceBefore = bankAccountData.balance;
+        const balanceAfter = balanceBefore - checkToClear.amount;
+
+        // Update check status and cleared date
+        transaction.update(checkRef, { status: 'cleared', clearedDate });
+        
+        // Update bank account balance
+        transaction.update(bankAccountRef, { balance: balanceAfter });
+        
+        // Create a detailed description for the expense
+        const expenseDescription = `پاس کردن چک به: ${payeeName}`;
+
+
+        // Create the corresponding expense
+        const expenseRef = doc(expensesColRef);
+        transaction.set(expenseRef, {
+            id: expenseRef.id,
+            ownerId: account.ownerId,
+            registeredByUserId: user.uid,
+            amount: checkToClear.amount,
+            bankAccountId: checkToClear.bankAccountId,
+            categoryId: checkToClear.categoryId,
+            payeeId: checkToClear.payeeId,
+            date: clearedDate,
+            description: expenseDescription,
+            type: 'expense',
+            checkId: checkToClear.id,
+            expenseFor: checkToClear.expenseFor,
+            createdAt: serverTimestamp(),
+            balanceBefore: balanceBefore,
+            balanceAfter: balanceAfter,
+        });
+      });
+      toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
+    } catch (error: any) {
+       if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
+                path: checkRef.path, // Simplified path for the transaction
+                operation: 'write', 
+            });
+            errorEmitter.emit('permission-error', permissionError);
+       } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در پاس کردن چک",
+                description: error.message || "مشکلی در عملیات پاس کردن چک پیش آمد.",
+            });
+       }
+    }
+  }, [user, firestore, bankAccounts, payees, toast]);
 
   if (isLoading) {
     return <CheckDetailSkeleton />;
@@ -79,10 +168,11 @@ export default function CheckDetailPage() {
     return bankAccounts.find(b => b.id === bankAccountId);
   }
 
-  const getOwnerDetails = (ownerId: 'ali' | 'fatemeh' | 'shared_account') => {
-    if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
-    const userDetail = USER_DETAILS[ownerId];
-    if (!userDetail) return { name: "ناشناس" };
+  const getOwnerDetails = (bankAccount?: ReturnType<typeof getBankAccount>) => {
+    if (!bankAccount) return { name: "نامشخص" };
+    if (bankAccount.ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
+    const userDetail = USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh'];
+    if (!userDetail) return { name: "نامشخص" };
     return { name: `${userDetail.firstName} ${userDetail.lastName}`};
   };
 
@@ -92,9 +182,11 @@ export default function CheckDetailPage() {
   };
   
   const bankAccount = getBankAccount(check.bankAccountId);
-  const { name: ownerName } = bankAccount ? getOwnerDetails(bankAccount.ownerId) : { name: "ناشناس" };
+  const { name: ownerName } = getOwnerDetails(bankAccount);
   const expenseForName = check.expenseFor && USER_DETAILS[check.expenseFor] ? USER_DETAILS[check.expenseFor].firstName : 'مشترک';
   const isCleared = check.status === 'cleared';
+
+  const hasSufficientFunds = bankAccount ? bankAccount.balance - (bankAccount.blockedBalance || 0) >= check.amount : false;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -118,7 +210,7 @@ export default function CheckDetailPage() {
       </div>
 
        <div className="max-w-2xl mx-auto space-y-4">
-         <Card className={cn("overflow-hidden shadow-2xl h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
+         <Card className={cn("overflow-hidden shadow-2xl h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700 font-body", isCleared && "opacity-60")}>
             {isCleared && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform rotate-[-15deg] border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-4xl font-black uppercase opacity-60 select-none z-20">
                     پاس شد
@@ -126,28 +218,23 @@ export default function CheckDetailPage() {
             )}
             
             {/* Header */}
-            <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start font-body">
-                {/* Left Side: IDs */}
+            <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
                 <div className="text-left w-1/3 space-y-1">
                     <p className="text-[10px] text-muted-foreground">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
                     <p className="text-[10px] text-muted-foreground">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
                 </div>
-
-                {/* Center: Bank Name */}
                 <div className="text-center w-1/3">
                     <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
                     <p className="font-bold text-sm">{bankAccount?.bankName}</p>
                 </div>
-                
-                {/* Right Side: Date */}
                 <div className="text-right w-1/3 flex flex-col items-end">
-                     <p className="text-xs text-muted-foreground font-body">تاریخ سررسید:</p>
+                     <p className="text-xs text-muted-foreground">تاریخ سررسید:</p>
                      <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                 </div>
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-2 flex-grow flex flex-col text-sm font-body">
+            <div className="p-6 space-y-2 flex-grow flex flex-col text-sm">
                  <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
                     <span className="shrink-0">به موجب این چک مبلغ</span>
                     <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
@@ -163,19 +250,19 @@ export default function CheckDetailPage() {
                        {expenseForName}
                     </span>
                 </div>
+                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 pt-1">
+                     <span className="shrink-0">دسته‌بندی:</span>
+                     <span className="font-handwriting font-bold text-base flex-grow">{getCategoryName(check.categoryId)}</span>
+                 </div>
                  <div className="flex-grow"></div>
                 <div className="flex justify-between items-end pt-4">
                     <div className="text-left">
                         <span className="text-xs text-muted-foreground">مبلغ</span>
                         <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
                     </div>
-                    <div className="text-center">
-                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
-                        <p className="font-handwriting font-bold text-base">{getCategoryName(check.categoryId)}</p>
-                    </div>
                     <div className="text-right relative">
                         <span className="text-xs text-muted-foreground">صاحب حساب:</span>
-                        <p className="font-body text-sm font-semibold">{ownerName}</p>
+                        <p className="text-sm font-semibold">{ownerName}</p>
                         <div className="absolute -bottom-5 -right-2 w-24 h-12 pointer-events-none opacity-80">
                             {bankAccount?.ownerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
                             {bankAccount?.ownerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
@@ -212,8 +299,43 @@ export default function CheckDetailPage() {
                 </div>
             </CardContent>
         </Card>
+
+        {!isCleared && (
+            <Card>
+                <CardContent className="p-4 text-center">
+                    {!hasSufficientFunds ? (
+                        <div className="flex items-center justify-center gap-2 text-destructive">
+                            <AlertCircle className="h-5 w-5" />
+                            <span className="font-bold">موجودی حساب برای پاس کردن این چک کافی نیست!</span>
+                        </div>
+                    ) : (
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button>
+                                    <CheckCircle className="ml-2 h-4 w-4" />
+                                    پاس کردن چک
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>آیا از پاس کردن این چک مطمئن هستید؟</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    با تایید این عملیات، مبلغ {formatCurrency(check.amount, 'IRT')} از حساب شما کسر و یک هزینه در سیستم ثبت خواهد شد. این عمل قابل بازگشت نیست.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleClearCheck(check)}>
+                                    تایید و پاس کردن
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                </CardContent>
+            </Card>
+        )}
       </div>
     </main>
   );
 }
-
