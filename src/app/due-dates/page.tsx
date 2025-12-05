@@ -7,7 +7,7 @@ import { DueDatesList, type Deadline } from '@/components/due-dates/due-dates-li
 import { getNextDueDate } from '@/lib/date-utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import type { Check, Loan, PreviousDebt } from '@/lib/types';
+import type { Check, Loan, PreviousDebt, OwnerId } from '@/lib/types';
 
 
 export default function DueDatesPage() {
@@ -22,29 +22,36 @@ export default function DueDatesPage() {
 
     const upcomingChecks: Deadline[] = (checks || [])
       .filter(c => c.status === 'pending')
-      .map(c => ({
-        id: c.id,
-        type: 'check',
-        date: new Date(c.dueDate),
-        title: `چک به ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناس'}`,
-        amount: c.amount,
-        details: {
-          expenseFor: c.expenseFor,
-          bankAccountName: bankAccounts.find(b => b.id === c.bankAccountId)?.bankName || 'نامشخص',
-          registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص'
-        },
-        originalItem: c,
-      }));
+      .map(c => {
+        const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
+        const ownerId = bankAccount?.ownerId as OwnerId | undefined;
+
+        return {
+          id: c.id,
+          type: 'check' as const,
+          date: new Date(c.dueDate),
+          title: `چک به ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناس'}`,
+          amount: c.amount,
+          details: {
+            ownerId: ownerId || 'shared', // Fallback, though ownerId should exist
+            expenseFor: c.expenseFor,
+            bankAccountName: bankAccount?.bankName || 'نامشخص',
+            registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص'
+          },
+          originalItem: c,
+        };
+      });
 
     const upcomingLoanPayments: Deadline[] = (loans || [])
       .filter(l => l.remainingAmount > 0)
       .map(l => ({
         id: l.id,
-        type: 'loan',
+        type: 'loan' as const,
         date: getNextDueDate(l.startDate, l.paymentDay),
         title: `قسط وام: ${l.title}`,
         amount: l.installmentAmount,
          details: {
+          ownerId: l.ownerId, // Loan owner is the person responsible for payment
           expenseFor: l.ownerId,
           bankAccountName: '---', // Not applicable for loan itself
           registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص'
@@ -73,6 +80,7 @@ export default function DueDatesPage() {
           title: `پرداخت بدهی: ${d.description}`,
           amount: amount,
           details: {
+            ownerId: d.ownerId, // Debt owner is responsible
             expenseFor: d.ownerId,
             bankAccountName: '---',
             registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص'

@@ -17,7 +17,8 @@ export type Deadline = {
   title: string;
   amount: number;
   details: {
-    expenseFor: OwnerId;
+    ownerId: OwnerId | 'shared_account'; // The actual account owner
+    expenseFor: OwnerId; // The beneficiary
     bankAccountName: string;
     registeredBy: string;
   };
@@ -41,8 +42,8 @@ const ItemIcon = ({ type }: { type: Deadline['type'] }) => {
   }
 };
 
-const getOwnerDetails = (ownerId: OwnerId) => {
-    if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
+const getOwnerDetails = (ownerId: OwnerId | 'shared_account') => {
+    if (ownerId === 'shared' || ownerId === 'shared_account') return { name: "مشترک", Icon: Users };
     const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
@@ -83,7 +84,8 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
   return (
     <div className="space-y-4">
       {deadlines.map((item) => {
-        const { Icon: OwnerIcon, name: ownerName } = getOwnerDetails(item.details.expenseFor);
+        const { Icon: OwnerIcon, name: ownerName } = getOwnerDetails(item.details.ownerId);
+        const { Icon: BeneficiaryIcon, name: beneficiaryName } = getOwnerDetails(item.details.expenseFor);
         const isOverdue = isPast(item.date) && !isToday(item.date);
         
         let cardClasses = "shadow-md transition-shadow hover:shadow-lg";
@@ -102,9 +104,15 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
                         <div className="space-y-1.5 flex-grow">
                             <p className={titleClasses}>{item.title}</p>
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1" title="برای">
+                                {item.type === 'check' && (
+                                  <div className="flex items-center gap-1" title="صاحب حساب">
                                     <OwnerIcon className="h-4 w-4" />
                                     <span>{ownerName}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1" title="برای">
+                                    <BeneficiaryIcon className="h-4 w-4" />
+                                    <span>{beneficiaryName}</span>
                                 </div>
                                 {item.details.bankAccountName !== '---' && (
                                     <div className="flex items-center gap-1" title="از حساب">
