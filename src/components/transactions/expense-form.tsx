@@ -46,7 +46,7 @@ type ExpenseFormValues = z.infer<typeof formSchema>;
 
 interface ExpenseFormProps {
   onCancel: () => void;
-  onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'registeredByUserId'>) => void;
+  onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => void;
   initialData: Expense | null;
   bankAccounts: BankAccount[];
   categories: Category[];
@@ -74,7 +74,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId];
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
 
@@ -232,6 +232,7 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                         )}
                     />
                 </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <FormField
                         control={form.control}
                         name="payeeId"
@@ -256,28 +257,29 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                         </FormItem>
                         )}
                     />
-                <FormField
-                    control={form.control}
-                    name="expenseFor"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>هزینه برای</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={selectedAccount?.ownerId === 'shared'}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="شخص یا مورد هزینه را انتخاب کنید" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="shared">مشترک</SelectItem>
-                            <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
-                            <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+                    <FormField
+                        control={form.control}
+                        name="expenseFor"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>این هزینه برای کیست؟</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={selectedAccount?.ownerId === 'shared'}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="شخص یا مورد هزینه را انتخاب کنید" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="shared">مشترک</SelectItem>
+                                <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                                <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>

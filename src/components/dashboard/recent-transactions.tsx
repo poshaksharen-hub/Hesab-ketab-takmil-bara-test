@@ -49,13 +49,12 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
   }
 
   const getExpenseForBadge = (transaction: Expense) => {
-    if (transaction.type !== 'expense' || !transaction.expenseFor) return null;
+    if (transaction.type !== 'expense' || !transaction.expenseFor || transaction.expenseFor === 'shared') return null;
     
     let text = '';
     switch(transaction.expenseFor) {
         case 'ali': text = `برای ${USER_DETAILS.ali.firstName}`; break;
         case 'fatemeh': text = `برای ${USER_DETAILS.fatemeh.firstName}`; break;
-        case 'shared': return null; // 'مشترک' is the default and doesn't need a specific badge here
     }
 
     if (text) {
@@ -64,7 +63,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
     return null;
   }
 
-  const isShared = (transaction: Income | Expense) => {
+  const isSharedAccount = (transaction: Income | Expense) => {
       const account = bankAccounts.find(acc => acc.id === transaction.bankAccountId);
       return account?.ownerId === 'shared';
   }
@@ -88,7 +87,7 @@ export function RecentTransactions({ transactions, categories, users, bankAccoun
             <div className="ml-4 space-y-1">
               <div className="text-sm font-medium leading-none flex items-center gap-2">
                 {transaction.description}
-                {isShared(transaction) && <Badge variant="secondary">مشترک</Badge>}
+                {isSharedAccount(transaction) && <Badge variant="secondary">حساب مشترک</Badge>}
                 {!isIncome && getExpenseForBadge(transaction as Expense)}
               </div>
               <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getRegisteredByUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transactionDate)}</span></p>

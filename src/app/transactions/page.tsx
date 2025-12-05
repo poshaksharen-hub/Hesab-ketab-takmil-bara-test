@@ -34,7 +34,7 @@ export default function ExpensesPage() {
     users: allUsers,
   } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
     if (!user || !firestore || !allBankAccounts) return;
     
     try {

@@ -88,7 +88,8 @@ export function ExpenseList({
    const getAccountOwnerName = (account?: BankAccount) => {
     if (!account) return '';
     if (account.ownerId === 'shared') return ' (مشترک)';
-    return ` (شخصی)`;
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
+    return ` (${userDetail.firstName})`;
   };
 
 
@@ -137,8 +138,8 @@ export function ExpenseList({
                         <p className="text-2xl font-bold text-destructive">
                             {`-${formatCurrency(expense.amount, 'IRT')}`}
                         </p>
-                         {bankAccount?.ownerId === 'shared' && (
-                            <Badge variant="secondary">مشترک</Badge>
+                         {bankAccount?.ownerId === 'shared' && expense.expenseFor !== 'shared' && (
+                            <Badge variant="secondary">{`برای ${getExpenseForText(expense.expenseFor)}`}</Badge>
                         )}
                         </div>
                     </div>

@@ -32,7 +32,7 @@ export type Expense = {
   description: string;
   type: 'expense';
   subType?: 'goal_saved_portion' | 'goal_cash_portion' | 'debt_payment'; // For differentiating special expenses
-  expenseFor?: 'ali' | 'fatemeh' | 'shared'; // The person/entity this expense was for.
+  expenseFor: 'ali' | 'fatemeh' | 'shared'; // The person/entity this expense was for.
   checkId?: string;
   goalId?: string;
   loanPaymentId?: string;
