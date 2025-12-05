@@ -132,7 +132,7 @@ export function IncomeList({
                       <p className="text-2xl font-bold text-emerald-500">
                         {`+${formatCurrency(income.amount, 'IRT')}`}
                       </p>
-                      {bankAccount?.ownerId === 'shared' && (
+                      {income.ownerId === 'shared' && (
                         <Badge variant="secondary">مشترک</Badge>
                       )}
                     </div>
