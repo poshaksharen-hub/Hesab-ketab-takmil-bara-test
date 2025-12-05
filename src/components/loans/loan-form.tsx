@@ -290,12 +290,10 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                     آیا مایلید مبلغ کل وام به موجودی یکی از حساب‌ها اضافه شود؟
                                     </FormDescription>
                                     </div>
-                                    <FormControl>
                                     <Switch
                                         checked={field.value}
                                         onCheckedChange={field.onChange}
                                     />
-                                    </FormControl>
                                 </FormItem>
                                 )}
                             />

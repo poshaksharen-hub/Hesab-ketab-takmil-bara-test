@@ -206,12 +206,10 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
                                 آیا این بدهی به صورت قسطی پرداخت خواهد شد؟
                                 </FormDescription>
                             </div>
-                            <FormControl>
                             <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                             />
-                            </FormControl>
                         </FormItem>
                         )}
                     />
