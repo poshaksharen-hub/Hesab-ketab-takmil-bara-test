@@ -14,7 +14,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { SignatureAli, SignatureFatemeh, HesabKetabLogo } from '@/components/icons';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { runTransaction, doc, collection, serverTimestamp } from 'firebase/firestore';
+import { runTransaction, doc, collection, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -27,7 +27,7 @@ function CheckDetailSkeleton() {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-10 w-24" />
       </div>
-      <Skeleton className="h-56 w-full max-w-2xl mx-auto" />
+      <Skeleton className="h-[28rem] w-full max-w-2xl mx-auto" />
       <Skeleton className="h-24 w-full max-w-2xl mx-auto" />
     </main>
   );
@@ -173,8 +173,7 @@ export default function CheckDetailPage() {
     const ownerId = bankAccount.ownerId;
     if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
     const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
-    if (!userDetail) return { name: "نامشخص" };
-    return { name: `${userDetail.firstName} ${userDetail.lastName}`};
+    return { name: userDetail ? `${userDetail.firstName} ${userDetail.lastName}` : "نامشخص" };
   };
 
   const getRegisteredByUserName = (userId: string) => {
@@ -211,7 +210,7 @@ export default function CheckDetailPage() {
       </div>
 
        <div className="max-w-2xl mx-auto space-y-4">
-         <Card className={cn("overflow-hidden shadow-2xl h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700 font-body", isCleared && "opacity-60")}>
+         <Card className={cn("overflow-hidden shadow-2xl h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
             {isCleared && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform -rotate-12 border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-4xl font-black uppercase opacity-60 select-none z-20">
                     پاس شد
@@ -226,7 +225,7 @@ export default function CheckDetailPage() {
                 </div>
                 <div className="text-center w-1/3">
                     <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
-                    <p className="font-bold text-sm">{bankAccount?.bankName}</p>
+                    <p className="font-bold font-body text-sm">{bankAccount?.bankName}</p>
                 </div>
                 <div className="text-right w-1/3 flex flex-col items-end">
                      <p className="text-xs text-muted-foreground font-body">تاریخ سررسید:</p>
@@ -236,17 +235,17 @@ export default function CheckDetailPage() {
 
             {/* Body */}
             <div className="p-6 space-y-2 flex-grow flex flex-col text-sm">
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                    <span className="font-body shrink-0">به موجب این چک مبلغ</span>
+                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
+                    <span className="shrink-0">به موجب این چک مبلغ</span>
                     <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
                         {amountToWords(check.amount)}
                     </span>
-                    <span className="font-body shrink-0">تومان</span>
+                    <span className="shrink-0">تومان</span>
                  </div>
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                    <span className="font-body shrink-0">در وجه:</span>
+                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
+                    <span className="shrink-0">در وجه:</span>
                      <span className="font-handwriting font-bold text-base">{getPayeeName(check.payeeId)}</span>
-                    <span className="font-body shrink-0 ml-4">برای:</span>
+                    <span className="shrink-0 ml-4">برای:</span>
                      <span className="font-handwriting font-bold text-base flex-grow">
                        {expenseForName}
                     </span>
@@ -340,5 +339,7 @@ export default function CheckDetailPage() {
     </main>
   );
 }
+
+    
 
     

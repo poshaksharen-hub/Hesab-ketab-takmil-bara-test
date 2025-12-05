@@ -75,7 +75,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                     )}
                     
                     {/* Header */}
-                    <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start font-body">
+                    <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
                         {/* Left Side: IDs */}
                         <div className="text-left w-1/3 space-y-1">
                             <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
@@ -85,7 +85,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                         {/* Center: Bank Name */}
                         <div className="text-center w-1/3">
                             <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
-                            <p className="font-bold text-sm">{bankAccount?.bankName}</p>
+                            <p className="font-bold text-sm font-body">{bankAccount?.bankName}</p>
                         </div>
                         
                         {/* Right Side: Date */}
@@ -103,10 +103,28 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start">
                                     {!isCleared && (
-                                        <DropdownMenuItem onSelect={() => onClear(check)}>
-                                            <CheckCircle className="ml-2 h-4 w-4" />
-                                            پاس کردن چک
-                                        </DropdownMenuItem>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-emerald-600 focus:text-emerald-700")}>
+                                                    <CheckCircle className="ml-2 h-4 w-4" />
+                                                    پاس کردن چک
+                                                </div>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>آیا از پاس کردن این چک مطمئن هستید؟</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    با تایید این عملیات، مبلغ {formatCurrency(check.amount, 'IRT')} از حساب شما کسر و یک هزینه در سیستم ثبت خواهد شد. این عمل قابل بازگشت نیست.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => onClear(check)}>
+                                                    تایید و پاس کردن
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     )}
                                     <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared}>
                                         <Edit className="ml-2 h-4 w-4" />
@@ -141,7 +159,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClea
                     </div>
 
                     {/* Body */}
-                    <div className="p-4 space-y-2 flex-grow flex flex-col text-sm font-body">
+                    <div className="p-4 space-y-2 flex-grow flex flex-col text-sm">
                          <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
                             <span className="font-body shrink-0">به موجب این چک مبلغ</span>
                             <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
@@ -222,5 +240,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
       </div>
   );
 }
+
+    
 
     
