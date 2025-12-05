@@ -169,7 +169,7 @@ export default function CheckDetailPage() {
   }
 
   const getOwnerDetails = (bankAccount?: ReturnType<typeof getBankAccount>) => {
-    if (!bankAccount) return { name: "نامشخص" };
+    if (!bankAccount || !bankAccount.ownerId) return { name: "نامشخص" };
     const ownerId = bankAccount.ownerId;
     if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
     const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
@@ -339,6 +339,8 @@ export default function CheckDetailPage() {
     </main>
   );
 }
+
+    
 
     
 
