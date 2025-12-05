@@ -275,6 +275,16 @@
         "required": ["id", "registeredByUserId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate", "fromAccountBalanceBefore", "fromAccountBalanceAfter", "toAccountBalanceBefore", "toAccountBalanceAfter"]
     }
   },
+  "functions": [
+    {
+      "name": "generateFinancialInsights",
+      "type": "https",
+      "onCall": true,
+      "description": "A flow for generating personalized financial insights and recommendations based on transaction history.",
+      "inputSchema": { "$ref": "src/ai/flows/generate-financial-insights.ts#FinancialInsightsInput" },
+      "outputSchema": { "$ref": "src/ai/flows/generate-financial-insights.ts#FinancialInsightsOutput" }
+    }
+  ],
   "auth": {
     "providers": [
       "password"
