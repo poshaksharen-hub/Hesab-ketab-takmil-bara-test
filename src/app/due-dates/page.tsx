@@ -39,6 +39,7 @@ export default function DueDatesPage() {
             registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص',
             categoryName: categories.find(cat => cat.id === c.categoryId)?.name || 'نامشخص',
             payeeName: payees.find(p => p.id === c.payeeId)?.name || 'ناشناس',
+            description: c.description,
           },
           originalItem: c,
         };
@@ -59,6 +60,7 @@ export default function DueDatesPage() {
           registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص',
           categoryName: 'اقساط و بدهی',
           payeeName: payees.find(p => p.id === l.payeeId)?.name,
+          description: `پرداخت قسط وام به ${payees.find(p => p.id === l.payeeId)?.name || 'نامشخص'}`
         },
         originalItem: l,
       }));
@@ -90,6 +92,7 @@ export default function DueDatesPage() {
             registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص',
             categoryName: 'اقساط و بدهی',
             payeeName: payees.find(p => p.id === d.payeeId)?.name,
+            description: `پرداخت بدهی به ${payees.find(p => p.id === d.payeeId)?.name || 'نامشخص'}`
           },
           originalItem: d,
         };

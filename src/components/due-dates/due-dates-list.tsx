@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { FileText, Handshake, Landmark, HandCoins, AlertTriangle, User, Users, FolderKanban, BookUser, PenSquare, MessageSquareText } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
+import { Separator } from '../ui/separator';
 
 export type Deadline = {
   id: string;
@@ -23,6 +24,7 @@ export type Deadline = {
     registeredBy: string;
     categoryName: string;
     payeeName?: string;
+    description?: string;
   };
   originalItem: Check | Loan | PreviousDebt;
 };
@@ -44,12 +46,13 @@ const ItemIcon = ({ type }: { type: Deadline['type'] }) => {
   }
 };
 
-const getOwnerDetails = (ownerId: OwnerId | 'shared_account') => {
+const getOwnerDetails = (ownerId: OwnerId | 'shared_account' | 'daramad_moshtarak') => {
     if (ownerId === 'shared' || ownerId === 'shared_account') return { name: "مشترک", Icon: Users };
     const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
 };
+
 
 const renderStatus = (date: Date) => {
     const today = new Date();
@@ -73,7 +76,7 @@ const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, lab
     return (
         <div className="flex items-center gap-2" title={label}>
             <Icon className="h-4 w-4 text-muted-foreground" />
-            <span>{value}</span>
+            <span className="truncate">{value}</span>
         </div>
     );
 };
@@ -97,7 +100,6 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
   return (
     <div className="space-y-4">
       {deadlines.map((item) => {
-        const { Icon: OwnerIcon, name: ownerName } = getOwnerDetails(item.details.ownerId);
         const { Icon: BeneficiaryIcon, name: beneficiaryName } = getOwnerDetails(item.details.expenseFor);
         const isOverdue = isPast(item.date) && !isToday(item.date);
         
@@ -124,14 +126,16 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 text-xs">
+                    <Separator />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 text-xs pt-4">
                         <DetailItem icon={BookUser} label="طرف حساب" value={item.details.payeeName} />
                         <DetailItem icon={FolderKanban} label="بابت" value={item.details.categoryName} />
                          {item.details.bankAccountName !== '---' && (
-                            <DetailItem icon={Landmark} label="از حساب" value={`${item.details.bankAccountName} (${ownerName})`} />
+                            <DetailItem icon={Landmark} label="از حساب" value={item.details.bankAccountName} />
                          )}
                         <DetailItem icon={BeneficiaryIcon} label="تراکنش برای" value={beneficiaryName} />
                         <DetailItem icon={PenSquare} label="ثبت توسط" value={item.details.registeredBy} />
+                        {item.details.description && <div className="col-span-full"><DetailItem icon={MessageSquareText} label="توضیحات" value={item.details.description} /></div>}
                     </div>
                 </CardContent>
                 <CardFooter className="flex items-center justify-between bg-muted/50 p-3">
