@@ -28,6 +28,7 @@ import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import type { User as AuthUser } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
+import { formatCurrency } from '@/lib/utils';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
@@ -216,7 +217,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                       <SelectContent>
                         {availableAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} ${getOwnerName(account)}`}
+                            {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>

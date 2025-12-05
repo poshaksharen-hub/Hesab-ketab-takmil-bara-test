@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo, useEffect } from 'react';
@@ -67,8 +68,8 @@ export function AchieveGoalDialog({
   });
 
   const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId];
+    if (account.ownerId === 'shared_account') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
   
@@ -141,7 +142,7 @@ export function AchieveGoalDialog({
                         <SelectContent>
                         {availablePaymentAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
-                                {account.bankName} {getOwnerName(account)} (قابل استفاده: {formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})
+                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                             </SelectItem>
                         ))}
                         </SelectContent>

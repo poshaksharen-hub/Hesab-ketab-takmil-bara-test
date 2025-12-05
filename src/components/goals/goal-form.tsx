@@ -216,7 +216,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                                   const currentAvailableBalance = account.balance;
                                   return (
                                     <SelectItem key={account.id} value={account.id}>
-                                        {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(currentAvailableBalance, 'IRT')})`}
+                                        {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(currentAvailableBalance, 'IRT')})`}
                                     </SelectItem>
                                   )
                                 })}
