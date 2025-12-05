@@ -1,5 +1,4 @@
 
-
 import type { LucideIcon } from 'lucide-react';
 
 // Defines who OWNS an asset (BankAccount) or income source (Income).

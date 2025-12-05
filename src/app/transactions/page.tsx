@@ -35,7 +35,7 @@ export default function ExpensesPage() {
     users: allUsers,
   } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'liabilityOwnerId'>) => {
     if (!user || !firestore || !allBankAccounts) return;
     
     try {
@@ -45,7 +45,7 @@ export default function ExpensesPage() {
             const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
             if (!account) throw new Error("کارت بانکی یافت نشد");
             
-            const ownerId = account.ownerId; // Get the ownerId from the selected bank account
+            const liabilityOwnerId = account.ownerId; // Get the ownerId from the selected bank account
             const fromCardRef = doc(familyDataRef, 'bankAccounts', account.id);
             const fromCardDoc = await transaction.get(fromCardRef);
 
@@ -66,10 +66,9 @@ export default function ExpensesPage() {
 
             const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
             
-            // The complete expense object including the new expenseFor field
             const newExpenseData: Omit<Expense, 'id' | 'createdAt' | 'type'> = {
                 ...values,
-                ownerId: ownerId,
+                liabilityOwnerId: liabilityOwnerId,
                 registeredByUserId: user.uid,
                 balanceBefore,
                 balanceAfter,
