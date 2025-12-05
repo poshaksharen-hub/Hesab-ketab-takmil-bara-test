@@ -181,9 +181,15 @@ export default function CheckDetailPage() {
     return user ? user.firstName : 'نامشخص';
   };
   
+  const getExpenseForName = (expenseFor?: 'ali' | 'fatemeh' | 'shared') => {
+    if (!expenseFor) return 'نامشخص';
+    if (expenseFor === 'shared') return 'مشترک';
+    return USER_DETAILS[expenseFor]?.firstName || 'نامشخص';
+  };
+
   const bankAccount = getBankAccount(check.bankAccountId);
   const { name: ownerName } = getOwnerDetails(bankAccount);
-  const expenseForName = check.expenseFor && USER_DETAILS[check.expenseFor] ? USER_DETAILS[check.expenseFor].firstName : 'مشترک';
+  const expenseForName = getExpenseForName(check.expenseFor);
   const isCleared = check.status === 'cleared';
 
   const hasSufficientFunds = bankAccount ? bankAccount.balance - (bankAccount.blockedBalance || 0) >= check.amount : false;
