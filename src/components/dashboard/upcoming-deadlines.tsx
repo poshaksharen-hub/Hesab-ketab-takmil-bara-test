@@ -1,7 +1,7 @@
 
 'use client';
 
-import { type Check, type Loan, type Payee, type PreviousDebt } from '@/lib/types';
+import { type Check, type Loan, type Payee, type PreviousDebt, type LoanPayment, type DebtPayment } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { getNextDueDate } from '@/lib/date-utils';
 import { CalendarClock, FileText, Handshake } from 'lucide-react';
@@ -12,9 +12,11 @@ type UpcomingDeadlinesProps = {
   loans: Loan[];
   payees: Payee[];
   previousDebts: PreviousDebt[];
+  loanPayments: LoanPayment[]; // Added loanPayments
+  debtPayments: DebtPayment[]; // Added debtPayments
 };
 
-export function UpcomingDeadlines({ checks, loans, payees, previousDebts }: UpcomingDeadlinesProps) {
+export function UpcomingDeadlines({ checks, loans, payees, previousDebts, loanPayments, debtPayments }: UpcomingDeadlinesProps) {
 
   const deadlines = useMemo(() => {
     const upcomingChecks = (checks || [])
@@ -29,20 +31,31 @@ export function UpcomingDeadlines({ checks, loans, payees, previousDebts }: Upco
 
     const upcomingLoanPayments = (loans || [])
       .filter(l => l.remainingAmount > 0)
-      .map(l => ({
-        id: l.id,
-        type: 'loan' as const,
-        date: getNextDueDate(l.startDate, l.paymentDay),
-        title: `قسط وام: ${l.title}`,
-        amount: l.installmentAmount,
-      }));
+      .map(l => {
+        const lastPayment = (loanPayments || [])
+            .filter(lp => lp.loanId === l.id)
+            .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+            [0];
+        
+        return {
+            id: l.id,
+            type: 'loan' as const,
+            date: getNextDueDate(l.startDate, l.paymentDay, lastPayment?.paymentDate),
+            title: `قسط وام: ${l.title}`,
+            amount: l.installmentAmount,
+        };
+      });
 
     const upcomingDebts = (previousDebts || [])
       .filter(d => d.remainingAmount > 0)
       .map(d => {
         let dueDate: Date | null = null;
         if (d.isInstallment && d.paymentDay) {
-          dueDate = getNextDueDate(d.startDate, d.paymentDay);
+          const lastPayment = (debtPayments || [])
+            .filter(dp => dp.debtId === d.id)
+            .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+            [0];
+          dueDate = getNextDueDate(d.startDate, d.paymentDay, lastPayment?.paymentDate);
         } else if (!d.isInstallment && d.dueDate) {
           dueDate = new Date(d.dueDate);
         }
@@ -60,7 +73,7 @@ export function UpcomingDeadlines({ checks, loans, payees, previousDebts }: Upco
     return [...upcomingChecks, ...upcomingLoanPayments, ...upcomingDebts]
       .sort((a, b) => a.date.getTime() - b.date.getTime())
       .slice(0, 5);
-  }, [checks, loans, payees, previousDebts]);
+  }, [checks, loans, payees, previousDebts, loanPayments, debtPayments]);
 
   if (deadlines.length === 0) {
     return (

@@ -18,7 +18,7 @@ export default function DueDatesPage() {
   const deadlines = useMemo(() => {
     if (isLoading) return [];
     
-    const { checks, loans, payees, previousDebts, users, categories, bankAccounts } = allData;
+    const { checks, loans, payees, previousDebts, users, categories, bankAccounts, loanPayments, debtPayments } = allData;
 
     const upcomingChecks: Deadline[] = (checks || [])
       .filter(c => c.status === 'pending')
@@ -46,23 +46,31 @@ export default function DueDatesPage() {
 
     const upcomingLoanPayments: Deadline[] = (loans || [])
       .filter(l => l.remainingAmount > 0)
-      .map(l => ({
-        id: l.id,
-        type: 'loan' as const,
-        date: getNextDueDate(l.startDate, l.paymentDay),
-        title: `قسط وام: ${l.title}`,
-        amount: l.installmentAmount,
-         details: {
-          ownerId: l.ownerId, 
-          expenseFor: l.ownerId,
-          bankAccountName: '---', // Not applicable for loan itself
-          registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص',
-          categoryName: 'اقساط و بدهی',
-          payeeName: payees.find(p => p.id === l.payeeId)?.name,
-          description: `پرداخت قسط وام به ${payees.find(p => p.id === l.payeeId)?.name || 'نامشخص'}`
-        },
-        originalItem: l,
-      }));
+      .map(l => {
+        const lastPayment = (loanPayments || [])
+          .filter(lp => lp.loanId === l.id)
+          .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+          [0];
+
+        return {
+            id: l.id,
+            type: 'loan' as const,
+            date: getNextDueDate(l.startDate, l.paymentDay, lastPayment?.paymentDate),
+            title: `قسط وام: ${l.title}`,
+            amount: l.installmentAmount,
+            details: {
+              ownerId: l.ownerId, 
+              expenseFor: l.ownerId,
+              bankAccountName: '---', // Not applicable for loan itself
+              registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص',
+              categoryName: 'اقساط و بدهی',
+              payeeName: payees.find(p => p.id === l.payeeId)?.name,
+              description: `پرداخت قسط وام به ${payees.find(p => p.id === l.payeeId)?.name || 'نامشخص'}`
+            },
+            originalItem: l,
+        }
+      });
+
 
      const upcomingDebts: Deadline[] = (previousDebts || [])
       .filter(d => d.remainingAmount > 0)
@@ -71,7 +79,11 @@ export default function DueDatesPage() {
         let amount = d.installmentAmount || d.remainingAmount;
 
         if (d.isInstallment && d.paymentDay) {
-          dueDate = getNextDueDate(d.startDate, d.paymentDay);
+          const lastPayment = (debtPayments || [])
+            .filter(dp => dp.debtId === d.id)
+            .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+            [0];
+          dueDate = getNextDueDate(d.startDate, d.paymentDay, lastPayment?.paymentDate);
         } else if (!d.isInstallment && d.dueDate) {
           dueDate = new Date(d.dueDate);
         }

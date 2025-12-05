@@ -74,7 +74,7 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const [ownerFilter, setOwnerFilter] = useState<DashboardFilter>('all');
-  const [date, setDate] = useState<DateRange | undefined>(getDateRange('thisMonth'));
+  const [date, setDate] = useState<DateRange | undefined>(getDateRange('thisMonth').range);
   const [activePreset, setActivePreset] = useState<ReturnType<typeof getDateRange>['preset']>('thisMonth');
 
   const { isLoading, getFilteredData, allData } = useDashboardData();
@@ -210,6 +210,8 @@ export default function DashboardPage() {
                         loans={allData.loans}
                         payees={allData.payees}
                         previousDebts={allData.previousDebts}
+                        loanPayments={allData.loanPayments || []}
+                        debtPayments={allData.debtPayments || []}
                     />
                     </CardContent>
                 </Card>
