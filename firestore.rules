@@ -24,41 +24,42 @@ service cloud.firestore {
       allow read, write: if isFamilyMember();
 
       // Specific rules for EACH subcollection under 'shared-data'
+      // Using 'create, update, delete' explicitly covers all write operations.
       match /bankAccounts/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /incomes/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /expenses/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /categories/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /payees/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /checks/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /financialGoals/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /loans/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /loanPayments/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /previousDebts/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /debtPayments/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
       match /transfers/{docId} {
-        allow read, write: if isFamilyMember();
+        allow read, create, update, delete: if isFamilyMember();
       }
     }
   }
