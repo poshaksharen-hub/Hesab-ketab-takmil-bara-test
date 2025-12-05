@@ -20,8 +20,9 @@ import {
   Wallet,
   Trash2,
   Receipt,
+  BookUser,
 } from 'lucide-react';
-import type { Expense, BankAccount, Category, UserProfile, ExpenseFor, OwnerId } from '@/lib/types';
+import type { Expense, BankAccount, Category, UserProfile, ExpenseFor, OwnerId, Payee } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,7 @@ interface ExpenseListProps {
   bankAccounts: BankAccount[];
   categories: Category[];
   users: UserProfile[];
+  payees: Payee[];
   onDelete: (expenseId: string) => void;
 }
 
@@ -67,6 +69,7 @@ export function ExpenseList({
   bankAccounts,
   categories,
   users,
+  payees,
   onDelete,
 }: ExpenseListProps) {
   const getBankAccount = (id: string) => {
@@ -77,6 +80,10 @@ export function ExpenseList({
     const user = users.find((u) => u.id === userId);
     return user ? user.firstName : 'نامشخص';
   };
+   const getPayeeName = (payeeId?: string) => {
+    if (!payeeId) return null;
+    return payees.find(p => p.id === payeeId)?.name || null;
+  }
   const getExpenseForText = (expenseFor?: ExpenseFor) => {
     if (!expenseFor) return 'نامشخص';
     switch (expenseFor) {
@@ -139,7 +146,7 @@ export function ExpenseList({
                         <p className="text-2xl font-bold text-destructive">
                             {`-${formatCurrency(expense.amount, 'IRT')}`}
                         </p>
-                         {bankAccount?.ownerId === 'shared' && expense.expenseFor !== 'shared' && (
+                         {bankAccount?.ownerId === 'shared_account' && expense.expenseFor !== 'shared' && (
                             <Badge variant="secondary">{`برای ${getExpenseForText(expense.expenseFor)}`}</Badge>
                         )}
                         </div>
@@ -163,6 +170,11 @@ export function ExpenseList({
                                 label="دسته‌بندی"
                                 value={getCategoryName(expense.categoryId)}
                             />
+                             <DetailItem
+                                icon={BookUser}
+                                label="طرف حساب"
+                                value={getPayeeName(expense.payeeId)}
+                             />
                              <DetailItem
                                 icon={Calendar}
                                 label="تاریخ ثبت"
