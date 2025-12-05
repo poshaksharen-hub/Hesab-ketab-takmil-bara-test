@@ -84,7 +84,7 @@ function CardItem({ card, onEdit, onDelete, allGoals }: { card: BankAccount; onE
     
     const availableBalance = card.balance; // Balance already reflects deductions for goals.
     
-    const themeClasses = getBankTheme(card.theme);
+    const themeClasses = getBankTheme(card.theme as any);
 
     return (
         <>
@@ -250,10 +250,10 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
   const aliCards = sortedCards.filter(c => c.ownerId === 'ali');
   const fatemehCards = sortedCards.filter(c => c.ownerId === 'fatemeh');
 
-  const renderCardSection = (cardList: BankAccount[], title: string) => {
+  const renderCardSection = (cardList: BankAccount[], title: string, key: string) => {
     if (cardList.length === 0) return null;
     return (
-        <Card>
+        <Card key={key}>
             <CardHeader>
                 <CardTitle className="font-headline">{title}</CardTitle>
             </CardHeader>
@@ -283,7 +283,7 @@ export function CardList({ cards, onEdit, onDelete, users, goals }: CardListProp
 
   return (
     <div className='space-y-6'>
-       {sections.map(section => renderCardSection(section.data, section.title))}
+       {sections.map(section => renderCardSection(section.data, section.title, section.id))}
     </div>
   );
 }
