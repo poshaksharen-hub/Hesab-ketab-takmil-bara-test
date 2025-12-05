@@ -170,8 +170,9 @@ export default function CheckDetailPage() {
 
   const getOwnerDetails = (bankAccount?: ReturnType<typeof getBankAccount>) => {
     if (!bankAccount) return { name: "نامشخص" };
-    if (bankAccount.ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
-    const userDetail = USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh'];
+    const ownerId = bankAccount.ownerId;
+    if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "نامشخص" };
     return { name: `${userDetail.firstName} ${userDetail.lastName}`};
   };
@@ -212,7 +213,7 @@ export default function CheckDetailPage() {
        <div className="max-w-2xl mx-auto space-y-4">
          <Card className={cn("overflow-hidden shadow-2xl h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700 font-body", isCleared && "opacity-60")}>
             {isCleared && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform rotate-[-15deg] border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-4xl font-black uppercase opacity-60 select-none z-20">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform -rotate-12 border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-4xl font-black uppercase opacity-60 select-none z-20">
                     پاس شد
                 </div>
             )}
@@ -220,15 +221,15 @@ export default function CheckDetailPage() {
             {/* Header */}
             <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
                 <div className="text-left w-1/3 space-y-1">
-                    <p className="text-[10px] text-muted-foreground">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
-                    <p className="text-[10px] text-muted-foreground">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
+                    <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
+                    <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
                 </div>
                 <div className="text-center w-1/3">
                     <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
                     <p className="font-bold text-sm">{bankAccount?.bankName}</p>
                 </div>
                 <div className="text-right w-1/3 flex flex-col items-end">
-                     <p className="text-xs text-muted-foreground">تاریخ سررسید:</p>
+                     <p className="text-xs text-muted-foreground font-body">تاریخ سررسید:</p>
                      <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
                 </div>
             </div>
@@ -236,33 +237,33 @@ export default function CheckDetailPage() {
             {/* Body */}
             <div className="p-6 space-y-2 flex-grow flex flex-col text-sm">
                  <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                    <span className="shrink-0">به موجب این چک مبلغ</span>
+                    <span className="font-body shrink-0">به موجب این چک مبلغ</span>
                     <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
                         {amountToWords(check.amount)}
                     </span>
-                    <span className="shrink-0">تومان</span>
+                    <span className="font-body shrink-0">تومان</span>
                  </div>
                  <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                    <span className="shrink-0">در وجه:</span>
+                    <span className="font-body shrink-0">در وجه:</span>
                      <span className="font-handwriting font-bold text-base">{getPayeeName(check.payeeId)}</span>
-                    <span className="shrink-0 ml-4">برای:</span>
+                    <span className="font-body shrink-0 ml-4">برای:</span>
                      <span className="font-handwriting font-bold text-base flex-grow">
                        {expenseForName}
                     </span>
                 </div>
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 pt-1">
-                     <span className="shrink-0">دسته‌بندی:</span>
-                     <span className="font-handwriting font-bold text-base flex-grow">{getCategoryName(check.categoryId)}</span>
-                 </div>
                  <div className="flex-grow"></div>
                 <div className="flex justify-between items-end pt-4">
                     <div className="text-left">
-                        <span className="text-xs text-muted-foreground">مبلغ</span>
+                        <span className="text-xs text-muted-foreground font-body">مبلغ</span>
                         <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
                     </div>
+                     <div className="text-center">
+                        <span className="text-xs text-muted-foreground font-body">دسته‌بندی</span>
+                        <p className="font-handwriting font-bold text-base">{getCategoryName(check.categoryId)}</p>
+                    </div>
                     <div className="text-right relative">
-                        <span className="text-xs text-muted-foreground">صاحب حساب:</span>
-                        <p className="text-sm font-semibold">{ownerName}</p>
+                        <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
+                        <p className="font-body text-sm font-semibold">{ownerName}</p>
                         <div className="absolute -bottom-5 -right-2 w-24 h-12 pointer-events-none opacity-80">
                             {bankAccount?.ownerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
                             {bankAccount?.ownerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
@@ -339,3 +340,5 @@ export default function CheckDetailPage() {
     </main>
   );
 }
+
+    
