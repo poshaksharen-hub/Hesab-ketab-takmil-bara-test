@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Loan, BankAccount, Payee, OwnerId } from '@/lib/types';
+import type { Loan, BankAccount, Payee, ExpenseFor } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
@@ -33,21 +33,13 @@ const formSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
   payeeId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'مبلغ وام باید یک عدد مثبت باشد.' }),
-  ownerId: z.enum(['ali', 'fatemeh', 'shared']).optional(),
+  expenseFor: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این بدهی برای کیست.'}),
   installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').default(0),
   numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').default(0),
   startDate: z.date({ required_error: 'لطفا تاریخ شروع را انتخاب کنید.' }),
   paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').default(5),
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
-}).refine(data => {
-    if (!data.depositOnCreate) {
-      return !!data.ownerId;
-    }
-    return true;
-}, {
-    message: "لطفا مشخص کنید این بدهی برای کیست.",
-    path: ["ownerId"],
 });
 
 type LoanFormValues = z.infer<typeof formSchema>;
@@ -69,7 +61,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             title: '',
             payeeId: '',
             amount: 0,
-            ownerId: 'shared',
+            expenseFor: 'shared',
             installmentAmount: 0,
             numberOfInstallments: 0,
             startDate: new Date(),
@@ -80,7 +72,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     });
 
     const getOwnerName = (account: BankAccount) => {
-        if (account.ownerId === 'shared') return "(مشترک)";
+        if (account.ownerId === 'shared_account') return "(مشترک)";
         const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
         return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
     };
@@ -105,7 +97,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 title: '',
                 payeeId: '',
                 amount: 0,
-                ownerId: 'shared',
+                expenseFor: 'shared',
                 installmentAmount: 0,
                 numberOfInstallments: 0,
                 startDate: new Date(),
@@ -197,30 +189,28 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             </FormItem>
                         )}
                         />
-                        {!watchDepositOnCreate && (
-                            <FormField
-                                control={form.control}
-                                name="ownerId"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>این بدهی برای کیست؟</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                        <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
-                                        <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                                        <SelectItem value="shared">مشترک</SelectItem>
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                        )}
+                        <FormField
+                            control={form.control}
+                            name="expenseFor"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>این بدهی برای کیست؟</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="shared">مشترک</SelectItem>
+                                    <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                                    <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
                     </div>
                     <div className="rounded-lg border p-4 space-y-4">
                         <p className='text-sm text-muted-foreground'>اطلاعات زیر فقط برای یادآوری و آمار است و در محاسبات تاثیری ندارد.</p>

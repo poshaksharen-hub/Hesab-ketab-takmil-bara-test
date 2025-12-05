@@ -29,7 +29,7 @@ export default function ChecksPage() {
   
   const { checks, bankAccounts, payees, categories } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'ownerId' | 'issueDate' | 'dueDate'> & {issueDate: Date, dueDate: Date}) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'liabilityOwnerId' | 'issueDate' | 'dueDate'> & {issueDate: Date, dueDate: Date}) => {
     if (!user || !firestore) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
@@ -47,7 +47,7 @@ export default function ChecksPage() {
         ...values,
         issueDate: values.issueDate.toISOString(),
         dueDate: values.dueDate.toISOString(),
-        ownerId: bankAccount.ownerId
+        liabilityOwnerId: bankAccount.ownerId
       }
       updateDoc(checkRef, updatedCheck)
         .then(() => {
@@ -68,7 +68,7 @@ export default function ChecksPage() {
         dueDate: values.dueDate.toISOString(),
         registeredByUserId: user.uid,
         status: 'pending' as 'pending',
-        ownerId: bankAccount.ownerId,
+        liabilityOwnerId: bankAccount.ownerId,
       };
       addDoc(checksColRef, newCheck)
         .then((docRef) => {
@@ -133,7 +133,7 @@ export default function ChecksPage() {
         const expenseRef = doc(expensesColRef);
         transaction.set(expenseRef, {
             id: expenseRef.id,
-            ownerId: account.ownerId,
+            liabilityOwnerId: account.ownerId,
             registeredByUserId: user.uid,
             amount: check.amount,
             bankAccountId: check.bankAccountId,
@@ -143,6 +143,7 @@ export default function ChecksPage() {
             description: expenseDescription,
             type: 'expense',
             checkId: check.id,
+            expenseFor: check.expenseFor,
             createdAt: serverTimestamp(),
             balanceBefore: balanceBefore,
             balanceAfter: balanceAfter,

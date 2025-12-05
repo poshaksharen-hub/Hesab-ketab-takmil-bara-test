@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -35,6 +34,7 @@ const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
   bankAccountId: z.string().min(1, { message: 'لطفا حساب بانکی را انتخاب کنید.' }),
   categoryId: z.string().min(1, { message: 'لطفا دسته‌بندی را انتخاب کنید.' }),
+  expenseFor: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این چک برای کیست.'}),
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
   issueDate: z.date({ required_error: 'لطفا تاریخ صدور را انتخاب کنید.' }),
   dueDate: z.date({ required_error: 'لطفا تاریخ سررسید را انتخاب کنید.' }),
@@ -69,6 +69,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
       payeeId: '',
       bankAccountId: '',
       categoryId: '',
+      expenseFor: 'shared',
       amount: 0,
       issueDate: new Date(),
       dueDate: new Date(),
@@ -93,6 +94,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
           payeeId: '',
           bankAccountId: '',
           categoryId: '',
+          expenseFor: 'shared',
           amount: 0,
           issueDate: new Date(),
           dueDate: new Date(),
@@ -261,7 +263,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                         )}
                     />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="issueDate"
@@ -285,6 +287,28 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                         )}
                     />
                 </div>
+                 <FormField
+                        control={form.control}
+                        name="expenseFor"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>این چک برای کیست؟</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="shared">مشترک</SelectItem>
+                                <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                                <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
                 <FormField
                     control={form.control}
                     name="description"

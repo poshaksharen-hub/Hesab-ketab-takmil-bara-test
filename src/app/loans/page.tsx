@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
-import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId } from '@/lib/types';
+import type { Loan, LoanPayment, BankAccount, Category, Payee, ExpenseFor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
@@ -43,7 +43,7 @@ export default function LoansPage() {
       await runTransaction(firestore, async (transaction) => {
         const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
         
-        let finalOwnerId: OwnerId = values.ownerId;
+        let liabilityOwnerId: 'ali' | 'fatemeh' | 'shared_account' = 'shared_account'; // Default
         if (values.depositOnCreate && values.depositToAccountId) {
             const bankAccountRef = doc(familyDataRef, 'bankAccounts', values.depositToAccountId);
             const bankAccountDoc = await transaction.get(bankAccountRef);
@@ -52,7 +52,7 @@ export default function LoansPage() {
                 throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
             }
             const bankAccountData = bankAccountDoc.data() as BankAccount;
-            finalOwnerId = bankAccountData.ownerId;
+            liabilityOwnerId = bankAccountData.ownerId;
         }
 
         const newLoanRef = doc(collection(familyDataRef, 'loans'));
@@ -63,7 +63,8 @@ export default function LoansPage() {
             registeredByUserId: user.uid,
             title: values.title,
             amount: values.amount,
-            ownerId: finalOwnerId,
+            expenseFor: values.expenseFor,
+            liabilityOwnerId: liabilityOwnerId,
             installmentAmount: values.installmentAmount,
             numberOfInstallments: values.numberOfInstallments,
             startDate: values.startDate,
@@ -137,7 +138,7 @@ export default function LoansPage() {
             if (!loanDoc.exists()) throw new Error("وام مورد نظر یافت نشد.");
             if (!accountToPayFromDoc.exists()) throw new Error("کارت بانکی پرداخت یافت نشد.");
             
-            const currentLoanData = loanDoc.data()!;
+            const currentLoanData = loanDoc.data() as Loan;
             const accountData = accountToPayFromDoc.data() as BankAccount;
             const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
 
@@ -175,7 +176,7 @@ export default function LoansPage() {
             const expenseCategory = categories?.find(c => c.name.includes('قسط')) || categories?.[0];
             transaction.set(expenseRef, {
                 id: expenseRef.id,
-                ownerId: accountData.ownerId,
+                liabilityOwnerId: accountData.ownerId,
                 registeredByUserId: user.uid,
                 amount: installmentAmount,
                 bankAccountId: paymentBankAccountId,
@@ -184,6 +185,7 @@ export default function LoansPage() {
                 description: `پرداخت قسط وام: ${loan.title}`,
                 type: 'expense',
                 loanPaymentId: paymentRef.id,
+                expenseFor: loan.expenseFor, // Use the beneficiary from the loan itself
                 createdAt: serverTimestamp(),
                 balanceBefore: balanceBefore,
                 balanceAfter: balanceAfter,

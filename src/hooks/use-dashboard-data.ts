@@ -42,6 +42,9 @@ type AllData = {
   debtPayments: DebtPayment[];
 };
 
+type DashboardFilter = 'all' | 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
+
+
 export function useDashboardData() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
@@ -83,7 +86,7 @@ export function useDashboardData() {
     }), [users, bankAccounts, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
 
 
-  const getFilteredData = (ownerFilter: OwnerId | ExpenseFor | 'all', dateRange?: DateRange) => {
+  const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {
     
     const dateMatches = (dateStr: string) => {
         if (!dateRange || !dateRange.from || !dateRange.to) return true;
@@ -91,40 +94,50 @@ export function useDashboardData() {
         return itemDate >= dateRange.from && itemDate <= dateRange.to;
     };
     
-    const filterByOwner = <T extends { ownerId: OwnerId }>(item: T) => {
-        if (ownerFilter === 'all' || ownerFilter === 'shared') return true;
-        if (ownerFilter === 'daramad_moshtarak') return item.ownerId === 'daramad_moshtarak';
-        if (ownerFilter === 'shared_account') return item.ownerId === 'shared_account';
-        return item.ownerId === ownerFilter;
-    };
-    
-    const filterExpenseFor = (item: Expense) => {
-        if (ownerFilter === 'all') return true;
-        return item.expenseFor === ownerFilter;
-    };
+    let filteredIncomes: Income[] = [];
+    let filteredExpenses: Expense[] = [];
+    let filteredChecks: Check[] = [];
+    let filteredLoans: Loan[] = [];
+    let filteredDebts: PreviousDebt[] = [];
+    let filteredAccounts: BankAccount[] = [];
 
-
-    const filteredIncomes = allData.incomes.filter(i => dateMatches(i.date) && filterByOwner(i));
-    const filteredExpenses = allData.expenses.filter(e => dateMatches(e.date) && filterExpenseFor(e));
+    if (ownerFilter === 'all') {
+        filteredIncomes = allData.incomes.filter(i => dateMatches(i.date));
+        filteredExpenses = allData.expenses.filter(e => dateMatches(e.date));
+        filteredAccounts = allData.bankAccounts;
+        filteredChecks = allData.checks;
+        filteredLoans = allData.loans;
+        filteredDebts = allData.previousDebts;
+    } else if (ownerFilter === 'daramad_moshtarak') {
+        filteredIncomes = allData.incomes.filter(i => i.ownerId === 'daramad_moshtarak' && dateMatches(i.date));
+        filteredAccounts = allData.bankAccounts.filter(b => b.ownerId === 'shared_account');
+        // No expenses/liabilities are shown for this filter
+    } else { // 'ali', 'fatemeh', or 'shared' for expenses
+        filteredIncomes = allData.incomes.filter(i => i.ownerId === ownerFilter && dateMatches(i.date));
+        filteredExpenses = allData.expenses.filter(e => e.expenseFor === ownerFilter && dateMatches(e.date));
+        filteredAccounts = allData.bankAccounts.filter(b => b.ownerId === ownerFilter);
+        filteredChecks = allData.checks.filter(c => c.expenseFor === ownerFilter);
+        filteredLoans = allData.loans.filter(l => l.expenseFor === ownerFilter);
+        filteredDebts = allData.previousDebts.filter(d => d.expenseFor === ownerFilter);
+    }
     
     const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
     
-    const filteredAccounts = allData.bankAccounts.filter(filterByOwner);
     const totalAssets = filteredAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
-    const pendingChecks = allData.checks.filter(c => c.status === 'pending' && filterByOwner(c));
+    const pendingChecks = filteredChecks.filter(c => c.status === 'pending');
     const pendingChecksAmount = pendingChecks.reduce((sum, c) => sum + c.amount, 0);
     
-    const remainingLoanAmount = allData.loans.filter(filterByOwner).reduce((sum, l) => sum + l.remainingAmount, 0);
-    const remainingDebtsAmount = allData.previousDebts.filter(filterByOwner).reduce((sum, d) => sum + d.remainingAmount, 0);
+    const remainingLoanAmount = filteredLoans.reduce((sum, l) => sum + l.remainingAmount, 0);
+    const remainingDebtsAmount = filteredDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
 
     const totalLiabilities = pendingChecksAmount + remainingLoanAmount + remainingDebtsAmount;
     const netWorth = totalAssets - totalLiabilities;
     
     const allTransactions = [...filteredIncomes, ...filteredExpenses].sort((a, b) => {
-        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.date);
-        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(b.date);
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
         return dateB.getTime() - dateA.getTime();
     });
 

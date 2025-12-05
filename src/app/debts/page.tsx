@@ -17,7 +17,7 @@ import {
   updateDoc,
   getDoc
 } from 'firebase/firestore';
-import type { PreviousDebt, BankAccount, Category, Payee, Expense, DebtPayment } from '@/lib/types';
+import type { PreviousDebt, BankAccount, Category, Payee, Expense, DebtPayment, ExpenseFor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -134,7 +134,7 @@ export default function DebtsPage() {
             const expenseRef = doc(collection(familyDataRef, 'expenses'));
             transaction.set(expenseRef, {
                 id: expenseRef.id,
-                ownerId: accountData.ownerId,
+                liabilityOwnerId: accountData.ownerId,
                 registeredByUserId: user.uid,
                 amount: amount,
                 bankAccountId: paymentBankAccountId,
@@ -145,6 +145,7 @@ export default function DebtsPage() {
                 type: 'expense' as const,
                 subType: 'debt_payment' as const,
                 debtPaymentId: paymentRef.id,
+                expenseFor: debt.expenseFor,
                 createdAt: serverTimestamp(),
                 balanceBefore: balanceBefore,
                 balanceAfter: balanceAfter,

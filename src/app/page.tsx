@@ -31,6 +31,8 @@ import { OwnerId, ExpenseFor } from '@/lib/types';
 import { getDateRange } from '@/lib/date-utils';
 
 type DatePreset = 'thisWeek' | 'thisMonth' | 'thisYear';
+type DashboardFilter = 'all' | 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
+
 
 function DashboardSkeleton() {
   const auth = useAuth();
@@ -72,7 +74,7 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const { isUserLoading } = useUser();
-  const [ownerFilter, setOwnerFilter] = useState<OwnerId | ExpenseFor | 'all'>('all');
+  const [ownerFilter, setOwnerFilter] = useState<DashboardFilter>('all');
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
@@ -116,7 +118,7 @@ export default function DashboardPage() {
           داشبورد جامع مالی
         </h1>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
-           <Select onValueChange={(value) => setOwnerFilter(value as OwnerId | ExpenseFor | 'all')} defaultValue="all">
+           <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} defaultValue="all">
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="نمایش داده‌های..." />
               </SelectTrigger>
@@ -124,7 +126,8 @@ export default function DashboardPage() {
                 <SelectItem value="all">همه</SelectItem>
                 <SelectItem value='ali'>{USER_DETAILS.ali.firstName}</SelectItem>
                 <SelectItem value='fatemeh'>{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                <SelectItem value="shared">مشترک</SelectItem>
+                <SelectItem value="shared">مشترک (هزینه‌ها)</SelectItem>
+                <SelectItem value="daramad_moshtarak">شغل مشترک (درآمد)</SelectItem>
               </SelectContent>
             </Select>
             <div className='flex gap-2'>

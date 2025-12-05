@@ -2,13 +2,13 @@
 
 import type { LucideIcon } from 'lucide-react';
 
-// Defines who OWNS an asset, liability, or income source.
+// Defines who OWNS an asset (BankAccount) or income source (Income).
 // 'ali', 'fatemeh': Personal ownership
 // 'daramad_moshtarak': Represents the shared business/income source. Used ONLY for Incomes.
 // 'shared_account': Represents the shared bank account. Used ONLY for BankAccounts.
 export type OwnerId = 'ali' | 'fatemeh' | 'daramad_moshtarak' | 'shared_account';
 
-// Defines who an EXPENSE is FOR. This is about the beneficiary of a spending.
+// Defines who an EXPENSE, LIABILITY or GOAL is FOR. This is about the beneficiary.
 // This is completely separate from OwnerId.
 export type ExpenseFor = 'ali' | 'fatemeh' | 'shared';
 
@@ -32,7 +32,7 @@ export type Income = {
 
 export type Expense = {
   id: string;
-  ownerId: 'ali' | 'fatemeh' | 'shared_account'; // Owner of the bank account used for payment
+  liabilityOwnerId: 'ali' | 'fatemeh' | 'shared_account'; // Owner of the bank account used for payment
   registeredByUserId: string;
   bankAccountId: string;
   categoryId: string;
@@ -91,7 +91,8 @@ export type Payee = {
 export type Check = {
     id: string;
     registeredByUserId: string;
-    ownerId: 'ali' | 'fatemeh' | 'shared_account'; // The liability belongs to a person or the shared account
+    liabilityOwnerId: 'ali' | 'fatemeh' | 'shared_account'; // The liability belongs to a person or the shared account
+    expenseFor: ExpenseFor; // Who the check is for
     bankAccountId: string;
     payeeId: string;
     categoryId: string;
@@ -129,7 +130,8 @@ export type FinancialGoal = {
 export type Loan = {
     id: string;
     registeredByUserId: string;
-    ownerId: 'ali' | 'fatemeh' | 'shared'; // A loan liability can be personal or shared
+    expenseFor: ExpenseFor; // Who the loan is for (beneficiary)
+    liabilityOwnerId: 'ali' | 'fatemeh' | 'shared_account'; // Which account owner is responsible for the deposit/repayment logic
     payeeId?: string;
     title: string;
     amount: number;
@@ -154,7 +156,7 @@ export type LoanPayment = {
 export type PreviousDebt = {
     id: string;
     registeredByUserId: string;
-    ownerId: 'ali' | 'fatemeh' | 'shared'; // A debt liability can be personal or shared
+    expenseFor: ExpenseFor; // Who the debt is for (beneficiary)
     payeeId: string;
     description: string;
     amount: number;
