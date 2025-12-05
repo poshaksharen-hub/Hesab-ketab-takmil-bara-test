@@ -28,6 +28,7 @@ import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
+import { Switch } from '../ui/switch';
 
 
 const formSchema = z.object({
@@ -36,7 +37,19 @@ const formSchema = z.object({
   expenseFor: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این بدهی برای کیست.' }),
   amount: z.coerce.number().positive({ message: 'مبلغ بدهی باید یک عدد مثبت باشد.' }),
   startDate: z.date({ required_error: 'لطفا تاریخ ایجاد بدهی را انتخاب کنید.' }),
-  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').optional(),
+  isInstallment: z.boolean().default(false),
+  dueDate: z.date().optional(),
+  paymentDay: z.coerce.number().min(1).max(30).optional(),
+  numberOfInstallments: z.coerce.number().int().min(0).optional(),
+  installmentAmount: z.coerce.number().min(0).optional(),
+}).refine(data => {
+    if (data.isInstallment) {
+        return !!data.paymentDay;
+    }
+    return !!data.dueDate;
+}, {
+    message: "لطفا مهلت پرداخت یا روز پرداخت قسط را مشخص کنید.",
+    path: ["isInstallment"], // General path, specific message shown in UI
 });
 
 type DebtFormValues = z.infer<typeof formSchema>;
@@ -59,6 +72,7 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
       expenseFor: 'shared',
       amount: 0,
       startDate: new Date(),
+      isInstallment: false,
     },
   });
 
@@ -66,6 +80,8 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
     const submissionData = {
       ...data,
       startDate: data.startDate.toISOString(),
+      dueDate: data.isInstallment ? undefined : data.dueDate?.toISOString(),
+      paymentDay: data.isInstallment ? data.paymentDay : undefined,
     };
     onSubmit(submissionData);
   }
@@ -77,6 +93,8 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
         form.setValue('payeeId', value);
     }
   };
+  
+  const isInstallment = form.watch('isInstallment');
 
   return (
     <>
@@ -175,29 +193,87 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
                         )}
                     />
                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
+
+                <div className="space-y-4 rounded-lg border p-4">
+                    <FormField
                         control={form.control}
-                        name="paymentDay"
+                        name="isInstallment"
                         render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>روز یادآوری پرداخت در ماه (اختیاری)</FormLabel>
+                        <FormItem className="flex flex-row items-center justify-between">
+                            <div className="space-y-0.5">
+                                <FormLabel>پرداخت مرحله‌ای (قسطی)</FormLabel>
+                                <FormDescription>
+                                آیا این بدهی به صورت قسطی پرداخت خواهد شد؟
+                                </FormDescription>
+                            </div>
                             <FormControl>
-                                <NumericInput
-                                    min="1"
-                                    max="30"
-                                    {...field}
-                                    value={field.value || ''}
-                                />
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
                             </FormControl>
-                             <FormDescription>
-                                اگر پرداخت به صورت اقساطی است، روز آن را وارد کنید.
-                            </FormDescription>
-                            <FormMessage />
                         </FormItem>
                         )}
                     />
-                 </div>
+                    {isInstallment ? (
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-2">
+                           <FormField
+                                control={form.control}
+                                name="installmentAmount"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>مبلغ پیشنهادی قسط</FormLabel>
+                                    <FormControl>
+                                        <CurrencyInput value={field.value || 0} onChange={field.onChange} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                           <FormField
+                                control={form.control}
+                                name="numberOfInstallments"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
+                                    <FormControl>
+                                        <NumericInput {...field} value={field.value || ''} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="paymentDay"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>روز یادآوری پرداخت</FormLabel>
+                                    <FormControl>
+                                        <NumericInput min="1" max="30" {...field} value={field.value || ''}/>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                    ) : (
+                         <div className="pt-2">
+                            <FormField
+                                control={form.control}
+                                name="dueDate"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>مهلت پرداخت</FormLabel>
+                                    <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                         </div>
+                    )}
+                </div>
+
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>

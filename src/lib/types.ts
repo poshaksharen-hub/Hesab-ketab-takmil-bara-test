@@ -161,7 +161,11 @@ export type PreviousDebt = {
     amount: number;
     remainingAmount: number;
     startDate: string;
-    paymentDay?: number; // Optional day for recurring payment reminders
+    isInstallment: boolean;
+    dueDate?: string; // For single payment debts
+    paymentDay?: number; // For installment debts
+    numberOfInstallments?: number;
+    installmentAmount?: number;
 }
 
 export type DebtPayment = {
@@ -177,7 +181,7 @@ export type Transfer = {
     id: string;
     registeredByUserId: string;
     fromBankAccountId: string;
-    toBankAccountId: string;
+toBankAccountId: string;
     amount: number;
     transferDate: string;
     description?: string;

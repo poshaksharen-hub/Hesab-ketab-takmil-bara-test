@@ -53,20 +53,33 @@ export default function DueDatesPage() {
       }));
 
      const upcomingDebts: Deadline[] = (previousDebts || [])
-      .filter(d => d.remainingAmount > 0 && d.paymentDay)
-      .map(d => ({
-        id: d.id,
-        type: 'debt',
-        date: getNextDueDate(d.startDate, d.paymentDay!),
-        title: `پرداخت بدهی: ${d.description}`,
-        amount: d.remainingAmount, // Or a calculated installment
-         details: {
-          expenseFor: d.expenseFor,
-          bankAccountName: '---',
-          registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص'
-        },
-        originalItem: d,
-      }));
+      .filter(d => d.remainingAmount > 0)
+      .map(d => {
+        let dueDate: Date | null = null;
+        let amount = d.installmentAmount || d.remainingAmount;
+
+        if (d.isInstallment && d.paymentDay) {
+          dueDate = getNextDueDate(d.startDate, d.paymentDay);
+        } else if (!d.isInstallment && d.dueDate) {
+          dueDate = new Date(d.dueDate);
+        }
+
+        if (!dueDate) return null;
+
+        return {
+          id: d.id,
+          type: 'debt' as const,
+          date: dueDate,
+          title: `پرداخت بدهی: ${d.description}`,
+          amount: amount,
+          details: {
+            expenseFor: d.expenseFor,
+            bankAccountName: '---',
+            registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص'
+          },
+          originalItem: d,
+        };
+      }).filter((d): d is Deadline => d !== null);
 
 
     return [...upcomingChecks, ...upcomingLoanPayments, ...upcomingDebts]

@@ -45,7 +45,7 @@ export default function DebtsPage() {
     payees,
   } = allData;
 
-  const handleFormSubmit = useCallback(async (values: Omit<PreviousDebt, 'id' | 'registeredByUserId' | 'remainingAmount'>) => {
+  const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
 
     try {
