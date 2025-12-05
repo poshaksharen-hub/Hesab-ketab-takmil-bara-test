@@ -46,7 +46,7 @@ export default function CategoryDetailPage() {
   const [filter, setFilter] = useState<FilterType>('all');
 
   const { isLoading, allData } = useDashboardData();
-  const { expenses, categories, bankAccounts, users } = allData;
+  const { expenses, categories, bankAccounts, users, payees } = allData;
 
   const { category, filteredExpenses, totalAmount } = useMemo(() => {
     if (isLoading || !categoryId) {
@@ -149,6 +149,7 @@ export default function CategoryDetailPage() {
                 bankAccounts={bankAccounts}
                 categories={categories}
                 users={users}
+                payees={payees}
                 onDelete={handleDelete}
             />
          </TabsContent>
