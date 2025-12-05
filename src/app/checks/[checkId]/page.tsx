@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -8,8 +7,8 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Calendar, User, Users, FolderKanban } from 'lucide-react';
-import { formatCurrency, formatJalaliDate, cn, toPersianDigits, amountToWords } from '@/lib/utils';
+import { ArrowRight } from 'lucide-react';
+import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
 import { SignatureAli, SignatureFatemeh, HesabKetabLogo } from '@/components/icons';
@@ -81,14 +80,14 @@ export default function CheckDetailPage() {
   }
 
   const getOwnerDetails = (ownerId: 'ali' | 'fatemeh' | 'shared_account') => {
-    if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح", Icon: Users };
+    if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
     const userDetail = USER_DETAILS[ownerId];
-    if (!userDetail) return { name: "ناشناس", Icon: User };
-    return { name: `${userDetail.firstName} ${userDetail.lastName}`, Icon: User };
+    if (!userDetail) return { name: "ناشناس" };
+    return { name: `${userDetail.firstName} ${userDetail.lastName}`};
   };
   
   const bankAccount = getBankAccount(check.bankAccountId);
-  const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(check.liabilityOwnerId);
+  const { name: ownerName } = getOwnerDetails(check.liabilityOwnerId);
   const expenseForName = check.expenseFor && USER_DETAILS[check.expenseFor] ? USER_DETAILS[check.expenseFor].firstName : 'مشترک';
   const isCleared = check.status === 'cleared';
 
@@ -120,7 +119,7 @@ export default function CheckDetailPage() {
                     پاس شد
                 </div>
             )}
-            <CardHeader className="p-4 relative bg-gray-100 dark:bg-gray-800/50">
+            <div className="p-4 relative bg-gray-100 dark:bg-gray-800/50">
                 <div className="flex justify-between items-start">
                      <div className="text-left w-1/3 space-y-2">
                         <div>
@@ -141,23 +140,26 @@ export default function CheckDetailPage() {
                          <p className="font-handwriting font-bold text-xl">{formatJalaliDate(new Date(check.dueDate))}</p>
                     </div>
                 </div>
-            </CardHeader>
+            </div>
 
-            <CardContent className="p-6 space-y-4 flex-grow">
-                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
-                    <span className="shrink-0">به موجب این چک مبلغ</span>
-                    <span className="font-handwriting font-bold text-lg text-center flex-grow">
-                        {amountToWords(check.amount)}
-                    </span>
-                    <span className="shrink-0">تومان</span>
+            <CardContent className="p-6 space-y-4 flex-grow flex flex-col justify-between">
+                <div>
+                    <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
+                        <span className="shrink-0">به موجب این چک مبلغ</span>
+                        <span className="font-handwriting font-bold text-lg text-center flex-grow">
+                             {amountToWords(check.amount) || '...'}
+                        </span>
+                         <span className="shrink-0">تومان</span>
+                    </div>
+                     <div className="flex items-baseline gap-4 border-b-2 border-dotted border-gray-400 pb-2 mt-4">
+                        <span className="shrink-0">در وجه:</span>
+                         <span className="font-handwriting font-bold text-lg w-1/2">{getPayeeName(check.payeeId)}</span>
+                        <span className="shrink-0">برای:</span>
+                         <span className="font-handwriting font-bold text-lg">{expenseForName}</span>
+                    </div>
                 </div>
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-2">
-                    <span className="shrink-0">در وجه:</span>
-                     <span className="font-handwriting font-bold text-lg w-1/2">{getPayeeName(check.payeeId)}</span>
-                    <span className="shrink-0">برای:</span>
-                     <span className="font-handwriting font-bold text-lg">{expenseForName}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-4">
+
+                <div className="flex justify-between items-end pt-4">
                      <div className="flex flex-col items-start">
                         <span className="text-xs text-muted-foreground">دسته‌بندی</span>
                         <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
@@ -173,15 +175,14 @@ export default function CheckDetailPage() {
 
             <CardFooter className="p-4 flex justify-end items-end">
                  <div className="relative text-right">
-                     <p className="font-sans text-xs">صاحب حساب:</p>
                      <p className="font-sans text-sm font-bold">{ownerName}</p>
-                     <div className="absolute -bottom-2 -right-4 w-32 h-16 pointer-events-none">
+                     <div className="absolute -bottom-4 -right-2 w-24 h-12 pointer-events-none">
                          {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
                          {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
                          {check.liabilityOwnerId === 'shared_account' && (
                              <>
-                                 <SignatureAli className="w-24 h-12 absolute -top-2 right-4 text-gray-700 dark:text-gray-300 opacity-80" />
-                                 <SignatureFatemeh className="w-24 h-12 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300 opacity-80" />
+                                 <SignatureAli className="w-20 h-10 absolute -top-2 right-4 text-gray-700 dark:text-gray-300 opacity-80" />
+                                 <SignatureFatemeh className="w-20 h-10 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300 opacity-80" />
                              </>
                          )}
                      </div>
@@ -192,3 +193,5 @@ export default function CheckDetailPage() {
     </main>
   );
 }
+
+    
