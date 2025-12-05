@@ -20,43 +20,11 @@ service cloud.firestore {
       // Allow reading/writing the document itself, which is needed to access subcollections.
       allow read, write: if isFamilyMember();
 
-      // Specific rules for EACH subcollection under 'shared-data'
-      // Using 'create, update, delete' explicitly covers all write operations.
-      match /bankAccounts/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /incomes/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /expenses/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /categories/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /payees/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /checks/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /financialGoals/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /loans/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /loanPayments/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /previousDebts/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /debtPayments/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
-      }
-      match /transfers/{docId} {
-        allow read, create, update, delete: if isFamilyMember();
+      // Wildcard rule to apply to ALL subcollections under 'shared-data'.
+      // This ensures that any authenticated family member can perform any action
+      // on any document within any of the subcollections.
+      match /{subcollection}/{docId} {
+        allow read, write, create, update, delete: if isFamilyMember();
       }
     }
   }
