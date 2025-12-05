@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Calendar, User, Users, FolderKanban } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn, toPersianDigits, amountToWords } from '@/lib/utils';
@@ -121,19 +121,23 @@ export default function CheckDetailPage() {
             )}
             {/* --- Check Header --- */}
             <CardHeader className="p-4 relative bg-gray-100 dark:bg-gray-800/50">
-                <div className="flex justify-between items-center">
-                    <div className="text-left w-1/3">
-                        <p className="text-xs text-muted-foreground">شناسه صیاد</p>
-                        <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
-                        <p className="text-xs text-muted-foreground mt-2">شماره سریال چک</p>
-                        <p className="font-mono text-sm font-bold tracking-tight">{check.checkSerialNumber}</p>
+                <div className="flex justify-between items-start">
+                    <div className="text-left w-1/3 space-y-2">
+                        <div>
+                            <p className="text-xs text-muted-foreground font-sans">شناسه صیاد</p>
+                            <p className="font-mono text-sm font-bold tracking-wider">{check.sayadId}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground font-sans">شماره سریال چک</p>
+                            <p className="font-mono text-sm font-bold tracking-tight">{check.checkSerialNumber}</p>
+                        </div>
                     </div>
                     <div className="text-center w-1/3">
                          <HesabKetabLogo className="w-8 h-8 mx-auto text-primary/70" />
                         <p className="font-bold text-lg">{bankAccount?.bankName}</p>
                     </div>
                     <div className="text-right w-1/3">
-                         <p className="text-xs text-muted-foreground">تاریخ</p>
+                         <p className="text-xs text-muted-foreground font-sans">تاریخ</p>
                          <p className="font-handwriting font-bold text-xl">{formatJalaliDate(new Date(check.dueDate))}</p>
                     </div>
                 </div>
@@ -143,14 +147,8 @@ export default function CheckDetailPage() {
             <CardContent className="p-6 space-y-4 flex-grow">
                 <div className="flex items-center gap-2">
                     <span className="shrink-0">به موجب این چک مبلغ</span>
-                    <span className="font-handwriting font-bold text-xl border-b-2 border-dotted border-gray-400 px-2 flex-grow text-center">
+                    <span className="font-handwriting font-bold text-lg border-b-2 border-dotted border-gray-400 px-2 flex-grow text-center">
                         {amountToWords(check.amount)} ریال
-                    </span>
-                </div>
-                 <div className="flex items-center gap-2">
-                    <span className="shrink-0">معادل</span>
-                     <span className="font-handwriting font-bold text-xl bg-gray-200 dark:bg-gray-700 rounded-md px-3 py-1">
-                        {toPersianDigits(new Intl.NumberFormat('fa-IR').format(check.amount * 10))} ریال
                     </span>
                 </div>
                  <div className="flex items-center gap-2">
@@ -162,6 +160,18 @@ export default function CheckDetailPage() {
                      <span className="font-handwriting font-bold text-xl border-b-2 border-dotted border-gray-400 px-2">
                        {expenseForName}
                     </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                     <div className="flex flex-col items-start">
+                        <span className="text-xs text-muted-foreground">مبلغ</span>
+                        <span className="font-handwriting font-bold text-xl">
+                            {formatCurrency(check.amount, 'IRT')}
+                        </span>
+                    </div>
+                     <div className="flex flex-col items-end">
+                        <span className="text-xs text-muted-foreground">دسته‌بندی</span>
+                        <span className="font-handwriting font-bold text-lg">{getCategoryName(check.categoryId)}</span>
+                    </div>
                 </div>
             </CardContent>
 
