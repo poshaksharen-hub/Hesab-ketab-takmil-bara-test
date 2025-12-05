@@ -7,6 +7,19 @@ export default {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    // Bank card theme gradients
+    'from-blue-500', 'to-blue-700',
+    'from-emerald-500', 'to-green-700',
+    'from-violet-500', 'to-purple-700',
+    'from-orange-500', 'to-amber-700',
+    'from-slate-600', 'to-gray-800',
+    'from-red-500', 'to-rose-700',
+    'from-teal-500', 'to-cyan-600',
+    'from-cyan-400', 'to-sky-500',
+    'from-pink-500', 'to-fuchsia-600',
+    'from-indigo-500', 'to-violet-600',
+  ],
   theme: {
     extend: {
       fontFamily: {
