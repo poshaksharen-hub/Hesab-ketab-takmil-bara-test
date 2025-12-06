@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -79,7 +79,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     };
 
     const watchDepositOnCreate = form.watch('depositOnCreate');
-    const watchDepositToAccountId = form.watch('depositToAccountId');
     
     useEffect(() => {
         if (initialData) {
@@ -108,8 +107,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             });
         }
     }, [initialData, form]);
-    
-    const depositAccount = bankAccounts.find(acc => acc.id === watchDepositToAccountId);
 
     const handleFormSubmit = useCallback((data: LoanFormValues) => {
         const submissionData = {
@@ -314,16 +311,11 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         <SelectContent className="max-h-[250px]">
                                             {sortedBankAccounts.map((account) => (
                                             <SelectItem key={account.id} value={account.id}>
-                                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                                             </SelectItem>
                                             ))}
                                         </SelectContent>
                                         </Select>
-                                        {depositAccount && (
-                                            <FormDescription className="pt-2">
-                                            موجودی قابل استفاده این حساب: {formatCurrency(depositAccount.balance - (depositAccount.blockedBalance || 0), 'IRT')}
-                                            </FormDescription>
-                                        )}
                                         <FormMessage />
                                     </FormItem>
                                     )}
@@ -351,5 +343,3 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </>
     );
 }
-
-    

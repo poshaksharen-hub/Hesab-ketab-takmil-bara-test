@@ -112,7 +112,7 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, toast]);
+}, [user, firestore, toast, bankAccounts]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
@@ -325,5 +325,3 @@ export default function LoansPage() {
     </main>
   );
 }
-
-    
