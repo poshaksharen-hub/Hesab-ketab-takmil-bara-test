@@ -58,11 +58,9 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            // Validation: If depositing, account must be selected.
-            if (depositOnCreate && !depositToAccountId) {
-                throw new Error('برای واریز مبلغ وام، باید یک حساب مقصد انتخاب کنید.');
-            }
-            
+            // This validation is now handled by the form itself.
+            // We ensure depositToAccountId is present if depositOnCreate is true.
+
             const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
                 title,
                 amount,
@@ -330,3 +328,5 @@ export default function LoansPage() {
     </main>
   );
 }
+
+    

@@ -5,17 +5,23 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     function isFamilyMember() {
+      // Allow access if the user's UID is one of the two allowed UIDs
       return request.auth != null &&
              request.auth.uid in ["K927CSN4UfX04z05ZR1TsxGvWGu1", "iwXrEC4MPze90eK0BExOdqMdTZ43"];
     }
 
+    // Rules for user profiles
     match /users/{userId} {
       allow read: if isFamilyMember();
+      // Only the user themselves can write to their own profile
       allow write: if request.auth.uid == userId;
     }
 
+    // Rules for all shared data subcollections
     match /family-data/shared-data/{subcollection}/{docId} {
       allow read, write: if isFamilyMember();
     }
   }
 }
+
+    
