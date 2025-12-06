@@ -12,9 +12,11 @@ service cloud.firestore {
       allow read, write: if isFamilyMember();
     }
 
-    match /family-data/{familyId} {
+    match /family-data/shared-data {
+      // Allow read/write on the 'shared-data' document itself
       allow read, write: if isFamilyMember();
 
+      // Explicitly match any subcollection under 'shared-data'
       match /{subcollection}/{docId} {
         allow read, write: if isFamilyMember();
       }
