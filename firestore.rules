@@ -1,17 +1,21 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow any authenticated user to read/write their own user profile or each other's.
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
+    function isFamilyMember() {
+      return request.auth != null &&
+             request.auth.uid in ["K927CSN4UfX04z05ZR1TsxGvWGu1", "iwXrEC4MPze90eK0BExOdqMdTZ43"];
     }
 
-    // Allow any authenticated user to read/write any document in any of the shared data subcollections.
-    // This is a temporary, permissive rule to unblock development.
+    match /users/{userId} {
+      allow read: if isFamilyMember();
+      allow write: if request.auth.uid == userId;
+    }
+
     match /family-data/shared-data/{subcollection}/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isFamilyMember();
     }
   }
 }

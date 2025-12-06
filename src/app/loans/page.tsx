@@ -58,6 +58,11 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
+            // Validation: If depositing, account must be selected.
+            if (depositOnCreate && !depositToAccountId) {
+                throw new Error('برای واریز مبلغ وام، باید یک حساب مقصد انتخاب کنید.');
+            }
+            
             const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
                 title,
                 amount,
@@ -112,7 +117,7 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, toast, bankAccounts]);
+}, [user, firestore, toast]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {

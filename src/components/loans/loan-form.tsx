@@ -30,7 +30,7 @@ import { Switch } from '../ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
 
-const formSchema = z.object({
+const baseSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
   payeeId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'مبلغ وام باید یک عدد مثبت باشد.' }),
@@ -42,6 +42,18 @@ const formSchema = z.object({
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
 });
+
+// Conditional validation: if depositOnCreate is true, depositToAccountId is required.
+const formSchema = baseSchema.refine(data => {
+    if (data.depositOnCreate) {
+        return !!data.depositToAccountId;
+    }
+    return true;
+}, {
+    message: "برای واریز مبلغ، انتخاب حساب مقصد الزامی است.",
+    path: ["depositToAccountId"], // Attach error to this field
+});
+
 
 type LoanFormValues = z.infer<typeof formSchema>;
 
@@ -79,6 +91,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     };
 
     const watchDepositOnCreate = form.watch('depositOnCreate');
+    const watchLoanOwnerId = form.watch('ownerId');
     
     useEffect(() => {
         if (initialData) {
@@ -108,6 +121,23 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         }
     }, [initialData, form]);
 
+    const availableDepositAccounts = useMemo(() => {
+        if (watchLoanOwnerId === 'shared') {
+            return bankAccounts; // If loan is for 'shared', can deposit to any account
+        }
+        // If loan is for 'ali' or 'fatemeh', only show their personal accounts.
+        return bankAccounts.filter(acc => acc.ownerId === watchLoanOwnerId);
+    }, [watchLoanOwnerId, bankAccounts]);
+    
+    // When the available accounts change, reset the selected deposit account if it's no longer valid
+    useEffect(() => {
+        const currentDepositId = form.getValues('depositToAccountId');
+        if (currentDepositId && !availableDepositAccounts.some(acc => acc.id === currentDepositId)) {
+            form.setValue('depositToAccountId', '');
+        }
+    }, [availableDepositAccounts, form]);
+
+
     const handleFormSubmit = useCallback((data: LoanFormValues) => {
         const submissionData = {
             ...data,
@@ -123,8 +153,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             form.setValue('payeeId', value);
         }
     };
-
-    const sortedBankAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
 
     return (
         <>
@@ -302,20 +330,23 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                     render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>واریز به کارت</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={availableDepositAccounts.length === 0}>
                                         <FormControl>
                                             <SelectTrigger>
-                                            <SelectValue placeholder="یک کارت برای واریز انتخاب کنید" />
+                                            <SelectValue placeholder={availableDepositAccounts.length > 0 ? "یک کارت برای واریز انتخاب کنید" : "کارتی برای این ذی‌نفع وجود ندارد"} />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent className="max-h-[250px]">
-                                            {sortedBankAccounts.map((account) => (
+                                            {availableDepositAccounts.map((account) => (
                                             <SelectItem key={account.id} value={account.id}>
                                                 {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                                             </SelectItem>
                                             ))}
                                         </SelectContent>
                                         </Select>
+                                        {watchLoanOwnerId !== 'shared' && 
+                                            <FormDescription>برای وام شخصی، فقط حساب‌های همان شخص نمایش داده می‌شود.</FormDescription>
+                                        }
                                         <FormMessage />
                                     </FormItem>
                                     )}
