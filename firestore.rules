@@ -3,10 +3,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow any authenticated user to perform any action on any document.
-    // This is insecure for production but is used here to unblock development.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    function isFamilyMember() {
+      // These are the UIDs for ali@khanevadati.app and fatemeh@khanevadati.app respectively
+      let allowedUIDs = ["iwXrEC4MPze90eK0BExOdqMdTZ43", "K927CSN4UfX04z05ZR1TsxGvWGu1"];
+      return request.auth.uid in allowedUIDs;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isFamilyMember();
+    }
+    
+    match /family-data/shared-data/{subcollection}/{docId} {
+      allow read, write: if isFamilyMember();
     }
   }
 }

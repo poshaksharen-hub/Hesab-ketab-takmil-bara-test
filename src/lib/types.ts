@@ -87,7 +87,7 @@ export type Payee = {
 export type Check = {
     id: string;
     registeredByUserId: string;
-    liabilityOwnerId: 'ali' | 'fatemeh' | 'shared_account'; // Who owns this liability (person or shared account)
+    ownerId: 'ali' | 'fatemeh' | 'shared_account'; // Who owns this liability (person or shared account)
     expenseFor: ExpenseFor; // Who the check is for
     bankAccountId: string;
     payeeId: string;
