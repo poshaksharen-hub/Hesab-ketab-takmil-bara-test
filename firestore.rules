@@ -3,17 +3,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Rule for user profiles
+    // Allow any authenticated user to read and write to user profiles
     match /users/{userId} {
-      // Any authenticated user can read any profile, but can only write to their own.
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null;
     }
 
-    // Rule for all shared family data subcollections
+    // Allow any authenticated user to read and write to any document in any subcollection
+    // under the shared-data document. This is a permissive rule to unblock development.
     match /family-data/shared-data/{subcollection}/{docId} {
-      // Any authenticated user can read, write, create, and delete any document.
-      // This is a temporary, permissive rule to unblock development.
       allow read, write: if request.auth != null;
     }
   }
