@@ -3,25 +3,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // This function checks if the authenticated user is one of the two family members by their UID.
-    function isFamilyMember() {
-      return request.auth != null &&
-             request.auth.uid in [
-               "iwXrEC4MPze90eK0BExOdqMdTZ43", // Ali's UID
-               "K927CSN4UfX04z05ZR1TsxGvWGu1"  // Fatemeh's UID
-             ];
-    }
-
-    // Allow family members to read and write their own user profile or each other's.
-    // This is safe because only they can pass the isFamilyMember check.
+    // Allow any authenticated user to read/write their own user profile or each other's.
     match /users/{userId} {
-      allow read, write: if isFamilyMember();
+      allow read, write: if request.auth != null;
     }
 
-    // Allow family members to read and write any document in any of the shared data subcollections.
-    // This provides the necessary flexibility for one user to create data on behalf of the other or for shared purposes.
+    // Allow any authenticated user to read/write any document in any of the shared data subcollections.
+    // This is a temporary, permissive rule to unblock development.
     match /family-data/shared-data/{subcollection}/{docId} {
-      allow read, write: if isFamilyMember();
+      allow read, write: if request.auth != null;
     }
   }
 }
