@@ -5,32 +5,23 @@ service cloud.firestore {
     
     // This function now checks for specific, immutable User IDs (UIDs).
     // This is more secure than checking mutable email addresses.
-    // We will add Fatemeh's UID here once she logs in for the first time.
     function isFamilyMember() {
       return request.auth != null &&
-             request.auth.uid in ['iwXrEC4MPze90eK0BExOdqMdTZ43', 'REPLACE_WITH_FATEMEH_UID'];
-    }
-
-    // Allow any authenticated user for now to avoid blocking during development.
-    // This should be locked down to isFamilyMember() in production.
-    function isDev() {
-      return request.auth != null;
+             request.auth.uid in [
+               "K927CSN4UfX04z05ZR1TsxGvWGu1", // Ali's UID
+               "iwXrEC4MPze90eK0BExOdqMdTZ43"  // Fatemeh's UID
+             ];
     }
     
     match /users/{userId} {
-      // Any authenticated user can read/write user profiles for now.
-      allow read, write: if isDev();
+      // Any authenticated family member can read/write user profiles.
+      allow read, write: if isFamilyMember();
     }
 
-    match /family-data/shared-data {
-      // The parent document for all subcollections
-      allow read, write: if isDev();
-
-      match /{subcollection}/{docId} {
-        // This wildcard rule applies to ALL subcollections like loans, debts, etc.
-        // It allows any authenticated user to perform any action.
-        allow read, write: if isDev();
-      }
+    match /family-data/shared-data/{subcollection}/{docId} {
+      // This wildcard rule applies to ALL subcollections (loans, debts, etc.)
+      // It allows any authenticated family member to perform any action.
+      allow read, write: if isFamilyMember();
     }
   }
 }
