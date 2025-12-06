@@ -141,8 +141,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         }
     };
 
-    const sortedBankAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
-
     return (
         <>
             <Card>
@@ -363,5 +361,3 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </>
     );
 }
-
-    
