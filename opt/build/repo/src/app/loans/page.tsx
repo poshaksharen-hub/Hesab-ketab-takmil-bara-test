@@ -58,13 +58,8 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            // Validation: If depositing, ensure deposit account owner matches loan owner if loan owner is not 'shared'
-            if (depositOnCreate && depositToAccountId && ownerId !== 'shared') {
-              const depositAccount = bankAccounts.find(acc => acc.id === depositToAccountId);
-              if (depositAccount && depositAccount.ownerId !== ownerId) {
-                throw new Error('برای وام شخصی، مبلغ وام فقط می‌تواند به حساب همان شخص واریز شود.');
-              }
-            }
+            // This validation is now handled by the form itself.
+            // We ensure depositToAccountId is present if depositOnCreate is true.
 
             const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
                 title,
@@ -120,7 +115,7 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, toast, bankAccounts]);
+}, [user, firestore, toast]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {

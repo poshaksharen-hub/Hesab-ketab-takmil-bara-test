@@ -30,7 +30,7 @@ import { Switch } from '../ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
 
-const formSchema = z.object({
+const baseSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
   payeeId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'مبلغ وام باید یک عدد مثبت باشد.' }),
@@ -42,6 +42,18 @@ const formSchema = z.object({
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
 });
+
+// Conditional validation: if depositOnCreate is true, depositToAccountId is required.
+const formSchema = baseSchema.refine(data => {
+    if (data.depositOnCreate) {
+        return !!data.depositToAccountId;
+    }
+    return true;
+}, {
+    message: "برای واریز مبلغ، انتخاب حساب مقصد الزامی است.",
+    path: ["depositToAccountId"], // Attach error to this field
+});
+
 
 type LoanFormValues = z.infer<typeof formSchema>;
 
@@ -113,6 +125,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         if (watchLoanOwnerId === 'shared') {
             return bankAccounts; // If loan is for 'shared', can deposit to any account
         }
+        // If loan is for 'ali' or 'fatemeh', only show their personal accounts.
         return bankAccounts.filter(acc => acc.ownerId === watchLoanOwnerId);
     }, [watchLoanOwnerId, bankAccounts]);
     
