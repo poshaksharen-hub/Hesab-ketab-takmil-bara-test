@@ -35,6 +35,7 @@ export default function LoansPage() {
     bankAccounts,
     categories,
     payees,
+    users,
   } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
@@ -48,7 +49,7 @@ export default function LoansPage() {
         startDate,
         paymentDay,
         payeeId,
-        ownerId,
+        ownerId, // This now correctly represents the beneficiary
         depositOnCreate,
         depositToAccountId,
     } = values;
@@ -57,25 +58,18 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            let bankAccountDoc = null;
-            let bankAccountData: BankAccount | null = null;
-            let finalOwnerId: OwnerId = ownerId;
-
-            if (depositOnCreate && depositToAccountId) {
-                const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
-                bankAccountDoc = await transaction.get(bankAccountRef);
-
-                if (!bankAccountDoc.exists()) {
-                    throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
-                }
-                bankAccountData = bankAccountDoc.data() as BankAccount;
-                finalOwnerId = bankAccountData.ownerId; // Override ownerId based on deposit account
+            // Validation: If depositing, ensure deposit account owner matches loan owner if loan owner is not 'shared'
+            if (depositOnCreate && depositToAccountId && ownerId !== 'shared') {
+              const depositAccount = bankAccounts.find(acc => acc.id === depositToAccountId);
+              if (depositAccount && depositAccount.ownerId !== ownerId) {
+                throw new Error('برای وام شخصی، مبلغ وام فقط می‌تواند به حساب همان شخص واریز شود.');
+              }
             }
 
             const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
                 title,
                 amount,
-                ownerId: finalOwnerId,
+                ownerId, // Use the ownerId directly from the form
                 installmentAmount: installmentAmount || 0,
                 numberOfInstallments: numberOfInstallments || 0,
                 startDate: startDate,
@@ -93,8 +87,14 @@ export default function LoansPage() {
                 remainingAmount: loanData.amount,
             });
 
-            if (depositOnCreate && depositToAccountId && bankAccountDoc && bankAccountData) {
-                const bankAccountRef = bankAccountDoc.ref;
+            if (depositOnCreate && depositToAccountId) {
+                const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
+                const bankAccountDoc = await transaction.get(bankAccountRef);
+
+                if (!bankAccountDoc.exists()) {
+                    throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
+                }
+                const bankAccountData = bankAccountDoc.data() as BankAccount;
                 const balanceAfter = bankAccountData.balance + loanData.amount;
                 transaction.update(bankAccountRef, { balance: balanceAfter });
             }
@@ -120,7 +120,7 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, editingLoan, toast, payees]);
+}, [user, firestore, toast, bankAccounts]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
@@ -143,7 +143,7 @@ export default function LoansPage() {
             if (!loanDoc.exists()) throw new Error("وام مورد نظر یافت نشد.");
             if (!accountToPayFromDoc.exists()) throw new Error("کارت بانکی پرداخت یافت نشد.");
             
-            const currentLoanData = loanDoc.data()!;
+            const currentLoanData = loanDoc.data() as Loan;
             const accountData = accountToPayFromDoc.data() as BankAccount;
             const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
 
@@ -189,6 +189,8 @@ export default function LoansPage() {
                 date: new Date().toISOString(),
                 description: `پرداخت قسط وام: ${loan.title}`,
                 type: 'expense',
+                subType: 'loan_payment',
+                expenseFor: loan.ownerId, // Use the beneficiary from the loan itself
                 loanPaymentId: paymentRef.id,
                 createdAt: serverTimestamp(),
                 balanceBefore: balanceBefore,
@@ -264,6 +266,11 @@ export default function LoansPage() {
     setEditingLoan(null);
     setIsFormOpen(true);
   };
+
+  const handleEdit = useCallback((loan: Loan) => {
+    setEditingLoan(loan);
+    setIsFormOpen(true);
+  }, []);
   
   const handleCancel = () => {
     setIsFormOpen(false);
@@ -307,8 +314,10 @@ export default function LoansPage() {
                 loans={loans || []}
                 payees={payees || []}
                 bankAccounts={bankAccounts || []}
+                users={users || []}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
+                onEdit={handleEdit}
             />
             {payingLoan && (
                 <LoanPaymentDialog
@@ -324,3 +333,5 @@ export default function LoansPage() {
     </main>
   );
 }
+
+    
