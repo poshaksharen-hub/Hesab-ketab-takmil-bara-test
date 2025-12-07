@@ -21,7 +21,7 @@ export default function DueDatesPage() {
     const { checks, loans, payees, previousDebts, users, categories, bankAccounts } = allData;
 
     const upcomingChecks: Deadline[] = (checks || [])
-      .filter(c => c.status === 'pending')
+      .filter(c => c.status === 'pending') // Fetch all pending checks
       .map(c => {
         const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
         
@@ -32,7 +32,7 @@ export default function DueDatesPage() {
           title: c.description || `چک به ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناس'}`,
           amount: c.amount,
           details: {
-            liabilityOwnerId: bankAccount?.ownerId || 'shared_account',
+            liabilityOwnerId: c.ownerId,
             expenseFor: c.expenseFor,
             bankAccountName: bankAccount?.bankName || 'نامشخص',
             registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص',
@@ -57,10 +57,12 @@ export default function DueDatesPage() {
             details: {
               liabilityOwnerId: l.ownerId, 
               expenseFor: l.ownerId,
+              bankAccountName: undefined, // Loans are not tied to a single payment account
               registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص',
               categoryName: 'اقساط و بدهی',
               payeeName: payees.find(p => p.id === l.payeeId)?.name,
-              description: `پرداخت قسط وام به ${payees.find(p => p.id === l.payeeId)?.name || 'نامشخص'}`
+              description: `پرداخت قسط وام به ${payees.find(p => p.id === l.payeeId)?.name || 'نامشخص'}`,
+              sayadId: undefined,
             },
             originalItem: l,
         }
@@ -73,6 +75,7 @@ export default function DueDatesPage() {
         let dueDate: Date | null = null;
         let amount = d.installmentAmount || d.remainingAmount;
 
+        // Ensure there is a way to determine the due date
         if (d.isInstallment && d.paymentDay) {
           dueDate = getNextDueDate(d);
         } else if (!d.isInstallment && d.dueDate) {
@@ -90,10 +93,12 @@ export default function DueDatesPage() {
           details: {
             liabilityOwnerId: d.ownerId,
             expenseFor: d.ownerId,
+            bankAccountName: undefined,
             registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص',
             categoryName: 'اقساط و بدهی',
             payeeName: payees.find(p => p.id === d.payeeId)?.name,
-            description: `پرداخت بدهی به ${payees.find(p => p.id === d.payeeId)?.name || 'نامشخص'}`
+            description: `پرداخت بدهی به ${payees.find(p => p.id === d.payeeId)?.name || 'نامشخص'}`,
+            sayadId: undefined,
           },
           originalItem: d,
         };
