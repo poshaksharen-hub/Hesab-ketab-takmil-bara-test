@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -22,7 +21,7 @@ import { FinancialInsightsInputSchema, FinancialInsightsOutputSchema } from '@/l
 const ai = genkit({
   plugins: [
     googleAI({
-      apiKey: "AIzaSyAqmCLcamvI_TLEtT-pyr3CxxOGnMOti5Y",
+      apiKey: process.env.GEMINI_API_KEY,
     }),
   ],
 });
