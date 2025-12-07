@@ -26,10 +26,9 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { LogOut, DatabaseZap } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
 import type { DashboardFilter } from '@/hooks/use-dashboard-data';
-import { useInitialData } from '@/hooks/use-initial-data';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -78,7 +77,6 @@ export default function DashboardPage() {
   const [activePreset, setActivePreset] = useState<ReturnType<typeof getDateRange>['preset']>('thisMonth');
 
   const { isLoading, getFilteredData, allData } = useDashboardData();
-  const { seedDatabase, isSeeding } = useInitialData();
   const { toast } = useToast();
   
   useEffect(() => {
@@ -95,7 +93,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let matchedPreset: ReturnType<typeof getDateRange>['preset'] | null = null;
-    const presets: Array<Parameters<typeof getDateRange>[0]> = ['thisWeek', 'thisMonth', 'thisYear'];
+    const presets: Array<Parameters<typeof getDateRange>[0]> = ['thisWeek', 'lastWeek', 'thisMonth', 'lastMonth', 'thisYear'];
     for (const preset of presets) {
         const presetRange = getDateRange(preset).range;
         if (date?.from && date?.to && isEqual(date.from, presetRange.from) && isEqual(date.to, presetRange.to)) {
@@ -111,18 +109,6 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
   
-  const handleSeedData = async () => {
-    if (!user) return;
-    toast({ title: 'شروع عملیات', description: 'در حال افزودن داده‌های تستی به پایگاه داده...'});
-    try {
-      await seedDatabase(user.uid);
-      toast({ title: 'موفقیت', description: 'داده‌های تستی با موفقیت به پایگاه داده اضافه شدند.' });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'خطا', description: error.message });
-    }
-  }
-
-
   const handleDatePreset = (preset: Parameters<typeof getDateRange>[0]) => {
       setDate(getDateRange(preset).range);
       setActivePreset(preset);
@@ -135,10 +121,6 @@ export default function DashboardPage() {
           داشبورد جامع مالی
         </h1>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
-           <Button onClick={handleSeedData} disabled={isSeeding} variant="outline">
-              <DatabaseZap className="ml-2 h-4 w-4" />
-              {isSeeding ? 'در حال پردازش...' : 'ایجاد داده تستی'}
-           </Button>
            <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} value={ownerFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="نمایش داده‌های..." />
