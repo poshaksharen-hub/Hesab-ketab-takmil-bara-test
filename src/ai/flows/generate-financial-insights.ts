@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -6,23 +7,8 @@
  * - generateFinancialInsights - A function that generates financial insights.
  */
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { ai } from '@/ai/genkit'; // Import the configured 'ai' instance
 import { FinancialInsightsInputSchema, FinancialInsightsOutputSchema, type FinancialInsightsInput, type FinancialInsightsOutput } from '@/lib/types';
-
-
-// This flow is designed to be called directly from a Next.js Server Action.
-// We must ensure that environment variables are loaded correctly, especially GEMINI_API_KEY.
-// The configuration is handled here to be self-contained.
-
-// Initialize Genkit with the Google AI plugin
-const ai = genkit({
-  plugins: [
-    googleAI({
-       apiKey: process.env.GEMINI_API_KEY,
-    }),
-  ],
-});
 
 
 const prompt = ai.definePrompt({
