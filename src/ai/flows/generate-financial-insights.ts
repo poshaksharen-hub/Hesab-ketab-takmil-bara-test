@@ -5,14 +5,13 @@
  * @fileOverview A flow for generating personalized financial insights and recommendations based on transaction history.
  *
  * - generateFinancialInsights - A function that generates financial insights.
- * - FinancialInsightsInput - The input type for the generateFinancialInsights function.
- * - FinancialInsightsOutput - The return type for the generateFinancialInsights function.
  */
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'genkit';
 import type { FinancialInsightsInput, FinancialInsightsOutput } from '@/lib/types';
+import { FinancialInsightsInputSchema, FinancialInsightsOutputSchema } from '@/lib/types';
 
 
 // This flow is designed to be called directly from a Next.js Server Action.
@@ -23,92 +22,10 @@ import type { FinancialInsightsInput, FinancialInsightsOutput } from '@/lib/type
 const ai = genkit({
   plugins: [
     googleAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: "AIzaSyAqmCLcamvI_TLEtT-pyr3CxxOGnMOti5Y",
     }),
   ],
 });
-
-
-// Define schemas for structured data
-const EnrichedIncomeSchema = z.object({
-  description: z.string(),
-  amount: z.number(),
-  date: z.string(),
-  bankAccountName: z.string(),
-  source: z.string().optional(),
-});
-
-const EnrichedExpenseSchema = z.object({
-  description: z.string(),
-  amount: z.number(),
-  date: z.string(),
-  bankAccountName: z.string(),
-  categoryName: z.string(),
-  payeeName: z.string().optional(),
-  expenseFor: z.string(),
-});
-
-const BankAccountSchema = z.object({
-  bankName: z.string(),
-  balance: z.number(),
-  ownerId: z.string(),
-});
-
-const CheckSchema = z.object({
-  description: z.string().optional(),
-  amount: z.number(),
-  dueDate: z.string(),
-  payeeName: z.string(),
-  bankAccountName: z.string(),
-});
-
-const LoanSchema = z.object({
-  title: z.string(),
-  remainingAmount: z.number(),
-  installmentAmount: z.number(),
-  payeeName: z.string(),
-});
-
-const DebtSchema = z.object({
-  description: z.string(),
-  remainingAmount: z.number(),
-  payeeName: z.string(),
-});
-
-const FinancialGoalSchema = z.object({
-  name: z.string(),
-  targetAmount: z.number(),
-  currentAmount: z.number(),
-  targetDate: z.string(),
-  priority: z.string(),
-  isAchieved: z.boolean(),
-});
-
-const ChatHistorySchema = z.object({
-  role: z.enum(['user', 'model']),
-  content: z.string(),
-});
-
-// Main input schema including all financial data and chat history
-const FinancialInsightsInputSchema = z.object({
-  currentUserName: z.string().describe('The name of the user currently interacting with the system.'),
-  incomes: z.array(EnrichedIncomeSchema).describe('List of family incomes, enriched with bank names.'),
-  expenses: z.array(EnrichedExpenseSchema).describe('List of family expenses, enriched with bank, category, and payee names.'),
-  bankAccounts: z.array(BankAccountSchema).describe('List of all bank accounts and their current balances.'),
-  checks: z.array(CheckSchema).describe('List of all uncleared checks.'),
-  loans: z.array(LoanSchema).describe('List of all outstanding loans.'),
-  previousDebts: z.array(DebtSchema).describe('List of all outstanding miscellaneous debts.'),
-  financialGoals: z.array(FinancialGoalSchema).describe('List of all financial goals the family is saving for.'),
-  history: z.array(ChatHistorySchema).describe('The history of the conversation so far.'),
-  latestUserQuestion: z.string().describe('The most recent question asked by the user.'),
-});
-
-
-// Output schema for the AI's response
-const FinancialInsightsOutputSchema = z.object({
-  summary: z.string().describe('A detailed, insightful, and friendly analysis of the overall financial situation, directly addressing the current user.'),
-});
-
 
 
 const prompt = ai.definePrompt({
