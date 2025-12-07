@@ -7,7 +7,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 import { isEqual } from 'date-fns';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
@@ -156,7 +155,6 @@ export default function DashboardPage() {
               <Button variant={activePreset === 'thisMonth' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisMonth')}>این ماه</Button>
               <Button variant={activePreset === 'thisYear' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisYear')}>امسال</Button>
             </div>
-            <CustomDateRangePicker date={date} setDate={setDate} />
         </div>
       </div>
 
@@ -210,8 +208,6 @@ export default function DashboardPage() {
                         loans={allData.loans}
                         payees={allData.payees}
                         previousDebts={allData.previousDebts}
-                        loanPayments={allData.loanPayments || []}
-                        debtPayments={allData.debtPayments || []}
                     />
                     </CardContent>
                 </Card>

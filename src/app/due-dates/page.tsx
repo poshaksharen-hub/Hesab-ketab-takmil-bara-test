@@ -9,19 +9,12 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { Check, Loan, PreviousDebt, OwnerId } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { CustomDateRangePicker } from '@/components/dashboard/date-range-filter';
-import { DateRange } from 'react-day-picker';
-import { startOfToday, endOfToday, addDays, startOfDay } from 'date-fns';
-
-type FilterPreset = 'all' | 'overdue' | 'next7' | 'next30' | 'custom';
+import { startOfToday, endOfDay, addDays, isPast } from 'date-fns';
 
 export default function DueDatesPage() {
   const { isLoading, allData } = useDashboardData();
   const router = useRouter();
   const { toast } = useToast();
-  
-  const [filter, setFilter] = useState<FilterPreset>('all');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const allDeadlines = useMemo((): Deadline[] => {
     if (isLoading || !allData) return [];
@@ -115,23 +108,13 @@ export default function DueDatesPage() {
 
   const filteredDeadlines = useMemo(() => {
     const today = startOfToday();
-    switch (filter) {
-        case 'overdue':
-            return allDeadlines.filter(d => d.date < today);
-        case 'next7':
-            const next7Days = endOfDay(addDays(today, 7));
-            return allDeadlines.filter(d => d.date >= today && d.date <= next7Days);
-        case 'next30':
-            const next30Days = endOfDay(addDays(today, 30));
-            return allDeadlines.filter(d => d.date >= today && d.date <= next30Days);
-        case 'custom':
-            if (!dateRange?.from || !dateRange?.to) return [];
-            return allDeadlines.filter(d => d.date >= dateRange.from! && d.date <= dateRange.to!);
-        case 'all':
-        default:
-            return allDeadlines;
-    }
-  }, [allDeadlines, filter, dateRange]);
+    const fifteenDaysFromNow = endOfDay(addDays(today, 15));
+    
+    return allDeadlines.filter(d => {
+        const dueDate = new Date(d.date);
+        return isPast(dueDate) || (dueDate >= today && dueDate <= fifteenDaysFromNow);
+    });
+  }, [allDeadlines]);
   
   const handleAction = (item: Deadline) => {
     switch (item.type) {
@@ -164,7 +147,7 @@ export default function DueDatesPage() {
     return (
         <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
             <h1 className="font-headline text-3xl font-bold tracking-tight">سررسیدهای نزدیک</h1>
-            <p className="text-muted-foreground">تعهدات مالی پیش روی شما در اینجا نمایش داده می‌شود.</p>
+            <p className="text-muted-foreground">چک‌ها، اقساط وام و بدهی‌های پیش روی خود را مدیریت کنید.</p>
             <div className="space-y-4">
                 <Skeleton className="h-28 w-full rounded-xl" />
                 <Skeleton className="h-28 w-full rounded-xl" />
@@ -180,20 +163,7 @@ export default function DueDatesPage() {
        <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
             <div className='space-y-2'>
                 <h1 className="font-headline text-3xl font-bold tracking-tight">سررسیدهای نزدیک</h1>
-                <p className="text-muted-foreground">چک‌ها، اقساط وام و بدهی‌های پیش روی خود را مدیریت کنید.</p>
-            </div>
-            <div className='flex w-full flex-wrap items-center justify-end gap-2'>
-                <Button variant={filter === 'all' ? 'default' : 'outline'} onClick={() => { setFilter('all'); setDateRange(undefined); }}>همه</Button>
-                <Button variant={filter === 'overdue' ? 'default' : 'outline'} onClick={() => { setFilter('overdue'); setDateRange(undefined); }}>معوقه‌ها</Button>
-                <Button variant={filter === 'next7' ? 'default' : 'outline'} onClick={() => { setFilter('next7'); setDateRange(undefined); }}>۷ روز آینده</Button>
-                <Button variant={filter === 'next30' ? 'default' : 'outline'} onClick={() => { setFilter('next30'); setDateRange(undefined); }}>۳۰ روز آینده</Button>
-                <CustomDateRangePicker 
-                    date={dateRange} 
-                    setDate={(range) => {
-                        setDateRange(range);
-                        setFilter('custom');
-                    }}
-                />
+                <p className="text-muted-foreground">تعهدات مالی شما که موعد آن‌ها گذشته یا طی ۱۵ روز آینده است.</p>
             </div>
         </div>
         <DueDatesList deadlines={filteredDeadlines} onAction={handleAction} />
