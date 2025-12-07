@@ -8,9 +8,7 @@
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { z } from 'genkit';
-import type { FinancialInsightsInput, FinancialInsightsOutput } from '@/lib/types';
-import { FinancialInsightsInputSchema, FinancialInsightsOutputSchema } from '@/lib/types';
+import { FinancialInsightsInputSchema, FinancialInsightsOutputSchema, type FinancialInsightsInput, type FinancialInsightsOutput } from '@/lib/types';
 
 
 // This flow is designed to be called directly from a Next.js Server Action.
@@ -21,15 +19,15 @@ import { FinancialInsightsInputSchema, FinancialInsightsOutputSchema } from '@/l
 const ai = genkit({
   plugins: [
     googleAI({
-      apiKey: process.env.GEMINI_API_KEY,
+       apiKey: process.env.GEMINI_API_KEY,
     }),
   ],
-  defaultModel: 'gemini-pro'
 });
 
 
 const prompt = ai.definePrompt({
     name: 'financialInsightsPrompt',
+    model: 'gemini-pro',
     input: { schema: FinancialInsightsInputSchema },
     output: { schema: FinancialInsightsOutputSchema },
     prompt: `You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is {{{currentUserName}}}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing {{{currentUserName}}} directly.
