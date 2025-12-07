@@ -44,14 +44,23 @@ export default function DebtsPage() {
     debtPayments,
   } = allData;
 
-  const handleFormSubmit = useCallback(async (values: any) => {
+ const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
 
-    const debtData = {
-        ...values,
+    // Separate dueDate from the rest of the values
+    const { dueDate, ...restOfValues } = values;
+
+    const debtData: Partial<PreviousDebt> = {
+        ...restOfValues,
         registeredByUserId: user.uid,
         remainingAmount: values.amount,
+        paidInstallments: 0, // Always initialize with 0
     };
+
+    // Only add dueDate back if it's not an installment plan
+    if (!values.isInstallment && dueDate) {
+        debtData.dueDate = dueDate;
+    }
 
     const newDebtRef = collection(doc(firestore, 'family-data', FAMILY_DATA_DOC), 'previousDebts');
     
@@ -71,6 +80,7 @@ export default function DebtsPage() {
         });
 
   }, [user, firestore, toast]);
+
 
   const handlePayDebt = useCallback(async ({ debt, paymentBankAccountId, amount }: { debt: PreviousDebt, paymentBankAccountId: string, amount: number }) => {
     if (!user || !firestore || !categories || !bankAccounts) return;
@@ -105,13 +115,17 @@ export default function DebtsPage() {
         }
         
         const newRemainingAmount = currentDebtData.remainingAmount - amount;
+        const newPaidInstallments = (currentDebtData.paidInstallments || 0) + 1; // Increment paid installments
         const balanceBefore = accountData.balance;
         const balanceAfter = balanceBefore - amount;
         
         const expenseCategory = categories.find(c => c.name.includes('بدهی')) || categories[0];
         
         // Update debt
-        transaction.update(debtRef, { remainingAmount: newRemainingAmount });
+        transaction.update(debtRef, { 
+            remainingAmount: newRemainingAmount,
+            paidInstallments: newPaidInstallments // Save new count
+        });
         
         // Update account balance
         transaction.update(accountToPayFromRef, { balance: balanceAfter });
@@ -168,7 +182,7 @@ export default function DebtsPage() {
   }, [user, firestore, categories, bankAccounts, toast]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
-    if (!user || !firestore || !previousDebts || !debtPayments) return;
+    if (!user || !firestore || !previousDebts) return;
 
     const debtToDelete = previousDebts.find(d => d.id === debtId);
     if (!debtToDelete) {
@@ -176,8 +190,8 @@ export default function DebtsPage() {
         return;
     }
     
-    const hasPayments = debtPayments.some(p => p.debtId === debtId);
-    if (hasPayments) {
+    // Use paidInstallments to check for history
+    if (debtToDelete.paidInstallments > 0) {
         toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این بدهی دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌های مرتبط را به صورت دستی برگردانید.'});
         return;
     }
@@ -192,7 +206,7 @@ export default function DebtsPage() {
         toast({ variant: 'destructive', title: 'خطا در حذف', description: 'مشکلی در حذف بدهی پیش آمد.'});
     });
 
-  }, [user, firestore, previousDebts, debtPayments, toast]);
+  }, [user, firestore, previousDebts, toast]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 

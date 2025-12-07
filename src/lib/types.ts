@@ -162,6 +162,7 @@ export type PreviousDebt = {
     paymentDay?: number; // For installment debts
     numberOfInstallments?: number;
     installmentAmount?: number;
+    paidInstallments: number; // New field to track paid installments
 }
 
 export type DebtPayment = {

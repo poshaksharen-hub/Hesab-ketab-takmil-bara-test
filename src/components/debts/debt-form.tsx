@@ -42,6 +42,7 @@ const formSchema = z.object({
   paymentDay: z.coerce.number().min(1).max(30).optional(),
   numberOfInstallments: z.coerce.number().int().min(0).optional(),
   installmentAmount: z.coerce.number().min(0).optional(),
+  paidInstallments: z.coerce.number().default(0),
 }).refine(data => {
     if (data.isInstallment) {
         return !!data.paymentDay;
@@ -73,6 +74,7 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
       amount: 0,
       startDate: new Date(),
       isInstallment: false,
+      paidInstallments: 0,
     },
   });
 

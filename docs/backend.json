@@ -50,7 +50,7 @@
         "balance": { "type": "number" },
         "initialBalance": { "type": "number" },
         "blockedBalance": { "type": "number", "description": "Amount blocked for financial goals."},
-        "theme": { "type": "string", "enum": ["blue", "green", "purple", "orange", "gray"] }
+        "theme": { "type": "string" }
       },
       "required": ["id", "ownerId", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance"]
     },
@@ -91,7 +91,7 @@
         "date": { "type": "string", "format": "date-time" },
         "description": { "type": "string" },
         "type": { "type": "string", "enum": ["expense"] },
-        "subType": { "type": "string", "enum": ["goal_saved_portion", "goal_cash_portion", "debt_payment"], "description": "Differentiates special expenses." },
+        "subType": { "type": "string", "enum": ["goal_saved_portion", "goal_cash_portion", "loan_payment", "debt_payment", "goal_contribution"], "description": "Differentiates special expenses." },
         "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this expense was for (beneficiary)." },
         "checkId": { "type": "string" },
         "goalId": { "type": "string" },
@@ -136,6 +136,7 @@
         "id": { "type": "string" },
         "registeredByUserId": { "type": "string" },
         "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Who owns this liability (person or shared account)." },
+        "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this check was for (beneficiary)." },
         "bankAccountId": { "type": "string" },
         "payeeId": { "type": "string" },
         "categoryId": { "type": "string" },
@@ -143,11 +144,12 @@
         "issueDate": { "type": "string", "format": "date-time" },
         "dueDate": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["pending", "cleared"] },
+        "clearedDate": { "type": "string", "format": "date-time", "description": "The date the check was cleared." },
         "description": { "type": "string" },
         "sayadId": { "type": "string", "description": "The Sayad ID of the check." },
         "checkSerialNumber": { "type": "string", "description": "The serial number of the check." }
       },
-      "required": ["id", "registeredByUserId", "ownerId", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
+      "required": ["id", "registeredByUserId", "ownerId", "expenseFor", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
     },
     "FinancialGoalContribution": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -194,7 +196,7 @@
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who owns this liability (beneficiary)." },
+            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the loan is for (beneficiary)." },
             "payeeId": { "type": "string" },
             "title": { "type": "string" },
             "amount": { "type": "number" },
@@ -231,14 +233,20 @@
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who owns this liability (beneficiary)." },
+            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the debt is for (beneficiary)." },
             "payeeId": { "type": "string" },
             "description": { "type": "string" },
             "amount": { "type": "number" },
             "remainingAmount": { "type": "number" },
-            "startDate": { "type": "string", "format": "date-time" }
+            "startDate": { "type": "string", "format": "date-time" },
+            "isInstallment": { "type": "boolean" },
+            "dueDate": { "type": "string", "format": "date-time" },
+            "paymentDay": { "type": "number" },
+            "numberOfInstallments": { "type": "number" },
+            "installmentAmount": { "type": "number" },
+            "paidInstallments": { "type": "number" }
         },
-        "required": ["id", "registeredByUserId", "ownerId", "payeeId", "description", "amount", "remainingAmount", "startDate"]
+        "required": ["id", "registeredByUserId", "ownerId", "payeeId", "description", "amount", "remainingAmount", "startDate", "paidInstallments"]
     },
     "DebtPayment": {
         "$schema": "http://json-schema.org/draft-07/schema#",
