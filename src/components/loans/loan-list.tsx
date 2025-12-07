@@ -52,10 +52,10 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
   };
 
   const getAccountInfo = (accountId?: string) => {
-    if (!accountId) return null;
+    if (!accountId) return { bankName: 'نامشخص', ownerName: '' };
     const account = bankAccounts.find(acc => acc.id === accountId);
-    if (!account) return null;
-    const ownerName = account.ownerId === 'shared_account' ? 'حساب مشترک' : (USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || '');
+    if (!account) return { bankName: 'نامشخص', ownerName: '' };
+    const ownerName = account.ownerId === 'shared_account' ? 'حساب مشترک' : (USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || 'ناشناس');
     return { bankName: account.bankName, ownerName };
   };
 
@@ -121,7 +121,7 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
                                         {getLoanStatus(loan)}
                                         {loan.payeeId && <span className="text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
                                     </CardDescription>
-                                    {depositAccountInfo && (
+                                    {depositAccountInfo.bankName !== 'نامشخص' && (
                                         <CardDescription className="flex items-center gap-2 text-xs text-primary pt-1">
                                             <Landmark className="h-3 w-3" />
                                             <span>واریز شده به: {depositAccountInfo.bankName} ({depositAccountInfo.ownerName})</span>
@@ -212,5 +212,3 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
     </div>
   );
 }
-
-    
