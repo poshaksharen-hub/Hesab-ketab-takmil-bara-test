@@ -95,26 +95,16 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     if (!selectedOwnerId || !bankAccounts) return [];
     
     let targetOwnerIds: ('ali' | 'fatemeh' | 'shared_account')[] = [];
+    
     if (selectedOwnerId === 'daramad_moshtarak') {
-        targetOwnerIds = ['shared_account', 'ali', 'fatemeh']; // Shared business can deposit to any account
-    } else {
+        targetOwnerIds = ['shared_account']; // Shared business income can ONLY go to the shared account.
+    } else { // For 'ali' or 'fatemeh'
         targetOwnerIds = [selectedOwnerId];
     }
     
-    return [...bankAccounts.filter(acc => targetOwnerIds.includes(acc.ownerId))].sort((a, b) => {
-      const getGroup = (ownerId: string) => {
-          if (ownerId === 'shared_account') return 0;
-          if (ownerId === loggedInUserOwnerId) return 1;
-          return 2;
-      }
-      const groupA = getGroup(a.ownerId);
-      const groupB = getGroup(b.ownerId);
-      if (groupA !== groupB) {
-          return groupA - groupB;
-      }
-      return b.balance - a.balance;
-    });
-  }, [selectedOwnerId, bankAccounts, loggedInUserOwnerId]);
+    return [...bankAccounts.filter(acc => targetOwnerIds.includes(acc.ownerId))].sort((a, b) => b.balance - a.balance);
+
+  }, [selectedOwnerId, bankAccounts]);
 
   useEffect(() => {
       const currentBankAccountId = form.getValues('bankAccountId');
