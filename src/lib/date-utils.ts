@@ -6,27 +6,36 @@ import type { Loan, PreviousDebt } from './types';
 
 
 /**
- * Calculates the next upcoming due date for a Loan or PreviousDebt.
- * This function intelligently handles both installment-based and single-payment debts.
+ * Calculates the next upcoming due date for a Loan or installment-based PreviousDebt.
+ * This function intelligently determines the next payment date based on the number of installments already paid.
  * @param item - The full Loan or PreviousDebt object.
- * @returns A Date object for the next due date, or null if not applicable.
+ * @returns A Date object for the next due date, or null if not applicable (e.g., fully paid).
  */
 export function getNextDueDate(item: Loan | PreviousDebt): Date | null {
-  // For non-installment debts with a specific due date.
+  // For non-installment debts, the due date is fixed.
   if ('isInstallment' in item && !item.isInstallment) {
     return item.dueDate ? new Date(item.dueDate) : null;
   }
 
-  // Logic for installment-based items (Loans and installment Debts).
+  // --- Logic for installment-based items (Loans and installment Debts) ---
+
+  // Ensure 'paidInstallments' exists, defaulting to 0 if not.
+  const paidCount = 'paidInstallments' in item ? item.paidInstallments || 0 : 0;
+  const totalInstallments = 'numberOfInstallments' in item ? item.numberOfInstallments || 0 : 0;
+
+  // If all installments are paid, there's no next due date.
+  if (totalInstallments > 0 && paidCount >= totalInstallments) {
+    return null;
+  }
+  
   const startDate = startOfDay(new Date(item.startDate));
   const paymentDay = item.paymentDay || 1; // Default to the 1st if not specified
-  const paidCount = 'paidInstallments' in item ? item.paidInstallments : 0;
 
   // Start the calculation from the month of the start date.
   let calculationDate = startDate;
 
-  // Adjust if the start date is after the payment day in its own month.
-  // This means the first effective payment month is the next one.
+  // If the start date is after the recurring payment day in its own month,
+  // the first effective payment month is the *next* one.
   if (getDate(startDate) > paymentDay) {
       calculationDate = addMonths(calculationDate, 1);
   }
@@ -35,6 +44,7 @@ export function getNextDueDate(item: Loan | PreviousDebt): Date | null {
   const nextDueDateMonth = addMonths(calculationDate, paidCount);
   
   // Set the day of the month to the recurring payment day.
+  // date-fns handles cases like setting day 31 in a 30-day month gracefully.
   return set(nextDueDateMonth, { date: paymentDay });
 }
 

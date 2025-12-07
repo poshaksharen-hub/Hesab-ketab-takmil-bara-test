@@ -48,10 +48,13 @@ export default function DueDatesPage() {
     const upcomingLoanPayments: Deadline[] = (loans || [])
       .filter(l => l.remainingAmount > 0)
       .map(l => {
+        const nextDueDate = getNextDueDate(l);
+        if (!nextDueDate) return null;
+
         return {
             id: l.id,
             type: 'loan' as const,
-            date: getNextDueDate(l),
+            date: nextDueDate,
             title: `قسط وام: ${l.title}`,
             amount: l.installmentAmount,
             details: {
@@ -66,14 +69,13 @@ export default function DueDatesPage() {
             },
             originalItem: l,
         }
-      });
+      }).filter((d): d is Deadline => d !== null);
 
 
      const upcomingDebts: Deadline[] = (previousDebts || [])
       .filter(d => d.remainingAmount > 0)
       .map(d => {
         const dueDate = getNextDueDate(d);
-        // If getNextDueDate returns null (which it shouldn't for active debts), skip this item.
         if (!dueDate) return null;
 
         return {
