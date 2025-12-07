@@ -110,10 +110,10 @@ export default function ChecksPage() {
         if (!bankAccountDoc.exists()) throw new Error("حساب بانکی یافت نشد.");
 
         const bankAccountData = bankAccountDoc.data()!;
-        const availableBalance = bankAccountData.balance;
+        const availableBalance = bankAccountData.balance - (bankAccountData.blockedBalance || 0);
 
         if (availableBalance < check.amount) {
-          throw new Error("موجودی حساب برای پاس کردن چک کافی نیست.");
+          throw new Error("موجودی قابل استفاده حساب برای پاس کردن چک کافی نیست.");
         }
 
         const clearedDate = new Date().toISOString();
@@ -277,3 +277,4 @@ export default function ChecksPage() {
 
 
     
+

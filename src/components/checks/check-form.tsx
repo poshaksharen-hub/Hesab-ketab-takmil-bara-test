@@ -228,7 +228,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                             <SelectContent className="max-h-[250px]">
                                 {checkingAccounts.map((account) => (
                                 <SelectItem key={account.id} value={account.id}>
-                                    {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} (جاری) - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                                    {`${account.bankName} ${getOwnerName(account)} (جاری) - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                                 </SelectItem>
                                 ))}
                             </SelectContent>

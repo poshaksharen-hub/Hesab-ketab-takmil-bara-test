@@ -91,7 +91,7 @@ export function AddToGoalDialog({
 
   const selectedBankAccountId = form.watch('bankAccountId');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
-  const availableBalance = selectedBankAccount ? selectedBankAccount.balance - selectedBankAccount.blockedBalance : 0;
+  const availableBalance = selectedBankAccount ? selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0) : 0;
 
   function handleFormSubmit(data: AddToGoalFormValues) {
     onSubmit({
@@ -135,7 +135,7 @@ export function AddToGoalDialog({
                     <SelectContent>
                       {sortedBankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                           {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
+                           {`${account.bankName} ${getOwnerName(account)} (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -168,7 +168,7 @@ export function AddToGoalDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 انصراف
               </Button>
-              <Button type="submit">افزودن و ثبت هزینه</Button>
+              <Button type="submit">افزودن و مسدود کردن</Button>
             </DialogFooter>
           </form>
         </Form>

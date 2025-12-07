@@ -142,7 +142,7 @@ export function PayDebtDialog({
                     <SelectContent>
                       {sortedBankAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                           {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
+                           {`${account.bankName} ${getOwnerName(account)} (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                         </SelectItem>
                       ))}
                     </SelectContent>

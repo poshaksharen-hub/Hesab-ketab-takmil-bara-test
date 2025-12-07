@@ -69,7 +69,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
 
   const fromAccountId = form.watch('fromBankAccountId');
   const fromAccount = bankAccounts.find(acc => acc.id === fromAccountId);
-  const fromAccountAvailableBalance = fromAccount ? fromAccount.balance - fromAccount.blockedBalance : 0;
+  const fromAccountAvailableBalance = fromAccount ? fromAccount.balance - (fromAccount.blockedBalance || 0) : 0;
 
   const sortedFromAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
 
@@ -114,7 +114,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                       <SelectContent className="max-h-[250px]">
                         {sortedFromAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
+                            {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -143,7 +143,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                       <SelectContent className="max-h-[250px]">
                         {availableToAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
+                            {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
