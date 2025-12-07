@@ -81,7 +81,9 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
     if (loan.remainingAmount <= 0) {
       return <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">تسویه شده</Badge>;
     }
-    const nextDueDate = getNextDueDate(loan.startDate, loan.paymentDay);
+    const nextDueDate = getNextDueDate(loan);
+    if (!nextDueDate) return <Badge variant="secondary">در حال پرداخت</Badge>;
+
     const today = new Date();
     today.setHours(0,0,0,0);
     if(nextDueDate < today) {
