@@ -79,7 +79,7 @@ const FinancialGoalSchema = z.object({
   name: z.string(),
   targetAmount: z.number(),
   currentAmount: z.number(),
-  targetDate: z_DOT_string(),
+  targetDate: z.string(),
   priority: z.string(),
   isAchieved: z.boolean(),
 });
@@ -153,7 +153,7 @@ const prompt = ai.definePrompt({
         - **General Guidance:** Offer general tips for improving financial health, such as creating an emergency fund, suggesting monthly savings based on income, etc.
 
     Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,
-    model: 'googleai/gemini-2.5-flash',
+    model: 'googleai/gemini-pro',
 });
 
 // Define the flow, which will be called by the main function

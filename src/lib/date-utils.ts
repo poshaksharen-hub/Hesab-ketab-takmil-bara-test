@@ -17,27 +17,31 @@ export function getNextDueDate(
   lastPaymentDate?: string | Date
 ): Date {
   const today = startOfDay(new Date());
+  const initialStartDate = startOfDay(new Date(startDate));
+
+  // Determine the anchor date for calculation: either the last payment or the loan's start date
+  const anchorDate = lastPaymentDate ? startOfDay(new Date(lastPaymentDate)) : initialStartDate;
+
+  // Calculate this month's due date relative to the anchor date.
+  let nextDueDate = set(anchorDate, { date: paymentDay });
+
+  // If the calculated due date is on or before the anchor date, move to the next month.
+  // This handles cases where payment was made on the due date, or if we are calculating from the start date.
+  if (!isAfter(nextDueDate, anchorDate)) {
+    nextDueDate = addMonths(nextDueDate, 1);
+  }
   
-  // Calculate this month's due date
-  let thisMonthDueDate = set(today, { date: paymentDay });
-
-  // If a last payment was made, check if it covers this month's due date.
-  if (lastPaymentDate) {
-    const lastPayDate = startOfDay(new Date(lastPaymentDate));
-    // If the last payment was on or after this month's due date, the next one is next month.
-    if (!isAfter(thisMonthDueDate, lastPayDate)) {
-      return addMonths(thisMonthDueDate, 1);
-    }
+  // If the calculated next due date is still in the past relative to *today*, 
+  // it means there are missed payments. We should show the very next upcoming due date from today.
+  let thisMonthFromToday = set(today, { date: paymentDay });
+  if (isAfter(today, thisMonthFromToday)) {
+      // If today is past this month's due date, the next one is next month
+      return addMonths(thisMonthFromToday, 1);
+  } else {
+      // Otherwise, it's this month's
+      return thisMonthFromToday;
   }
 
-  // If no recent payment covers this month, check if today is already past it.
-  // If today is past this month's due date, the next due date is next month.
-  if (isAfter(today, thisMonthDueDate)) {
-      return addMonths(thisMonthDueDate, 1);
-  }
-
-  // Otherwise, this month's due date is the upcoming one.
-  return thisMonthDueDate;
 }
 
 

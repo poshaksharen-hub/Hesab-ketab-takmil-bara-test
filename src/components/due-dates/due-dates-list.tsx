@@ -71,7 +71,7 @@ const renderStatus = (date: Date) => {
     return <span className="text-muted-foreground">{toPersianDigits(daysDiff)} روز دیگر</span>;
 };
 
-const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
+const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string | null }) => {
     if (!value) return null;
     return (
         <div className="flex items-center gap-2" title={label}>
