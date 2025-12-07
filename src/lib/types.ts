@@ -133,7 +133,7 @@ export type Loan = {
     installmentAmount: number;
     remainingAmount: number;
     startDate: string;
-    paymentDay: number; // Day of the month
+    firstInstallmentDate: string;
     numberOfInstallments: number;
     paidInstallments: number;
     depositToAccountId?: string;
@@ -159,10 +159,10 @@ export type PreviousDebt = {
     startDate: string;
     isInstallment: boolean;
     dueDate?: string; // For single payment debts
-    paymentDay?: number; // For installment debts
+    firstInstallmentDate?: string; // For installment debts
     numberOfInstallments?: number;
     installmentAmount?: number;
-    paidInstallments: number; // New field to track paid installments
+    paidInstallments: number;
 }
 
 export type DebtPayment = {

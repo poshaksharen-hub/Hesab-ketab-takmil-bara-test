@@ -55,7 +55,7 @@
       "required": ["id", "ownerId", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance"]
     },
     "Income": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$schema": "http://json-schema.org/draft_07/schema#",
       "title": "Income",
       "type": "object",
       "description": "Represents an income transaction.",
@@ -203,12 +203,12 @@
             "installmentAmount": { "type": "number" },
             "remainingAmount": { "type": "number" },
             "startDate": { "type": "string", "format": "date-time" },
-            "paymentDay": { "type": "number" },
+            "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "The exact date of the first installment payment."},
             "numberOfInstallments": { "type": "number" },
             "paidInstallments": { "type": "number" },
             "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." }
         },
-        "required": ["id", "registeredByUserId", "ownerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "paymentDay", "numberOfInstallments", "paidInstallments"]
+        "required": ["id", "registeredByUserId", "ownerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "numberOfInstallments", "paidInstallments", "firstInstallmentDate"]
     },
     "LoanPayment": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -240,13 +240,13 @@
             "remainingAmount": { "type": "number" },
             "startDate": { "type": "string", "format": "date-time" },
             "isInstallment": { "type": "boolean" },
-            "dueDate": { "type": "string", "format": "date-time" },
-            "paymentDay": { "type": "number" },
+            "dueDate": { "type": "string", "format": "date-time", "description": "Due date for single-payment debts." },
+            "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "Date of the first installment for installment-based debts." },
             "numberOfInstallments": { "type": "number" },
             "installmentAmount": { "type": "number" },
             "paidInstallments": { "type": "number" }
         },
-        "required": ["id", "registeredByUserId", "ownerId", "payeeId", "description", "amount", "remainingAmount", "startDate", "paidInstallments"]
+        "required": ["id", "registeredByUserId", "ownerId", "payeeId", "description", "amount", "remainingAmount", "startDate", "isInstallment", "paidInstallments"]
     },
     "DebtPayment": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -322,3 +322,4 @@
     ]
   }
 }
+

@@ -38,7 +38,7 @@ const baseSchema = z.object({
   installmentAmount: z.coerce.number().min(0, 'مبلغ قسط نمی‌تواند منفی باشد.').optional(),
   numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').optional(),
   startDate: z.date({ required_error: 'لطفا تاریخ شروع را انتخاب کنید.' }),
-  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').optional(),
+  firstInstallmentDate: z.date({ required_error: 'لطفا تاریخ اولین قسط را انتخاب کنید.'}),
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
 });
@@ -52,6 +52,9 @@ const formSchema = baseSchema.refine(data => {
 }, {
     message: "برای واریز مبلغ، انتخاب حساب مقصد الزامی است.",
     path: ["depositToAccountId"], // Attach error to this field
+}).refine(data => data.firstInstallmentDate >= data.startDate, {
+    message: "تاریخ اولین قسط نمی‌تواند قبل از تاریخ دریافت وام باشد.",
+    path: ["firstInstallmentDate"],
 });
 
 
@@ -78,7 +81,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             installmentAmount: 0,
             numberOfInstallments: 0,
             startDate: new Date(),
-            paymentDay: 5,
+            firstInstallmentDate: new Date(),
             depositOnCreate: false,
             depositToAccountId: '',
         },
@@ -98,10 +101,10 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             form.reset({
                 ...initialData,
                 startDate: new Date(initialData.startDate),
+                firstInstallmentDate: new Date(initialData.firstInstallmentDate),
                 payeeId: initialData.payeeId || '',
                 installmentAmount: initialData.installmentAmount || 0,
                 numberOfInstallments: initialData.numberOfInstallments || 0,
-                paymentDay: initialData.paymentDay || 5,
                 depositOnCreate: !!initialData.depositToAccountId,
                 depositToAccountId: initialData.depositToAccountId || '',
             });
@@ -114,7 +117,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 installmentAmount: 0,
                 numberOfInstallments: 0,
                 startDate: new Date(),
-                paymentDay: 5,
+                firstInstallmentDate: new Date(),
                 depositOnCreate: false,
                 depositToAccountId: '',
             });
@@ -142,6 +145,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         const submissionData = {
             ...data,
             startDate: data.startDate.toISOString(),
+            firstInstallmentDate: data.firstInstallmentDate.toISOString(),
         };
         onSubmit(submissionData);
     }, [onSubmit]);
@@ -239,14 +243,14 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         />
                     </div>
                     <div className="rounded-lg border p-4 space-y-4">
-                        <p className='text-sm text-muted-foreground'>اطلاعات زیر فقط برای یادآوری و آمار است و در محاسبات تاثیری ندارد.</p>
+                        <p className='text-sm text-muted-foreground'>اطلاعات پرداخت اقساط</p>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <FormField
                                 control={form.control}
                                 name="installmentAmount"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
+                                    <FormLabel>مبلغ هر قسط (تومان)</FormLabel>
                                     <FormControl>
                                     <CurrencyInput value={field.value || 0} onChange={field.onChange} />
                                     </FormControl>
@@ -259,7 +263,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 name="numberOfInstallments"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
+                                    <FormLabel>تعداد کل اقساط</FormLabel>
                                     <FormControl>
                                         <NumericInput {...field} value={field.value || ''} />
                                     </FormControl>
@@ -272,31 +276,21 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <FormField
                             control={form.control}
-                            name="paymentDay"
+                            name="startDate"
                             render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>روز یادآوری پرداخت در ماه</FormLabel>
-                                <FormControl>
-                                    <NumericInput
-                                        min="1"
-                                        max="30"
-                                        {...field}
-                                        value={field.value || ''}
-                                    />
-                                </FormControl>
-                                <FormDescription>
-                                روز پرداخت قسط در هر ماه (مثلا: پنجم هر ماه)
-                                </FormDescription>
+                            <FormItem className="flex flex-col">
+                                <FormLabel>تاریخ دریافت وام</FormLabel>
+                                <JalaliDatePicker value={field.value} onChange={field.onChange} />
                                 <FormMessage />
                             </FormItem>
                             )}
                         />
                         <FormField
                             control={form.control}
-                            name="startDate"
+                            name="firstInstallmentDate"
                             render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>تاریخ دریافت وام</FormLabel>
+                                <FormLabel>تاریخ اولین قسط</FormLabel>
                                 <JalaliDatePicker value={field.value} onChange={field.onChange} />
                                 <FormMessage />
                             </FormItem>
@@ -374,5 +368,3 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </>
     );
 }
-
-    

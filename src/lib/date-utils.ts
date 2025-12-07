@@ -12,41 +12,28 @@ import type { Loan, PreviousDebt } from './types';
  * @returns A Date object for the next due date, or null if not applicable (e.g., fully paid).
  */
 export function getNextDueDate(item: Loan | PreviousDebt): Date | null {
-  // For non-installment debts, the due date is fixed.
+  // For single-payment debts, the due date is fixed.
   if ('isInstallment' in item && !item.isInstallment) {
     return item.dueDate ? new Date(item.dueDate) : null;
   }
-
-  // --- Logic for installment-based items (Loans and installment Debts) ---
-
-  // Ensure 'paidInstallments' exists, defaulting to 0 if not.
+  
+  // For installment-based debts that have been fully paid.
   const paidCount = 'paidInstallments' in item ? item.paidInstallments || 0 : 0;
   const totalInstallments = 'numberOfInstallments' in item ? item.numberOfInstallments || 0 : 0;
-
-  // If all installments are paid, there's no next due date.
   if (totalInstallments > 0 && paidCount >= totalInstallments) {
-    return null;
-  }
-  
-  const startDate = startOfDay(new Date(item.startDate));
-  const paymentDay = item.paymentDay || 1; // Default to the 1st if not specified
-
-  // Start the calculation from the month of the start date.
-  let calculationDate = startDate;
-
-  // If the start date is after the recurring payment day in its own month,
-  // the first effective payment month is the *next* one.
-  if (getDate(startDate) > paymentDay) {
-      calculationDate = addMonths(calculationDate, 1);
+      return null;
   }
 
-  // The next due date is `paidCount` months after the (potentially adjusted) start date.
-  const nextDueDateMonth = addMonths(calculationDate, paidCount);
+  // --- Logic for installment-based items (Loans and installment Debts) ---
+  const firstInstallmentDateStr = 'firstInstallmentDate' in item ? item.firstInstallmentDate : undefined;
+  if (!firstInstallmentDateStr) return null; // Cannot calculate without the first date.
   
-  // Set the day of the month to the recurring payment day.
-  // date-fns handles cases like setting day 31 in a 30-day month gracefully.
-  return set(nextDueDateMonth, { date: paymentDay });
+  const firstInstallmentDate = new Date(firstInstallmentDateStr);
+  
+  // The next due date is `paidCount` months after the first installment date.
+  return addMonths(firstInstallmentDate, paidCount);
 }
+
 
 
 export function getDateRange(preset: 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'thisYear'): { range: { from: Date, to: Date }, preset: typeof preset } {

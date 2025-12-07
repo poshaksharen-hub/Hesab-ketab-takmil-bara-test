@@ -39,17 +39,17 @@ const formSchema = z.object({
   startDate: z.date({ required_error: 'لطفا تاریخ ایجاد بدهی را انتخاب کنید.' }),
   isInstallment: z.boolean().default(false),
   dueDate: z.date().optional(),
-  paymentDay: z.coerce.number().min(1).max(30).optional(),
+  firstInstallmentDate: z.date().optional(),
   numberOfInstallments: z.coerce.number().int().min(0).optional(),
   installmentAmount: z.coerce.number().min(0).optional(),
   paidInstallments: z.coerce.number().default(0),
 }).refine(data => {
     if (data.isInstallment) {
-        return !!data.paymentDay;
+        return !!data.firstInstallmentDate;
     }
     return !!data.dueDate;
 }, {
-    message: "لطفا مهلت پرداخت یا روز پرداخت قسط را مشخص کنید.",
+    message: "برای بدهی قسطی، تاریخ اولین قسط و برای بدهی یکجا، تاریخ سررسید الزامی است.",
     path: ["isInstallment"], // General path, specific message shown in UI
 });
 
@@ -79,17 +79,17 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
   });
 
   function handleFormSubmit(data: DebtFormValues) {
-    const { dueDate, paymentDay, ...rest } = data;
-
     const submissionData: any = {
-      ...rest,
+      ...data,
       startDate: data.startDate.toISOString(),
     };
 
     if (data.isInstallment) {
-        submissionData.paymentDay = data.paymentDay;
+        submissionData.firstInstallmentDate = data.firstInstallmentDate?.toISOString();
+        delete submissionData.dueDate;
     } else {
         submissionData.dueDate = data.dueDate?.toISOString();
+        delete submissionData.firstInstallmentDate;
     }
     
     onSubmit(submissionData);
@@ -253,13 +253,11 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
                             />
                             <FormField
                                 control={form.control}
-                                name="paymentDay"
+                                name="firstInstallmentDate"
                                 render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>روز یادآوری پرداخت</FormLabel>
-                                    <FormControl>
-                                        <NumericInput min="1" max="30" {...field} value={field.value || ''}/>
-                                    </FormControl>
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>تاریخ اولین قسط</FormLabel>
+                                    <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
                                     <FormMessage />
                                 </FormItem>
                                 )}
@@ -272,7 +270,7 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
                                 name="dueDate"
                                 render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>مهلت پرداخت</FormLabel>
+                                    <FormLabel>تاریخ سررسید پرداخت</FormLabel>
                                     <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
                                     <FormMessage />
                                 </FormItem>
@@ -302,5 +300,3 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
     </>
   );
 }
-
-    

@@ -30,24 +30,21 @@ export function UpcomingDeadlines({ checks, loans, payees, previousDebts }: Upco
     const upcomingLoanPayments = (loans || [])
       .filter(l => l.remainingAmount > 0)
       .map(l => {
+        const nextDueDate = getNextDueDate(l);
+        if (!nextDueDate) return null;
         return {
             id: l.id,
             type: 'loan' as const,
-            date: getNextDueDate(l),
+            date: nextDueDate,
             title: `قسط وام: ${l.title}`,
             amount: l.installmentAmount,
         };
-      });
+      }).filter((d): d is NonNullable<typeof d> => d !== null);
 
     const upcomingDebts = (previousDebts || [])
       .filter(d => d.remainingAmount > 0)
       .map(d => {
-        let dueDate: Date | null = null;
-        if (d.isInstallment && d.paymentDay) {
-          dueDate = getNextDueDate(d);
-        } else if (!d.isInstallment && d.dueDate) {
-          dueDate = new Date(d.dueDate);
-        }
+        const dueDate = getNextDueDate(d);
         if (!dueDate) return null;
 
         return {
@@ -55,7 +52,7 @@ export function UpcomingDeadlines({ checks, loans, payees, previousDebts }: Upco
           type: 'debt' as const,
           date: dueDate,
           title: `پرداخت بدهی: ${d.description}`,
-          amount: d.installmentAmount || d.remainingAmount,
+          amount: d.isInstallment ? (d.installmentAmount || d.remainingAmount) : d.remainingAmount,
         };
       }).filter((d): d is NonNullable<typeof d> => d !== null);
 
