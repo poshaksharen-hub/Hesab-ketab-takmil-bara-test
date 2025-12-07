@@ -18,7 +18,7 @@ export default function DueDatesPage() {
   const deadlines = useMemo(() => {
     if (isLoading) return [];
     
-    const { checks, loans, payees, previousDebts, users, categories, bankAccounts, loanPayments, debtPayments } = allData;
+    const { checks, loans, payees, previousDebts, users, categories, bankAccounts } = allData;
 
     const upcomingChecks: Deadline[] = (checks || [])
       .filter(c => c.status === 'pending')
@@ -39,6 +39,7 @@ export default function DueDatesPage() {
             categoryName: categories.find(cat => cat.id === c.categoryId)?.name || 'نامشخص',
             payeeName: payees.find(p => p.id === c.payeeId)?.name,
             description: c.description,
+            sayadId: c.sayadId,
           },
           originalItem: c,
         };

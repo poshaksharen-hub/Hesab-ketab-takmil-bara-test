@@ -7,7 +7,7 @@ import { formatCurrency, formatJalaliDate, toPersianDigits } from '@/lib/utils';
 import { differenceInDays, isPast, isToday } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Handshake, Landmark, HandCoins, AlertTriangle, User, Users, FolderKanban, BookUser, PenSquare, MessageSquareText } from 'lucide-react';
+import { FileText, Handshake, Landmark, HandCoins, AlertTriangle, User, Users, FolderKanban, BookUser, PenSquare, MessageSquareText, FileBadge } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
 import { Separator } from '../ui/separator';
 
@@ -25,6 +25,7 @@ export type Deadline = {
     categoryName: string;
     payeeName?: string;
     description?: string;
+    sayadId?: string; // Specific to checks
   };
   originalItem: Check | Loan | PreviousDebt;
 };
@@ -134,6 +135,7 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
                         <DetailItem icon={Landmark} label="صاحب حساب" value={`${ownerName} (${item.details.bankAccountName})`} />
                         <DetailItem icon={BeneficiaryIcon} label="تراکنش برای" value={beneficiaryName} />
                         <DetailItem icon={PenSquare} label="ثبت توسط" value={item.details.registeredBy} />
+                        {item.details.sayadId && <DetailItem icon={FileBadge} label="شناسه صیاد" value={item.details.sayadId} />}
                         {item.details.description && <div className="col-span-full"><DetailItem icon={MessageSquareText} label="توضیحات" value={item.details.description} /></div>}
                     </div>
                 </CardContent>

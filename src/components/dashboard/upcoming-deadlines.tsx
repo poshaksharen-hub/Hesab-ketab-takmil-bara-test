@@ -1,7 +1,7 @@
 
 'use client';
 
-import { type Check, type Loan, type Payee, type PreviousDebt, type LoanPayment, type DebtPayment } from '@/lib/types';
+import { type Check, type Loan, type Payee, type PreviousDebt } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { getNextDueDate } from '@/lib/date-utils';
 import { CalendarClock, FileText, Handshake } from 'lucide-react';
@@ -12,11 +12,9 @@ type UpcomingDeadlinesProps = {
   loans: Loan[];
   payees: Payee[];
   previousDebts: PreviousDebt[];
-  loanPayments: LoanPayment[]; // Added loanPayments
-  debtPayments: DebtPayment[]; // Added debtPayments
 };
 
-export function UpcomingDeadlines({ checks, loans, payees, previousDebts, loanPayments, debtPayments }: UpcomingDeadlinesProps) {
+export function UpcomingDeadlines({ checks, loans, payees, previousDebts }: UpcomingDeadlinesProps) {
 
   const deadlines = useMemo(() => {
     const upcomingChecks = (checks || [])
@@ -64,7 +62,7 @@ export function UpcomingDeadlines({ checks, loans, payees, previousDebts, loanPa
     return [...upcomingChecks, ...upcomingLoanPayments, ...upcomingDebts]
       .sort((a, b) => a.date.getTime() - b.date.getTime())
       .slice(0, 5);
-  }, [checks, loans, payees, previousDebts, loanPayments, debtPayments]);
+  }, [checks, loans, payees, previousDebts]);
 
   if (deadlines.length === 0) {
     return (

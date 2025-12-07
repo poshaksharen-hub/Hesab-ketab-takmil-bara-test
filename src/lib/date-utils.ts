@@ -7,6 +7,7 @@ import type { Loan, PreviousDebt } from './types';
 
 /**
  * Calculates the next upcoming due date for a recurring payment based on the number of paid installments.
+ * This is the definitive logic.
  * @param item - The full Loan or PreviousDebt object.
  * @returns A Date object representing the next upcoming due date.
  */
@@ -17,33 +18,20 @@ export function getNextDueDate(
   const paymentDay = item.paymentDay || 1;
   const paidCount = 'paidInstallments' in item ? item.paidInstallments : 0;
 
-  // Calculate the month of the next due date by adding the number of paid installments to the start date's month
-  const nextDueDateMonth = addMonths(startDate, paidCount);
-  
-  let nextDueDate = set(nextDueDateMonth, { date: paymentDay });
+  // Start calculation from the month of the start date.
+  let calculationDate = startDate;
 
-  // If the calculated due date for the current month iteration is already past,
-  // it means the next logical due date is in the *following* month.
-  // This handles cases where the start date is late in the month.
-  // Example: Starts on Jan 20th, payment day is 5th. First payment is Feb 5th.
-  if (isAfter(startDate, nextDueDate)) {
-      nextDueDate = addMonths(nextDueDate, 1);
+  // If the start date is after the payment day of its own month, the first installment is effectively in the next month.
+  // So, we start our count from the next month.
+  if (getDate(startDate) > paymentDay) {
+      calculationDate = addMonths(calculationDate, 1);
   }
 
-  // Now, ensure the calculated date is not in the past relative to today.
-  // If it is (meaning payments are overdue), find the very next due date from today.
-  const today = startOfDay(new Date());
-  if (isPast(nextDueDate) && !isToday(nextDueDate)) {
-      let upcomingDate = set(today, { date: paymentDay });
-      if(isAfter(today, upcomingDate) || isToday(upcomingDate)) {
-        // if today is on or after this month's payment day, the next one is next month
-        return addMonths(upcomingDate, 1);
-      }
-      // otherwise, it's this month's upcoming payment day
-      return upcomingDate;
-  }
+  // The next due date is `paidCount` months after the (adjusted) start date.
+  const nextDueDateMonth = addMonths(calculationDate, paidCount);
   
-  return nextDueDate;
+  // Set the day of the month to the payment day.
+  return set(nextDueDateMonth, { date: paymentDay });
 }
 
 
