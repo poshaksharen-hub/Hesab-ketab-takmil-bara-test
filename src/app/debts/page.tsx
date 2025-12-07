@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -54,13 +53,14 @@ export default function DebtsPage() {
       const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
       const newDebtRef = collection(familyDataRef, 'previousDebts');
       
-      const newDoc = await addDoc(newDebtRef, {
+      const newDocRef = await addDoc(newDebtRef, {
         ...values,
         registeredByUserId: user.uid,
         remainingAmount: values.amount,
       });
 
-      await updateDoc(newDoc, { id: newDoc.id });
+      // After creating the document, update it with its own ID.
+      await updateDoc(newDocRef, { id: newDocRef.id });
 
       toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
       setIsFormOpen(false);
