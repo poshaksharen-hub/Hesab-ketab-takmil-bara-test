@@ -1,3 +1,4 @@
+'use client';
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
@@ -9,7 +10,8 @@ import { googleAI } from '@genkit-ai/google-genai';
 export const ai = genkit({
   plugins: [
     googleAI({
-       apiKey: process.env.GEMINI_API_KEY,
+      apiKey: process.env.GEMINI_API_KEY,
+      apiVersion: 'v1', // Force the stable API version
     }),
   ],
 });
