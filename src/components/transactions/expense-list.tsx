@@ -185,18 +185,6 @@ export function ExpenseList({
                                 label="ثبت توسط"
                                 value={getUserName(expense.registeredByUserId)}
                             />
-                             <DetailItem
-                                icon={Receipt}
-                                label="موجودی قبل"
-                                value={expense.balanceBefore !== undefined ? formatCurrency(expense.balanceBefore, 'IRT') : 'نامشخص'}
-                                className="font-mono"
-                            />
-                            <DetailItem
-                                icon={Wallet}
-                                label="موجودی بعد"
-                                value={expense.balanceAfter !== undefined ? formatCurrency(expense.balanceAfter, 'IRT') : 'نامشخص'}
-                                className="text-primary font-mono"
-                            />
                         </div>
                     </CardContent>
                     <CardFooter className="p-2 bg-muted/50">
