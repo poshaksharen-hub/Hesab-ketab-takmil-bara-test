@@ -10,6 +10,8 @@ import {
   serverTimestamp,
   addDoc,
   updateDoc,
+  runTransaction,
+  deleteDoc,
 } from 'firebase/firestore';
 import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,84 +80,91 @@ export default function DebtsPage() {
         return;
     }
 
-    const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debt.id);
-    const accountToPayFromRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', paymentBankAccountId);
-    
-    const accountData = bankAccounts.find(acc => acc.id === paymentBankAccountId);
-    if (!accountData) {
-        toast({ variant: 'destructive', title: 'خطا', description: 'حساب بانکی پرداخت یافت نشد.'});
-        return;
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const debtRef = doc(familyDataRef, 'previousDebts', debt.id);
+        const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
+        
+        const debtDoc = await transaction.get(debtRef);
+        const accountToPayFromDoc = await transaction.get(accountToPayFromRef);
+
+        if (!debtDoc.exists()) throw new Error("بدهی مورد نظر یافت نشد.");
+        if (!accountToPayFromDoc.exists()) throw new Error("کارت بانکی پرداخت یافت نشد.");
+
+        const currentDebtData = debtDoc.data() as PreviousDebt;
+        const accountData = accountToPayFromDoc.data() as BankAccount;
+        const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
+
+        if (amount > currentDebtData.remainingAmount) {
+            throw new Error(`مبلغ پرداختی (${formatCurrency(amount, 'IRT')}) نمی‌تواند از مبلغ باقی‌مانده بدهی (${formatCurrency(currentDebtData.remainingAmount, 'IRT')}) بیشتر باشد.`);
+        }
+
+        if (availableBalance < amount) {
+            throw new Error("موجودی حساب برای پرداخت کافی نیست.");
+        }
+        
+        const newRemainingAmount = currentDebtData.remainingAmount - amount;
+        const balanceBefore = accountData.balance;
+        const balanceAfter = balanceBefore - amount;
+        
+        const expenseCategory = categories.find(c => c.name.includes('بدهی')) || categories[0];
+        
+        // Update debt
+        transaction.update(debtRef, { remainingAmount: newRemainingAmount });
+        
+        // Update account balance
+        transaction.update(accountToPayFromRef, { balance: balanceAfter });
+
+        // Create payment record
+        const newPaymentRef = doc(collection(familyDataRef, 'debtPayments'));
+        transaction.set(newPaymentRef, {
+            id: newPaymentRef.id,
+            debtId: debt.id,
+            bankAccountId: paymentBankAccountId,
+            amount: amount,
+            paymentDate: new Date().toISOString(),
+            registeredByUserId: user.uid,
+        });
+        
+        // Create expense record
+        const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
+        transaction.set(newExpenseRef, {
+            id: newExpenseRef.id,
+            ownerId: accountData.ownerId,
+            registeredByUserId: user.uid,
+            amount: amount,
+            bankAccountId: paymentBankAccountId,
+            categoryId: expenseCategory?.id || 'uncategorized',
+            payeeId: debt.payeeId,
+            date: new Date().toISOString(),
+            description: `پرداخت بدهی: ${debt.description}`,
+            type: 'expense' as const,
+            subType: 'debt_payment' as const,
+            debtPaymentId: newPaymentRef.id,
+            expenseFor: debt.ownerId,
+            createdAt: serverTimestamp(),
+            balanceBefore: balanceBefore,
+            balanceAfter: balanceAfter,
+        });
+      });
+      toast({ title: "موفقیت", description: "پرداخت با موفقیت ثبت و به عنوان هزینه در سیستم منظور شد." });
+      setPayingDebt(null);
+    } catch (error: any) {
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
+                path: `family-data/shared-data/previousDebts/${debt.id}`,
+                operation: 'write'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'خطا در پرداخت بدهی',
+                description: error.message,
+            });
+        }
     }
-
-    if (amount > debt.remainingAmount) {
-        toast({ variant: 'destructive', title: 'خطا', description: `مبلغ پرداختی (${formatCurrency(amount, 'IRT')}) نمی‌تواند از مبلغ باقی‌مانده بدهی (${formatCurrency(debt.remainingAmount, 'IRT')}) بیشتر باشد.`});
-        return;
-    }
-
-    if (accountData.balance < amount) {
-        toast({ variant: 'destructive', title: 'خطا', description: 'موجودی حساب برای پرداخت کافی نیست.'});
-        return;
-    }
-    
-    const newRemainingAmount = debt.remainingAmount - amount;
-    const balanceBefore = accountData.balance;
-    const balanceAfter = balanceBefore - amount;
-    
-    const expenseCategory = categories.find(c => c.name.includes('بدهی')) || categories[0];
-    const newPaymentRef = doc(collection(doc(firestore, 'family-data', FAMILY_DATA_DOC), 'debtPayments'));
-    const newExpenseRef = doc(collection(doc(firestore, 'family-data', FAMILY_DATA_DOC), 'expenses'));
-
-    // Optimistic UI updates can happen here if needed
-
-    // Update debt
-    updateDoc(debtRef, { remainingAmount: newRemainingAmount }).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: debtRef.path, operation: 'update', requestResourceData: { remainingAmount: newRemainingAmount } }));
-    });
-    
-    // Update account balance
-    updateDoc(accountToPayFromRef, { balance: balanceAfter }).catch(error => {
-         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: accountToPayFromRef.path, operation: 'update', requestResourceData: { balance: balanceAfter } }));
-    });
-
-    // Create payment record
-    const paymentData = {
-        id: newPaymentRef.id,
-        debtId: debt.id,
-        bankAccountId: paymentBankAccountId,
-        amount: amount,
-        paymentDate: new Date().toISOString(),
-        registeredByUserId: user.uid,
-    };
-    updateDoc(newPaymentRef, paymentData).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: newPaymentRef.path, operation: 'create', requestResourceData: paymentData }));
-    });
-    
-    // Create expense record
-    const expenseData = {
-        id: newExpenseRef.id,
-        ownerId: accountData.ownerId,
-        registeredByUserId: user.uid,
-        amount: amount,
-        bankAccountId: paymentBankAccountId,
-        categoryId: expenseCategory?.id || 'uncategorized',
-        payeeId: debt.payeeId,
-        date: new Date().toISOString(),
-        description: `پرداخت بدهی: ${debt.description}`,
-        type: 'expense' as const,
-        subType: 'debt_payment' as const,
-        debtPaymentId: newPaymentRef.id,
-        expenseFor: debt.ownerId,
-        createdAt: serverTimestamp(),
-        balanceBefore: balanceBefore,
-        balanceAfter: balanceAfter,
-    };
-     updateDoc(newExpenseRef, expenseData).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: newExpenseRef.path, operation: 'create', requestResourceData: expenseData }));
-    });
-
-    toast({ title: "موفقیت", description: "پرداخت با موفقیت ثبت و به عنوان هزینه در سیستم منظور شد." });
-    setPayingDebt(null);
-
   }, [user, firestore, categories, bankAccounts, toast]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
@@ -174,11 +183,13 @@ export default function DebtsPage() {
     }
 
     const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
-    updateDoc(debtRef, { id: debtRef.id }).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: debtRef.path, operation: 'delete'}));
-        toast({ variant: 'destructive', title: 'خطا در حذف', description: 'مشکلی در حذف بدهی پیش آمد.'});
-    }).then(() => {
+    
+    deleteDoc(debtRef).then(() => {
         toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
+    }).catch(error => {
+        const permissionError = new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'خطا در حذف', description: 'مشکلی در حذف بدهی پیش آمد.'});
     });
 
   }, [user, firestore, previousDebts, debtPayments, toast]);
@@ -230,3 +241,5 @@ export default function DebtsPage() {
     </main>
   );
 }
+
+    

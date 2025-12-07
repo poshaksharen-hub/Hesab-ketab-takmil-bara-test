@@ -77,14 +77,22 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
   });
 
   function handleFormSubmit(data: DebtFormValues) {
-    const submissionData = {
-      ...data,
+    const { dueDate, paymentDay, ...rest } = data;
+
+    const submissionData: any = {
+      ...rest,
       startDate: data.startDate.toISOString(),
-      dueDate: data.isInstallment ? undefined : data.dueDate?.toISOString(),
-      paymentDay: data.isInstallment ? data.paymentDay : undefined,
     };
+
+    if (data.isInstallment) {
+        submissionData.paymentDay = data.paymentDay;
+    } else {
+        submissionData.dueDate = data.dueDate?.toISOString();
+    }
+    
     onSubmit(submissionData);
   }
+
 
   const handlePayeeSelection = (value: string) => {
     if (value === 'add_new') {
@@ -292,3 +300,5 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
     </>
   );
 }
+
+    
