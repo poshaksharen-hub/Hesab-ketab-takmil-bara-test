@@ -50,35 +50,37 @@ export default function DebtsPage() {
     if (!user || !firestore) return;
 
     try {
-      const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-      const newDebtRef = collection(familyDataRef, 'previousDebts');
-      
-      const newDocRef = await addDoc(newDebtRef, {
-        ...values,
-        registeredByUserId: user.uid,
-        remainingAmount: values.amount,
-      });
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const newDebtRef = collection(familyDataRef, 'previousDebts');
+        
+        // 1. Create the new document with initial data
+        const newDocRef = await addDoc(newDebtRef, {
+            ...values,
+            registeredByUserId: user.uid,
+            remainingAmount: values.amount, // Set remaining amount equal to total amount
+        });
 
-      // After creating the document, update it with its own ID.
-      await updateDoc(newDocRef, { id: newDocRef.id });
+        // 2. Update the document with its own ID
+        await updateDoc(newDocRef, { id: newDocRef.id });
 
-      toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
-      setIsFormOpen(false);
+        toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
+        setIsFormOpen(false);
+
     } catch (error: any) {
-      if (error.name === 'FirebaseError') {
-         const permissionError = new FirestorePermissionError({
+        if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
             path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
             operation: 'create',
             requestResourceData: values,
         });
         errorEmitter.emit('permission-error', permissionError);
-      } else {
+        } else {
         toast({
-          variant: 'destructive',
-          title: 'خطا در ثبت بدهی',
-          description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
+            variant: 'destructive',
+            title: 'خطا در ثبت بدهی',
+            description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
         });
-      }
+        }
     }
   }, [user, firestore, toast]);
 
