@@ -12,18 +12,16 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'genkit';
-import { onCallGenkit, type HttpsOptions } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
 
-// Define the secret for the API key
-const geminiApiKey = defineSecret('GEMINI_API_KEY');
-
+// This flow is designed to be called directly from a Next.js Server Action.
+// We must ensure that environment variables are loaded correctly, especially GEMINI_API_KEY.
+// The configuration is handled here to be self-contained.
 
 // Initialize Genkit with the Google AI plugin
 const ai = genkit({
   plugins: [
     googleAI({
-      apiKey: geminiApiKey.value(),
+      apiKey: process.env.GEMINI_API_KEY,
     }),
   ],
 });
@@ -90,7 +88,7 @@ const ChatHistorySchema = z.object({
 });
 
 // Main input schema including all financial data and chat history
-const FinancialInsightsInputSchema = z.object({
+export const FinancialInsightsInputSchema = z.object({
   currentUserName: z.string().describe('The name of the user currently interacting with the system.'),
   incomes: z.array(EnrichedIncomeSchema).describe('List of family incomes, enriched with bank names.'),
   expenses: z.array(EnrichedExpenseSchema).describe('List of family expenses, enriched with bank, category, and payee names.'),
@@ -105,7 +103,7 @@ const FinancialInsightsInputSchema = z.object({
 export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
 
 // Output schema for the AI's response
-const FinancialInsightsOutputSchema = z.object({
+export const FinancialInsightsOutputSchema = z.object({
   summary: z.string().describe('A detailed, insightful, and friendly analysis of the overall financial situation, directly addressing the current user.'),
 });
 export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
@@ -170,26 +168,7 @@ const generateFinancialInsightsFlow = ai.defineFlow(
 );
 
 
-// This is the function that will be called by the client
-export const generateFinancialInsights = onCallGenkit(
-  {
-    secrets: [geminiApiKey],
-    authPolicy: (auth, context) => {
-      if (!auth) {
-        // Throwing an HttpsError is the standard way to handle auth errors.
-        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
-      }
-      return true; // Allow access for any authenticated user
-    },
-  },
-  // The flow to wrap
-  (input: Omit<FinancialInsightsInput, 'latestUserQuestion'>): Promise<FinancialInsightsOutput> => {
-    // Find the last message from the 'user'
-    const latestUserMessage = input.history.slice().reverse().find(m => m.role === 'user');
-    const fullInput: FinancialInsightsInput = {
-      ...input,
-      latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.', // Provide a default if no user message is found
-    };
-    return generateFinancialInsightsFlow(fullInput);
-  }
-);
+// This is the main server action function that will be called by the client
+export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
+    return generateFinancialInsightsFlow(input);
+}

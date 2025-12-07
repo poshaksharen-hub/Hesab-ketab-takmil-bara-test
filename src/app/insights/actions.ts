@@ -1,8 +1,7 @@
 
 'use server';
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { initializeFirebase } from '@/firebase/client-provider';
+import { generateFinancialInsights as generateFinancialInsightsFlow } from '@/ai/flows/generate-financial-insights';
 import type { FinancialInsightsInput, FinancialInsightsOutput } from '@/ai/flows/generate-financial-insights';
 
 
@@ -14,20 +13,23 @@ export async function getFinancialInsightsAction(
   }
 
   try {
-    // We can't use the regular firebase/client-provider here because this is a server action
-    // and we need a fresh instance of the functions client.
-    const { functions } = initializeFirebase();
-    const generateFinancialInsights = httpsCallable<Omit<FinancialInsightsInput, 'latestUserQuestion'>, FinancialInsightsOutput>(functions, 'generateFinancialInsights');
+    // The entire logic is now a pure server action, so we can directly call the flow.
+    // The previous implementation was incorrectly mixing client and server firebase initializations.
     
-    const result = await generateFinancialInsights(financialData);
-    const insights = result.data;
+    // Find the last message from the 'user' to pass as the specific question
+    const latestUserMessage = financialData.history.slice().reverse().find(m => m.role === 'user');
+    const fullInput: FinancialInsightsInput = {
+      ...financialData,
+      latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.', // Provide a default if no user message is found
+    };
+
+    const insights = await generateFinancialInsightsFlow(fullInput);
 
     return { success: true, data: insights };
 
   } catch (e: any) {
     console.error('Error in getFinancialInsightsAction:', e);
-    // Extract the core error message if available, otherwise show the full error.
-    const errorMessage = e.details?.message || e.message || 'یک خطای ناشناخته در سرور رخ داد.';
+    const errorMessage = e.message || 'یک خطای ناشناخته در سرور رخ داد.';
     return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: ${errorMessage}` };
   }
 }
