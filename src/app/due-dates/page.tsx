@@ -21,7 +21,7 @@ export default function DueDatesPage() {
     const { checks, loans, payees, previousDebts, users, categories, bankAccounts } = allData;
 
     const upcomingChecks: Deadline[] = (checks || [])
-      .filter(c => c.status === 'pending') // Fetch all pending checks
+      .filter(c => c.status === 'pending')
       .map(c => {
         const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
         
@@ -72,16 +72,8 @@ export default function DueDatesPage() {
      const upcomingDebts: Deadline[] = (previousDebts || [])
       .filter(d => d.remainingAmount > 0)
       .map(d => {
-        let dueDate: Date | null = null;
-        let amount = d.installmentAmount || d.remainingAmount;
-
-        // Ensure there is a way to determine the due date
-        if (d.isInstallment && d.paymentDay) {
-          dueDate = getNextDueDate(d);
-        } else if (!d.isInstallment && d.dueDate) {
-          dueDate = new Date(d.dueDate);
-        }
-
+        const dueDate = getNextDueDate(d);
+        // If getNextDueDate returns null (which it shouldn't for active debts), skip this item.
         if (!dueDate) return null;
 
         return {
@@ -89,7 +81,7 @@ export default function DueDatesPage() {
           type: 'debt' as const,
           date: dueDate,
           title: `پرداخت بدهی: ${d.description}`,
-          amount: amount,
+          amount: d.isInstallment ? (d.installmentAmount || d.remainingAmount) : d.remainingAmount,
           details: {
             liabilityOwnerId: d.ownerId,
             expenseFor: d.ownerId,
