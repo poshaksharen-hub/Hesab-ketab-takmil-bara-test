@@ -75,9 +75,12 @@ const renderStatus = (date: Date) => {
 const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string | null }) => {
     if (!value) return null;
     return (
-        <div className="flex items-center gap-2" title={label}>
-            <Icon className="h-4 w-4 text-muted-foreground" />
-            <span className="truncate">{value}</span>
+        <div className="flex items-center gap-2 text-xs">
+            <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="truncate">
+                <span className="text-muted-foreground">{label}: </span>
+                <span className="font-semibold">{value}</span>
+            </p>
         </div>
     );
 };
@@ -129,7 +132,7 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                     <Separator />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 text-xs pt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 pt-4">
                         <DetailItem icon={BookUser} label="طرف حساب" value={item.details.payeeName} />
                         <DetailItem icon={FolderKanban} label="بابت" value={item.details.categoryName} />
                         <DetailItem icon={LiabilityOwnerIcon} label="تعهد برای" value={liabilityOwnerName} />
