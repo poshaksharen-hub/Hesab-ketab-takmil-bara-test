@@ -106,6 +106,7 @@ export type FinancialGoalContribution = {
   bankAccountId: string;
   amount: number;
   date: string;
+  registeredByUserId: string;
 };
 
 export type FinancialGoal = {

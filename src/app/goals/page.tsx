@@ -85,6 +85,7 @@ export default function GoalsPage() {
                     bankAccountId: initialContributionBankAccountId,
                     amount: initialContributionAmount,
                     date: new Date().toISOString(),
+                    registeredByUserId: user.uid,
                 });
                 newGoalData.currentAmount = initialContributionAmount;
 
@@ -161,7 +162,7 @@ export default function GoalsPage() {
             if (!goalDoc.exists()) throw new Error("هدف مالی مورد نظر یافت نشد.");
             const goalData = goalDoc.data()!;
 
-            const newContributions = [...(goalData.contributions || []), { amount, bankAccountId, date: new Date().toISOString() }];
+            const newContributions = [...(goalData.contributions || []), { amount, bankAccountId, date: new Date().toISOString(), registeredByUserId: user.uid }];
             const newCurrentAmount = goalData.currentAmount + amount;
             const newBalance = accountData.balance - amount;
 

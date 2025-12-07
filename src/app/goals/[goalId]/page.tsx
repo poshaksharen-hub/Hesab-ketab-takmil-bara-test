@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -63,10 +64,12 @@ export default function GoalDetailPage() {
             const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
             const ownerId = bankAccount?.ownerId;
             const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
+            const registeredByName = users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص';
             return {
                 ...c,
                 bankName: bankAccount?.bankName || 'نامشخص',
                 ownerName,
+                registeredByName,
             }
         })
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -75,7 +78,7 @@ export default function GoalDetailPage() {
       goal: currentGoal,
       contributionsWithDetails: detailedContributions,
     };
-  }, [isLoading, goalId, goals, bankAccounts]);
+  }, [isLoading, goalId, goals, bankAccounts, users]);
 
   if (isLoading) {
     return <GoalDetailSkeleton />;
@@ -172,13 +175,14 @@ export default function GoalDetailPage() {
                     <TableHead>تاریخ پس‌انداز</TableHead>
                     <TableHead>مبلغ</TableHead>
                     <TableHead>از حساب</TableHead>
-                    <TableHead className="text-left">صاحب حساب</TableHead>
+                    <TableHead>صاحب حساب</TableHead>
+                    <TableHead className="text-left">ثبت توسط</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {contributionsWithDetails.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center">
+                            <TableCell colSpan={5} className="h-24 text-center">
                                 هنوز هیچ مبلغی برای این هدف پس‌انداز نشده است.
                             </TableCell>
                         </TableRow>
@@ -188,7 +192,8 @@ export default function GoalDetailPage() {
                         <TableCell>{formatJalaliDate(new Date(contrib.date))}</TableCell>
                         <TableCell className="font-medium font-mono">{formatCurrency(contrib.amount, 'IRT')}</TableCell>
                         <TableCell>{contrib.bankName}</TableCell>
-                        <TableCell className="text-left">{contrib.ownerName}</TableCell>
+                        <TableCell>{contrib.ownerName}</TableCell>
+                        <TableCell className="text-left">{contrib.registeredByName}</TableCell>
                     </TableRow>
                     )))}
                 </TableBody>
