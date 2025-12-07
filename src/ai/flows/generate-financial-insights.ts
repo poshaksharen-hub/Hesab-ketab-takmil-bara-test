@@ -12,6 +12,8 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'genkit';
+import type { FinancialInsightsInput, FinancialInsightsOutput } from '@/lib/types';
+
 
 // This flow is designed to be called directly from a Next.js Server Action.
 // We must ensure that environment variables are loaded correctly, especially GEMINI_API_KEY.
@@ -88,7 +90,7 @@ const ChatHistorySchema = z.object({
 });
 
 // Main input schema including all financial data and chat history
-export const FinancialInsightsInputSchema = z.object({
+const FinancialInsightsInputSchema = z.object({
   currentUserName: z.string().describe('The name of the user currently interacting with the system.'),
   incomes: z.array(EnrichedIncomeSchema).describe('List of family incomes, enriched with bank names.'),
   expenses: z.array(EnrichedExpenseSchema).describe('List of family expenses, enriched with bank, category, and payee names.'),
@@ -100,13 +102,13 @@ export const FinancialInsightsInputSchema = z.object({
   history: z.array(ChatHistorySchema).describe('The history of the conversation so far.'),
   latestUserQuestion: z.string().describe('The most recent question asked by the user.'),
 });
-export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
+
 
 // Output schema for the AI's response
-export const FinancialInsightsOutputSchema = z.object({
+const FinancialInsightsOutputSchema = z.object({
   summary: z.string().describe('A detailed, insightful, and friendly analysis of the overall financial situation, directly addressing the current user.'),
 });
-export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
+
 
 
 const prompt = ai.definePrompt({

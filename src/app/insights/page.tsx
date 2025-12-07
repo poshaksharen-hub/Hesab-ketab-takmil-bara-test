@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useTransition, useRef, useEffect } from 'react';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type FinancialInsightsInput, type FinancialInsightsOutput } from '@/ai/flows/generate-financial-insights';
+import { type FinancialInsightsInput, type FinancialInsightsOutput } from '@/lib/types';
 import { USER_DETAILS } from '@/lib/constants';
 import { useUser } from '@/firebase';
 import { getFinancialInsightsAction } from './actions';
@@ -133,11 +133,7 @@ export default function InsightsPage() {
     setError(null);
 
     startTransition(async () => {
-      const payload: Omit<FinancialInsightsInput, 'latestUserQuestion'> = {
-          ...financialData,
-          history: newMessages
-      };
-      const result = await getFinancialInsightsAction(payload);
+      const result = await getFinancialInsightsAction(financialData, newMessages);
 
       if (result.success && result.data) {
         setMessages(prev => [...prev, { role: 'model', content: result.data!.summary || '' }]);
