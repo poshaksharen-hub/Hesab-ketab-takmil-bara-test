@@ -70,7 +70,7 @@ const prompt = ai.definePrompt({
         - **General Guidance:** Offer general tips for improving financial health, such as creating an emergency fund, suggesting monthly savings based on income, etc.
 
     Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,
-    model: 'googleai/gemini-1.5-flash-latest',
+    model: googleAI.model('gemini-pro'),
 });
 
 // Define the flow, which will be called by the main function
