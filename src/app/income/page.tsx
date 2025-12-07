@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -143,14 +144,7 @@ export default function IncomePage() {
         </Button>
       </div>
 
-      {isLoading ? (
-          <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-          </div>
-      ) : isFormOpen ? (
-        <IncomeForm
+       <IncomeForm
           isOpen={isFormOpen}
           setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
@@ -158,6 +152,13 @@ export default function IncomePage() {
           bankAccounts={allBankAccounts || []}
           user={user}
         />
+
+      {isLoading ? (
+          <div className="space-y-4 mt-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+          </div>
       ) : (
         <IncomeList
           incomes={allIncomes || []}

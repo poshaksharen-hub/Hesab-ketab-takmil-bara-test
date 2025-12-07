@@ -1,4 +1,5 @@
 
+
 "use client";
 import React, { useEffect } from 'react';
 import { z } from 'zod';
@@ -22,7 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import type { FinancialGoal, BankAccount, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -87,7 +94,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
 
   const selectedBankAccountId = form.watch('initialContributionBankAccountId');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
-  const availableBalance = selectedBankAccount ? selectedBankAccount.balance : 0;
+  const availableBalance = selectedBankAccount ? (selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0)) : 0;
 
 
   function handleFormSubmit(data: GoalFormValues) {
@@ -113,160 +120,160 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline">
-          {initialData ? 'ویرایش هدف مالی' : 'افزودن هدف مالی جدید'}
-        </CardTitle>
-      </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-          <CardContent className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>نام هدف</FormLabel>
-                  <FormControl>
-                    <Input placeholder="مثال: سفر به شمال" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="ownerId"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>این هدف برای کیست؟</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
-                            <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                            <SelectItem value="shared">مشترک</SelectItem>
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="targetAmount"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>مبلغ کل هدف (تومان)</FormLabel>
-                        <FormControl>
-                          <CurrencyInput value={field.value} onChange={field.onChange} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-            </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField
-                    control={form.control}
-                    name="targetDate"
-                    render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                        <FormLabel>تاریخ هدف</FormLabel>
-                        <JalaliDatePicker value={field.value} onChange={field.onChange} />
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="priority"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>اولویت</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="اولویت را انتخاب کنید" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="low">پایین</SelectItem>
-                            <SelectItem value="medium">متوسط</SelectItem>
-                            <SelectItem value="high">بالا</SelectItem>
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-            </div>
-            <div className="space-y-2 rounded-lg border p-4">
-                <h3 className="font-semibold">پس‌انداز اولیه (اختیاری)</h3>
-                <p className="text-sm text-muted-foreground">
-                    می‌توانید بخشی از مبلغ هدف را از همین الان از موجودی یکی از کارت‌ها کسر و به عنوان هزینه ثبت کنید.
-                </p>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    <FormField
-                        control={form.control}
-                        name="initialContributionBankAccountId"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>از کارت</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="یک کارت انتخاب کنید" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="max-h-[250px]">
-                                {sortedBankAccounts.map((account) => {
-                                  const currentAvailableBalance = account.balance;
-                                  return (
-                                    <SelectItem key={account.id} value={account.id}>
-                                        {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(currentAvailableBalance, 'IRT')})`}
-                                    </SelectItem>
-                                  )
-                                })}
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="initialContributionAmount"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>مبلغ پس‌انداز (تومان)</FormLabel>
-                            <FormControl>
-                              <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={!selectedBankAccountId} />
-                            </FormControl>
-                            {selectedBankAccount && (
-                                <FormDescription className={cn(availableBalance < (field.value || 0) && "text-destructive")}>
-                                    موجودی حساب: {formatCurrency(availableBalance, 'IRT')}
-                                </FormDescription>
-                            )}
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
-            <Button type="submit" disabled={!!initialData}>ذخیره</Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+       <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-headline">
+            {initialData ? 'ویرایش هدف مالی' : 'افزودن هدف مالی جدید'}
+          </DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>نام هدف</FormLabel>
+                    <FormControl>
+                      <Input placeholder="مثال: سفر به شمال" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                      control={form.control}
+                      name="ownerId"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>این هدف برای کیست؟</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                              <SelectTrigger>
+                              <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
+                              </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                              <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                              <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                              <SelectItem value="shared">مشترک</SelectItem>
+                          </SelectContent>
+                          </Select>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={form.control}
+                      name="targetAmount"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>مبلغ کل هدف (تومان)</FormLabel>
+                          <FormControl>
+                            <CurrencyInput value={field.value} onChange={field.onChange} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+              </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <FormField
+                      control={form.control}
+                      name="targetDate"
+                      render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                          <FormLabel>تاریخ هدف</FormLabel>
+                          <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>اولویت</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                              <SelectTrigger>
+                              <SelectValue placeholder="اولویت را انتخاب کنید" />
+                              </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                              <SelectItem value="low">پایین</SelectItem>
+                              <SelectItem value="medium">متوسط</SelectItem>
+                              <SelectItem value="high">بالا</SelectItem>
+                          </SelectContent>
+                          </Select>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+              </div>
+              <div className="space-y-2 rounded-lg border p-4">
+                  <h3 className="font-semibold">پس‌انداز اولیه (اختیاری)</h3>
+                  <p className="text-sm text-muted-foreground">
+                      می‌توانید بخشی از مبلغ هدف را از همین الان از موجودی یکی از کارت‌ها کسر و به عنوان هزینه ثبت کنید.
+                  </p>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                      <FormField
+                          control={form.control}
+                          name="initialContributionBankAccountId"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>از کارت</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                  <SelectTrigger>
+                                  <SelectValue placeholder="یک کارت انتخاب کنید" />
+                                  </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="max-h-[250px]">
+                                  {sortedBankAccounts.map((account) => {
+                                    const currentAvailableBalance = account.balance - (account.blockedBalance || 0);
+                                    return (
+                                      <SelectItem key={account.id} value={account.id}>
+                                          {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(currentAvailableBalance, 'IRT')})`}
+                                      </SelectItem>
+                                    )
+                                  })}
+                              </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                       <FormField
+                          control={form.control}
+                          name="initialContributionAmount"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>مبلغ پس‌انداز (تومان)</FormLabel>
+                              <FormControl>
+                                <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={!selectedBankAccountId} />
+                              </FormControl>
+                              {selectedBankAccount && (
+                                  <FormDescription className={cn(availableBalance < (field.value || 0) && "text-destructive")}>
+                                      موجودی قابل استفاده: {formatCurrency(availableBalance, 'IRT')}
+                                  </FormDescription>
+                              )}
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
+              </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
+              <Button type="submit" disabled={!!initialData}>ذخیره</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

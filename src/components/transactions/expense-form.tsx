@@ -23,7 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import type { Expense, BankAccount, Category, Payee, ExpenseFor } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -46,7 +52,8 @@ const formSchema = z.object({
 type ExpenseFormValues = z.infer<typeof formSchema>;
 
 interface ExpenseFormProps {
-  onCancel: () => void;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
   onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => void;
   initialData: Expense | null;
   bankAccounts: BankAccount[];
@@ -54,7 +61,7 @@ interface ExpenseFormProps {
   payees: Payee[];
 }
 
-export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, categories, payees }: ExpenseFormProps) {
+export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees }: ExpenseFormProps) {
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   
@@ -137,15 +144,15 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
 
   return (
       <>
-        <Card>
-            <CardHeader>
-            <CardTitle className="font-headline">
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogContent>
+            <DialogHeader>
+            <DialogTitle className="font-headline">
                 {initialData ? 'ویرایش هزینه' : 'ثبت هزینه جدید'}
-            </CardTitle>
-            </CardHeader>
+            </DialogTitle>
+            </DialogHeader>
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-                <CardContent className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
                     name="description"
@@ -282,14 +289,14 @@ export function ExpenseForm({ onCancel, onSubmit, initialData, bankAccounts, cat
                         )}
                     />
                 </div>
-                </CardContent>
-                <CardFooter className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
                     <Button type="submit">ذخیره</Button>
-                </CardFooter>
+                </DialogFooter>
             </form>
             </Form>
-        </Card>
+            </DialogContent>
+        </Dialog>
         {isAddPayeeOpen && (
             <AddPayeeDialog
                 isOpen={isAddPayeeOpen}

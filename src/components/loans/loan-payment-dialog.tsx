@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react';
@@ -112,7 +113,7 @@ export function LoanPaymentDialog({
               <AlertTitle className="font-bold">اطلاعات وام</AlertTitle>
               <AlertDescription className="space-y-1 text-sm">
                 <div className="flex justify-between"><span>مبلغ کل وام:</span> <span className="font-mono">{formatCurrency(loan.amount, 'IRT')}</span></div>
-                <div className="flex justify-between"><span>مبلغ پیشنهادی قسط:</span> <span className="font-mono">{formatCurrency(loan.installmentAmount, 'IRT')}</span></div>
+                <div className="flex justify-between"><span>مبلغ هر قسط:</span> <span className="font-mono">{formatCurrency(loan.installmentAmount, 'IRT')}</span></div>
                 <div className="flex justify-between font-bold"><span>مبلغ باقی‌مانده:</span> <span className="font-mono">{formatCurrency(loan.remainingAmount, 'IRT')}</span></div>
               </AlertDescription>
             </Alert>

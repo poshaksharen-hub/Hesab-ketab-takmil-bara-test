@@ -55,7 +55,7 @@
       "required": ["id", "ownerId", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance"]
     },
     "Income": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$schema": "http://json-schema.org/draft_07/schema#",
       "title": "Income",
       "type": "object",
       "description": "Represents an income transaction.",
@@ -135,7 +135,7 @@
       "properties": {
         "id": { "type": "string" },
         "registeredByUserId": { "type": "string" },
-        "liabilityOwnerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Who owns this liability (person or shared account)." },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Who owns this liability (person or shared account)." },
         "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this check was for (beneficiary)." },
         "bankAccountId": { "type": "string" },
         "payeeId": { "type": "string" },
@@ -149,7 +149,7 @@
         "sayadId": { "type": "string", "description": "The Sayad ID of the check." },
         "checkSerialNumber": { "type": "string", "description": "The serial number of the check." }
       },
-      "required": ["id", "registeredByUserId", "liabilityOwnerId", "expenseFor", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
+      "required": ["id", "registeredByUserId", "ownerId", "expenseFor", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
     },
     "FinancialGoalContribution": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -196,19 +196,19 @@
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the loan is for (beneficiary)." },
+            "liabilityOwnerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the loan is for (beneficiary)." },
             "payeeId": { "type": "string" },
             "title": { "type": "string" },
             "amount": { "type": "number" },
             "installmentAmount": { "type": "number" },
             "remainingAmount": { "type": "number" },
             "startDate": { "type": "string", "format": "date-time" },
-            "paymentDay": { "type": "number" },
+            "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "The exact date of the first installment payment."},
             "numberOfInstallments": { "type": "number" },
             "paidInstallments": { "type": "number" },
             "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." }
         },
-        "required": ["id", "registeredByUserId", "ownerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "paymentDay", "numberOfInstallments", "paidInstallments"]
+        "required": ["id", "registeredByUserId", "liabilityOwnerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "numberOfInstallments", "paidInstallments", "firstInstallmentDate"]
     },
     "LoanPayment": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -240,12 +240,13 @@
             "remainingAmount": { "type": "number" },
             "startDate": { "type": "string", "format": "date-time" },
             "isInstallment": { "type": "boolean" },
-            "dueDate": { "type": "string", "format": "date-time" },
-            "paymentDay": { "type": "number" },
+            "dueDate": { "type": "string", "format": "date-time", "description": "Due date for single-payment debts." },
+            "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "Date of the first installment for installment-based debts." },
             "numberOfInstallments": { "type": "number" },
-            "installmentAmount": { "type": "number" }
+            "installmentAmount": { "type": "number" },
+            "paidInstallments": { "type": "number" }
         },
-        "required": ["id", "registeredByUserId", "ownerId", "payeeId", "description", "amount", "remainingAmount", "startDate"]
+        "required": ["id", "registeredByUserId", "ownerId", "payeeId", "description", "amount", "remainingAmount", "startDate", "isInstallment", "paidInstallments"]
     },
     "DebtPayment": {
         "$schema": "http://json-schema.org/draft-07/schema#",

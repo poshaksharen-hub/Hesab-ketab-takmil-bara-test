@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react';
@@ -67,14 +68,14 @@ export function PayDebtDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
-      amount: debt.remainingAmount,
+      amount: debt.isInstallment && debt.installmentAmount ? Math.min(debt.installmentAmount, debt.remainingAmount) : debt.remainingAmount,
     },
   });
   
   React.useEffect(() => {
     form.reset({
         paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
-        amount: debt.remainingAmount,
+        amount: debt.isInstallment && debt.installmentAmount ? Math.min(debt.installmentAmount, debt.remainingAmount) : debt.remainingAmount,
     });
   }, [debt, bankAccounts, form]);
   

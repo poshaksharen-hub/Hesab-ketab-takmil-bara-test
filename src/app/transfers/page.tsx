@@ -52,10 +52,10 @@ export default function TransfersPage() {
         }
 
         const fromCardData = fromCardDoc.data() as BankAccount;
-        const availableBalance = fromCardData.balance;
+        const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
 
         if (availableBalance < values.amount) {
-          throw new Error("موجودی حساب مبدا برای این انتقال کافی نیست.");
+          throw new Error("موجودی قابل استفاده حساب مبدا برای این انتقال کافی نیست.");
         }
 
         const fromBalanceBefore = fromCardData.balance;

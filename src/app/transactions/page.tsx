@@ -52,10 +52,10 @@ export default function ExpensesPage() {
                 throw new Error("کارت بانکی مورد نظر یافت نشد.");
             }
             const fromCardData = fromCardDoc.data() as BankAccount;
-            const availableBalance = fromCardData.balance;
+            const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
             
             if (availableBalance < values.amount) {
-                throw new Error("موجودی حساب برای انجام این هزینه کافی نیست.");
+                throw new Error("موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست.");
             }
             
             const balanceBefore = fromCardData.balance;
@@ -148,10 +148,6 @@ export default function ExpensesPage() {
     setIsFormOpen(true);
   }, []);
   
-  const handleCancel = React.useCallback(() => {
-    setIsFormOpen(false);
-  }, []);
-
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
@@ -166,21 +162,22 @@ export default function ExpensesPage() {
         </Button>
       </div>
 
-      {isLoading ? (
-          <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-          </div>
-      ) : isFormOpen ? (
-        <ExpenseForm
-          onCancel={handleCancel}
+       <ExpenseForm
+          isOpen={isFormOpen}
+          setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
           initialData={null}
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
           payees={allPayees || []}
         />
+
+      {isLoading ? (
+          <div className="space-y-4 mt-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+          </div>
       ) : (
         <ExpenseList
           expenses={allExpenses || []}

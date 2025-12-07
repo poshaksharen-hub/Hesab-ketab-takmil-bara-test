@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -90,7 +91,7 @@ export function IncomeList({
 
   if (incomes.length === 0) {
     return (
-      <Card>
+      <Card className="mt-4">
         <CardHeader>
           <CardTitle className="font-headline">لیست درآمدها</CardTitle>
         </CardHeader>
@@ -105,7 +106,7 @@ export function IncomeList({
   
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-4">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">لیست درآمدها</CardTitle>

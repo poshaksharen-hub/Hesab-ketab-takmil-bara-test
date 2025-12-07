@@ -65,8 +65,9 @@ export default function GoalsPage() {
                 if (!initialAccountDoc.exists()) throw new Error("حساب بانکی انتخاب شده برای پس‌انداز یافت نشد.");
                 
                 accountData = initialAccountDoc.data() as BankAccount;
-                if (accountData.balance < initialContributionAmount) {
-                    throw new Error("موجودی حساب برای این مبلغ کافی نیست.");
+                const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
+                if (availableBalance < initialContributionAmount) {
+                    throw new Error("موجودی قابل استفاده حساب برای این مبلغ کافی نیست.");
                 }
             }
 
@@ -89,27 +90,8 @@ export default function GoalsPage() {
                 });
                 newGoalData.currentAmount = initialContributionAmount;
 
-                const newBalance = accountData.balance - initialContributionAmount;
-                transaction.update(initialAccountDoc.ref, { balance: newBalance });
-
-                const expenseRef = doc(expensesRef);
-                transaction.set(expenseRef, {
-                    id: expenseRef.id,
-                    ownerId: accountData.ownerId,
-                    registeredByUserId: user.uid,
-                    amount: initialContributionAmount,
-                    bankAccountId: initialContributionBankAccountId,
-                    categoryId: categories.find(c => c.name.includes("سرمایه‌گذاری"))?.id || 'cat-investment',
-                    date: new Date().toISOString(),
-                    description: `واریز به هدف: ${newGoalData.name}`,
-                    type: 'expense' as const,
-                    subType: 'goal_contribution' as const,
-                    goalId: newGoalRef.id,
-                    expenseFor: newGoalData.ownerId,
-                    balanceBefore: accountData.balance,
-                    balanceAfter: newBalance,
-                    createdAt: serverTimestamp(),
-                });
+                 const newBlockedBalance = (accountData.blockedBalance || 0) + initialContributionAmount;
+                 transaction.update(initialAccountDoc.ref, { blockedBalance: newBlockedBalance });
             }
             
             transaction.set(newGoalRef, {
@@ -150,13 +132,13 @@ export default function GoalsPage() {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const goalRef = doc(familyDataRef, 'financialGoals', goal.id);
             const accountRef = doc(familyDataRef, 'bankAccounts', bankAccountId);
-            const expensesRef = collection(familyDataRef, 'expenses');
 
             const accountDoc = await transaction.get(accountRef);
             if (!accountDoc.exists()) throw new Error("حساب بانکی انتخاب شده یافت نشد.");
 
             const accountData = accountDoc.data()!;
-            if (accountData.balance < amount) throw new Error("موجودی حساب کافی نیست.");
+            const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
+            if (availableBalance < amount) throw new Error("موجودی قابل استفاده حساب کافی نیست.");
 
             const goalDoc = await transaction.get(goalRef);
             if (!goalDoc.exists()) throw new Error("هدف مالی مورد نظر یافت نشد.");
@@ -164,36 +146,15 @@ export default function GoalsPage() {
 
             const newContributions = [...(goalData.contributions || []), { amount, bankAccountId, date: new Date().toISOString(), registeredByUserId: user.uid }];
             const newCurrentAmount = goalData.currentAmount + amount;
-            const newBalance = accountData.balance - amount;
-
-            // Update Account Balance
-            transaction.update(accountRef, { balance: newBalance });
+            const newBlockedBalance = (accountData.blockedBalance || 0) + amount;
             
-            // Update Goal
+            transaction.update(accountRef, { blockedBalance: newBlockedBalance });
+            
             transaction.update(goalRef, { contributions: newContributions, currentAmount: newCurrentAmount });
 
-            // Create an expense transaction for this contribution
-            const expenseRef = doc(expensesRef);
-            transaction.set(expenseRef, {
-                id: expenseRef.id,
-                ownerId: accountData.ownerId,
-                registeredByUserId: user.uid,
-                amount: amount,
-                bankAccountId: bankAccountId,
-                categoryId: categories.find(c => c.name.includes("سرمایه‌گذاری"))?.id || 'cat-investment',
-                date: new Date().toISOString(),
-                description: `واریز به هدف: ${goal.name}`,
-                type: 'expense' as const,
-                subType: 'goal_contribution' as const,
-                goalId: goal.id,
-                expenseFor: goal.ownerId,
-                balanceBefore: accountData.balance,
-                balanceAfter: newBalance,
-                createdAt: serverTimestamp(),
-            });
         });
 
-        toast({ title: 'موفقیت', description: `مبلغ با موفقیت به پس‌انداز هدف "${goal.name}" اضافه و هزینه آن ثبت شد.` });
+        toast({ title: 'موفقیت', description: `مبلغ با موفقیت به پس‌انداز هدف "${goal.name}" اضافه و در حساب شما مسدود شد.` });
         setContributingGoal(null);
 
      } catch (error: any) {
@@ -222,16 +183,52 @@ export default function GoalsPage() {
                     description: 'هزینه‌های مربوط به تحقق اهداف مالی'
                 });
             }
+            
+            const savedPortion = goal.currentAmount;
+            const cashPaymentNeeded = Math.max(0, actualCost - savedPortion);
+            
+            // Release blocked money and create expense for the saved portion
+            for(const contribution of goal.contributions) {
+                const contributionAccountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
+                const contributionAccountDoc = await transaction.get(contributionAccountRef);
+                if(contributionAccountDoc.exists()){
+                    const accountData = contributionAccountDoc.data()!;
+                    const newBlocked = (accountData.blockedBalance || 0) - contribution.amount;
+                    const newBalance = accountData.balance - contribution.amount;
+                    transaction.update(contributionAccountRef, { balance: newBalance, blockedBalance: newBlocked });
 
-            const cashPaymentNeeded = Math.max(0, actualCost - goal.currentAmount);
+                    const expenseRef = doc(expensesRef);
+                    transaction.set(expenseRef, {
+                        id: expenseRef.id,
+                        ownerId: accountData.ownerId,
+                        registeredByUserId: user.uid,
+                        amount: contribution.amount,
+                        bankAccountId: contribution.bankAccountId,
+                        categoryId: goalsCategoryId,
+                        date: new Date().toISOString(),
+                        description: `تحقق هدف (بخش پس‌انداز): ${goal.name}`,
+                        type: 'expense' as const,
+                        subType: 'goal_saved_portion' as const,
+                        goalId: goal.id,
+                        expenseFor: goal.ownerId,
+                        balanceBefore: accountData.balance,
+                        balanceAfter: newBalance,
+                        createdAt: serverTimestamp(),
+                    });
+                }
+            }
 
+
+            // Handle cash portion if needed
             if (cashPaymentNeeded > 0) {
                 if (!paymentCardId) throw new Error("برای پرداخت مابقی هزینه، انتخاب کارت الزامی است.");
                 const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
                 const paymentAccountDoc = await transaction.get(paymentAccountRef);
                 if(!paymentAccountDoc.exists()) throw new Error("کارت پرداخت انتخاب شده یافت نشد.")
                 const paymentAccountData = paymentAccountDoc.data()!;
-                if(paymentAccountData.balance < cashPaymentNeeded) throw new Error(`موجودی کارت پرداخت (${formatCurrency(paymentAccountData.balance, 'IRT')}) برای پرداخت مابقی (${formatCurrency(cashPaymentNeeded, 'IRT')}) کافی نیست.`);
+                const availableCash = paymentAccountData.balance - (paymentAccountData.blockedBalance || 0);
+
+                if(availableCash < cashPaymentNeeded) throw new Error(`موجودی کارت پرداخت (${formatCurrency(availableCash, 'IRT')}) برای پرداخت مابقی (${formatCurrency(cashPaymentNeeded, 'IRT')}) کافی نیست.`);
                 
                 const newBalance = paymentAccountData.balance - cashPaymentNeeded;
                 transaction.update(paymentAccountRef, { balance: newBalance });
@@ -259,8 +256,8 @@ export default function GoalsPage() {
             transaction.update(goalRef, { 
                 isAchieved: true, 
                 actualCost: actualCost,
-                currentAmount: 0, // Reset current amount after achievement
-                contributions: [], // Clear contributions
+                currentAmount: 0,
+                contributions: [],
             });
         });
 
@@ -303,6 +300,10 @@ export default function GoalsPage() {
                 accountRestorations[expense.bankAccountId] = { balance: 0, blocked: 0 };
             }
             accountRestorations[expense.bankAccountId].balance += expense.amount;
+            
+            if (expense.subType === 'goal_saved_portion') {
+                accountRestorations[expense.bankAccountId].blocked += expense.amount;
+            }
             transaction.delete(doc.ref);
         });
         
@@ -319,6 +320,7 @@ export default function GoalsPage() {
                const accountData = accountDoc.data()!;
                transaction.update(accountRef, { 
                    'balance': accountData.balance + accountRestorations[accountId].balance,
+                   'blockedBalance': (accountData.blockedBalance || 0) + accountRestorations[accountId].blocked
                 });
              }
         }
@@ -354,20 +356,22 @@ export default function GoalsPage() {
                 throw new Error("لطفا ابتدا هدف را بازگردانی کنید و سپس اقدام به حذف نمایید.");
             }
             
-            const contributionExpensesQuery = query(collection(familyDataRef, 'expenses'), where('goalId', '==', goalId), where('subType', '==', 'goal_contribution'));
-            const contributionExpensesSnapshot = await getDocs(contributionExpensesQuery);
-            
-            contributionExpensesSnapshot.forEach(doc => {
-                const expense = doc.data() as Expense;
-                // Since we are deleting the goal, we just delete the expense record
-                // The money is already spent from the balance.
-                transaction.delete(doc.ref);
-            });
+            if (goalData.contributions && goalData.contributions.length > 0) {
+                 for(const contribution of goalData.contributions) {
+                    const accountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
+                    const accountDoc = await transaction.get(accountRef);
+                    if(accountDoc.exists()) {
+                        const accountData = accountDoc.data()!;
+                        const newBlockedBalance = (accountData.blockedBalance || 0) - contribution.amount;
+                        transaction.update(accountRef, { blockedBalance: newBlockedBalance });
+                    }
+                }
+            }
 
             transaction.delete(goalRef);
         });
 
-        toast({ title: "موفقیت", description: "هدف مالی با موفقیت حذف شد." });
+        toast({ title: "موفقیت", description: "هدف مالی و مبالغ مسدود شده مرتبط با آن با موفقیت حذف شد." });
     } catch (error: any) {
          if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
@@ -413,13 +417,7 @@ export default function GoalsPage() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Skeleton className="h-48 w-full rounded-xl" />
-          <Skeleton className="h-48 w-full rounded-xl" />
-        </div>
-      ) : isFormOpen ? (
-        <GoalForm
+       <GoalForm
           isOpen={isFormOpen}
           setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
@@ -427,6 +425,12 @@ export default function GoalsPage() {
           bankAccounts={bankAccounts || []}
           user={user}
         />
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
       ) : (
         <>
           <GoalList

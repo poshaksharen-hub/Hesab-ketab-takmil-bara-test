@@ -220,18 +220,18 @@ export default function DebtsPage() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Skeleton className="h-48 w-full rounded-xl" />
-            <Skeleton className="h-48 w-full rounded-xl" />
-        </div>
-      ) : isFormOpen ? (
-        <DebtForm
+      <DebtForm
           isOpen={isFormOpen}
           setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
           payees={payees || []}
         />
+      
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+            <Skeleton className="h-48 w-full rounded-xl" />
+            <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
       ) : (
         <>
             <DebtList

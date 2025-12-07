@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useEffect, useMemo, useCallback } from 'react';
@@ -14,6 +15,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Input, CurrencyInput } from '@/components/ui/input';
 import {
   Select,
@@ -22,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import type { User as AuthUser } from 'firebase/auth';
@@ -130,15 +137,15 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   }
   
   return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-headline">
             {initialData ? 'ویرایش درآمد' : 'ثبت درآمد جدید'}
-          </CardTitle>
-        </CardHeader>
+          </DialogTitle>
+        </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-            <CardContent className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
                <FormField
                 control={form.control}
                 name="description"
@@ -239,13 +246,13 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                     </FormItem>
                     )}
                 />
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2">
+            <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
                 <Button type="submit">ذخیره</Button>
-            </CardFooter>
+            </DialogFooter>
           </form>
         </Form>
-      </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

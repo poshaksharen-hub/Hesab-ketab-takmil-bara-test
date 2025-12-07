@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useMemo, useEffect } from 'react';
@@ -76,8 +77,7 @@ export function AchieveGoalDialog({
   const actualCost = form.watch('actualCost');
   const cashPaymentNeeded = Math.max(0, actualCost - goal.currentAmount);
   
-  const contributionAccountIds = new Set((goal.contributions || []).map(c => c.bankAccountId));
-  const availablePaymentAccounts = [...bankAccounts.filter(acc => !contributionAccountIds.has(acc.id))].sort((a,b) => b.balance - a.balance);
+  const availablePaymentAccounts = [...bankAccounts].sort((a,b) => b.balance - a.balance);
 
 
   function handleFormSubmit(data: AchieveGoalFormValues) {
@@ -142,7 +142,7 @@ export function AchieveGoalDialog({
                         <SelectContent>
                         {availablePaymentAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
-                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance - account.blockedBalance, 'IRT')})`}
+                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
                             </SelectItem>
                         ))}
                         </SelectContent>

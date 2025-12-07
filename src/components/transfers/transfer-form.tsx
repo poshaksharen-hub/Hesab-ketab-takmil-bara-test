@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react';
@@ -68,7 +69,9 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
   }
 
   const fromAccountId = form.watch('fromBankAccountId');
+  const toAccountId = form.watch('toBankAccountId');
   const fromAccount = bankAccounts.find(acc => acc.id === fromAccountId);
+  const toAccount = bankAccounts.find(acc => acc.id === toAccountId);
   const fromAccountAvailableBalance = fromAccount ? fromAccount.balance - (fromAccount.blockedBalance || 0) : 0;
 
   const sortedFromAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
@@ -148,6 +151,11 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                         ))}
                       </SelectContent>
                     </Select>
+                     {toAccount && (
+                        <p className="text-xs text-muted-foreground pt-1">
+                            موجودی فعلی مقصد: {formatCurrency(toAccount.balance, 'IRT')}
+                        </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
