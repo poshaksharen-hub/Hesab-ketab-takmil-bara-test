@@ -2,46 +2,48 @@
 import { set, addMonths, isPast, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, sub, startOfDay, endOfDay, isAfter, isToday, getDate } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 import { toDate } from 'date-fns-jalali';
+import type { Loan, PreviousDebt } from './types';
+
 
 /**
- * Calculates the next upcoming due date for a recurring payment.
- * It intelligently determines the next payment month based on the last payment date.
- * @param startDate - The initial start date of the loan/debt (ISO string or Date object).
- * @param paymentDay - The day of the month the payment is due (1-31).
- * @param lastPaymentDate - The date of the most recent payment (optional, ISO string or Date object).
+ * Calculates the next upcoming due date for a recurring payment based on the number of paid installments.
+ * @param item - The full Loan or PreviousDebt object.
  * @returns A Date object representing the next upcoming due date.
  */
 export function getNextDueDate(
-  startDate: string | Date,
-  paymentDay: number,
-  lastPaymentDate?: string | Date
+  item: Loan | PreviousDebt,
 ): Date {
+  const startDate = startOfDay(new Date(item.startDate));
+  const paymentDay = item.paymentDay || 1;
+  const paidCount = 'paidInstallments' in item ? item.paidInstallments : 0;
+
+  // Calculate the month of the next due date by adding the number of paid installments to the start date's month
+  const nextDueDateMonth = addMonths(startDate, paidCount);
+  
+  let nextDueDate = set(nextDueDateMonth, { date: paymentDay });
+
+  // If the calculated due date for the current month iteration is already past,
+  // it means the next logical due date is in the *following* month.
+  // This handles cases where the start date is late in the month.
+  // Example: Starts on Jan 20th, payment day is 5th. First payment is Feb 5th.
+  if (isAfter(startDate, nextDueDate)) {
+      nextDueDate = addMonths(nextDueDate, 1);
+  }
+
+  // Now, ensure the calculated date is not in the past relative to today.
+  // If it is (meaning payments are overdue), find the very next due date from today.
   const today = startOfDay(new Date());
-  const initialStartDate = startOfDay(new Date(startDate));
-
-  // Determine the anchor date for calculation: either the last payment or the loan's start date
-  const anchorDate = lastPaymentDate ? startOfDay(new Date(lastPaymentDate)) : initialStartDate;
-
-  // Calculate this month's due date relative to the anchor date.
-  let nextDueDate = set(anchorDate, { date: paymentDay });
-
-  // If the calculated due date is on or before the anchor date, move to the next month.
-  // This handles cases where payment was made on the due date, or if we are calculating from the start date.
-  if (!isAfter(nextDueDate, anchorDate)) {
-    nextDueDate = addMonths(nextDueDate, 1);
+  if (isPast(nextDueDate) && !isToday(nextDueDate)) {
+      let upcomingDate = set(today, { date: paymentDay });
+      if(isAfter(today, upcomingDate) || isToday(upcomingDate)) {
+        // if today is on or after this month's payment day, the next one is next month
+        return addMonths(upcomingDate, 1);
+      }
+      // otherwise, it's this month's upcoming payment day
+      return upcomingDate;
   }
   
-  // If the calculated next due date is still in the past relative to *today*, 
-  // it means there are missed payments. We should show the very next upcoming due date from today.
-  let thisMonthFromToday = set(today, { date: paymentDay });
-  if (isAfter(today, thisMonthFromToday)) {
-      // If today is past this month's due date, the next one is next month
-      return addMonths(thisMonthFromToday, 1);
-  } else {
-      // Otherwise, it's this month's
-      return thisMonthFromToday;
-  }
-
+  return nextDueDate;
 }
 
 
