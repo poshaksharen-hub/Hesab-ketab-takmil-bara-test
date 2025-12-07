@@ -24,6 +24,7 @@ const ai = genkit({
       apiKey: process.env.GEMINI_API_KEY,
     }),
   ],
+  defaultModel: 'gemini-pro'
 });
 
 
@@ -68,8 +69,7 @@ const prompt = ai.definePrompt({
         - **Savings & Goals:** Provide encouragement and concrete suggestions on how to reach financial goals faster based on their income and expenses.
         - **General Guidance:** Offer general tips for improving financial health, such as creating an emergency fund, suggesting monthly savings based on income, etc.
 
-    Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`,
-    model: googleAI.model('gemini-pro'),
+    Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`
 });
 
 // Define the flow, which will be called by the main function
