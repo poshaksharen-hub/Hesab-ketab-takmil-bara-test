@@ -18,9 +18,9 @@ export type Deadline = {
   title: string;
   amount: number;
   details: {
-    ownerId: OwnerId | 'shared_account'; // The actual account owner or the beneficiary
+    liabilityOwnerId: OwnerId | 'shared_account'; // The person/entity responsible for paying
     expenseFor: OwnerId; // The beneficiary
-    bankAccountName: string;
+    bankAccountName?: string; // Only for checks
     registeredBy: string;
     categoryName: string;
     payeeName?: string;
@@ -102,7 +102,7 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
     <div className="space-y-4">
       {deadlines.map((item) => {
         const { Icon: BeneficiaryIcon, name: beneficiaryName } = getOwnerDetails(item.details.expenseFor);
-        const { Icon: OwnerIcon, name: ownerName } = getOwnerDetails(item.details.ownerId);
+        const { Icon: LiabilityOwnerIcon, name: liabilityOwnerName } = getOwnerDetails(item.details.liabilityOwnerId);
         const isOverdue = isPast(item.date) && !isToday(item.date);
         
         let cardClasses = "shadow-md transition-shadow hover:shadow-lg";
@@ -132,9 +132,10 @@ export function DueDatesList({ deadlines, onAction }: DueDatesListProps) {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 text-xs pt-4">
                         <DetailItem icon={BookUser} label="طرف حساب" value={item.details.payeeName} />
                         <DetailItem icon={FolderKanban} label="بابت" value={item.details.categoryName} />
-                        <DetailItem icon={Landmark} label="صاحب حساب" value={`${ownerName} (${item.details.bankAccountName})`} />
-                        <DetailItem icon={BeneficiaryIcon} label="تراکنش برای" value={beneficiaryName} />
+                        <DetailItem icon={LiabilityOwnerIcon} label="تعهد برای" value={liabilityOwnerName} />
+                        <DetailItem icon={BeneficiaryIcon} label="ذی‌نفع" value={beneficiaryName} />
                         <DetailItem icon={PenSquare} label="ثبت توسط" value={item.details.registeredBy} />
+                        {item.details.bankAccountName && <DetailItem icon={Landmark} label="از حساب" value={item.details.bankAccountName} />}
                         {item.details.sayadId && <DetailItem icon={FileBadge} label="شناسه صیاد" value={item.details.sayadId} />}
                         {item.details.description && <div className="col-span-full"><DetailItem icon={MessageSquareText} label="توضیحات" value={item.details.description} /></div>}
                     </div>

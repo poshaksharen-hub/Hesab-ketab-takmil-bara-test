@@ -15,8 +15,8 @@ export default function DueDatesPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const deadlines = useMemo(() => {
-    if (isLoading) return [];
+  const deadlines = useMemo((): Deadline[] => {
+    if (isLoading || !allData) return [];
     
     const { checks, loans, payees, previousDebts, users, categories, bankAccounts } = allData;
 
@@ -32,7 +32,7 @@ export default function DueDatesPage() {
           title: c.description || `چک به ${payees.find(p => p.id === c.payeeId)?.name || 'ناشناس'}`,
           amount: c.amount,
           details: {
-            ownerId: bankAccount?.ownerId || 'shared_account',
+            liabilityOwnerId: bankAccount?.ownerId || 'shared_account',
             expenseFor: c.expenseFor,
             bankAccountName: bankAccount?.bankName || 'نامشخص',
             registeredBy: users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص',
@@ -55,9 +55,8 @@ export default function DueDatesPage() {
             title: `قسط وام: ${l.title}`,
             amount: l.installmentAmount,
             details: {
-              ownerId: l.ownerId, 
+              liabilityOwnerId: l.ownerId, 
               expenseFor: l.ownerId,
-              bankAccountName: '---', // Not applicable for loan itself
               registeredBy: users.find(u => u.id === l.registeredByUserId)?.firstName || 'نامشخص',
               categoryName: 'اقساط و بدهی',
               payeeName: payees.find(p => p.id === l.payeeId)?.name,
@@ -89,9 +88,8 @@ export default function DueDatesPage() {
           title: `پرداخت بدهی: ${d.description}`,
           amount: amount,
           details: {
-            ownerId: d.ownerId,
+            liabilityOwnerId: d.ownerId,
             expenseFor: d.ownerId,
-            bankAccountName: '---',
             registeredBy: users.find(u => u.id === d.registeredByUserId)?.firstName || 'نامشخص',
             categoryName: 'اقساط و بدهی',
             payeeName: payees.find(p => p.id === d.payeeId)?.name,
