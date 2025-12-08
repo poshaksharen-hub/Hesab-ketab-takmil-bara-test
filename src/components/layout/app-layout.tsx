@@ -37,6 +37,7 @@ import {
   Handshake,
   Sparkles,
   Menu as MenuIcon,
+  MessageSquare,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -67,6 +68,7 @@ function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+    { href: '/chat', label: 'گفتگو', icon: MessageSquare },
     { href: '/due-dates', label: 'سررسیدها', icon: Bell },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },
