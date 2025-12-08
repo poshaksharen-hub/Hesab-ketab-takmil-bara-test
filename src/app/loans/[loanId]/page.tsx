@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { USER_DETAILS } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
 import type { OwnerId } from '@/lib/types';
-
+import Link from 'next/link';
 
 function LoanDetailSkeleton() {
   return (
@@ -127,17 +127,24 @@ export default function LoanDetailPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="font-headline text-3xl font-bold tracking-tight">
-            جزئیات وام: {loan.title}
-          </h1>
-          <p className="text-muted-foreground">
-            دریافت شده از: {getPayeeName(loan.payeeId)}
-          </p>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/loans">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <div className="space-y-1">
+              <h1 className="font-headline text-3xl font-bold tracking-tight">
+                جزئیات وام: {loan.title}
+              </h1>
+              <p className="text-muted-foreground">
+                دریافت شده از: {getPayeeName(loan.payeeId)}
+              </p>
+            </div>
         </div>
-        <Button onClick={() => router.push('/loans')} variant="outline">
+        <Button onClick={() => router.push('/dashboard')} variant="outline" className="hidden sm:flex">
           <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به لیست
+          بازگشت به داشبورد
         </Button>
       </div>
 

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -15,6 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { USER_DETAILS } from '@/lib/constants';
 import type { FinancialGoal, FinancialGoalContribution, BankAccount, OwnerId } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 function GoalDetailSkeleton() {
   return (
@@ -124,22 +124,29 @@ export default function GoalDetailPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="font-headline text-3xl font-bold tracking-tight flex items-center gap-3">
-             <PiggyBank className="w-8 h-8 text-primary" />
-            {goal.name}
-          </h1>
-          <div className="text-muted-foreground flex items-center gap-4">
-              <div className="flex items-center gap-1"><OwnerIcon className="w-4 h-4" /> <span>هدف برای: {ownerName}</span></div>
-              <span>|</span>
-              <div className="flex items-center gap-1"><Calendar className="w-4 h-4" /> <span>تاریخ هدف: {formatJalaliDate(new Date(goal.targetDate))}</span></div>
-              <span>|</span>
-              <div>اولویت: {getPriorityBadge(goal.priority)}</div>
-          </div>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/goals">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <div className="space-y-1">
+              <h1 className="font-headline text-3xl font-bold tracking-tight flex items-center gap-3">
+                 <PiggyBank className="w-8 h-8 text-primary" />
+                {goal.name}
+              </h1>
+              <div className="text-muted-foreground flex items-center gap-4">
+                  <div className="flex items-center gap-1"><OwnerIcon className="w-4 h-4" /> <span>هدف برای: {ownerName}</span></div>
+                  <span>|</span>
+                  <div className="flex items-center gap-1"><Calendar className="w-4 h-4" /> <span>تاریخ هدف: {formatJalaliDate(new Date(goal.targetDate))}</span></div>
+                  <span>|</span>
+                  <div>اولویت: {getPriorityBadge(goal.priority)}</div>
+              </div>
+            </div>
         </div>
-        <Button onClick={() => router.push('/goals')} variant="outline">
+        <Button onClick={() => router.push('/dashboard')} variant="outline" className="hidden sm:flex">
           <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به لیست
+          بازگشت به داشبورد
         </Button>
       </div>
 

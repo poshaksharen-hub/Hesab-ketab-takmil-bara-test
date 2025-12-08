@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ExpenseList } from '@/components/transactions/expense-list';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
+import Link from 'next/link';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -149,9 +150,16 @@ export default function ExpensesPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">
-          مدیریت هزینه‌ها
-        </h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">
+              مدیریت هزینه‌ها
+            </h1>
+        </div>
         <Button onClick={handleAddNew}>
           <PlusCircle className="ml-2 h-4 w-4" />
           ثبت هزینه جدید

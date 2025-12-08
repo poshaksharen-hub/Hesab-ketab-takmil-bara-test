@@ -3,7 +3,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId } from '@/lib/types';
@@ -15,6 +15,8 @@ import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { formatCurrency } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
+import Link from 'next/link';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -37,47 +39,62 @@ export default function LoansPage() {
     users,
   } = allData;
 
- const handleFormSubmit = useCallback(async (values: any) => {
+  const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
 
     const {
+        title,
+        amount,
+        installmentAmount,
+        numberOfInstallments,
+        startDate,
+        paymentDay,
+        payeeId,
+        ownerId, // This now correctly represents the beneficiary
         depositOnCreate,
         depositToAccountId,
-        ...loanCoreData
     } = values;
 
     try {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        const loansCollectionRef = collection(familyDataRef, 'loans');
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            
+            // This validation is now handled by the form itself.
+            // We ensure depositToAccountId is present if depositOnCreate is true.
 
-        // Create the new loan document first
-        const newLoanDocRef = await addDoc(loansCollectionRef, {
-            ...loanCoreData,
-            id: 'temp-id', // Placeholder ID
-            registeredByUserId: user.uid,
-            paidInstallments: 0,
-            remainingAmount: loanCoreData.amount,
-        });
-        
-        // Update the new loan with its actual ID
-        await updateDoc(newLoanDocRef, { id: newLoanDocRef.id });
+            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
+                title,
+                amount,
+                ownerId, // Use the ownerId directly from the form
+                installmentAmount: installmentAmount || 0,
+                numberOfInstallments: numberOfInstallments || 0,
+                startDate: startDate,
+                paymentDay: paymentDay || 1,
+                payeeId: payeeId || undefined,
+                depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
+            };
 
-        // If deposit is requested, handle it in a separate transaction or update
-        if (depositOnCreate && depositToAccountId) {
-            const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
-            await runTransaction(firestore, async (transaction) => {
-                 const bankAccountDoc = await transaction.get(bankAccountRef);
+            const newLoanRef = doc(collection(familyDataRef, 'loans'));
+            transaction.set(newLoanRef, {
+                ...loanData,
+                id: newLoanRef.id,
+                registeredByUserId: user.uid,
+                paidInstallments: 0,
+                remainingAmount: loanData.amount,
+            });
+
+            if (depositOnCreate && depositToAccountId) {
+                const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
+                const bankAccountDoc = await transaction.get(bankAccountRef);
+
                 if (!bankAccountDoc.exists()) {
                     throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
                 }
                 const bankAccountData = bankAccountDoc.data() as BankAccount;
-                const newBalance = bankAccountData.balance + loanCoreData.amount;
-                transaction.update(bankAccountRef, { balance: newBalance });
-            });
-             // After deposit, update the loan to store the deposit account ID
-            await updateDoc(newLoanDocRef, { depositToAccountId: depositToAccountId });
-        }
-
+                const balanceAfter = bankAccountData.balance + loanData.amount;
+                transaction.update(bankAccountRef, { balance: balanceAfter });
+            }
+        });
 
         toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
         setIsFormOpen(false);
@@ -85,11 +102,12 @@ export default function LoansPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+             const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/loans',
                 operation: 'create',
                 requestResourceData: values,
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: 'destructive',
@@ -224,10 +242,11 @@ export default function LoansPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+             const permissionError = new FirestorePermissionError({
                 path: `family-data/shared-data/loans/${loanId}`,
                 operation: 'delete'
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",
@@ -260,7 +279,14 @@ export default function LoansPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
+        </div>
         {!isFormOpen && (
             <Button onClick={handleAddNew}>
                 <PlusCircle className="ml-2 h-4 w-4" />

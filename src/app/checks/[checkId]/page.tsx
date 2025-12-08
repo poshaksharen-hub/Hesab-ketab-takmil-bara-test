@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, useCallback } from 'react';
@@ -18,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { runTransaction, doc, collection, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
-
+import Link from 'next/link';
 
 function CheckDetailSkeleton() {
   return (
@@ -196,21 +195,28 @@ export default function CheckDetailPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
-        <div className="space-y-1">
-          <h1 className="font-headline text-3xl font-bold tracking-tight">
-            جزئیات چک
-          </h1>
-          <div className="text-muted-foreground flex items-center gap-2">
-            <span>{check.description || `چک به ${getPayeeName(check.payeeId)}`}</span>
-            {isCleared ? 
-                <Badge className="bg-emerald-500 text-white">پاس شده</Badge> : 
-                <Badge variant="destructive">در انتظار پاس</Badge>
-            }
-          </div>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/checks">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <div className="space-y-1">
+              <h1 className="font-headline text-3xl font-bold tracking-tight">
+                جزئیات چک
+              </h1>
+              <div className="text-muted-foreground flex items-center gap-2">
+                <span>{check.description || `چک به ${getPayeeName(check.payeeId)}`}</span>
+                {isCleared ? 
+                    <Badge className="bg-emerald-500 text-white">پاس شده</Badge> : 
+                    <Badge variant="destructive">در انتظار پاس</Badge>
+                }
+              </div>
+            </div>
         </div>
-        <Button onClick={() => router.push('/checks')} variant="outline">
+        <Button onClick={() => router.push('/dashboard')} variant="outline" className="hidden sm:flex">
           <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به لیست
+          بازگشت به داشبورد
         </Button>
       </div>
 

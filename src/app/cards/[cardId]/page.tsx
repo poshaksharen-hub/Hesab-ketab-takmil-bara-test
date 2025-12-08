@@ -13,6 +13,7 @@ import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { USER_DETAILS } from '@/lib/constants';
+import Link from 'next/link';
 
 type Transaction = (Omit<Income, 'date'> | Omit<Expense, 'date'> | Omit<Transfer, 'transferDate'>) & {
   type: 'income' | 'expense' | 'transfer';
@@ -204,17 +205,24 @@ export default function CardTransactionsPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="font-headline text-3xl font-bold tracking-tight">
-            تاریخچه تراکنش‌های {card.bankName}
-          </h1>
-          <p className="text-muted-foreground">
-            آخرین موجودی: {formatCurrency(card.balance, 'IRT')}
-          </p>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/cards">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <div className="space-y-1">
+              <h1 className="font-headline text-3xl font-bold tracking-tight">
+                تاریخچه تراکنش‌های {card.bankName}
+              </h1>
+              <p className="text-muted-foreground">
+                آخرین موجودی: {formatCurrency(card.balance, 'IRT')}
+              </p>
+            </div>
         </div>
-        <Button onClick={() => router.push('/cards')} variant="outline">
+        <Button onClick={() => router.push('/dashboard')} variant="outline" className="hidden sm:flex">
           <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به کارت‌ها
+          بازگشت به داشبورد
         </Button>
       </div>
 

@@ -11,6 +11,7 @@ import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Handshake } fro
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 type CombinedTransaction = {
   date: Date;
@@ -187,17 +188,24 @@ export default function PayeeDetailPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="font-headline text-3xl font-bold tracking-tight">
-            دفتر حساب: {payee.name}
-          </h1>
-          <p className="text-muted-foreground">
-            خلاصه و تاریخچه تمام تعاملات مالی با این طرف حساب.
-          </p>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/payees">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <div className="space-y-1">
+              <h1 className="font-headline text-3xl font-bold tracking-tight">
+                دفتر حساب: {payee.name}
+              </h1>
+              <p className="text-muted-foreground">
+                خلاصه و تاریخچه تمام تعاملات مالی با این طرف حساب.
+              </p>
+            </div>
         </div>
-        <Button onClick={() => router.push('/payees')} variant="outline">
+        <Button onClick={() => router.push('/dashboard')} variant="outline" className="hidden sm:flex">
           <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به لیست
+          بازگشت به داشبورد
         </Button>
       </div>
 
