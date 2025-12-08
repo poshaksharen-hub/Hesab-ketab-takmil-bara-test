@@ -12,8 +12,8 @@ import type { Category, Expense, Check } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -36,31 +36,15 @@ export default function CategoriesPage() {
 
     if (editingCategory) {
         const categoryRef = doc(categoriesColRef, editingCategory.id);
-        updateDoc(categoryRef, values)
-        .then(() => {
-            toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." });
-        })
-        .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: categoryRef.path,
-                operation: 'update',
-                requestResourceData: values,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
+        updateDocumentNonBlocking(categoryRef, values);
+        toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." });
     } else {
-        addDoc(categoriesColRef, { ...values, id: '' }) // Add with an empty ID initially
+        addDocumentNonBlocking(categoriesColRef, { ...values, id: '' }) // Add with an empty ID initially
         .then((docRef) => {
-            updateDoc(docRef, { id: docRef.id }); // Then update with the correct ID
-            toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
-        })
-        .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: categoriesColRef.path,
-                operation: 'create',
-                requestResourceData: values,
-            });
-            errorEmitter.emit('permission-error', permissionError);
+            if (docRef) {
+              updateDoc(docRef, { id: docRef.id });
+              toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
+            }
         });
     }
     setIsFormOpen(false);
@@ -91,11 +75,10 @@ export default function CategoriesPage() {
         toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت حذف شد." });
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: categoryRef.path,
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",

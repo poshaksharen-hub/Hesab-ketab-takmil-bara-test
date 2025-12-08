@@ -18,7 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { runTransaction, doc, collection, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 
 
 function CheckDetailSkeleton() {
@@ -117,11 +116,10 @@ export default function CheckDetailPage() {
       toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
+            throw new FirestorePermissionError({
                 path: checkRef.path, // Simplified path for the transaction
                 operation: 'write', 
             });
-            errorEmitter.emit('permission-error', permissionError);
        } else {
             toast({
                 variant: "destructive",

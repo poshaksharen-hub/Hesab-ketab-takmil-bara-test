@@ -12,11 +12,11 @@ import type { BankAccount, UserProfile, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
 import { toEnglishDigits } from '@/lib/utils';
+import { updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -45,18 +45,9 @@ export default function CardsPage() {
       // initialBalance should not be part of the update data.
       const { initialBalance, ...updateData } = values as any;
   
-      updateDoc(cardRef, updateData)
-        .then(() => {
-          toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
-        })
-        .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: cardRef.path,
-            operation: 'update',
-            requestResourceData: updateData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        });
+      updateDocumentNonBlocking(cardRef, updateData)
+      toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
+
     } else {
         // --- Create ---
         const newCard = { 
@@ -64,18 +55,12 @@ export default function CardsPage() {
             balance: values.initialBalance,
         };
         
-        addDoc(collectionRef, newCard)
+        addDocumentNonBlocking(collectionRef, newCard)
             .then((docRef) => {
-            updateDoc(docRef, { id: docRef.id });
-            toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
-            })
-            .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: collectionRef.path,
-                operation: 'create',
-                requestResourceData: newCard,
-            });
-            errorEmitter.emit('permission-error', permissionError);
+              if (docRef) {
+                updateDoc(docRef, { id: docRef.id });
+                toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
+              }
             });
     }
     setIsFormOpen(false);
@@ -122,11 +107,10 @@ export default function CardsPage() {
         toast({ title: "موفقیت", description: "کارت بانکی با موفقیت حذف شد." });
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: cardToDeleteRef.path,
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",

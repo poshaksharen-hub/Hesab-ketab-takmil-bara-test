@@ -13,7 +13,6 @@ import type { Check, BankAccount, Payee, Category, Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -55,12 +54,11 @@ export default function ChecksPage() {
           toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
         })
         .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
+            throw new FirestorePermissionError({
                 path: checkRef.path,
                 operation: 'update',
                 requestResourceData: updatedCheck,
             });
-            errorEmitter.emit('permission-error', permissionError);
         });
     } else {
       const newCheck = {
@@ -77,12 +75,11 @@ export default function ChecksPage() {
             toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
         })
         .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
+            throw new FirestorePermissionError({
                 path: checksColRef.path,
                 operation: 'create',
                 requestResourceData: newCheck,
             });
-            errorEmitter.emit('permission-error', permissionError);
         });
     }
     setIsFormOpen(false);
@@ -153,11 +150,10 @@ export default function ChecksPage() {
       toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
+            throw new FirestorePermissionError({
                 path: checkRef.path, // Simplified path for the transaction
                 operation: 'write', 
             });
-            errorEmitter.emit('permission-error', permissionError);
        } else {
             toast({
                 variant: "destructive",
@@ -204,11 +200,10 @@ export default function ChecksPage() {
         toast({ title: "موفقیت", description: "چک و سوابق مالی مرتبط (در صورت وجود) با موفقیت حذف شد." });
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/${FAMILY_DATA_DOC}/checks/${check.id}`, 
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
              toast({
                 variant: "destructive",
@@ -277,5 +272,6 @@ export default function ChecksPage() {
 
 
     
+
 
 

@@ -12,8 +12,8 @@ import type { Payee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -36,31 +36,15 @@ export default function PayeesPage() {
 
     if (editingPayee) {
         const payeeRef = doc(payeesColRef, editingPayee.id);
-        updateDoc(payeeRef, values)
-            .then(() => {
-                toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: payeeRef.path,
-                    operation: 'update',
-                    requestResourceData: values,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            });
+        updateDocumentNonBlocking(payeeRef, values);
+        toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
     } else {
-        addDoc(payeesColRef, values)
+        addDocumentNonBlocking(payeesColRef, values)
             .then((docRef) => {
-                updateDoc(docRef, { id: docRef.id });
-                toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: payeesColRef.path,
-                    operation: 'create',
-                    requestResourceData: values,
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                if(docRef) {
+                  updateDoc(docRef, { id: docRef.id });
+                  toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
+                }
             });
     }
     setIsFormOpen(false);
@@ -94,13 +78,12 @@ export default function PayeesPage() {
         });
 
         toast({ title: "موفقیت", description: "طرف حساب با موفقیت حذف شد." });
-    } catch (error: any) {
+    } catch (error: any) => {
         if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
+            throw new FirestorePermissionError({
                 path: payeeRef.path,
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",

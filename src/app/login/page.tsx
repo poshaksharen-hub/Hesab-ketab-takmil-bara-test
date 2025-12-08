@@ -37,7 +37,6 @@ import { ALLOWED_USERS, USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 
 const formSchema = z.object({
   email: z
@@ -92,13 +91,11 @@ export default function LoginPage() {
               lastName: userDetail.lastName,
             };
             await setDoc(userProfileRef, profileData).catch((serverError) => {
-                const permissionError = new FirestorePermissionError({
+                throw new FirestorePermissionError({
                   path: userProfileRef.path,
                   operation: 'create',
                   requestResourceData: profileData,
                 });
-                errorEmitter.emit('permission-error', permissionError);
-                throw permissionError;
             });
         }
     }
