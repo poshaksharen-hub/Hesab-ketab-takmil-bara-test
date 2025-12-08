@@ -1,6 +1,7 @@
+
 'use server';
 
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerationConfig, Content } from "@google/generative-ai";
 
 // Define input/output interfaces directly, without Zod on the client side
 export interface EnrichedIncome {
@@ -59,7 +60,7 @@ export interface InsightsFinancialGoal {
 
 export interface ChatHistory {
   role: 'user' | 'model';
-  content: string;
+  parts: { text: string }[];
 }
 
 export interface FinancialInsightsInput {
@@ -71,8 +72,6 @@ export interface FinancialInsightsInput {
   loans: InsightsLoan[];
   previousDebts: InsightsDebt[];
   financialGoals: InsightsFinancialGoal[];
-  history: ChatHistory[];
-  latestUserQuestion: string;
 }
 
 export interface FinancialInsightsOutput {
@@ -80,18 +79,27 @@ export interface FinancialInsightsOutput {
 }
 // End of interfaces
 
-const MODEL_NAME = "gemini-pro";
+const MODEL_NAME = "gemini-1.5-flash-latest";
 const API_KEY = process.env.GEMINI_API_KEY || '';
 
+const generationConfig: GenerationConfig = {
+  temperature: 0.7,
+  topK: 1,
+  topP: 1,
+  maxOutputTokens: 2048,
+};
 
-function buildPrompt(input: FinancialInsightsInput): string {
-    return `You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is ${input.currentUserName}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing ${input.currentUserName} directly.
+const safetySettings = [
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+];
 
-    **Conversation History So Far:**
-    ${input.history.map(h => `- **${h.role}**: ${h.content}`).join('\n')}
 
-    **Latest User Question:**
-    "${input.latestUserQuestion}"
+function buildSystemInstruction(input: FinancialInsightsInput): Content {
+    const dataPrompt = `
+    You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is ${input.currentUserName}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing ${input.currentUserName} directly.
 
     Based on the latest user question and the entire conversation history, provide a relevant, helpful, and insightful response. Use the comprehensive financial data below to inform your answer. If the user asks for a general analysis, perform the "Comprehensive Analysis" task. If they ask a specific question, answer it using the data.
 
@@ -118,13 +126,15 @@ function buildPrompt(input: FinancialInsightsInput): string {
         - **Savings & Goals:** Provide encouragement and concrete suggestions on how to reach financial goals faster based on their income and expenses.
         - **General Guidance:** Offer general tips for improving financial health, such as creating an emergency fund, suggesting monthly savings based on income, etc.
 
-    Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text.`;
+    Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text.
+    `;
+    return { role: "system", parts: [{ text: dataPrompt }] };
 }
 
 
 export async function getFinancialInsightsAction(
-  financialData: Omit<FinancialInsightsInput, 'history' | 'latestUserQuestion'> | null,
-  history: FinancialInsightsInput['history']
+  financialData: FinancialInsightsInput | null,
+  history: ChatHistory[]
 ): Promise<{ success: boolean; data?: FinancialInsightsOutput; error?: string }> {
   if (!API_KEY) {
       return { success: false, error: 'کلید API هوش مصنوعی (GEMINI_API_KEY) تنظیم نشده است.' };
@@ -135,18 +145,24 @@ export async function getFinancialInsightsAction(
 
   try {
     const genAI = new GoogleGenerativeAI(API_KEY);
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    const model = genAI.getGenerativeModel({
+        model: MODEL_NAME,
+        generationConfig,
+        safetySettings,
+        systemInstruction: buildSystemInstruction(financialData),
+    });
+
+    const chat = model.startChat({
+        history: history.map(h => ({
+            role: h.role,
+            parts: h.parts.map(p => ({ text: p.text })),
+        })),
+    });
 
     const latestUserMessage = history.slice().reverse().find(m => m.role === 'user');
-    const fullInput: FinancialInsightsInput = {
-      ...financialData,
-      history: history,
-      latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.',
-    };
-
-    const prompt = buildPrompt(fullInput);
+    const userPrompt = latestUserMessage?.parts[0]?.text || 'یک تحلیل کلی به من بده.';
     
-    const result = await model.generateContent(prompt);
+    const result = await chat.sendMessage(userPrompt);
     const response = result.response;
     const text = response.text();
 
@@ -154,7 +170,11 @@ export async function getFinancialInsightsAction(
 
   } catch (e: any) {
     console.error('Error in getFinancialInsightsAction:', e);
+    // Provide more specific error messages if possible
+    if (e.message.includes('404')) {
+         return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: مدل '${MODEL_NAME}' یافت نشد. لطفا از فعال بودن مدل در پروژه خود اطمینان حاصل کنید.` };
+    }
     const errorMessage = e.message || 'یک خطای ناشناخته در سرور رخ داد.';
-    return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: ${e.response?.statusText || errorMessage}` };
+    return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: ${errorMessage}` };
   }
 }

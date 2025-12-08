@@ -1,10 +1,10 @@
+
 'use client';
 
 import React, { useState, useTransition, useMemo, useRef, useEffect } from 'react';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Sparkles, BrainCircuit, Send, User as UserIcon, Loader2, AlertTriangle, MessageSquarePlus } from 'lucide-react';
 import { getFinancialInsightsAction, type FinancialInsightsInput, type ChatHistory, type FinancialInsightsOutput } from './actions';
@@ -44,7 +44,7 @@ export default function InsightsPage() {
   const { user } = useUser();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
   const [history, setHistory] = useState<ChatHistory[]>([
-      {role: 'model', content: 'سلام! من مشاور مالی هوشمند شما هستم. چطور می‌توانم در تحلیل وضعیت مالی به شما کمک کنم؟ می‌توانید با پرسیدن «یک تحلیل کلی به من بده» شروع کنید.'}
+      {role: 'model', parts: [{ text: 'سلام! من مشاور مالی هوشمند شما هستم. چطور می‌توانم در تحلیل وضعیت مالی به شما کمک کنم؟ می‌توانید با پرسیدن «یک تحلیل کلی به من بده» شروع کنید.'}]}
   ]);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -61,10 +61,10 @@ export default function InsightsPage() {
     }
   }, [history]);
   
-  const financialData = useMemo<Omit<FinancialInsightsInput, 'history' | 'latestUserQuestion'> | null>(() => {
+  const financialData = useMemo<FinancialInsightsInput | null>(() => {
     if (isDashboardLoading || !allData || !user) return null;
 
-    const { incomes, expenses, bankAccounts, checks, loans, previousDebts, goals, payees, users } = allData;
+    const { incomes, expenses, bankAccounts, checks, loans, previousDebts, goals, payees } = allData;
     
     return {
       currentUserName: user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName,
@@ -121,7 +121,7 @@ export default function InsightsPage() {
   const handleSubmit = () => {
     if (!currentQuestion.trim() || isPending) return;
 
-    const newHistory: ChatHistory[] = [...history, { role: 'user', content: currentQuestion.trim() }];
+    const newHistory: ChatHistory[] = [...history, { role: 'user', parts: [{ text: currentQuestion.trim() }] }];
     setHistory(newHistory);
     setCurrentQuestion('');
     setError(null);
@@ -129,7 +129,7 @@ export default function InsightsPage() {
     startTransition(async () => {
       const result = await getFinancialInsightsAction(financialData, newHistory);
       if (result.success && result.data) {
-        setHistory(prev => [...prev, { role: 'model', content: result.data!.summary }]);
+        setHistory(prev => [...prev, { role: 'model', parts: [{ text: result.data!.summary }] }]);
       } else {
         setError(result.error || 'یک خطای ناشناخته رخ داد.');
         setHistory(prev => prev.slice(0, -1)); // Revert user message on error
@@ -164,54 +164,52 @@ export default function InsightsPage() {
             </p>
         </div>
       
-       <Card className="flex-1 flex flex-col">
-            <CardContent className="flex-1 flex flex-col p-4 gap-4">
-                 <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
-                    <div className="space-y-4">
-                        {history.map((item, index) => <ChatBubble key={index} {...item} />)}
-                        {isPending && (
-                            <div className="flex items-start gap-3 justify-start">
-                                <Avatar className="h-8 w-8 bg-primary text-primary-foreground">
-                                    <AvatarFallback><BrainCircuit className="h-5 w-5"/></AvatarFallback>
-                                </Avatar>
-                                <div className="max-w-[80%] rounded-xl px-4 py-3 text-sm shadow-md bg-muted text-foreground">
-                                    <div className="flex items-center gap-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        <span>در حال تحلیل...</span>
-                                    </div>
+       <div className="flex-1 flex flex-col p-4 gap-4 border rounded-lg shadow-sm">
+             <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
+                <div className="space-y-4">
+                    {history.map((item, index) => <ChatBubble key={index} role={item.role} content={item.parts[0].text} />)}
+                    {isPending && (
+                        <div className="flex items-start gap-3 justify-start">
+                            <Avatar className="h-8 w-8 bg-primary text-primary-foreground">
+                                <AvatarFallback><BrainCircuit className="h-5 w-5"/></AvatarFallback>
+                            </Avatar>
+                            <div className="max-w-[80%] rounded-xl px-4 py-3 text-sm shadow-md bg-muted text-foreground">
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>در حال تحلیل...</span>
                                 </div>
                             </div>
-                        )}
-                         {error && (
-                            <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>خطا در پردازش</AlertTitle>
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
-                    </div>
-                </ScrollArea>
-                <div className="relative mt-4">
-                    <Textarea
-                        value={currentQuestion}
-                        onChange={e => setCurrentQuestion(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }}}
-                        placeholder="سوال خود را اینجا تایپ کنید..."
-                        className="pr-12"
-                        disabled={isPending}
-                    />
-                    <Button
-                        type="submit"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={handleSubmit}
-                        disabled={isPending || !currentQuestion.trim()}
-                    >
-                       <Send className="h-4 w-4" />
-                    </Button>
+                        </div>
+                    )}
+                     {error && (
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>خطا در پردازش</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
                 </div>
-            </CardContent>
-       </Card>
+            </ScrollArea>
+            <div className="relative mt-4">
+                <Textarea
+                    value={currentQuestion}
+                    onChange={e => setCurrentQuestion(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }}}
+                    placeholder="سوال خود را اینجا تایپ کنید..."
+                    className="pr-12"
+                    disabled={isPending}
+                />
+                <Button
+                    type="submit"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    onClick={handleSubmit}
+                    disabled={isPending || !currentQuestion.trim()}
+                >
+                   <Send className="h-4 w-4" />
+                </Button>
+            </div>
+       </div>
 
     </main>
   );
