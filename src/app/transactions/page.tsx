@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -81,8 +82,8 @@ export default function ExpensesPage() {
             });
         });
         
-        toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         setIsFormOpen(false);
+        toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         
         const categoryName = allCategories.find(c => c.id === values.categoryId)?.name;
         const payeeName = allPayees.find(p => p.id === values.payeeId)?.name;
