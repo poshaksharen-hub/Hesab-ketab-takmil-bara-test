@@ -1,188 +1,312 @@
-
 'use client';
 
-import React, { useState, useTransition, useMemo } from 'react';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useUser } from '@/firebase';
+import React from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+  SidebarInset,
+} from '@/components/ui/sidebar';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Sparkles, BrainCircuit, Loader2, AlertTriangle } from 'lucide-react';
-import { getFinancialInsightsAction, type FinancialInsightsInput, type FinancialInsightsOutput } from './actions';
+import {
+  LayoutDashboard,
+  ArrowRightLeft,
+  Sun,
+  Moon,
+  LogIn,
+  TrendingUp,
+  TrendingDown,
+  LogOut,
+  CreditCard,
+  BookUser,
+  BookCopy,
+  FolderKanban,
+  Target,
+  Landmark,
+  Bell,
+  Handshake,
+  Sparkles,
+  Menu as MenuIcon,
+} from 'lucide-react';
+import { HesabKetabLogo } from '@/components/icons';
+import { getPlaceholderImage } from '@/lib/placeholder-images';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { Skeleton } from '../ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import type { User } from 'firebase/auth';
 
-export default function InsightsPage() {
-  const { user } = useUser();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
-  const [insights, setInsights] = useState<FinancialInsightsOutput | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  
-  const financialData = useMemo<FinancialInsightsInput | null>(() => {
-    if (isDashboardLoading || !allData || !user) return null;
+const useSimpleTheme = () => {
+  const [theme, setTheme] = React.useState('light');
 
-    const { incomes, expenses, bankAccounts, checks, loans, previousDebts, goals, payees, categories } = allData;
-    
-    return {
-      currentUserName: user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName,
-      incomes: incomes.map(i => ({
-        description: i.description,
-        amount: i.amount,
-        date: i.date,
-        bankAccountName: bankAccounts.find(b => b.id === i.bankAccountId)?.bankName || 'نامشخص',
-        source: i.source,
-      })),
-      expenses: expenses.map(e => ({
-        description: e.description,
-        amount: e.amount,
-        date: e.date,
-        bankAccountName: bankAccounts.find(b => b.id === e.bankAccountId)?.bankName || 'نامشخص',
-        categoryName: categories.find(c => c.id === e.categoryId)?.name || 'نامشخص',
-        payeeName: payees.find(p => p.id === e.payeeId)?.name,
-        expenseFor: e.expenseFor,
-      })),
-      bankAccounts: bankAccounts.map(b => ({
-        bankName: b.bankName,
-        balance: b.balance,
-        ownerId: b.ownerId,
-      })),
-      checks: checks.filter(c => c.status === 'pending').map(c => ({
-        description: c.description,
-        amount: c.amount,
-        dueDate: c.dueDate,
-        payeeName: payees.find(p => p.id === c.payeeId)?.name || 'نامشخص',
-        bankAccountName: bankAccounts.find(b => b.id === c.bankAccountId)?.bankName || 'نامشخص',
-      })),
-      loans: loans.filter(l => l.remainingAmount > 0).map(l => ({
-        title: l.title,
-        remainingAmount: l.remainingAmount,
-        installmentAmount: l.installmentAmount,
-        payeeName: payees.find(p => p.id === l.payeeId)?.name || 'نامشخص',
-      })),
-      previousDebts: previousDebts.filter(d => d.remainingAmount > 0).map(d => ({
-        description: d.description,
-        remainingAmount: d.remainingAmount,
-        payeeName: payees.find(p => p.id === d.payeeId)?.name || 'نامشخص',
-      })),
-      financialGoals: goals.map(g => ({
-        name: g.name,
-        targetAmount: g.targetAmount,
-        currentAmount: g.currentAmount,
-        targetDate: g.targetDate,
-        priority: g.priority,
-        isAchieved: g.isAchieved,
-      })),
-    };
-  }, [isDashboardLoading, allData, user]);
+  React.useEffect(() => {
+    const isDark = document.documentElement.classList.contains('dark');
+    setTheme(isDark ? 'dark' : 'light');
+  }, []);
 
-  const handleGenerate = () => {
-    if (isPending || !financialData) return;
-
-    setError(null);
-    setInsights(null);
-    
-    startTransition(async () => {
-      const result = await getFinancialInsightsAction(financialData);
-      if (result.success && result.data) {
-        setInsights(result.data);
-      } else {
-        setError(result.error || 'یک خطای ناشناخته رخ داد.');
-      }
-    });
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  if (isDashboardLoading || !financialData) {
-      return (
-        <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-            <Skeleton className="h-8 w-1/2" />
-            <Skeleton className="h-4 w-3/4" />
-            <Card className="mt-4">
-              <CardHeader>
-                <Skeleton className="h-6 w-1/4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-10 w-48" />
-              </CardContent>
-            </Card>
-        </main>
-      )
+  return { theme, toggleTheme };
+};
+
+function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
+  const pathname = usePathname();
+  const menuItems = [
+    { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+    { href: '/due-dates', label: 'سررسیدها', icon: Bell },
+    { href: '/income', label: 'درآمدها', icon: TrendingUp },
+    { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },
+    { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft },
+    { href: '/cards', label: 'کارت‌های بانکی', icon: CreditCard },
+    { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban },
+    { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser },
+    { href: '/checks', label: 'چک‌ها', icon: BookCopy },
+    { href: '/loans', label: 'وام‌ها', icon: Landmark },
+    { href: '/debts', label: 'بدهی‌ها', icon: Handshake },
+    { href: '/goals', label: 'اهداف مالی', icon: Target },
+  ];
+
+  return (
+    <SidebarMenu>
+      {menuItems.map((item) => (
+        <SidebarMenuItem key={item.href}>
+          <Link href={item.href} passHref>
+            <SidebarMenuButton
+              isActive={pathname === item.href}
+              tooltip={item.label}
+              onClick={onLinkClick}
+            >
+              <item.icon />
+              <span>{item.label}</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+}
+
+// Extracted MobileMenuContent to be a standalone component
+const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClick }: {
+  user: User | null;
+  theme: string;
+  toggleTheme: () => void;
+  handleSignOut: () => void;
+  onLinkClick?: () => void;
+}) => {
+    const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+    const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
+    const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
+
+    return (
+        <div className="flex h-full flex-col">
+            <SidebarHeader>
+                <div className="flex items-center gap-2">
+                    <HesabKetabLogo className="size-8 text-primary" />
+                    <span className="font-headline text-2xl font-bold">حساب کتاب</span>
+                </div>
+            </SidebarHeader>
+            <SidebarContent>
+                <Menu onLinkClick={onLinkClick} />
+            </SidebarContent>
+            <SidebarFooter>
+                {user && (
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            <Avatar>
+                                <AvatarImage
+                                    src={userAvatar?.imageUrl}
+                                    data-ai-hint={userAvatar?.imageHint}
+                                />
+                                <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col truncate">
+                                <span className="truncate text-sm font-semibold">
+                                    {userName}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                    {user.email}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={toggleTheme}
+                                aria-label="تغییر تم"
+                            >
+                                {theme === 'light' ? <Moon /> : <Sun />}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleSignOut}
+                                aria-label="خروج"
+                                className="text-destructive hover:text-destructive"
+                            >
+                                <LogOut />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </SidebarFooter>
+        </div>
+    );
+};
+
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { theme, toggleTheme } = useSimpleTheme();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  
+  const handleSignOut = async () => {
+    if (auth) {
+      await signOut(auth);
+    }
+    router.push('/login');
+  };
+
+  // Route Guard
+  React.useEffect(() => {
+    if (!isUserLoading && !user && pathname !== '/login') {
+      router.replace('/login');
+    }
+  }, [isUserLoading, user, pathname, router]);
+
+  const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+  const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
+  const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
+
+  if (isUserLoading && pathname !== '/login') {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <HesabKetabLogo className="size-16 animate-pulse text-primary" />
+          <p className="text-muted-foreground">در حال بارگذاری...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (pathname === '/login' || (!user && !isUserLoading)) {
+    return <>{children}</>;
   }
 
   return (
-    <main className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-        <div className="space-y-1">
-            <h1 className="font-headline text-3xl font-bold tracking-tight flex items-center gap-2">
-                <Sparkles className="h-7 w-7 text-primary" />
-                تحلیل هوشمند مالی
-            </h1>
-            <p className="text-muted-foreground">
-                از قدرت هوش مصنوعی برای تحلیل عادت‌های مالی و دریافت پیشنهادهای شخصی‌سازی شده استفاده کنید.
-            </p>
-        </div>
-      
-       <Card className="bg-secondary/50">
-          <CardHeader className="flex flex-row items-center gap-4">
-              <div className="rounded-full bg-primary/10 p-3">
-                  <BrainCircuit className="size-6 text-primary" />
+    <SidebarProvider>
+      {/* Desktop Sidebar */}
+      <Sidebar side="right">
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+            <HesabKetabLogo className="size-8 text-primary" />
+            <span className="font-headline text-2xl font-bold">حساب کتاب</span>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <Menu />
+        </SidebarContent>
+        <SidebarFooter>
+          {isUserLoading ? (
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
               </div>
-              <div>
-                  <CardTitle className="font-headline">تحلیل وضعیت مالی</CardTitle>
-                  <CardDescription>
-                      برای پردازش داده‌های مالی اخیر و دریافت خلاصه و پیشنهادهای هوش مصنوعی، روی دکمه زیر کلیک کنید.
-                  </CardDescription>
+            </div>
+          ) : user ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <Avatar>
+                  <AvatarImage
+                    src={userAvatar?.imageUrl}
+                    data-ai-hint={userAvatar?.imageHint}
+                  />
+                  <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col truncate">
+                  <span className="truncate text-sm font-semibold">
+                    {userName}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                </div>
               </div>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={handleGenerate} disabled={isPending}>
-              {isPending ? (
-                <>
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  در حال تحلیل...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="ml-2 h-4 w-4" />
-                  دریافت تحلیل کلی
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {isPending && (
-          <Card>
-            <CardHeader>
-                <Skeleton className="h-6 w-1/2" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-4/5" />
-                <Skeleton className="h-4 w-full mt-4" />
-                <Skeleton className="h-4 w-2/3" />
-            </CardContent>
-          </Card>
-        )}
-
-        {error && (
-            <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>خطا در پردازش</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
-        )}
-
-        {insights && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline">تحلیل و پیشنهادها</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{insights.summary}</p>
-              </CardContent>
-            </Card>
-        )}
-    </main>
+              <div className="flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  aria-label="تغییر تم"
+                >
+                  {theme === 'light' ? <Moon /> : <Sun />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  aria-label="خروج"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <LogOut />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Link href="/login" className="w-full">
+              <Button className="w-full">
+                <LogIn className="ml-2" />
+                ورود / ثبت‌نام
+              </Button>
+            </Link>
+          )}
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
+            <Link href="/" className="flex items-center gap-2">
+              <HesabKetabLogo className="size-7 text-primary" />
+              <span className="font-headline text-xl font-bold">حساب کتاب</span>
+            </Link>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MenuIcon className="ml-2 h-4 w-4" />
+                    منو
+                  </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
+                  <MobileMenuContent 
+                    user={user} 
+                    theme={theme} 
+                    toggleTheme={toggleTheme} 
+                    handleSignOut={handleSignOut}
+                    onLinkClick={() => setMobileMenuOpen(false)}
+                  />
+              </SheetContent>
+            </Sheet>
+          </header>
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
