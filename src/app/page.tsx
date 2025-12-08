@@ -86,10 +86,7 @@ const quickAccessItems = [
 function QuickAccess() {
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">دسترسی سریع</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 pt-6">
                 {quickAccessItems.map(item => (
                     <Link key={item.href} href={item.href} className="group">
                         <Card className="hover:bg-accent hover:shadow-lg transition-all duration-200 h-full">
@@ -152,15 +149,9 @@ export default function DashboardPage() {
   
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">
-          داشبورد جامع مالی
-        </h1>
-      </div>
-      
        <QuickAccess />
 
-      <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
+      <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row pt-4">
           <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} value={ownerFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="نمایش داده‌های..." />
