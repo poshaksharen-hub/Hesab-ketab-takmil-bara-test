@@ -3,10 +3,10 @@
 
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
-import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId } from '@/lib/types';
+import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
@@ -16,6 +16,7 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { formatCurrency } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
+import { sendSystemNotification } from '@/lib/notifications';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -58,9 +59,6 @@ export default function LoansPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            // This validation is now handled by the form itself.
-            // We ensure depositToAccountId is present if depositOnCreate is true.
-
             const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
                 title,
                 amount,
@@ -99,6 +97,22 @@ export default function LoansPage() {
         setIsFormOpen(false);
         setEditingLoan(null);
 
+        const payeeName = payees.find(p => p.id === payeeId)?.name;
+        const bankAccount = bankAccounts.find(b => b.id === depositToAccountId);
+        const notificationDetails: TransactionDetails = {
+            type: 'loan',
+            title: `ثبت وام جدید: ${title}`,
+            amount: amount,
+            date: startDate,
+            icon: 'Landmark',
+            color: 'rgb(139 92 246)',
+            properties: [
+                { label: 'از', value: payeeName },
+                { label: 'واریز به', value: depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
              throw new FirestorePermissionError({
@@ -114,7 +128,7 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, toast]);
+}, [user, firestore, toast, payees, bankAccounts]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
@@ -193,6 +207,21 @@ export default function LoansPage() {
         });
         toast({ title: "موفقیت", description: "قسط با موفقیت پرداخت و به عنوان هزینه ثبت شد." });
         setPayingLoan(null);
+
+        const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
+        const notificationDetails: TransactionDetails = {
+            type: 'payment',
+            title: `پرداخت قسط وام: ${loan.title}`,
+            amount: installmentAmount,
+            date: new Date().toISOString(),
+            icon: 'CheckCircle',
+            color: 'rgb(22 163 74)',
+            properties: [
+                { label: 'از حساب', value: bankAccount?.bankName },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
     } catch (error: any) {
         toast({
             variant: "destructive",
@@ -276,14 +305,7 @@ export default function LoansPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
-            <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
-        </div>
+        <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
         {!isFormOpen && (
             <Button onClick={handleAddNew}>
                 <PlusCircle className="ml-2 h-4 w-4" />

@@ -102,11 +102,6 @@ export default function CategoryDetailPage() {
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/categories">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
             <div className="space-y-1">
               <h1 className="font-headline text-3xl font-bold tracking-tight flex items-center gap-2">
                 <FolderKanban className="w-8 h-8 text-primary" />
@@ -115,10 +110,6 @@ export default function CategoryDetailPage() {
               <p className="text-muted-foreground">{category.description || 'جزئیات هزینه‌های این دسته‌بندی'}</p>
             </div>
         </div>
-        <Button onClick={() => router.push('/dashboard')} variant="outline" className="hidden sm:flex">
-          <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به داشبورد
-        </Button>
       </div>
 
        <Card>

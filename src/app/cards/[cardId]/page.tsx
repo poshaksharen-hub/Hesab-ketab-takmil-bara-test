@@ -206,11 +206,6 @@ export default function CardTransactionsPage() {
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/cards">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
             <div className="space-y-1">
               <h1 className="font-headline text-3xl font-bold tracking-tight">
                 تاریخچه تراکنش‌های {card.bankName}
@@ -220,10 +215,6 @@ export default function CardTransactionsPage() {
               </p>
             </div>
         </div>
-        <Button onClick={() => router.push('/dashboard')} variant="outline" className="hidden sm:flex">
-          <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به داشبورد
-        </Button>
       </div>
 
       <div className="space-y-3">

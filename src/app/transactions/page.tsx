@@ -3,18 +3,19 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import { ExpenseForm } from '@/components/transactions/expense-form';
-import type { Expense, BankAccount, Category, UserProfile, OwnerId } from '@/lib/types';
+import type { Expense, BankAccount, Category, UserProfile, OwnerId, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
+import { sendSystemNotification } from '@/lib/notifications';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -82,6 +83,26 @@ export default function ExpensesPage() {
         
         toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         setIsFormOpen(false);
+        
+        const categoryName = allCategories.find(c => c.id === values.categoryId)?.name;
+        const payeeName = allPayees.find(p => p.id === values.payeeId)?.name;
+        const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
+        
+        const notificationDetails: TransactionDetails = {
+            type: 'expense',
+            title: `ثبت هزینه: ${values.description}`,
+            amount: values.amount,
+            date: values.date,
+            icon: 'TrendingDown',
+            color: 'rgb(220 38 38)',
+            properties: [
+                { label: 'دسته بندی', value: categoryName },
+                { label: 'طرف حساب', value: payeeName },
+                { label: 'از حساب', value: bankAccount?.bankName },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -98,7 +119,7 @@ export default function ExpensesPage() {
           });
         }
     }
-  }, [user, firestore, allBankAccounts, toast]);
+  }, [user, firestore, allBankAccounts, allCategories, allPayees, toast]);
 
    const handleDelete = React.useCallback(async (expenseId: string) => {
     if (!firestore || !allExpenses) return;
@@ -150,16 +171,9 @@ export default function ExpensesPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
-            <h1 className="font-headline text-3xl font-bold tracking-tight">
-              مدیریت هزینه‌ها
-            </h1>
-        </div>
+        <h1 className="font-headline text-3xl font-bold tracking-tight">
+          مدیریت هزینه‌ها
+        </h1>
         <Button onClick={handleAddNew}>
           <PlusCircle className="ml-2 h-4 w-4" />
           ثبت هزینه جدید
@@ -168,7 +182,7 @@ export default function ExpensesPage() {
 
        <ExpenseForm
           isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
+          setIsOpen={setIsOpen}
           onSubmit={handleFormSubmit}
           initialData={null}
           bankAccounts={allBankAccounts || []}

@@ -16,7 +16,9 @@ export async function sendSystemNotification(
     if (!firestore) return;
 
     try {
-        const actorName = Object.values(USER_DETAILS).find(u => u.id === actorUserId)?.firstName || 'کاربر';
+        const userDetailKey = Object.keys(USER_DETAILS).find(key => actorUserId.includes(key));
+        const actorName = userDetailKey ? USER_DETAILS[userDetailKey as 'ali' | 'fatemeh'].firstName : 'کاربر';
+        
         const chatMessagesRef = collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`);
         
         const notificationText = `${actorName} یک تراکنش جدید ثبت کرد: ${details.title}`;
@@ -27,7 +29,7 @@ export async function sendSystemNotification(
             text: notificationText,
             type: 'system',
             transactionDetails: details,
-            readBy: [],
+            readBy: [actorUserId], // The actor has "read" it by creating it
             timestamp: serverTimestamp(),
         });
         

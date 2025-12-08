@@ -38,6 +38,7 @@ import {
   Sparkles,
   Menu as MenuIcon,
   MessageSquare,
+  ArrowRight
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -195,7 +196,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  // Route Guard
   React.useEffect(() => {
     if (!isUserLoading && !user && pathname !== '/login') {
       router.replace('/login');
@@ -205,6 +205,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
   const userAvatar = getPlaceholderImage(`${'userShortName'}-avatar`);
   const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
+  
+  const showHeader = pathname !== '/';
+
 
   if (isUserLoading && pathname !== '/login') {
     return (
@@ -223,7 +226,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      {/* Desktop Sidebar */}
       <Sidebar side="right">
         <SidebarHeader>
           <div className="flex items-center gap-2">
@@ -293,29 +295,42 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
-            <Link href="/" className="flex items-center gap-2">
-              <HesabKetabLogo className="size-7 text-primary" />
-              <span className="font-headline text-xl font-bold">مشترکانه</span>
-            </Link>
-            <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MenuIcon className="ml-2 h-4 w-4" />
-                    منو
-                  </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
-                  <MobileMenuContent 
-                    user={user} 
-                    theme={theme} 
-                    toggleTheme={toggleTheme} 
-                    handleSignOut={handleSignOut}
-                    onLinkClick={() => setMobileMenuOpen(false)}
-                    unreadCount={unreadCount}
-                  />
-              </SheetContent>
-            </Sheet>
+         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+                {showHeader ? (
+                     <Button variant="outline" size="icon" asChild>
+                        <Link href="/">
+                            <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </Button>
+                ) : (
+                    <Link href="/" className="flex items-center gap-2 md:hidden">
+                      <HesabKetabLogo className="size-7 text-primary" />
+                      <span className="font-headline text-xl font-bold">مشترکانه</span>
+                    </Link>
+                )}
+            </div>
+            
+            <div className="flex items-center gap-2 md:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <MenuIcon className="ml-2 h-4 w-4" />
+                      منو
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
+                    <MobileMenuContent 
+                      user={user} 
+                      theme={theme} 
+                      toggleTheme={toggleTheme} 
+                      handleSignOut={handleSignOut}
+                      onLinkClick={() => setMobileMenuOpen(false)}
+                      unreadCount={unreadCount}
+                    />
+                </SheetContent>
+              </Sheet>
+            </div>
           </header>
         {children}
       </SidebarInset>

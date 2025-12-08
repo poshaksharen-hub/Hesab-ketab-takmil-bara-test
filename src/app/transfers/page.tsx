@@ -4,7 +4,7 @@
 import React, { useCallback } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { BankAccount, Transfer, UserProfile } from '@/lib/types';
+import type { BankAccount, Transfer, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TransferForm } from '@/components/transfers/transfer-form';
@@ -13,7 +13,7 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { sendSystemNotification } from '@/lib/notifications';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -90,6 +90,25 @@ export default function TransfersPage() {
         title: "موفقیت",
         description: "انتقال وجه با موفقیت انجام شد.",
       });
+      
+      const fromAccount = allBankAccounts.find(b => b.id === values.fromBankAccountId);
+      const toAccount = allBankAccounts.find(b => b.id === values.toBankAccountId);
+      
+      const notificationDetails: TransactionDetails = {
+            type: 'transfer',
+            title: `انتقال وجه داخلی`,
+            amount: values.amount,
+            date: new Date().toISOString(),
+            icon: 'ArrowRightLeft',
+            color: 'rgb(59 130 246)',
+            properties: [
+                { label: 'از حساب', value: fromAccount?.bankName },
+                { label: 'به حساب', value: toAccount?.bankName },
+                { label: 'شرح', value: values.description || '-' },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
 
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
@@ -167,16 +186,9 @@ export default function TransfersPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
-            <h1 className="font-headline text-3xl font-bold tracking-tight">
-              انتقال داخلی بین حساب‌ها
-            </h1>
-        </div>
+        <h1 className="font-headline text-3xl font-bold tracking-tight">
+          انتقال داخلی بین حساب‌ها
+        </h1>
       </div>
       
       <div className="grid gap-8 lg:grid-cols-5">

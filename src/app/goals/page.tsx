@@ -3,7 +3,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import {
   collection,
@@ -19,7 +19,7 @@ import {
   deleteDoc,
   updateDoc
 } from 'firebase/firestore';
-import type { FinancialGoal, BankAccount, Category, FinancialGoalContribution, Expense, OwnerId, UserProfile } from '@/lib/types';
+import type { FinancialGoal, BankAccount, Category, FinancialGoalContribution, Expense, OwnerId, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { GoalList } from '@/components/goals/goal-list';
@@ -30,6 +30,8 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { AddToGoalDialog } from '@/components/goals/add-to-goal-dialog';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
+import { sendSystemNotification } from '@/lib/notifications';
+
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -155,10 +157,24 @@ export default function GoalsPage() {
         toast({ title: 'موفقیت', description: `مبلغ با موفقیت به پس‌انداز هدف "${goal.name}" اضافه و در حساب شما مسدود شد.` });
         setContributingGoal(null);
 
+        const bankAccount = bankAccounts.find(b => b.id === bankAccountId);
+        const notificationDetails: TransactionDetails = {
+            type: 'goal',
+            title: `افزایش پس انداز برای هدف: ${goal.name}`,
+            amount: amount,
+            date: new Date().toISOString(),
+            icon: 'PlusCircle',
+            color: 'rgb(34 197 94)',
+            properties: [
+                { label: 'از حساب', value: bankAccount?.bankName },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
      } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در افزودن پس‌انداز', description: error.message || "مشکلی در عملیات پیش آمد." });
      }
-  }, [user, firestore, toast, categories]);
+  }, [user, firestore, toast, categories, bankAccounts]);
 
 
    const handleAchieveGoal = useCallback(async ({ goal, actualCost, paymentCardId }: { goal: FinancialGoal; actualCost: number; paymentCardId?: string; }) => {
@@ -261,6 +277,20 @@ export default function GoalsPage() {
 
         toast({ title: "تبریک!", description: `هدف "${goal.name}" با موفقیت محقق شد.` });
         setAchievingGoal(null);
+
+        const notificationDetails: TransactionDetails = {
+            type: 'goal',
+            title: `هدف محقق شد: ${goal.name}`,
+            amount: actualCost,
+            date: new Date().toISOString(),
+            icon: 'Target',
+            color: 'rgb(161 98 7)',
+            properties: [
+                { label: 'هزینه نهایی', value: formatCurrency(actualCost, 'IRT') },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -403,16 +433,9 @@ export default function GoalsPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
-            <h1 className="font-headline text-3xl font-bold tracking-tight">
-              اهداف مالی
-            </h1>
-        </div>
+        <h1 className="font-headline text-3xl font-bold tracking-tight">
+          اهداف مالی
+        </h1>
         <Button onClick={handleAddNew}>
           <PlusCircle className="ml-2 h-4 w-4" />
           افزودن هدف جدید

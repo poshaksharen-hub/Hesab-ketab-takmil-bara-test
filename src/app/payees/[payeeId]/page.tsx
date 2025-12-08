@@ -189,11 +189,6 @@ export default function PayeeDetailPage() {
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/payees">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
             <div className="space-y-1">
               <h1 className="font-headline text-3xl font-bold tracking-tight">
                 دفتر حساب: {payee.name}
@@ -203,10 +198,6 @@ export default function PayeeDetailPage() {
               </p>
             </div>
         </div>
-        <Button onClick={() => router.push('/dashboard')} variant="outline" className="hidden sm:flex">
-          <ArrowRight className="ml-2 h-4 w-4" />
-          بازگشت به داشبورد
-        </Button>
       </div>
 
        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">

@@ -2,7 +2,7 @@
 'use client';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import {
   collection,
@@ -64,7 +64,7 @@ export default function DebtsPage() {
         debtData.dueDate = dueDate;
     }
 
-    const newDebtRef = doc(collection(firestore, 'family-data', FAMILY_DATA_DOC), 'previousDebts');
+    const newDebtRef = doc(collection(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts'));
     
     try {
         await updateDoc(newDebtRef, { ...debtData, id: newDebtRef.id });
@@ -242,14 +242,7 @@ export default function DebtsPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
-            <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
-        </div>
+        <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
         <Button onClick={() => setIsFormOpen(true)}>
           <PlusCircle className="ml-2 h-4 w-4" />
           ثبت بدهی جدید
