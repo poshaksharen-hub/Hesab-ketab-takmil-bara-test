@@ -30,26 +30,25 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
   
   // Effect to mark messages as read when the component is visible and messages are loaded.
   useEffect(() => {
-    if (!firestore || !messages || messages.length === 0 || isLoading) return;
-
+    if (!firestore || !messages || messages.length === 0 || isLoading || !currentUser) return;
+  
     const unreadMessages = messages.filter(
-      (msg) => msg.readBy && !msg.readBy.includes(currentUser.uid) && msg.senderId !== currentUser.uid
+      (msg) => msg.senderId !== currentUser.uid && (!msg.readBy || !msg.readBy.includes(currentUser.uid))
     );
-
+  
     if (unreadMessages.length > 0) {
       const batch = writeBatch(firestore);
       unreadMessages.forEach((message) => {
         const messageRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`, message.id);
-        // Ensure readBy exists before spreading
         const currentReadBy = message.readBy || [];
         batch.update(messageRef, {
           readBy: [...currentReadBy, currentUser.uid],
         });
       });
-
+  
       batch.commit().catch(console.error);
     }
-  }, [messages, firestore, currentUser.uid, isLoading]);
+  }, [messages, firestore, currentUser, isLoading]);
   
   const handleSendMessage = async (text: string) => {
     if (!messagesCollectionRef || text.trim() === '') return;
@@ -79,7 +78,7 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
             timestamp: serverTimestamp(),
         });
         // Now update the document with its own ID
-        await writeBatch(firestore).update(newDocRef, { id: newDocRef.id }).commit();
+        await updateDoc(newDocRef, { id: newDocRef.id });
         setReplyingToMessage(null); // Clear reply state after sending
     } catch (error) {
         console.error("Error sending message:", error);

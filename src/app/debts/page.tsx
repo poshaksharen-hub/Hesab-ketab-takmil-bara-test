@@ -13,7 +13,7 @@ import {
   runTransaction,
   deleteDoc,
 } from 'firebase/firestore';
-import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile } from '@/lib/types';
+import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -23,6 +23,8 @@ import { DebtForm } from '@/components/debts/debt-form';
 import { PayDebtDialog } from '@/components/debts/pay-debt-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
+import { sendSystemNotification } from '@/lib/notifications';
+
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -62,23 +64,37 @@ export default function DebtsPage() {
         debtData.dueDate = dueDate;
     }
 
-    const newDebtRef = collection(doc(firestore, 'family-data', FAMILY_DATA_DOC), 'previousDebts');
+    const newDebtRef = doc(collection(firestore, 'family-data', FAMILY_DATA_DOC), 'previousDebts');
     
-    addDoc(newDebtRef, debtData)
-        .then(docRef => {
-            updateDoc(docRef, { id: docRef.id });
-            toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
-            setIsFormOpen(false);
-        })
-        .catch(error => {
-            throw new FirestorePermissionError({
-                path: newDebtRef.path,
-                operation: 'create',
-                requestResourceData: debtData,
-            });
-        });
+    try {
+        await updateDoc(newDebtRef, { ...debtData, id: newDebtRef.id });
+        toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
+        setIsFormOpen(false);
 
-  }, [user, firestore, toast]);
+        const payeeName = payees.find(p => p.id === values.payeeId)?.name;
+        const notificationDetails: TransactionDetails = {
+            type: 'debt',
+            title: `ثبت بدهی جدید به ${payeeName}`,
+            amount: values.amount,
+            date: debtData.startDate!,
+            icon: 'Handshake',
+            color: 'rgb(99 102 241)',
+            properties: [
+                { label: 'شرح', value: values.description },
+                { label: 'نوع', value: values.isInstallment ? 'قسطی' : 'یکجا' },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
+    } catch (error) {
+        throw new FirestorePermissionError({
+            path: newDebtRef.path,
+            operation: 'create',
+            requestResourceData: debtData,
+        });
+    }
+
+  }, [user, firestore, toast, payees]);
 
 
   const handlePayDebt = useCallback(async ({ debt, paymentBankAccountId, amount }: { debt: PreviousDebt, paymentBankAccountId: string, amount: number }) => {
@@ -163,6 +179,23 @@ export default function DebtsPage() {
       });
       toast({ title: "موفقیت", description: "پرداخت با موفقیت ثبت و به عنوان هزینه در سیستم منظور شد." });
       setPayingDebt(null);
+
+       const payeeName = payees.find(p => p.id === debt.payeeId)?.name;
+       const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
+       const notificationDetails: TransactionDetails = {
+            type: 'payment',
+            title: `پرداخت بدهی به ${payeeName}`,
+            amount: amount,
+            date: new Date().toISOString(),
+            icon: 'CheckCircle',
+            color: 'rgb(22 163 74)',
+            properties: [
+                { label: 'شرح', value: debt.description },
+                { label: 'از حساب', value: bankAccount?.bankName },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
              throw new FirestorePermissionError({
@@ -177,7 +210,7 @@ export default function DebtsPage() {
             });
         }
     }
-  }, [user, firestore, categories, bankAccounts, toast]);
+  }, [user, firestore, categories, bankAccounts, toast, payees]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
     if (!user || !firestore || !previousDebts) return;

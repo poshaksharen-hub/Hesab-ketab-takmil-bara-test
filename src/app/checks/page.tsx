@@ -8,12 +8,13 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
-import type { Check, BankAccount, Payee, Category, Expense } from '@/lib/types';
+import type { Check, BankAccount, Payee, Category, Expense, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import Link from 'next/link';
+import { sendSystemNotification } from '@/lib/notifications';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -61,7 +62,7 @@ export default function ChecksPage() {
             });
         });
     } else {
-      const newCheck = {
+      const newCheckData = {
         ...values,
         issueDate: values.issueDate.toISOString(),
         dueDate: values.dueDate.toISOString(),
@@ -69,22 +70,42 @@ export default function ChecksPage() {
         status: 'pending' as 'pending',
         ownerId: bankAccount.ownerId, // Automatically set ownerId from bank account
       };
-      addDoc(checksColRef, newCheck)
-        .then((docRef) => {
-            updateDoc(docRef, { id: docRef.id });
-            toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
-        })
-        .catch(async (serverError) => {
-            throw new FirestorePermissionError({
+      
+      try {
+        const docRef = await addDoc(checksColRef, newCheckData);
+        await updateDoc(docRef, { id: docRef.id });
+        
+        toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
+
+        const payeeName = payees.find(p => p.id === values.payeeId)?.name;
+        const categoryName = categories.find(c => c.id === values.categoryId)?.name;
+
+        const notificationDetails: TransactionDetails = {
+            type: 'check',
+            title: `ثبت چک جدید برای ${payeeName}`,
+            amount: values.amount,
+            date: newCheckData.dueDate,
+            icon: 'BookCopy',
+            color: 'rgb(217 119 6)',
+            properties: [
+                { label: 'شرح', value: values.description || '-' },
+                { label: 'از حساب', value: bankAccount.bankName },
+                { label: 'بابت', value: categoryName },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        
+      } catch (error) {
+           throw new FirestorePermissionError({
                 path: checksColRef.path,
                 operation: 'create',
-                requestResourceData: newCheck,
+                requestResourceData: newCheckData,
             });
-        });
+      }
     }
     setIsFormOpen(false);
     setEditingCheck(null);
-  }, [user, firestore, editingCheck, toast, bankAccounts]);
+  }, [user, firestore, editingCheck, toast, bankAccounts, payees, categories]);
 
   const handleClearCheck = React.useCallback(async (check: Check) => {
     if (!user || !firestore || check.status === 'cleared') return;
@@ -148,6 +169,24 @@ export default function ChecksPage() {
         });
       });
       toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
+
+      const categoryName = categories.find(c => c.id === check.categoryId)?.name;
+      const notificationDetails: TransactionDetails = {
+            type: 'payment',
+            title: `چک پاس شد: ${payeeName}`,
+            amount: check.amount,
+            date: new Date().toISOString(),
+            icon: 'CheckCircle',
+            color: 'rgb(22 163 74)',
+            properties: [
+                { label: 'شرح', value: check.description || '-' },
+                { label: 'از حساب', value: account.bankName },
+                { label: 'بابت', value: categoryName },
+            ]
+        };
+      await sendSystemNotification(firestore, user.uid, notificationDetails);
+
+
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
             throw new FirestorePermissionError({
@@ -162,7 +201,7 @@ export default function ChecksPage() {
             });
        }
     }
-  }, [user, firestore, bankAccounts, payees, toast]);
+  }, [user, firestore, bankAccounts, payees, toast, categories]);
   
   const handleDeleteCheck = React.useCallback(async (check: Check) => {
     if (!user || !firestore) return;
