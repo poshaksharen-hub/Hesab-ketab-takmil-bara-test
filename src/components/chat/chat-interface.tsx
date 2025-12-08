@@ -1,9 +1,9 @@
 
 'use client';
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import type { User } from 'firebase/auth';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 import type { ChatMessage } from '@/lib/types';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
@@ -27,6 +27,27 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
 
   const { data: messages, isLoading } = useCollection<ChatMessage>(messagesQuery);
   
+  // Effect to mark messages as read when the component is visible and messages are loaded.
+  useEffect(() => {
+    if (!firestore || !messages || messages.length === 0 || isLoading) return;
+
+    const unreadMessages = messages.filter(
+      (msg) => !msg.readBy.includes(currentUser.uid) && msg.senderId !== currentUser.uid
+    );
+
+    if (unreadMessages.length > 0) {
+      const batch = writeBatch(firestore);
+      unreadMessages.forEach((message) => {
+        const messageRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`, message.id);
+        batch.update(messageRef, {
+          readBy: [...message.readBy, currentUser.uid],
+        });
+      });
+
+      batch.commit().catch(console.error);
+    }
+  }, [messages, firestore, currentUser.uid, isLoading]);
+  
   const handleSendMessage = async (text: string) => {
     if (!messagesCollectionRef || text.trim() === '') return;
     
@@ -38,7 +59,8 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
             text,
             senderId: currentUser.uid,
             senderName: senderName,
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
+            readBy: [currentUser.uid], // Automatically marked as read by the sender
         });
     } catch (error) {
         console.error("Error sending message:", error);

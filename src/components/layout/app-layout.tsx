@@ -47,6 +47,7 @@ import { Skeleton } from '../ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
 import type { User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -65,11 +66,11 @@ const useSimpleTheme = () => {
   return { theme, toggleTheme };
 };
 
-function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
+function Menu({ onLinkClick, unreadCount }: { onLinkClick?: () => void; unreadCount: number; }) {
   const pathname = usePathname();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
-    { href: '/chat', label: 'گفتگو', icon: MessageSquare },
+    { href: '/chat', label: 'گفتگو', icon: MessageSquare, badge: unreadCount > 0 },
     { href: '/due-dates', label: 'سررسیدها', icon: Bell },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },
@@ -92,9 +93,13 @@ function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
               isActive={pathname === item.href}
               tooltip={item.label}
               onClick={onLinkClick}
+              className="relative"
             >
               <item.icon />
               <span>{item.label}</span>
+              {item.badge && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-destructive" />
+              )}
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
@@ -104,12 +109,13 @@ function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
 }
 
 // Extracted MobileMenuContent to be a standalone component
-const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClick }: {
+const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClick, unreadCount }: {
   user: User | null;
   theme: string;
   toggleTheme: () => void;
   handleSignOut: () => void;
   onLinkClick?: () => void;
+  unreadCount: number;
 }) => {
     const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
     const userAvatar = getPlaceholderImage(`${'userShortName'}-avatar`);
@@ -124,7 +130,7 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
                 </div>
             </SidebarHeader>
             <SidebarContent>
-                <Menu onLinkClick={onLinkClick} />
+                <Menu onLinkClick={onLinkClick} unreadCount={unreadCount} />
             </SidebarContent>
             <SidebarFooter>
                 {user && (
@@ -180,6 +186,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const { unreadCount } = useUnreadMessages();
   
   const handleSignOut = async () => {
     if (auth) {
@@ -225,7 +232,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <Menu />
+          <Menu unreadCount={unreadCount} />
         </SidebarContent>
         <SidebarFooter>
           {isUserLoading ? (
@@ -305,6 +312,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     toggleTheme={toggleTheme} 
                     handleSignOut={handleSignOut}
                     onLinkClick={() => setMobileMenuOpen(false)}
+                    unreadCount={unreadCount}
                   />
               </SheetContent>
             </Sheet>
@@ -316,8 +324,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         "fixed bottom-4 left-4 z-50",
         pathname === '/chat' && 'hidden' // Hide on chat page
       )}>
-        <Button asChild size="icon" className="h-14 w-14 rounded-full shadow-lg">
+        <Button asChild size="icon" className="h-14 w-14 rounded-full shadow-lg relative">
             <Link href="/chat">
+              {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive border-2 border-background flex items-center justify-center text-xs font-bold text-white">
+                      {unreadCount}
+                  </span>
+              )}
               <MessageSquare className="h-6 w-6" />
               <span className="sr-only">گفتگو</span>
             </Link>

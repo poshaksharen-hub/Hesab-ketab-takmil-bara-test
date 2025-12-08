@@ -196,7 +196,7 @@
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
-            "liabilityOwnerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the loan is for (beneficiary)." },
+            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the loan is for (beneficiary)." },
             "payeeId": { "type": "string" },
             "title": { "type": "string" },
             "amount": { "type": "number" },
@@ -208,7 +208,7 @@
             "paidInstallments": { "type": "number" },
             "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." }
         },
-        "required": ["id", "registeredByUserId", "liabilityOwnerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "numberOfInstallments", "paidInstallments", "firstInstallmentDate"]
+        "required": ["id", "registeredByUserId", "ownerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "numberOfInstallments", "paidInstallments", "firstInstallmentDate"]
     },
     "LoanPayment": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -282,6 +282,25 @@
             "toAccountBalanceAfter": { "type": "number" }
         },
         "required": ["id", "registeredByUserId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate", "fromAccountBalanceBefore", "fromAccountBalanceAfter", "toAccountBalanceBefore", "toAccountBalanceAfter"]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a single chat message in the family chat.",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string", "description": "The UID of the user who sent the message." },
+        "senderName": { "type": "string", "description": "The first name of the sender." },
+        "text": { "type": "string", "description": "The content of the message." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "The server timestamp of when the message was sent." },
+        "readBy": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "An array of user UIDs who have read the message."
+        }
+      },
+      "required": ["id", "senderId", "senderName", "text", "timestamp", "readBy"]
     }
   },
   "auth": {
@@ -316,7 +335,8 @@
             { "name": "loanPayments", "schema": { "$ref": "#/entities/LoanPayment" }, "description": "All loan payments for the family." },
             { "name": "previousDebts", "schema": { "$ref": "#/entities/PreviousDebt" }, "description": "All miscellaneous debts for the family." },
             { "name": "debtPayments", "schema": { "$ref": "#/entities/DebtPayment" }, "description": "All payments for miscellaneous debts." },
-            { "name": "transfers", "schema": { "$ref": "#/entities/Transfer" }, "description": "All internal transfers for the family." }
+            { "name": "transfers", "schema": { "$ref": "#/entities/Transfer" }, "description": "All internal transfers for the family." },
+            { "name": "chatMessages", "schema": { "$ref": "#/entities/ChatMessage" }, "description": "All chat messages for the family." }
         ]
       }
     ]
