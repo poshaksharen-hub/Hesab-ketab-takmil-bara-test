@@ -120,7 +120,7 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
   unreadCount: number;
 }) => {
     const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-    const userAvatar = getPlaceholderImage(`${'userShortName'}-avatar`);
+    const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
     const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
 
     return (
@@ -204,7 +204,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [isUserLoading, user, pathname, router]);
 
   const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-  const userAvatar = getPlaceholderImage(`${'userShortName'}-avatar`);
+  const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
   const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
   
   const showHeader = !['/', '/chat', '/insights'].includes(pathname);
