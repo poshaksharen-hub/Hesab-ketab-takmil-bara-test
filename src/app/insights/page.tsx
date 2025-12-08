@@ -43,9 +43,7 @@ function ChatBubble({ role, content }: { role: 'user' | 'model'; content: string
 export default function InsightsPage() {
   const { user } = useUser();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
-  const [history, setHistory] = useState<ChatHistory[]>([
-      {role: 'model', parts: [{ text: 'سلام! من مشاور مالی هوشمند شما هستم. چطور می‌توانم در تحلیل وضعیت مالی به شما کمک کنم؟ می‌توانید با پرسیدن «یک تحلیل کلی به من بده» شروع کنید.'}]}
-  ]);
+  const [history, setHistory] = useState<ChatHistory[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -167,6 +165,10 @@ export default function InsightsPage() {
        <div className="flex-1 flex flex-col p-4 gap-4 border rounded-lg shadow-sm">
              <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
                 <div className="space-y-4">
+                    <ChatBubble 
+                        role="model" 
+                        content="سلام! من مشاور مالی هوشمند شما هستم. چطور می‌توانم در تحلیل وضعیت مالی به شما کمک کنم؟ می‌توانید با پرسیدن «یک تحلیل کلی به من بده» شروع کنید."
+                    />
                     {history.map((item, index) => <ChatBubble key={index} role={item.role} content={item.parts[0].text} />)}
                     {isPending && (
                         <div className="flex items-start gap-3 justify-start">
