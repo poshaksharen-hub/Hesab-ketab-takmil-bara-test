@@ -46,6 +46,7 @@ import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
 import type { User } from 'firebase/auth';
+import { cn } from '@/lib/utils';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -111,7 +112,7 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
   onLinkClick?: () => void;
 }) => {
     const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-    const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
+    const userAvatar = getPlaceholderImage(`${'userShortName'}-avatar`);
     const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
 
     return (
@@ -195,7 +196,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [isUserLoading, user, pathname, router]);
 
   const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-  const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
+  const userAvatar = getPlaceholderImage(`${'userShortName'}-avatar`);
   const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
 
   if (isUserLoading && pathname !== '/login') {
@@ -310,6 +311,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </header>
         {children}
       </SidebarInset>
+       {/* Floating Action Button for Chat */}
+      <div className={cn(
+        "fixed bottom-4 left-4 z-50",
+        pathname === '/chat' && 'hidden' // Hide on chat page
+      )}>
+        <Button asChild size="icon" className="h-14 w-14 rounded-full shadow-lg">
+            <Link href="/chat">
+              <MessageSquare className="h-6 w-6" />
+              <span className="sr-only">گفتگو</span>
+            </Link>
+        </Button>
+      </div>
     </SidebarProvider>
   );
 }
