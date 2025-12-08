@@ -182,7 +182,7 @@ export default function ExpensesPage() {
 
        <ExpenseForm
           isOpen={isFormOpen}
-          setIsOpen={setIsOpen}
+          setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
           initialData={null}
           bankAccounts={allBankAccounts || []}
