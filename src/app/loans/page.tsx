@@ -15,7 +15,6 @@ import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { formatCurrency } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import Link from 'next/link';
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -48,7 +47,7 @@ export default function LoansPage() {
         installmentAmount,
         numberOfInstallments,
         startDate,
-        paymentDay,
+        firstInstallmentDate,
         payeeId,
         ownerId, // This now correctly represents the beneficiary
         depositOnCreate,
@@ -69,7 +68,7 @@ export default function LoansPage() {
                 installmentAmount: installmentAmount || 0,
                 numberOfInstallments: numberOfInstallments || 0,
                 startDate: startDate,
-                paymentDay: paymentDay || 1,
+                firstInstallmentDate: firstInstallmentDate,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
             };
@@ -102,12 +101,11 @@ export default function LoansPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: 'family-data/shared-data/loans',
                 operation: 'create',
                 requestResourceData: values,
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: 'destructive',
@@ -242,11 +240,10 @@ export default function LoansPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/shared-data/loans/${loanId}`,
                 operation: 'delete'
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",

@@ -3,7 +3,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId } from '@/lib/types';
@@ -15,7 +15,7 @@ import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { formatCurrency } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
+import Link from 'next/link';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -47,7 +47,7 @@ export default function LoansPage() {
         installmentAmount,
         numberOfInstallments,
         startDate,
-        paymentDay,
+        firstInstallmentDate,
         payeeId,
         ownerId, // This now correctly represents the beneficiary
         depositOnCreate,
@@ -68,7 +68,7 @@ export default function LoansPage() {
                 installmentAmount: installmentAmount || 0,
                 numberOfInstallments: numberOfInstallments || 0,
                 startDate: startDate,
-                paymentDay: paymentDay || 1,
+                firstInstallmentDate: firstInstallmentDate,
                 payeeId: payeeId || undefined,
                 depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
             };
@@ -101,12 +101,11 @@ export default function LoansPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: 'family-data/shared-data/loans',
                 operation: 'create',
                 requestResourceData: values,
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: 'destructive',
@@ -241,11 +240,10 @@ export default function LoansPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/shared-data/loans/${loanId}`,
                 operation: 'delete'
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",
@@ -278,7 +276,14 @@ export default function LoansPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
+        </div>
         {!isFormOpen && (
             <Button onClick={handleAddNew}>
                 <PlusCircle className="ml-2 h-4 w-4" />
@@ -328,3 +333,5 @@ export default function LoansPage() {
     </main>
   );
 }
+
+    

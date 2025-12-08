@@ -15,3 +15,5 @@ export function FirebaseErrorListener() {
   // This approach is more idiomatic for Next.js applications.
   return null;
 }
+
+    
