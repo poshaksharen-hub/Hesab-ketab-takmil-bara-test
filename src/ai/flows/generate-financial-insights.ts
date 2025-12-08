@@ -91,7 +91,7 @@ const FinancialInsightsOutputSchema = z.object({
 
 const prompt = ai.definePrompt({
     name: 'financialInsightsPrompt',
-    model: 'gemini-pro',
+    model: 'gemini-1.0-pro-001',
     input: { schema: FinancialInsightsInputSchema },
     output: { schema: FinancialInsightsOutputSchema },
     prompt: `You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is {{{currentUserName}}}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing {{{currentUserName}}} directly.
