@@ -1,7 +1,6 @@
 
 
 import type { LucideIcon } from 'lucide-react';
-import { z } from 'zod';
 
 export type OwnerId = 'ali' | 'fatemeh' | 'shared';
 
@@ -189,82 +188,3 @@ export type Transfer = {
     toAccountBalanceBefore: number;
     toAccountBalanceAfter: number;
 }
-
-// AI Insights Types
-const EnrichedIncomeSchema = z.object({
-  description: z.string(),
-  amount: z.number(),
-  date: z.string(),
-  bankAccountName: z.string(),
-  source: z.string().optional(),
-});
-
-const EnrichedExpenseSchema = z.object({
-  description: z.string(),
-  amount: z.number(),
-  date: z.string(),
-  bankAccountName: z.string(),
-  categoryName: z.string(),
-  payeeName: z.string().optional(),
-  expenseFor: z.string(),
-});
-
-const BankAccountSchema = z.object({
-  bankName: z.string(),
-  balance: z.number(),
-  ownerId: z.string(),
-});
-
-const CheckSchema = z.object({
-  description: z.string().optional(),
-  amount: z.number(),
-  dueDate: z.string(),
-  payeeName: z.string(),
-  bankAccountName: z.string(),
-});
-
-const LoanSchema = z.object({
-  title: z.string(),
-  remainingAmount: z.number(),
-  installmentAmount: z.number(),
-  payeeName: z.string(),
-});
-
-const DebtSchema = z.object({
-  description: z.string(),
-  remainingAmount: z.number(),
-  payeeName: z.string(),
-});
-
-const FinancialGoalSchema = z.object({
-  name: z.string(),
-  targetAmount: z.number(),
-  currentAmount: z.number(),
-  targetDate: z.string(),
-  priority: z.string(),
-  isAchieved: z.boolean(),
-});
-
-const ChatHistorySchema = z.object({
-  role: z.enum(['user', 'model']),
-  content: z.string(),
-});
-
-export const FinancialInsightsInputSchema = z.object({
-  currentUserName: z.string(),
-  incomes: z.array(EnrichedIncomeSchema),
-  expenses: z.array(EnrichedExpenseSchema),
-  bankAccounts: z.array(BankAccountSchema),
-  checks: z.array(CheckSchema),
-  loans: z.array(LoanSchema),
-  previousDebts: z.array(DebtSchema),
-  financialGoals: z.array(FinancialGoalSchema),
-  history: z.array(ChatHistorySchema),
-  latestUserQuestion: z.string(),
-});
-export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
-
-export const FinancialInsightsOutputSchema = z.object({
-  summary: z.string(),
-});
-export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;

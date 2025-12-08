@@ -5,14 +5,13 @@ import React, { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, BrainCircuit } from 'lucide-react';
-import { getFinancialInsightsAction } from '@/app/insights/actions';
-import { type FinancialInsightsOutput, type FinancialInsightsInput } from '@/ai/flows/generate-financial-insights';
+import { getFinancialInsightsAction, type FinancialInsightsOutput, type FinancialInsightsInput } from '@/app/insights/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 
 interface InsightsGeneratorProps {
-  financialData: FinancialInsightsInput | null;
+  financialData: Omit<FinancialInsightsInput, 'history' | 'latestUserQuestion'> | null;
 }
 
 export function InsightsGenerator({ financialData }: InsightsGeneratorProps) {
@@ -21,18 +20,15 @@ export function InsightsGenerator({ financialData }: InsightsGeneratorProps) {
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = () => {
+    if (!financialData) return;
+
     startTransition(async () => {
       setError(null);
       setInsights(null);
 
-      // Now we need to pass the history, which we'll manage in the parent component.
-      // For now, we'll pass an empty history.
-      const payload = {
-        ...financialData,
-        history: [],
-      };
-
-      const result = await getFinancialInsightsAction(payload as FinancialInsightsInput);
+      // We pass an empty history for a general analysis.
+      // The parent component `InsightsPage` will handle conversational history.
+      const result = await getFinancialInsightsAction(financialData, []);
       if (result.success && result.data) {
         setInsights(result.data);
       } else {

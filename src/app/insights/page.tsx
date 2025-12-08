@@ -3,10 +3,9 @@
 import React, { useMemo, useState, useTransition, useRef, useEffect } from 'react';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type FinancialInsightsInput, type FinancialInsightsOutput } from '@/lib/types';
 import { USER_DETAILS } from '@/lib/constants';
 import { useUser } from '@/firebase';
-import { getFinancialInsightsAction } from './actions';
+import { getFinancialInsightsAction, type FinancialInsightsInput, type FinancialInsightsOutput, type ChatHistory } from './actions';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

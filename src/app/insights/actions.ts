@@ -2,7 +2,84 @@
 'use server';
 
 import { generateFinancialInsights as generateFinancialInsightsFlow } from '@/ai/flows/generate-financial-insights';
-import type { FinancialInsightsInput, FinancialInsightsOutput } from '@/lib/types';
+
+// AI Insights Types - Moved here to prevent client-side bundling issues
+export interface EnrichedIncome {
+  description: string;
+  amount: number;
+  date: string;
+  bankAccountName: string;
+  source?: string;
+}
+
+export interface EnrichedExpense {
+  description: string;
+  amount: number;
+  date: string;
+  bankAccountName: string;
+  categoryName: string;
+  payeeName?: string;
+  expenseFor: string;
+}
+
+export interface InsightsBankAccount {
+  bankName: string;
+  balance: number;
+  ownerId: string;
+}
+
+export interface InsightsCheck {
+  description?: string;
+  amount: number;
+  dueDate: string;
+  payeeName: string;
+  bankAccountName: string;
+}
+
+export interface InsightsLoan {
+  title: string;
+  remainingAmount: number;
+  installmentAmount: number;
+  payeeName: string;
+}
+
+export interface InsightsDebt {
+  description: string;
+  remainingAmount: number;
+  payeeName: string;
+}
+
+export interface InsightsFinancialGoal {
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  priority: string;
+  isAchieved: boolean;
+}
+
+export interface ChatHistory {
+  role: 'user' | 'model';
+  content: string;
+}
+
+export interface FinancialInsightsInput {
+  currentUserName: string;
+  incomes: EnrichedIncome[];
+  expenses: EnrichedExpense[];
+  bankAccounts: InsightsBankAccount[];
+  checks: InsightsCheck[];
+  loans: InsightsLoan[];
+  previousDebts: InsightsDebt[];
+  financialGoals: InsightsFinancialGoal[];
+  history: ChatHistory[];
+  latestUserQuestion: string;
+}
+
+export interface FinancialInsightsOutput {
+  summary: string;
+}
+// End of AI Insights Types
 
 
 export async function getFinancialInsightsAction(
