@@ -27,10 +27,10 @@ import { USER_DETAILS } from '@/lib/constants';
  * Prepares and enriches the raw financial data to be sent to the AI model.
  * It converts IDs to human-readable names.
  */
-export function prepareFinancialInsightsInput(
+export async function prepareFinancialInsightsInput(
   allData: AllData,
   currentUserName: string
-): FinancialInsightsInput {
+): Promise<FinancialInsightsInput> {
   const {
     incomes,
     expenses,
