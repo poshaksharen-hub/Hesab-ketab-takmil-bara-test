@@ -7,9 +7,8 @@
  * - generateFinancialInsights - A function that generates financial insights.
  */
 
-import { ai } from '@/ai/genkit'; // Import the configured 'ai' instance
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { FinancialInsightsInput, FinancialInsightsOutput } from '@/app/insights/actions';
 
 // Define Zod schemas here, locally, to avoid client-side bundling issues.
 const EnrichedIncomeSchema = z.object({
@@ -19,6 +18,8 @@ const EnrichedIncomeSchema = z.object({
   bankAccountName: z.string(),
   source: z.string().optional(),
 });
+export type EnrichedIncome = z.infer<typeof EnrichedIncomeSchema>;
+
 
 const EnrichedExpenseSchema = z.object({
   description: z.string(),
@@ -29,12 +30,16 @@ const EnrichedExpenseSchema = z.object({
   payeeName: z.string().optional(),
   expenseFor: z.string(),
 });
+export type EnrichedExpense = z.infer<typeof EnrichedExpenseSchema>;
+
 
 const BankAccountSchema = z.object({
   bankName: z.string(),
   balance: z.number(),
   ownerId: z.string(),
 });
+export type InsightsBankAccount = z.infer<typeof BankAccountSchema>;
+
 
 const CheckSchema = z.object({
   description: z.string().optional(),
@@ -43,6 +48,8 @@ const CheckSchema = z.object({
   payeeName: z.string(),
   bankAccountName: z.string(),
 });
+export type InsightsCheck = z.infer<typeof CheckSchema>;
+
 
 const LoanSchema = z.object({
   title: z.string(),
@@ -50,12 +57,16 @@ const LoanSchema = z.object({
   installmentAmount: z.number(),
   payeeName: z.string(),
 });
+export type InsightsLoan = z.infer<typeof LoanSchema>;
+
 
 const DebtSchema = z.object({
   description: z.string(),
   remainingAmount: z.number(),
   payeeName: z.string(),
 });
+export type InsightsDebt = z.infer<typeof DebtSchema>;
+
 
 const FinancialGoalSchema = z.object({
   name: z.string(),
@@ -65,11 +76,14 @@ const FinancialGoalSchema = z.object({
   priority: z.string(),
   isAchieved: z.boolean(),
 });
+export type InsightsFinancialGoal = z.infer<typeof FinancialGoalSchema>;
+
 
 const ChatHistorySchema = z.object({
   role: z.enum(['user', 'model']),
   content: z.string(),
 });
+export type ChatHistory = z.infer<typeof ChatHistorySchema>;
 
 const FinancialInsightsInputSchema = z.object({
   currentUserName: z.string(),
@@ -80,18 +94,21 @@ const FinancialInsightsInputSchema = z.object({
   loans: z.array(LoanSchema),
   previousDebts: z.array(DebtSchema),
   financialGoals: z.array(FinancialGoalSchema),
-  history: z.array(ChatHistorySchema),
-  latestUserQuestion: z.string(),
+  history: z.array(ChatHistorySchema).optional(),
+  latestUserQuestion: z.string().optional(),
 });
+export type FinancialInsightsInput = z.infer<typeof FinancialInsightsInputSchema>;
+
 
 const FinancialInsightsOutputSchema = z.object({
-  summary: z.string(),
+  summary: z.string().describe("The comprehensive financial analysis and recommendations in Persian."),
 });
+export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSchema>;
 
 
 const prompt = ai.definePrompt({
     name: 'financialInsightsPrompt',
-    model: 'gemini-1.0-pro-001',
+    model: 'gemini-1.5-flash-latest',
     input: { schema: FinancialInsightsInputSchema },
     output: { schema: FinancialInsightsOutputSchema },
     prompt: `You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is {{{currentUserName}}}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing {{{currentUserName}}} directly.
@@ -127,14 +144,13 @@ const prompt = ai.definePrompt({
         - Assess the overall debt situation (checks, loans, miscellaneous debts) relative to assets and income, and provide an overview of the family's financial risk.
     3.  **Actionable Recommendations:**
         - **Debt Repayment Strategy:** Based on monthly income and total debt, suggest a smart strategy for paying off debts. Warn about checks with near due dates and recommend which loan or debt to pay off first.
-        - **Budgeting Suggestions:** Based on expense analysis, provide specific suggestions for cost reduction in particular categories. (Example: "It is recommended to reduce the monthly budget for the 'Entertainment' category by 20%.")
+        - **Budgeting Suggestions:** Based on expense analysis, provide specific suggestions for cost-reduction in particular categories. (Example: "It is recommended to reduce the monthly budget for the 'Entertainment' category by 20%.")
         - **Savings & Goals:** Provide encouragement and concrete suggestions on how to reach financial goals faster based on their income and expenses.
         - **General Guidance:** Offer general tips for improving financial health, such as creating an emergency fund, suggesting monthly savings based on income, etc.
 
-    Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text placed in the 'summary' field.`
+    Your analysis must be precise, data-driven, and fully personalized based on the input data. Format your response using Markdown for better readability (e.g., using **bold** for titles, and lists for recommendations). Your entire output should be a single, coherent text placed in the 'summary' field.`
 });
 
-// Define the flow, which will be called by the main function
 const generateFinancialInsightsFlow = ai.defineFlow(
     {
       name: 'generateFinancialInsightsFlow',
@@ -147,8 +163,6 @@ const generateFinancialInsightsFlow = ai.defineFlow(
     }
 );
 
-
-// This is the main server action function that will be called by the client
 export async function generateFinancialInsights(input: FinancialInsightsInput): Promise<FinancialInsightsOutput> {
     return generateFinancialInsightsFlow(input);
 }

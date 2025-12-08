@@ -71,6 +71,7 @@ function Menu({ onLinkClick, unreadCount }: { onLinkClick?: () => void; unreadCo
   const pathname = usePathname();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+    { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
     { href: '/chat', label: 'گفتگو', icon: MessageSquare, badge: unreadCount > 0 },
     { href: '/due-dates', label: 'سررسیدها', icon: Bell },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
@@ -206,7 +207,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const userAvatar = getPlaceholderImage(`${'userShortName'}-avatar`);
   const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
   
-  const showHeader = pathname !== '/';
+  const showHeader = !['/', '/chat', '/insights'].includes(pathname);
 
 
   if (isUserLoading && pathname !== '/login') {

@@ -1,313 +1,193 @@
 
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useUser } from '@/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import {
-  LayoutDashboard,
-  ArrowRightLeft,
-  Sun,
-  Moon,
-  LogIn,
-  TrendingUp,
-  TrendingDown,
-  LogOut,
-  CreditCard,
-  BookUser,
-  BookCopy,
-  FolderKanban,
-  Target,
-  Landmark,
-  Bell,
-  Handshake,
-  Sparkles,
-  Menu as MenuIcon,
-} from 'lucide-react';
-import { HesabKetabLogo } from '@/components/icons';
-import { getPlaceholderImage } from '@/lib/placeholder-images';
-import { useUser, useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
-import { Skeleton } from '../ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+import { Send, Sparkles, User, Bot } from 'lucide-react';
+import { prepareFinancialInsightsInput } from './actions';
+import { generateFinancialInsights } from '@/ai/flows/generate-financial-insights';
+import type { FinancialInsightsInput, ChatHistory } from '@/ai/flows/generate-financial-insights';
 import { USER_DETAILS } from '@/lib/constants';
-import type { User } from 'firebase/auth';
+import Markdown from 'react-markdown';
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-const useSimpleTheme = () => {
-  const [theme, setTheme] = React.useState('light');
 
-  React.useEffect(() => {
-    const isDark = document.documentElement.classList.contains('dark');
-    setTheme(isDark ? 'dark' : 'light');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  return { theme, toggleTheme };
-};
-
-function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
-  const pathname = usePathname();
-  const menuItems = [
-    { href: '/', label: 'داشبورد', icon: LayoutDashboard },
-    { href: '/due-dates', label: 'سررسیدها', icon: Bell },
-    { href: '/income', label: 'درآمدها', icon: TrendingUp },
-    { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },
-    { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft },
-    { href: '/cards', label: 'کارت‌های بانکی', icon: CreditCard },
-    { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban },
-    { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser },
-    { href: '/checks', label: 'چک‌ها', icon: BookCopy },
-    { href: '/loans', label: 'وام‌ها', icon: Landmark },
-    { href: '/debts', label: 'بدهی‌ها', icon: Handshake },
-    { href: '/goals', label: 'اهداف مالی', icon: Target },
-  ];
-
-  return (
-    <SidebarMenu>
-      {menuItems.map((item) => (
-        <SidebarMenuItem key={item.href}>
-          <Link href={item.href} passHref>
-            <SidebarMenuButton
-              isActive={pathname === item.href}
-              tooltip={item.label}
-              onClick={onLinkClick}
-            >
-              <item.icon />
-              <span>{item.label}</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
-  );
+function InsightsPageSkeleton() {
+    return (
+        <div className="flex flex-col h-full">
+            <div className="flex-1 p-4 space-y-4">
+                <Skeleton className="h-8 w-48" />
+                <div className="border rounded-lg p-4 space-y-4">
+                    <Skeleton className="h-16 w-3/4 self-start rounded-lg" />
+                    <Skeleton className="h-20 w-1/2 self-end rounded-lg bg-primary/10" />
+                    <Skeleton className="h-12 w-2/3 self-start rounded-lg" />
+                </div>
+            </div>
+            <div className="p-4 border-t">
+                <Skeleton className="h-24 w-full" />
+                 <Skeleton className="h-10 w-32 mt-2" />
+            </div>
+        </div>
+    );
 }
 
-// Extracted MobileMenuContent to be a standalone component
-const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClick }: {
-  user: User | null;
-  theme: string;
-  toggleTheme: () => void;
-  handleSignOut: () => void;
-  onLinkClick?: () => void;
-}) => {
-    const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-    const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
-    const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
+type Message = {
+    role: 'user' | 'model';
+    content: string;
+};
 
-    return (
-        <div className="flex h-full flex-col">
-            <SidebarHeader>
-                <div className="flex items-center gap-2">
-                    <HesabKetabLogo className="size-8 text-primary" />
-                    <span className="font-headline text-2xl font-bold">حساب کتاب</span>
-                </div>
-            </SidebarHeader>
-            <SidebarContent>
-                <Menu onLinkClick={onLinkClick} />
-            </SidebarContent>
-            <SidebarFooter>
-                {user && (
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                            <Avatar>
-                                <AvatarImage
-                                    src={userAvatar?.imageUrl}
-                                    data-ai-hint={userAvatar?.imageHint}
-                                />
-                                <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col truncate">
-                                <span className="truncate text-sm font-semibold">
-                                    {userName}
-                                </span>
-                                <span className="truncate text-xs text-muted-foreground">
-                                    {user.email}
-                                </span>
-                            </div>
-                        </div>
-                        <div className="flex">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={toggleTheme}
-                                aria-label="تغییر تم"
-                            >
-                                {theme === 'light' ? <Moon /> : <Sun />}
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleSignOut}
-                                aria-label="خروج"
-                                className="text-destructive hover:text-destructive"
-                            >
-                                <LogOut />
-                            </Button>
-                        </div>
+export default function InsightsPage() {
+    const { user, isUserLoading } = useUser();
+    const { allData, isLoading: isDashboardLoading } = useDashboardData();
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [input, setInput] = useState('');
+    const [isThinking, setIsThinking] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+     useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+    
+    const financialDataInput: FinancialInsightsInput | null = useMemo(() => {
+        if (isDashboardLoading || !user) return null;
+        const currentUserName = user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+        return prepareFinancialInsightsInput(allData, currentUserName);
+    }, [allData, isDashboardLoading, user]);
+
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim() || isThinking || !financialDataInput) return;
+
+        const userMessage: Message = { role: 'user', content: input };
+        setMessages(prev => [...prev, userMessage]);
+        setInput('');
+        setIsThinking(true);
+        
+        // Add a placeholder for the model's response
+        setMessages(prev => [...prev, { role: 'model', content: '...' }]);
+
+        try {
+            const history: ChatHistory[] = messages.map(m => ({
+                role: m.role,
+                content: m.content
+            }));
+            
+            const insightsInput = {
+                ...financialDataInput,
+                history,
+                latestUserQuestion: input,
+            };
+
+            const result = await generateFinancialInsights(insightsInput);
+
+            const modelMessage: Message = { role: 'model', content: result.summary };
+            
+            // Replace the placeholder with the actual response
+            setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = modelMessage;
+                return newMessages;
+            });
+
+        } catch (error: any) {
+            const errorMessage: Message = { role: 'model', content: `متاسفانه خطایی رخ داد: ${error.message}` };
+            setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = errorMessage;
+                return newMessages;
+            });
+        } finally {
+            setIsThinking(false);
+        }
+    };
+    
+    if (isUserLoading || isDashboardLoading) {
+        return <InsightsPageSkeleton />;
+    }
+
+    const currentUserName = user?.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+
+
+  return (
+    <main className="flex flex-col h-[calc(100vh_-_5rem)]">
+        <div className="p-4 border-b">
+            <h1 className="font-headline text-2xl font-bold flex items-center gap-2"><Sparkles className="text-primary"/> تحلیل هوشمند مالی</h1>
+            <p className="text-muted-foreground text-sm mt-1">از دستیار هوشمند خود در مورد وضعیت مالی‌تان سوال بپرسید.</p>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {messages.length === 0 && (
+                 <div className="text-center p-8 rounded-lg bg-muted/50">
+                    <Sparkles className="mx-auto h-12 w-12 text-primary" />
+                    <h2 className="mt-4 text-xl font-bold">سلام {currentUserName}، چطور می‌توانم کمکتان کنم؟</h2>
+                    <p className="mt-2 text-muted-foreground">می‌توانید با پرسیدن سوالاتی مانند موارد زیر شروع کنید:</p>
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setInput('یک تحلیل کلی از وضعیت مالی ما ارائه بده.')}>یک تحلیل کلی به من بده</Button>
+                        <Button variant="outline" size="sm" onClick={() => setInput('بیشترین هزینه‌های ما در چه دسته‌بندی‌هایی بوده؟')}>بیشترین هزینه‌ها کجا بوده؟</Button>
+                        <Button variant="outline" size="sm" onClick={() => setInput('چقدر تا رسیدن به هدف "خرید ماشین" باقی مانده؟')}>چقدر تا هدف خرید ماشین مانده؟</Button>
                     </div>
-                )}
-            </SidebarFooter>
-        </div>
-    );
-};
-
-
-export function AppLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { theme, toggleTheme } = useSimpleTheme();
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  
-  const handleSignOut = async () => {
-    if (auth) {
-      await signOut(auth);
-    }
-    router.push('/login');
-  };
-
-  // Route Guard
-  React.useEffect(() => {
-    if (!isUserLoading && !user && pathname !== '/login') {
-      router.replace('/login');
-    }
-  }, [isUserLoading, user, pathname, router]);
-
-  const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-  const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
-  const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
-
-  if (isUserLoading && pathname !== '/login') {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <HesabKetabLogo className="size-16 animate-pulse text-primary" />
-          <p className="text-muted-foreground">در حال بارگذاری...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (pathname === '/login' || (!user && !isUserLoading)) {
-    return <>{children}</>;
-  }
-
-  return (
-    <SidebarProvider>
-      {/* Desktop Sidebar */}
-      <Sidebar side="right">
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <HesabKetabLogo className="size-8 text-primary" />
-            <span className="font-headline text-2xl font-bold">حساب کتاب</span>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <Menu />
-        </SidebarContent>
-        <SidebarFooter>
-          {isUserLoading ? (
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-3 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-              </div>
-            </div>
-          ) : user ? (
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <Avatar>
-                  <AvatarImage
-                    src={userAvatar?.imageUrl}
-                    data-ai-hint={userAvatar?.imageHint}
-                  />
-                  <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col truncate">
-                  <span className="truncate text-sm font-semibold">
-                    {userName}
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
-                  </span>
                 </div>
-              </div>
-              <div className="flex">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleTheme}
-                  aria-label="تغییر تم"
-                >
-                  {theme === 'light' ? <Moon /> : <Sun />}
+            )}
+            {messages.map((msg, index) => (
+                <div key={index} className={cn("flex items-start gap-3", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                     {msg.role === 'model' && (
+                        <Avatar className="w-8 h-8 bg-primary text-primary-foreground flex items-center justify-center">
+                            <AvatarFallback><Sparkles className="w-5 h-5"/></AvatarFallback>
+                        </Avatar>
+                    )}
+                    <div className={cn(
+                        "max-w-2xl rounded-lg px-4 py-3", 
+                        msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'
+                    )}>
+                        {isThinking && msg.role === 'model' && msg.content === '...' ? (
+                             <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse delay-0"></div>
+                                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse delay-200"></div>
+                                <div className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse delay-400"></div>
+                            </div>
+                        ) : (
+                            <article className="prose dark:prose-invert prose-sm max-w-none">
+                                <Markdown>{msg.content}</Markdown>
+                            </article>
+                        )}
+                    </div>
+                     {msg.role === 'user' && (
+                        <Avatar className="w-8 h-8">
+                            <AvatarFallback>{currentUserName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    )}
+                </div>
+            ))}
+             <div ref={messagesEndRef} />
+        </div>
+
+        <div className="p-4 border-t bg-background">
+            <form onSubmit={handleSendMessage} className="relative">
+                <Textarea
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    placeholder="سوال خود را در مورد وضعیت مالی‌تان بپرسید..."
+                    className="pr-12"
+                    rows={2}
+                    disabled={isThinking}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage(e);
+                        }
+                    }}
+                />
+                <Button type="submit" size="icon" className="absolute right-3 top-3" disabled={isThinking || !input.trim()}>
+                    <Send className="w-4 h-4"/>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSignOut}
-                  aria-label="خروج"
-                  className="text-destructive hover:text-destructive"
-                >
-                  <LogOut />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Link href="/login" className="w-full">
-              <Button className="w-full">
-                <LogIn className="ml-2" />
-                ورود / ثبت‌نام
-              </Button>
-            </Link>
-          )}
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
-            <Link href="/" className="flex items-center gap-2">
-              <HesabKetabLogo className="size-7 text-primary" />
-              <span className="font-headline text-xl font-bold">حساب کتاب</span>
-            </Link>
-            <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MenuIcon className="ml-2 h-4 w-4" />
-                    منو
-                  </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
-                  <MobileMenuContent 
-                    user={user} 
-                    theme={theme} 
-                    toggleTheme={toggleTheme} 
-                    handleSignOut={handleSignOut}
-                    onLinkClick={() => setMobileMenuOpen(false)}
-                  />
-              </SheetContent>
-            </Sheet>
-          </header>
-        {children}
-      </SidebarInset>
-    </SidebarProvider>
+            </form>
+        </div>
+    </main>
   );
 }
+
