@@ -1,7 +1,7 @@
 
 'use server';
 
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerationConfig, Content } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerationConfig } from "@google/generative-ai";
 
 // Define input/output interfaces directly, without Zod on the client side
 export interface EnrichedIncome {
@@ -58,11 +58,6 @@ export interface InsightsFinancialGoal {
   isAchieved: boolean;
 }
 
-export interface ChatHistory {
-  role: 'user' | 'model';
-  parts: { text: string }[];
-}
-
 export interface FinancialInsightsInput {
   currentUserName: string;
   incomes: EnrichedIncome[];
@@ -79,8 +74,8 @@ export interface FinancialInsightsOutput {
 }
 // End of interfaces
 
-const MODEL_NAME = "gemini-1.5-flash-latest";
-const API_KEY = process.env.GEMINI_API_KEY || '';
+const MODEL_NAME = "gemini-pro";
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
 const generationConfig: GenerationConfig = {
   temperature: 0.7,
@@ -97,11 +92,11 @@ const safetySettings = [
 ];
 
 
-function buildSystemInstruction(input: FinancialInsightsInput): Content {
-    const dataPrompt = `
+function buildPrompt(input: FinancialInsightsInput): string {
+    return `
     You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is ${input.currentUserName}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing ${input.currentUserName} directly.
 
-    Based on the latest user question and the entire conversation history, provide a relevant, helpful, and insightful response. Use the comprehensive financial data below to inform your answer. If the user asks for a general analysis, perform the "Comprehensive Analysis" task. If they ask a specific question, answer it using the data.
+    Perform the "Comprehensive Analysis" task based on the data below.
 
     **Comprehensive Financial Data:**
     - **Incomes:** ${JSON.stringify(input.incomes)}
@@ -112,7 +107,7 @@ function buildSystemInstruction(input: FinancialInsightsInput): Content {
     - **Active Loans:** ${JSON.stringify(input.loans)}
     - **Other Debts:** ${JSON.stringify(input.previousDebts)}
 
-    **Comprehensive Analysis Task (if user asks for it):**
+    **Comprehensive Analysis Task:**
     1.  **Start with an encouraging message:** Begin your analysis with a short, profound, and motivational sentence about the power of will, taking the first step, and achieving great financial goals. Address the user directly by name. (Example: "علی عزیز، بزرگترین قدم‌ها...")
     2.  **Financial Status Summary:**
         - Analyze the family's overall liquidity based on bank balances and income.
@@ -128,16 +123,14 @@ function buildSystemInstruction(input: FinancialInsightsInput): Content {
 
     Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text.
     `;
-    return { role: "system", parts: [{ text: dataPrompt }] };
 }
 
 
 export async function getFinancialInsightsAction(
-  financialData: FinancialInsightsInput | null,
-  history: ChatHistory[]
+  financialData: FinancialInsightsInput | null
 ): Promise<{ success: boolean; data?: FinancialInsightsOutput; error?: string }> {
   if (!API_KEY) {
-      return { success: false, error: 'کلید API هوش مصنوعی (GEMINI_API_KEY) تنظیم نشده است.' };
+      return { success: false, error: 'کلید API هوش مصنوعی (NEXT_PUBLIC_GEMINI_API_KEY) تنظیم نشده است.' };
   }
   if (!financialData) {
       return { success: false, error: 'اطلاعات مالی برای تحلیل یافت نشد.' };
@@ -149,20 +142,11 @@ export async function getFinancialInsightsAction(
         model: MODEL_NAME,
         generationConfig,
         safetySettings,
-        systemInstruction: buildSystemInstruction(financialData),
     });
 
-    const chat = model.startChat({
-        history: history.map(h => ({
-            role: h.role,
-            parts: h.parts.map(p => ({ text: p.text })),
-        })),
-    });
-
-    const latestUserMessage = history.slice().reverse().find(m => m.role === 'user');
-    const userPrompt = latestUserMessage?.parts[0]?.text || 'یک تحلیل کلی به من بده.';
+    const prompt = buildPrompt(financialData);
     
-    const result = await chat.sendMessage(userPrompt);
+    const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
 
@@ -171,8 +155,8 @@ export async function getFinancialInsightsAction(
   } catch (e: any) {
     console.error('Error in getFinancialInsightsAction:', e);
     // Provide more specific error messages if possible
-    if (e.message.includes('404')) {
-         return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: مدل '${MODEL_NAME}' یافت نشد. لطفا از فعال بودن مدل در پروژه خود اطمینان حاصل کنید.` };
+    if (e.message.includes('404') || e.message.includes('NOT_FOUND')) {
+         return { success: false, error: `مدل '${MODEL_NAME}' یافت نشد. لطفا از فعال بودن مدل در پروژه خود اطمینان حاصل کنید.` };
     }
     const errorMessage = e.message || 'یک خطای ناشناخته در سرور رخ داد.';
     return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: ${errorMessage}` };

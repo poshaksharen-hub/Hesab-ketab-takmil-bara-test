@@ -1,68 +1,28 @@
 
 'use client';
 
-import React, { useState, useTransition, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useTransition, useMemo } from 'react';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, BrainCircuit, Send, User as UserIcon, Loader2, AlertTriangle, MessageSquarePlus } from 'lucide-react';
-import { getFinancialInsightsAction, type FinancialInsightsInput, type ChatHistory, type FinancialInsightsOutput } from './actions';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Sparkles, BrainCircuit, Loader2, AlertTriangle } from 'lucide-react';
+import { getFinancialInsightsAction, type FinancialInsightsInput, type FinancialInsightsOutput } from './actions';
 import { USER_DETAILS } from '@/lib/constants';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-function ChatBubble({ role, content }: { role: 'user' | 'model'; content: string }) {
-    const isModel = role === 'model';
-    return (
-        <div className={cn("flex items-start gap-3", isModel ? "justify-start" : "justify-end")}>
-            {isModel && (
-                 <Avatar className="h-8 w-8 bg-primary text-primary-foreground">
-                    <AvatarFallback><BrainCircuit className="h-5 w-5"/></AvatarFallback>
-                </Avatar>
-            )}
-             <div className={cn(
-                "max-w-[80%] rounded-xl px-4 py-3 text-sm shadow-md",
-                isModel ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"
-             )}>
-                <p className="whitespace-pre-wrap">{content}</p>
-            </div>
-             {!isModel && (
-                 <Avatar className="h-8 w-8">
-                    <AvatarFallback><UserIcon className="h-5 w-5"/></AvatarFallback>
-                </Avatar>
-            )}
-        </div>
-    );
-}
-
 
 export default function InsightsPage() {
   const { user } = useUser();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
-  const [history, setHistory] = useState<ChatHistory[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState('');
+  const [insights, setInsights] = useState<FinancialInsightsOutput | null>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-        const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
-        if (viewport) {
-            viewport.scrollTop = viewport.scrollHeight;
-        }
-    }
-  }, [history]);
   
   const financialData = useMemo<FinancialInsightsInput | null>(() => {
     if (isDashboardLoading || !allData || !user) return null;
 
-    const { incomes, expenses, bankAccounts, checks, loans, previousDebts, goals, payees } = allData;
+    const { incomes, expenses, bankAccounts, checks, loans, previousDebts, goals, payees, categories } = allData;
     
     return {
       currentUserName: user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName,
@@ -78,7 +38,7 @@ export default function InsightsPage() {
         amount: e.amount,
         date: e.date,
         bankAccountName: bankAccounts.find(b => b.id === e.bankAccountId)?.bankName || 'نامشخص',
-        categoryName: allData.categories.find(c => c.id === e.categoryId)?.name || 'نامشخص',
+        categoryName: categories.find(c => c.id === e.categoryId)?.name || 'نامشخص',
         payeeName: payees.find(p => p.id === e.payeeId)?.name,
         expenseFor: e.expenseFor,
       })),
@@ -116,103 +76,113 @@ export default function InsightsPage() {
     };
   }, [isDashboardLoading, allData, user]);
 
-  const handleSubmit = () => {
-    if (!currentQuestion.trim() || isPending) return;
+  const handleGenerate = () => {
+    if (isPending || !financialData) return;
 
-    const newHistory: ChatHistory[] = [...history, { role: 'user', parts: [{ text: currentQuestion.trim() }] }];
-    setHistory(newHistory);
-    setCurrentQuestion('');
     setError(null);
+    setInsights(null);
     
     startTransition(async () => {
-      const result = await getFinancialInsightsAction(financialData, newHistory);
+      const result = await getFinancialInsightsAction(financialData);
       if (result.success && result.data) {
-        setHistory(prev => [...prev, { role: 'model', parts: [{ text: result.data!.summary }] }]);
+        setInsights(result.data);
       } else {
         setError(result.error || 'یک خطای ناشناخته رخ داد.');
-        setHistory(prev => prev.slice(0, -1)); // Revert user message on error
       }
     });
   };
 
-  if (isDashboardLoading) {
+  if (isDashboardLoading || !financialData) {
       return (
         <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
             <Skeleton className="h-8 w-1/2" />
             <Skeleton className="h-4 w-3/4" />
-            <div className="border rounded-lg mt-4 h-[60vh]">
-                <div className="p-4 space-y-4">
-                    <Skeleton className="h-12 w-3/4" />
-                    <Skeleton className="h-12 w-2/4 self-end" />
-                </div>
-            </div>
+            <Card className="mt-4">
+              <CardHeader>
+                <Skeleton className="h-6 w-1/4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-48" />
+              </CardContent>
+            </Card>
         </main>
       )
   }
 
   return (
-    <main className="flex flex-col h-[calc(100vh-80px)] p-4 pt-6 md:p-8">
-        <div className="space-y-1 mb-4">
+    <main className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+        <div className="space-y-1">
             <h1 className="font-headline text-3xl font-bold tracking-tight flex items-center gap-2">
                 <Sparkles className="h-7 w-7 text-primary" />
                 تحلیل هوشمند مالی
             </h1>
             <p className="text-muted-foreground">
-                از مشاور مالی هوشمند خود سوال بپرسید یا یک تحلیل کلی درخواست کنید.
+                از قدرت هوش مصنوعی برای تحلیل عادت‌های مالی و دریافت پیشنهادهای شخصی‌سازی شده استفاده کنید.
             </p>
         </div>
       
-       <div className="flex-1 flex flex-col p-4 gap-4 border rounded-lg shadow-sm">
-             <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
-                <div className="space-y-4">
-                    <ChatBubble 
-                        role="model" 
-                        content="سلام! من مشاور مالی هوشمند شما هستم. چطور می‌توانم در تحلیل وضعیت مالی به شما کمک کنم؟ می‌توانید با پرسیدن «یک تحلیل کلی به من بده» شروع کنید."
-                    />
-                    {history.map((item, index) => <ChatBubble key={index} role={item.role} content={item.parts[0].text} />)}
-                    {isPending && (
-                        <div className="flex items-start gap-3 justify-start">
-                            <Avatar className="h-8 w-8 bg-primary text-primary-foreground">
-                                <AvatarFallback><BrainCircuit className="h-5 w-5"/></AvatarFallback>
-                            </Avatar>
-                            <div className="max-w-[80%] rounded-xl px-4 py-3 text-sm shadow-md bg-muted text-foreground">
-                                <div className="flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <span>در حال تحلیل...</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                     {error && (
-                        <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>خطا در پردازش</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
-                </div>
-            </ScrollArea>
-            <div className="relative mt-4">
-                <Textarea
-                    value={currentQuestion}
-                    onChange={e => setCurrentQuestion(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }}}
-                    placeholder="سوال خود را اینجا تایپ کنید..."
-                    className="pr-12"
-                    disabled={isPending}
-                />
-                <Button
-                    type="submit"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                    onClick={handleSubmit}
-                    disabled={isPending || !currentQuestion.trim()}
-                >
-                   <Send className="h-4 w-4" />
-                </Button>
-            </div>
-       </div>
+       <Card className="bg-secondary/50">
+          <CardHeader className="flex flex-row items-center gap-4">
+              <div className="rounded-full bg-primary/10 p-3">
+                  <BrainCircuit className="size-6 text-primary" />
+              </div>
+              <div>
+                  <CardTitle className="font-headline">تحلیل وضعیت مالی</CardTitle>
+                  <CardDescription>
+                      برای پردازش داده‌های مالی اخیر و دریافت خلاصه و پیشنهادهای هوش مصنوعی، روی دکمه زیر کلیک کنید.
+                  </CardDescription>
+              </div>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleGenerate} disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  در حال تحلیل...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="ml-2 h-4 w-4" />
+                  دریافت تحلیل کلی
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
 
+        {isPending && (
+          <Card>
+            <CardHeader>
+                <Skeleton className="h-6 w-1/2" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-4 w-full mt-4" />
+                <Skeleton className="h-4 w-2/3" />
+            </CardContent>
+          </Card>
+        )}
+
+        {error && (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>خطا در پردازش</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        )}
+
+        {insights && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">تحلیل و پیشنهادها</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{insights.summary}</p>
+              </CardContent>
+            </Card>
+        )}
     </main>
   );
 }
