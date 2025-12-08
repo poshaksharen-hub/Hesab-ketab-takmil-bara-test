@@ -74,7 +74,7 @@ export interface FinancialInsightsOutput {
 }
 // End of interfaces
 
-const MODEL_NAME = "gemini-pro";
+const MODEL_NAME = "gemini-1.5-flash-latest";
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
 const generationConfig: GenerationConfig = {
