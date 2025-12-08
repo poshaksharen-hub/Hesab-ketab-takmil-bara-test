@@ -1,6 +1,4 @@
 
-'use server';
-
 import { collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 import type { TransactionDetails } from './types';
@@ -16,8 +14,8 @@ export async function sendSystemNotification(
     if (!firestore) return;
 
     try {
-        const userDetailKey = Object.keys(USER_DETAILS).find(key => actorUserId.includes(key));
-        const actorName = userDetailKey ? USER_DETAILS[userDetailKey as 'ali' | 'fatemeh'].firstName : 'کاربر';
+        const actorEmail = Object.keys(USER_DETAILS).find(key => actorUserId.includes(key));
+        const actorName = actorEmail ? USER_DETAILS[actorEmail as 'ali' | 'fatemeh'].firstName : 'کاربر';
         
         const chatMessagesRef = collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`);
         

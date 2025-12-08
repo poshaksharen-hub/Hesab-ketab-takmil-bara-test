@@ -96,9 +96,9 @@ export default function ExpensesPage() {
             icon: 'TrendingDown',
             color: 'rgb(220 38 38)',
             properties: [
-                { label: 'دسته بندی', value: categoryName },
-                { label: 'طرف حساب', value: payeeName },
-                { label: 'از حساب', value: bankAccount?.bankName },
+                { label: 'دسته بندی', value: categoryName || '-' },
+                { label: 'طرف حساب', value: payeeName || '-' },
+                { label: 'از حساب', value: bankAccount?.bankName || '-' },
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);

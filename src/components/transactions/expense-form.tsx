@@ -98,20 +98,20 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
 
 
   React.useEffect(() => {
-    if (initialData) {
+    if (!isOpen) {
+        form.reset({
+            description: '',
+            amount: 0,
+            date: new Date(),
+            bankAccountId: '',
+            categoryId: '',
+            expenseFor: 'shared',
+            payeeId: '',
+        });
+    } else if (initialData) {
       form.reset({ ...initialData, date: new Date(initialData.date), expenseFor: initialData.expenseFor || 'shared' });
-    } else {
-      form.reset({
-          description: '',
-          amount: 0,
-          date: new Date(),
-          bankAccountId: '',
-          categoryId: '',
-          expenseFor: 'shared',
-          payeeId: '',
-      });
     }
-  }, [initialData, form]);
+  }, [isOpen, initialData, form]);
 
   function handleFormSubmit(data: ExpenseFormValues) {
     const submissionData: any = {
@@ -122,6 +122,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
         delete submissionData.payeeId;
     }
     onSubmit(submissionData);
+    form.reset(); // Reset form after successful submission
   }
 
   const handlePayeeSelection = (value: string) => {
