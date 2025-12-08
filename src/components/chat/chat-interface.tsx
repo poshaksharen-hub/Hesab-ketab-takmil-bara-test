@@ -61,6 +61,7 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
         text,
         senderId: currentUser.uid,
         senderName: senderName,
+        type: 'user', // Set type to 'user' for manually sent messages
         readBy: [currentUser.uid], // Sender has read it by default
     };
 

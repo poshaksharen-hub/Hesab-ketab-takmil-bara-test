@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useRef, useEffect, useMemo } from 'react';
@@ -12,6 +13,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Check, CheckCheck, CornerDownLeft } from 'lucide-react';
 import { Button } from '../ui/button';
+import { SystemMessageCard } from './system-message-card';
 
 
 interface MessageListProps {
@@ -64,8 +66,12 @@ export function MessageList({ messages, currentUserId, onReply }: MessageListPro
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {messages.map((message) => {
+        if (message.type === 'system') {
+            return <SystemMessageCard key={message.id} message={message} />;
+        }
+        
         const isCurrentUser = message.senderId === currentUserId;
         const senderKey = message.senderName === USER_DETAILS.ali.firstName ? 'ali' : 'fatemeh';
         const avatar = getPlaceholderImage(`${senderKey}-avatar`);

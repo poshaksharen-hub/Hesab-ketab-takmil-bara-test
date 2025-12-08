@@ -189,13 +189,26 @@ export type Transfer = {
     toAccountBalanceAfter: number;
 }
 
+export type TransactionDetails = {
+    type: 'expense' | 'income' | 'transfer' | 'check' | 'loan' | 'debt' | 'goal' | 'payment';
+    title: string;
+    amount: number;
+    date: string;
+    icon: string;
+    color: string;
+    properties: { label: string; value: string }[];
+};
+
+
 export type ChatMessage = {
     id: string;
-    senderId: string;
+    senderId: string; // Can be a user UID or 'system'
     senderName: string;
     text: string;
     timestamp: any;
     readBy: string[]; // Array of user UIDs who have read the message
+    type: 'user' | 'system';
+    transactionDetails?: TransactionDetails;
     replyTo?: {
         messageId: string;
         text: string;
