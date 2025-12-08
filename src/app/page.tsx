@@ -156,28 +156,29 @@ export default function DashboardPage() {
         <h1 className="font-headline text-3xl font-bold tracking-tight">
           داشبورد جامع مالی
         </h1>
-        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
-           <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} value={ownerFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="نمایش داده‌های..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">همه</SelectItem>
-                <SelectItem value='ali'>{USER_DETAILS.ali.firstName}</SelectItem>
-                <SelectItem value='fatemeh'>{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                <SelectItem value="shared">مشترک (هزینه‌ها)</SelectItem>
-                <SelectItem value="daramad_moshtarak">شغل مشترک (درآمد)</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className='flex gap-2'>
-              <Button variant={activePreset === 'thisWeek' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisWeek')}>این هفته</Button>
-              <Button variant={activePreset === 'thisMonth' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisMonth')}>این ماه</Button>
-              <Button variant={activePreset === 'thisYear' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisYear')}>امسال</Button>
-            </div>
-        </div>
       </div>
       
        <QuickAccess />
+
+      <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
+          <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} value={ownerFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="نمایش داده‌های..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه</SelectItem>
+              <SelectItem value='ali'>{USER_DETAILS.ali.firstName}</SelectItem>
+              <SelectItem value='fatemeh'>{USER_DETAILS.fatemeh.firstName}</SelectItem>
+              <SelectItem value="shared">مشترک (هزینه‌ها)</SelectItem>
+              <SelectItem value="daramad_moshtarak">شغل مشترک (درآمد)</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className='flex gap-2'>
+            <Button variant={activePreset === 'thisWeek' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisWeek')}>این هفته</Button>
+            <Button variant={activePreset === 'thisMonth' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisMonth')}>این ماه</Button>
+            <Button variant={activePreset === 'thisYear' ? 'default' : 'outline'} onClick={() => handleDatePreset('thisYear')}>امسال</Button>
+          </div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 pt-4">
         <OverallSummary 
