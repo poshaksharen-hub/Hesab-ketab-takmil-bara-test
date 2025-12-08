@@ -32,15 +32,17 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
     if (!firestore || !messages || messages.length === 0 || isLoading) return;
 
     const unreadMessages = messages.filter(
-      (msg) => !msg.readBy.includes(currentUser.uid) && msg.senderId !== currentUser.uid
+      (msg) => msg.readBy && !msg.readBy.includes(currentUser.uid) && msg.senderId !== currentUser.uid
     );
 
     if (unreadMessages.length > 0) {
       const batch = writeBatch(firestore);
       unreadMessages.forEach((message) => {
         const messageRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`, message.id);
+        // Ensure readBy exists before spreading
+        const currentReadBy = message.readBy || [];
         batch.update(messageRef, {
-          readBy: [...message.readBy, currentUser.uid],
+          readBy: [...currentReadBy, currentUser.uid],
         });
       });
 
@@ -55,13 +57,15 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
     const senderName = USER_DETAILS[senderKey].firstName;
     
     try {
-        await addDoc(messagesCollectionRef, {
+        const newDocRef = await addDoc(messagesCollectionRef, {
             text,
             senderId: currentUser.uid,
             senderName: senderName,
             timestamp: serverTimestamp(),
-            readBy: [currentUser.uid], // Automatically marked as read by the sender
+            readBy: [currentUser.uid], // Sender has read it by default
         });
+        // Now update the document with its own ID
+        await writeBatch(firestore).update(newDocRef, { id: newDocRef.id }).commit();
     } catch (error) {
         console.error("Error sending message:", error);
     }

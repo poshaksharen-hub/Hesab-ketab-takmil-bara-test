@@ -18,26 +18,30 @@ export function useUnreadMessages() {
 
   // Memoize the query for unread messages.
   // The query fetches messages where the current user's UID is NOT in the 'readBy' array.
-  const unreadMessagesQuery = useMemoFirebase(() => {
+  const messagesCollectionRef = useMemoFirebase(() => {
     if (!firestore || !user) {
       return null;
     }
-    return query(
-      collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`),
-      where('readBy', 'not-in', [[user.uid]])
-    );
+    return collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`);
   }, [firestore, user]);
 
-  // Use the useCollection hook to get real-time updates on unread messages.
-  const { data: unreadMessages, isLoading: isLoadingMessages } = useCollection<ChatMessage>(unreadMessagesQuery);
+  // Use the useCollection hook to get real-time updates on all messages.
+  // We filter client-side because Firestore's 'not-in' query has limitations
+  // and checking for array non-membership is better done on the client.
+  const { data: allMessages, isLoading: isLoadingMessages } = useCollection<ChatMessage>(messagesCollectionRef);
 
   // Calculate the count, ensuring we don't count messages sent by the current user.
   const unreadCount = useMemo(() => {
-    if (!unreadMessages || !user) {
+    if (!allMessages || !user) {
       return 0;
     }
-    return unreadMessages.filter(msg => msg.senderId !== user.uid).length;
-  }, [unreadMessages, user]);
+    // Filter messages that weren't sent by the current user AND
+    // where the 'readBy' field either doesn't exist or doesn't include the user's UID.
+    return allMessages.filter(msg => 
+        msg.senderId !== user.uid && 
+        (!msg.readBy || !msg.readBy.includes(user.uid))
+    ).length;
+  }, [allMessages, user]);
 
   const isLoading = isUserLoading || isLoadingMessages;
 
