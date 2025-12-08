@@ -196,4 +196,9 @@ export type ChatMessage = {
     text: string;
     timestamp: any;
     readBy: string[]; // Array of user UIDs who have read the message
+    replyTo?: {
+        messageId: string;
+        text: string;
+        senderName: string;
+    }
 }

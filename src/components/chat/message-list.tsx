@@ -10,15 +10,17 @@ import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 import { USER_DETAILS } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, CornerDownLeft } from 'lucide-react';
+import { Button } from '../ui/button';
 
 
 interface MessageListProps {
   messages: ChatMessage[];
   currentUserId: string;
+  onReply: (message: ChatMessage) => void;
 }
 
-export function MessageList({ messages, currentUserId }: MessageListProps) {
+export function MessageList({ messages, currentUserId, onReply }: MessageListProps) {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const { allData } = useDashboardData();
   const { users } = allData;
@@ -62,7 +64,7 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {messages.map((message) => {
         const isCurrentUser = message.senderId === currentUserId;
         const senderKey = message.senderName === USER_DETAILS.ali.firstName ? 'ali' : 'fatemeh';
@@ -71,8 +73,13 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
         return (
           <div
             key={message.id}
-            className={cn('flex items-end gap-3', isCurrentUser ? 'flex-row-reverse' : 'flex-row')}
+            className={cn('group flex items-end gap-3', isCurrentUser ? 'flex-row-reverse' : 'flex-row')}
           >
+            {!isCurrentUser && (
+                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => onReply(message)}>
+                    <CornerDownLeft className="h-4 w-4"/>
+                </Button>
+            )}
             <Avatar className="h-8 w-8">
               <AvatarImage src={avatar?.imageUrl} data-ai-hint={avatar?.imageHint} />
               <AvatarFallback>{message.senderName?.charAt(0)}</AvatarFallback>
@@ -85,6 +92,15 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
                   : 'rounded-bl-none bg-muted'
               )}
             >
+              {message.replyTo && (
+                  <div className={cn(
+                      "mb-2 border-l-2 pl-2 text-xs",
+                      isCurrentUser ? "border-primary-foreground/50" : "border-primary"
+                  )}>
+                      <p className={cn("font-bold", isCurrentUser ? "text-white" : "text-primary")}>{message.replyTo.senderName}</p>
+                      <p className="truncate opacity-80">{message.replyTo.text}</p>
+                  </div>
+              )}
               <p className="whitespace-pre-wrap text-sm">{message.text}</p>
               <div className={cn(
                   "mt-2 flex items-center gap-1 text-xs",
@@ -94,6 +110,11 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
                 {isCurrentUser && getReadStatusIcon(message)}
               </div>
             </div>
+             {isCurrentUser && (
+                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => onReply(message)}>
+                    <CornerDownLeft className="h-4 w-4"/>
+                </Button>
+            )}
           </div>
         );
       })}

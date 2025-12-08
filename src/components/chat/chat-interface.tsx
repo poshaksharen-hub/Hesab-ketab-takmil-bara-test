@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
@@ -14,6 +14,7 @@ const FAMILY_DATA_DOC = 'shared-data';
 
 export function ChatInterface({ currentUser }: { currentUser: User }) {
   const firestore = useFirestore();
+  const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
 
   const messagesCollectionRef = useMemoFirebase(
     () => (firestore ? collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`) : null),
@@ -56,16 +57,29 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
     const senderKey = currentUser.email?.startsWith('ali') ? 'ali' : 'fatemeh';
     const senderName = USER_DETAILS[senderKey].firstName;
     
+    const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+        text,
+        senderId: currentUser.uid,
+        senderName: senderName,
+        readBy: [currentUser.uid], // Sender has read it by default
+    };
+
+    if (replyingToMessage) {
+        newMessage.replyTo = {
+            messageId: replyingToMessage.id,
+            text: replyingToMessage.text,
+            senderName: replyingToMessage.senderName,
+        };
+    }
+
     try {
         const newDocRef = await addDoc(messagesCollectionRef, {
-            text,
-            senderId: currentUser.uid,
-            senderName: senderName,
+            ...newMessage,
             timestamp: serverTimestamp(),
-            readBy: [currentUser.uid], // Sender has read it by default
         });
         // Now update the document with its own ID
         await writeBatch(firestore).update(newDocRef, { id: newDocRef.id }).commit();
+        setReplyingToMessage(null); // Clear reply state after sending
     } catch (error) {
         console.error("Error sending message:", error);
     }
@@ -81,11 +95,19 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
                 <Skeleton className="h-10 w-2/3 self-start rounded-lg" />
             </div>
         ) : (
-             <MessageList messages={messages || []} currentUserId={currentUser.uid} />
+             <MessageList 
+                messages={messages || []} 
+                currentUserId={currentUser.uid} 
+                onReply={setReplyingToMessage}
+            />
         )}
       </div>
       <div className="border-t p-4 bg-background">
-        <MessageInput onSendMessage={handleSendMessage} />
+        <MessageInput 
+            onSendMessage={handleSendMessage} 
+            replyingTo={replyingToMessage}
+            onCancelReply={() => setReplyingToMessage(null)}
+        />
       </div>
     </div>
   );

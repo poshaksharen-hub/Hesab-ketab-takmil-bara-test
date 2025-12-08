@@ -283,6 +283,17 @@
         },
         "required": ["id", "registeredByUserId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate", "fromAccountBalanceBefore", "fromAccountBalanceAfter", "toAccountBalanceBefore", "toAccountBalanceAfter"]
     },
+    "ReplyTo": {
+        "title": "ReplyTo",
+        "type": "object",
+        "description": "Contains information about the message being replied to.",
+        "properties": {
+            "messageId": { "type": "string", "description": "The ID of the message being replied to." },
+            "text": { "type": "string", "description": "A snippet of the original message text." },
+            "senderName": { "type": "string", "description": "The name of the original message's sender." }
+        },
+        "required": ["messageId", "text", "senderName"]
+    },
     "ChatMessage": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChatMessage",
@@ -298,6 +309,10 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "An array of user UIDs who have read the message."
+        },
+        "replyTo": {
+            "$ref": "#/entities/ReplyTo",
+            "description": "Information about the message being replied to."
         }
       },
       "required": ["id", "senderId", "senderName", "text", "timestamp", "readBy"]
