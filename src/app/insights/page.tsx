@@ -52,16 +52,10 @@ export default function InsightsPage() {
      useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
-    
-    const financialDataInput = useMemo(() => {
-        if (isDashboardLoading || !user) return null;
-        const currentUserName = user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
-        return prepareFinancialInsightsInput(allData, currentUserName);
-    }, [allData, isDashboardLoading, user]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!input.trim() || isThinking || !financialDataInput) return;
+        if (!input.trim() || isThinking || !user) return;
 
         const userMessage: Message = { role: 'user', content: input };
         setMessages(prev => [...prev, userMessage]);
@@ -72,6 +66,9 @@ export default function InsightsPage() {
         setMessages(prev => [...prev, { role: 'model', content: '...' }]);
 
         try {
+            const currentUserName = user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+            const financialDataInput = prepareFinancialInsightsInput(allData, currentUserName);
+            
             const history: ChatHistory[] = messages.map(m => ({
                 role: m.role,
                 content: m.content
