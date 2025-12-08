@@ -20,7 +20,7 @@ import {
   Wallet,
   Trash2,
 } from 'lucide-react';
-import type { Income, BankAccount, UserProfile, OwnerId } from '@/lib/types';
+import type { Income, BankAccount, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
-  users: UserProfile[];
   onDelete: (incomeId: string) => void;
 }
 
@@ -62,7 +61,6 @@ const DetailItem = ({
 export function IncomeList({
   incomes,
   bankAccounts,
-  users,
   onDelete,
 }: IncomeListProps) {
   const getBankAccount = (id: string) => {
@@ -70,8 +68,9 @@ export function IncomeList({
   };
 
   const getUserName = (userId: string) => {
-    const user = users.find((u) => u.id === userId);
-    return user ? user.firstName : 'نامشخص';
+      if (userId.includes('ali')) return USER_DETAILS.ali.firstName;
+      if (userId.includes('fatemeh')) return USER_DETAILS.fatemeh.firstName;
+      return 'سیستم';
   };
   
   const getOwnerSourceText = (ownerId: 'ali' | 'fatemeh' | 'daramad_moshtarak') => {

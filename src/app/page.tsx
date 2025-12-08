@@ -236,7 +236,6 @@ export default function DashboardPage() {
                     <RecentTransactions 
                         transactions={details.transactions} 
                         categories={allData.categories} 
-                        users={allData.users}
                         bankAccounts={allData.bankAccounts}
                     />
                 </CardContent>

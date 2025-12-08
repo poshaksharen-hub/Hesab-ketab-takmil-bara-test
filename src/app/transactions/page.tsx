@@ -33,7 +33,6 @@ export default function ExpensesPage() {
     bankAccounts: allBankAccounts,
     categories: allCategories,
     payees: allPayees,
-    users: allUsers,
   } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
@@ -89,7 +88,7 @@ export default function ExpensesPage() {
         const payeeName = allPayees.find(p => p.id === values.payeeId)?.name;
         const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
         
-        const notificationDetails: TransactionDetails = {
+        sendSystemNotification(firestore, user.uid, {
             type: 'expense',
             title: `ثبت هزینه: ${values.description}`,
             amount: values.amount,
@@ -101,8 +100,7 @@ export default function ExpensesPage() {
                 { label: 'طرف حساب', value: payeeName || '-' },
                 { label: 'از حساب', value: bankAccount?.bankName || '-' },
             ]
-        };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        });
 
 
     } catch (error: any) {
@@ -202,7 +200,6 @@ export default function ExpensesPage() {
           expenses={allExpenses || []}
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
-          users={allUsers || []}
           payees={allPayees || []}
           onDelete={handleDelete}
         />

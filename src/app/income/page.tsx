@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -28,7 +29,7 @@ export default function IncomePage() {
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
-  const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
+  const { incomes: allIncomes, bankAccounts: allBankAccounts } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => {
     if (!user || !firestore || !allBankAccounts) return;
@@ -67,7 +68,7 @@ export default function IncomePage() {
       setIsFormOpen(false);
   
         const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-        const notificationDetails: TransactionDetails = {
+        sendSystemNotification(firestore, user.uid, {
             type: 'income',
             title: `ثبت درآمد جدید: ${values.description}`,
             amount: values.amount,
@@ -78,8 +79,7 @@ export default function IncomePage() {
                 { label: 'منبع', value: values.source || '-' },
                 { label: 'واریز به', value: bankAccount?.bankName },
             ]
-        };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        });
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -176,7 +176,6 @@ export default function IncomePage() {
         <IncomeList
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}
-          users={allUsers || []}
           onDelete={handleDelete}
         />
       )}
