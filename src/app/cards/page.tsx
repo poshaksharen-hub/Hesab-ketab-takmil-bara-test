@@ -192,7 +192,6 @@ export default function CardsPage() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           users={allUsers}
-          goals={allGoals}
         />
       )}
     </main>

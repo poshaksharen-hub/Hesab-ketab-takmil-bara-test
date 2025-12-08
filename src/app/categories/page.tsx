@@ -122,7 +122,7 @@ export default function CategoriesPage() {
       ) : isFormOpen ? (
         <CategoryForm
           isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
+          setIsOpen={setIsOpen}
           onSubmit={handleFormSubmit}
           initialData={editingCategory}
         />

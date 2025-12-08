@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -13,7 +12,6 @@ import type { Expense, BankAccount, Category, UserProfile, OwnerId } from '@/lib
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 
@@ -86,12 +84,11 @@ export default function ExpensesPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-          const permissionError = new FirestorePermissionError({
+          throw new FirestorePermissionError({
                 path: 'family-data/shared-data/expenses',
                 operation: 'create',
                 requestResourceData: values,
             });
-          errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -128,11 +125,10 @@ export default function ExpensesPage() {
         toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ آن به حساب بازگردانده شد." });
     } catch (error: any) {
          if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/shared-data/expenses/${expenseId}`,
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -164,7 +160,7 @@ export default function ExpensesPage() {
 
        <ExpenseForm
           isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
+          setIsOpen={setIsOpen}
           onSubmit={handleFormSubmit}
           initialData={null}
           bankAccounts={allBankAccounts || []}

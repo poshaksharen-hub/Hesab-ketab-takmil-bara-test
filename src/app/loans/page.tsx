@@ -15,7 +15,6 @@ import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { formatCurrency } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -86,12 +85,11 @@ export default function LoansPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: 'family-data/shared-data/loans',
                 operation: 'create',
                 requestResourceData: values,
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: 'destructive',
@@ -226,11 +224,10 @@ export default function LoansPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/shared-data/loans/${loanId}`,
                 operation: 'delete'
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",

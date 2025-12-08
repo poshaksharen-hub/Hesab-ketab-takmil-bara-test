@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useCallback } from 'react';
@@ -27,7 +26,6 @@ import { GoalList } from '@/components/goals/goal-list';
 import { GoalForm } from '@/components/goals/goal-form';
 import { AchieveGoalDialog } from '@/components/goals/achieve-goal-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { AddToGoalDialog } from '@/components/goals/add-to-goal-dialog';
 import { formatCurrency } from '@/lib/utils';
@@ -108,12 +106,11 @@ export default function GoalsPage() {
 
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
-        const permissionError = new FirestorePermissionError({
+        throw new FirestorePermissionError({
             path: `family-data/${FAMILY_DATA_DOC}/financialGoals`,
             operation: 'write',
             requestResourceData: values,
         });
-        errorEmitter.emit('permission-error', permissionError);
       } else {
         toast({
             variant: 'destructive',
@@ -266,11 +263,10 @@ export default function GoalsPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
+            throw new FirestorePermissionError({
                 path: `family-data/${FAMILY_DATA_DOC}/financialGoals/${goal.id}`,
                 operation: 'write'
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",
@@ -329,11 +325,10 @@ export default function GoalsPage() {
       toast({ title: 'موفقیت', description: 'هدف با موفقیت بازگردانی و هزینه‌های آن حذف شد.' });
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
+            throw new FirestorePermissionError({
                 path: `family-data/${FAMILY_DATA_DOC}/financialGoals/${goal.id}`,
                 operation: 'write'
             });
-            errorEmitter.emit('permission-error', permissionError);
        } else {
          toast({ variant: 'destructive', title: 'خطا', description: error.message });
        }
@@ -374,11 +369,10 @@ export default function GoalsPage() {
         toast({ title: "موفقیت", description: "هدف مالی و مبالغ مسدود شده مرتبط با آن با موفقیت حذف شد." });
     } catch (error: any) {
          if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/shared-data/financialGoals/${goalId}`,
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",

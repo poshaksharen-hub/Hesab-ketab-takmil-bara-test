@@ -22,7 +22,6 @@ import { DebtList } from '@/components/debts/debt-list';
 import { DebtForm } from '@/components/debts/debt-form';
 import { PayDebtDialog } from '@/components/debts/pay-debt-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -71,12 +70,11 @@ export default function DebtsPage() {
             setIsFormOpen(false);
         })
         .catch(error => {
-            const permissionError = new FirestorePermissionError({
+            throw new FirestorePermissionError({
                 path: newDebtRef.path,
                 operation: 'create',
                 requestResourceData: debtData,
             });
-            errorEmitter.emit('permission-error', permissionError);
         });
 
   }, [user, firestore, toast]);
@@ -166,11 +164,10 @@ export default function DebtsPage() {
       setPayingDebt(null);
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/shared-data/previousDebts/${debt.id}`,
                 operation: 'write'
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: 'destructive',
@@ -201,9 +198,7 @@ export default function DebtsPage() {
     deleteDoc(debtRef).then(() => {
         toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
     }).catch(error => {
-        const permissionError = new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
-        errorEmitter.emit('permission-error', permissionError);
-        toast({ variant: 'destructive', title: 'خطا در حذف', description: 'مشکلی در حذف بدهی پیش آمد.'});
+        throw new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
     });
 
   }, [user, firestore, previousDebts, toast]);
@@ -255,5 +250,3 @@ export default function DebtsPage() {
     </main>
   );
 }
-
-    

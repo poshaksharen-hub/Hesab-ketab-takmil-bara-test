@@ -127,7 +127,7 @@ export default function PayeesPage() {
       ) : isFormOpen ? (
         <PayeeForm
           isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
+          setIsOpen={setIsOpen}
           onSubmit={handleFormSubmit}
           initialData={editingPayee}
         />

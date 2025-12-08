@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -13,7 +12,6 @@ import type { Income, BankAccount, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -68,12 +66,11 @@ export default function IncomePage() {
   
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: 'family-data/shared-data/incomes',
                 operation: 'create',
                 requestResourceData: values,
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -110,11 +107,10 @@ export default function IncomePage() {
         toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ آن از حساب کسر شد." });
     } catch (error: any) {
          if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/shared-data/incomes/${incomeId}`,
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",

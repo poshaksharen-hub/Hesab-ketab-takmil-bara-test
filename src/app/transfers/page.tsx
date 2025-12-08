@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useCallback } from 'react';
@@ -12,7 +11,6 @@ import { TransferForm } from '@/components/transfers/transfer-form';
 import { TransferList } from '@/components/transfers/transfer-list';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -92,12 +90,11 @@ export default function TransfersPage() {
 
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
-        const permissionError = new FirestorePermissionError({
+        throw new FirestorePermissionError({
           path: 'family-data/shared-data/transfers',
           operation: 'create',
           requestResourceData: values,
         });
-        errorEmitter.emit('permission-error', permissionError);
       } else {
         toast({
           variant: "destructive",
@@ -146,11 +143,10 @@ export default function TransfersPage() {
 
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
+             throw new FirestorePermissionError({
                 path: `family-data/shared-data/transfers/${transferId}`,
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
