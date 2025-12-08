@@ -27,7 +27,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, ArrowLeft } from 'lucide-react';
+import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, ArrowLeft, FolderKanban, BookUser, Target } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
 import type { DashboardFilter } from '@/hooks/use-dashboard-data';
 import { useToast } from '@/hooks/use-toast';
@@ -75,10 +75,12 @@ function DashboardSkeleton() {
 const quickAccessItems = [
     { href: '/income', label: 'درآمدها', icon: TrendingUp, color: 'text-emerald-500' },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown, color: 'text-red-500' },
-    { href: '/due-dates', label: 'سررسیدها', icon: Bell, color: 'text-amber-500' },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy, color: 'text-blue-500' },
     { href: '/loans', label: 'وام‌ها', icon: Landmark, color: 'text-violet-500' },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake, color: 'text-indigo-500' },
+    { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban, color: 'text-orange-500' },
+    { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser, color: 'text-pink-500' },
+    { href: '/goals', label: 'اهداف مالی', icon: Target, color: 'text-teal-500' },
 ];
 
 function QuickAccess() {
@@ -87,11 +89,11 @@ function QuickAccess() {
             <CardHeader>
                 <CardTitle className="font-headline">دسترسی سریع</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
                 {quickAccessItems.map(item => (
                     <Link key={item.href} href={item.href} className="group">
                         <Card className="hover:bg-accent hover:shadow-lg transition-all duration-200 h-full">
-                            <CardContent className="flex flex-col items-center justify-center p-4 h-full text-center">
+                            <CardContent className="flex flex-col items-center justify-center p-4 h-full text-center aspect-square">
                                 <item.icon className={cn("h-8 w-8 mb-2 transition-transform group-hover:scale-110", item.color)} />
                                 <span className="text-sm font-semibold">{item.label}</span>
                             </CardContent>
@@ -174,8 +176,10 @@ export default function DashboardPage() {
             </div>
         </div>
       </div>
+      
+       <QuickAccess />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 pt-4">
         <OverallSummary 
             filteredSummary={summary} 
         />
@@ -189,9 +193,7 @@ export default function DashboardPage() {
         />
       </div>
 
-       <QuickAccess />
-
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs defaultValue="overview" className="space-y-4 pt-4">
         <TabsList>
           <TabsTrigger value="overview">نمای کلی</TabsTrigger>
           <TabsTrigger value="transactions">تراکنش‌ها</TabsTrigger>
