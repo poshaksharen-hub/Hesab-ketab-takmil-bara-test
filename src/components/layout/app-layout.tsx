@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -35,6 +34,7 @@ import {
   Landmark,
   Bell,
   Handshake,
+  Sparkles,
   Menu as MenuIcon,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
@@ -66,6 +66,7 @@ function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+    { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
     { href: '/due-dates', label: 'سررسیدها', icon: Bell },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },

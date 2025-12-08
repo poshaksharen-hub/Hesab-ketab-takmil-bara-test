@@ -1,9 +1,8 @@
-
 'use server';
 
-import { generateFinancialInsights as generateFinancialInsightsFlow } from '@/ai/flows/generate-financial-insights';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
-// AI Insights Types - Moved here to prevent client-side bundling issues
+// Define input/output interfaces directly, without Zod on the client side
 export interface EnrichedIncome {
   description: string;
   amount: number;
@@ -79,32 +78,83 @@ export interface FinancialInsightsInput {
 export interface FinancialInsightsOutput {
   summary: string;
 }
-// End of AI Insights Types
+// End of interfaces
+
+const MODEL_NAME = "gemini-pro";
+const API_KEY = process.env.GEMINI_API_KEY || '';
+
+
+function buildPrompt(input: FinancialInsightsInput): string {
+    return `You are an expert, highly detailed, and friendly financial advisor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is ${input.currentUserName}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing ${input.currentUserName} directly.
+
+    **Conversation History So Far:**
+    ${input.history.map(h => `- **${h.role}**: ${h.content}`).join('\n')}
+
+    **Latest User Question:**
+    "${input.latestUserQuestion}"
+
+    Based on the latest user question and the entire conversation history, provide a relevant, helpful, and insightful response. Use the comprehensive financial data below to inform your answer. If the user asks for a general analysis, perform the "Comprehensive Analysis" task. If they ask a specific question, answer it using the data.
+
+    **Comprehensive Financial Data:**
+    - **Incomes:** ${JSON.stringify(input.incomes)}
+    - **Expenses:** ${JSON.stringify(input.expenses)}
+    - **Bank Accounts:** ${JSON.stringify(input.bankAccounts)}
+    - **Financial Goals:** ${JSON.stringify(input.financialGoals)}
+    - **Uncleared Checks:** ${JSON.stringify(input.checks)}
+    - **Active Loans:** ${JSON.stringify(input.loans)}
+    - **Other Debts:** ${JSON.stringify(input.previousDebts)}
+
+    **Comprehensive Analysis Task (if user asks for it):**
+    1.  **Start with an encouraging message:** Begin your analysis with a short, profound, and motivational sentence about the power of will, taking the first step, and achieving great financial goals. Address the user directly by name. (Example: "علی عزیز، بزرگترین قدم‌ها...")
+    2.  **Financial Status Summary:**
+        - Analyze the family's overall liquidity based on bank balances and income.
+        - Identify and analyze the largest sources of income and the highest spending categories. (Example: "A significant portion of expenses is on 'Food and Clothing'.")
+        - Point out spending habits (e.g., frequent purchases from a specific payee) and patterns of personal spending (Ali vs. Fatemeh), personalizing your analysis for ${input.currentUserName}.
+        - Analyze financial goals, their progress, and feasibility. Suggest adjustments if necessary.
+        - Assess the overall debt situation (checks, loans, miscellaneous debts) relative to assets and income, and provide an overview of the family's financial risk.
+    3.  **Actionable Recommendations:**
+        - **Debt Repayment Strategy:** Based on monthly income and total debt, suggest a smart strategy for paying off debts. Warn about checks with near due dates and recommend which loan or debt to pay off first.
+        - **Budgeting Suggestions:** Based on expense analysis, provide specific suggestions for cost reduction in particular categories. (Example: "It is recommended to reduce the monthly budget for the 'Entertainment' category by 20%.")
+        - **Savings & Goals:** Provide encouragement and concrete suggestions on how to reach financial goals faster based on their income and expenses.
+        - **General Guidance:** Offer general tips for improving financial health, such as creating an emergency fund, suggesting monthly savings based on income, etc.
+
+    Your analysis must be precise, data-driven, and fully personalized based on the input data. Your entire output should be a single, coherent text.`;
+}
 
 
 export async function getFinancialInsightsAction(
   financialData: Omit<FinancialInsightsInput, 'history' | 'latestUserQuestion'> | null,
   history: FinancialInsightsInput['history']
 ): Promise<{ success: boolean; data?: FinancialInsightsOutput; error?: string }> {
+  if (!API_KEY) {
+      return { success: false, error: 'کلید API هوش مصنوعی (GEMINI_API_KEY) تنظیم نشده است.' };
+  }
   if (!financialData) {
       return { success: false, error: 'اطلاعات مالی برای تحلیل یافت نشد.' };
   }
 
   try {
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+
     const latestUserMessage = history.slice().reverse().find(m => m.role === 'user');
     const fullInput: FinancialInsightsInput = {
       ...financialData,
       history: history,
-      latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.', // Provide a default if no user message is found
+      latestUserQuestion: latestUserMessage?.content || 'یک تحلیل کلی به من بده.',
     };
 
-    const insights = await generateFinancialInsightsFlow(fullInput);
+    const prompt = buildPrompt(fullInput);
+    
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
 
-    return { success: true, data: insights };
+    return { success: true, data: { summary: text } };
 
   } catch (e: any) {
     console.error('Error in getFinancialInsightsAction:', e);
     const errorMessage = e.message || 'یک خطای ناشناخته در سرور رخ داد.';
-    return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: ${errorMessage}` };
+    return { success: false, error: `خطا در ارتباط با سرویس هوش مصنوعی: ${e.response?.statusText || errorMessage}` };
   }
 }
