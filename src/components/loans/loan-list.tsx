@@ -61,7 +61,8 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
   };
 
   const getUserName = (userId: string) => {
-    return users.find(u => u.id === userId)?.firstName || 'نامشخص';
+    const user = users.find(u => u.id === userId);
+    return user ? user.firstName : 'نامشخص';
   };
 
 

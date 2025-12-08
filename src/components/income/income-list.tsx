@@ -31,6 +31,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
+  users: UserProfile[];
   onDelete: (incomeId: string) => void;
 }
 
@@ -61,6 +62,7 @@ const DetailItem = ({
 export function IncomeList({
   incomes,
   bankAccounts,
+  users,
   onDelete,
 }: IncomeListProps) {
   const getBankAccount = (id: string) => {
@@ -68,9 +70,8 @@ export function IncomeList({
   };
 
   const getUserName = (userId: string) => {
-      if (userId.includes('ali')) return USER_DETAILS.ali.firstName;
-      if (userId.includes('fatemeh')) return USER_DETAILS.fatemeh.firstName;
-      return 'سیستم';
+    const user = users.find(u => u.id === userId);
+    return user ? user.firstName : 'نامشخص';
   };
   
   const getOwnerSourceText = (ownerId: 'ali' | 'fatemeh' | 'daramad_moshtarak') => {

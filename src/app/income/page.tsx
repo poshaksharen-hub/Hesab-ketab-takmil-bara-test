@@ -29,7 +29,7 @@ export default function IncomePage() {
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
-  const { incomes: allIncomes, bankAccounts: allBankAccounts } = allData;
+  const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => {
     if (!user || !firestore || !allBankAccounts) return;
@@ -176,6 +176,7 @@ export default function IncomePage() {
         <IncomeList
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}
+          users={allUsers || []}
           onDelete={handleDelete}
         />
       )}

@@ -37,6 +37,7 @@ interface ExpenseListProps {
   bankAccounts: BankAccount[];
   categories: Category[];
   payees: Payee[];
+  users: UserProfile[];
   onDelete: (expenseId: string) => void;
 }
 
@@ -69,6 +70,7 @@ export function ExpenseList({
   bankAccounts,
   categories,
   payees,
+  users,
   onDelete,
 }: ExpenseListProps) {
   const getBankAccount = (id: string) => {
@@ -77,9 +79,8 @@ export function ExpenseList({
   const getCategoryName = (id: string) => categories.find(cat => cat.id === id)?.name || 'نامشخص';
   
   const getUserName = (userId: string) => {
-      if (userId.includes('ali')) return USER_DETAILS.ali.firstName;
-      if (userId.includes('fatemeh')) return USER_DETAILS.fatemeh.firstName;
-      return 'سیستم';
+      const user = users.find(u => u.id === userId);
+      return user ? user.firstName : 'نامشخص';
   };
 
    const getPayeeName = (payeeId?: string) => {

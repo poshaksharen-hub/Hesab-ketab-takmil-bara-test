@@ -28,7 +28,7 @@ export default function ChecksPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCheck, setEditingCheck] = React.useState<Check | null>(null);
   
-  const { checks, bankAccounts, payees, categories } = allData;
+  const { checks, bankAccounts, payees, categories, users } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'issueDate' | 'dueDate'> & {issueDate: Date, dueDate: Date}) => {
     if (!user || !firestore) return;
@@ -287,7 +287,7 @@ export default function ChecksPage() {
       ) : isFormOpen ? (
         <CheckForm
           isOpen={isFormOpen}
-          setIsOpen={setIsOpen}
+          setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
           initialData={editingCheck}
           bankAccounts={bankAccounts || []}
@@ -300,6 +300,7 @@ export default function ChecksPage() {
           bankAccounts={bankAccounts || []}
           payees={payees || []}
           categories={categories || []}
+          users={users || []}
           onClear={handleClearCheck}
           onDelete={handleDeleteCheck}
           onEdit={handleEdit}

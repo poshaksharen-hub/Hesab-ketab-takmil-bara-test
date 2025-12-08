@@ -33,6 +33,7 @@ export default function ExpensesPage() {
     bankAccounts: allBankAccounts,
     categories: allCategories,
     payees: allPayees,
+    users: allUsers,
   } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
@@ -201,6 +202,7 @@ export default function ExpensesPage() {
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
           payees={allPayees || []}
+          users={allUsers || []}
           onDelete={handleDelete}
         />
       )}

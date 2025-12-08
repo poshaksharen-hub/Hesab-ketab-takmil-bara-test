@@ -35,18 +35,18 @@ interface CheckListProps {
   bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
-  users?: UserProfile[];
+  users: UserProfile[];
   onClear: (check: Check) => void;
   onDelete: (check: Check) => void;
   onEdit: (check: Check) => void;
 }
 
-const CheckCard = ({ check, bankAccounts, payees, categories, users = [], onClear, onDelete, onEdit }: {
+const CheckCard = ({ check, bankAccounts, payees, categories, users, onClear, onDelete, onEdit }: {
     check: Check;
     bankAccounts: BankAccount[];
     payees: Payee[];
     categories: Category[];
-    users?: UserProfile[];
+    users: UserProfile[];
     onClear: (check: Check) => void;
     onDelete: (check: Check) => void;
     onEdit: (check: Check) => void;
