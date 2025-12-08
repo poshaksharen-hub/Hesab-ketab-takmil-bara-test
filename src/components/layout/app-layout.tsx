@@ -117,7 +117,7 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
             <SidebarHeader>
                 <div className="flex items-center gap-2">
                     <HesabKetabLogo className="size-8 text-primary" />
-                    <span className="font-headline text-2xl font-bold">حساب کتاب</span>
+                    <span className="font-headline text-2xl font-bold">مشترکانه</span>
                 </div>
             </SidebarHeader>
             <SidebarContent>
@@ -218,7 +218,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <HesabKetabLogo className="size-8 text-primary" />
-            <span className="font-headline text-2xl font-bold">حساب کتاب</span>
+            <span className="font-headline text-2xl font-bold">مشترکانه</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -286,7 +286,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
          <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:hidden">
             <Link href="/" className="flex items-center gap-2">
               <HesabKetabLogo className="size-7 text-primary" />
-              <span className="font-headline text-xl font-bold">حساب کتاب</span>
+              <span className="font-headline text-xl font-bold">مشترکانه</span>
             </Link>
             <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
