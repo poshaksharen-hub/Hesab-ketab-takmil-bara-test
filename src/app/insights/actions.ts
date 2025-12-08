@@ -30,7 +30,7 @@ import { USER_DETAILS } from '@/lib/constants';
 export async function prepareFinancialInsightsInput(
   allData: AllData,
   currentUserName: string
-): Promise<FinancialInsightsInput> {
+): Promise<Omit<FinancialInsightsInput, 'history' | 'latestUserQuestion'>> {
   const {
     incomes,
     expenses,

@@ -53,7 +53,7 @@ export default function InsightsPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
     
-    const financialDataInput: FinancialInsightsInput | null = useMemo(() => {
+    const financialDataInput = useMemo(() => {
         if (isDashboardLoading || !user) return null;
         const currentUserName = user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
         return prepareFinancialInsightsInput(allData, currentUserName);
@@ -77,7 +77,7 @@ export default function InsightsPage() {
                 content: m.content
             }));
             
-            const insightsInput = {
+            const insightsInput: FinancialInsightsInput = {
                 ...financialDataInput,
                 history,
                 latestUserQuestion: input,
@@ -95,7 +95,10 @@ export default function InsightsPage() {
             });
 
         } catch (error: any) {
-            const errorMessage: Message = { role: 'model', content: `متاسفانه خطایی رخ داد: ${error.message}` };
+            const errorMessageContent = error.message || 'یک خطای ناشناخته رخ داد.';
+            const finalErrorMessage = `متاسفانه خطایی رخ داد: ${errorMessageContent}`;
+
+            const errorMessage: Message = { role: 'model', content: finalErrorMessage };
             setMessages(prev => {
                 const newMessages = [...prev];
                 newMessages[newMessages.length - 1] = errorMessage;
@@ -190,4 +193,3 @@ export default function InsightsPage() {
     </main>
   );
 }
-
