@@ -1,14 +1,17 @@
 
 'use client';
 
-import React, { useRef, useEffect } from 'react';
-import type { ChatMessage } from '@/lib/types';
+import React, { useRef, useEffect, useMemo } from 'react';
+import type { ChatMessage, UserProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
 import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 import { USER_DETAILS } from '@/lib/constants';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { Check, CheckCheck } from 'lucide-react';
+
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -17,6 +20,13 @@ interface MessageListProps {
 
 export function MessageList({ messages, currentUserId }: MessageListProps) {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
+  const { allData } = useDashboardData();
+  const { users } = allData;
+
+  const otherUser = useMemo(() => {
+    return users.find(u => u.id !== currentUserId);
+  }, [users, currentUserId]);
+
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -31,6 +41,17 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
         return 'همین الان';
     }
   }
+
+  const getReadStatusIcon = (message: ChatMessage) => {
+    if (!otherUser) return <Check className="h-4 w-4" />;
+    
+    const isReadByOther = message.readBy?.includes(otherUser.id);
+    
+    if (isReadByOther) {
+      return <CheckCheck className="h-4 w-4 text-blue-500" />;
+    }
+    return <Check className="h-4 w-4" />;
+  };
   
   if (messages.length === 0) {
       return (
@@ -65,12 +86,13 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
               )}
             >
               <p className="whitespace-pre-wrap text-sm">{message.text}</p>
-              <p className={cn(
-                  "mt-2 text-xs",
+              <div className={cn(
+                  "mt-2 flex items-center gap-1 text-xs",
                   isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground"
               )}>
-                {formatDate(message.timestamp)}
-              </p>
+                <span>{formatDate(message.timestamp)}</span>
+                {isCurrentUser && getReadStatusIcon(message)}
+              </div>
             </div>
           </div>
         );
