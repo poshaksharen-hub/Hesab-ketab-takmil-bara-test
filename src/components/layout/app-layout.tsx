@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   ArrowRightLeft,
-  Sparkles,
   Sun,
   Moon,
   LogIn,
@@ -78,7 +77,6 @@ function Menu({ onLinkClick }: { onLinkClick?: () => void }) {
     { href: '/loans', label: 'وام‌ها', icon: Landmark },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake },
     { href: '/goals', label: 'اهداف مالی', icon: Target },
-    { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
   ];
 
   return (
