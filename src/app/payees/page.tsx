@@ -52,7 +52,7 @@ export default function PayeesPage() {
   }, [user, firestore, editingPayee, toast]);
 
   const handleDelete = React.useCallback(async (payeeId: string) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !checks || !expenses || !loans || !previousDebts) return;
     const payeeRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'payees', payeeId);
 
     try {
@@ -78,7 +78,7 @@ export default function PayeesPage() {
         });
 
         toast({ title: "موفقیت", description: "طرف حساب با موفقیت حذف شد." });
-    } catch (error: any) => {
+    } catch (error: any) {
         if (error.name === 'FirebaseError') {
             throw new FirestorePermissionError({
                 path: payeeRef.path,
@@ -127,7 +127,7 @@ export default function PayeesPage() {
       ) : isFormOpen ? (
         <PayeeForm
           isOpen={isFormOpen}
-          setIsOpen={setIsOpen}
+          setIsOpen={setIsFormOpen}
           onSubmit={handleFormSubmit}
           initialData={editingPayee}
         />
