@@ -1,47 +1,32 @@
 
 'use server';
 
+import type { AllData } from '@/lib/types';
 import type {
-  Income,
-  Expense,
-  BankAccount,
-  Check,
-  Loan,
-  PreviousDebt,
-  FinancialGoal,
-  AllData,
-} from '@/lib/types';
-import type {
-  EnrichedIncome,
-  EnrichedExpense,
-  InsightsBankAccount,
-  InsightsCheck,
-  InsightsLoan,
-  InsightsDebt,
-  InsightsFinancialGoal,
   FinancialInsightsInput,
 } from '@/ai/flows/generate-financial-insights';
 import { USER_DETAILS } from '@/lib/constants';
 
 /**
  * Prepares and enriches the raw financial data to be sent to the AI model.
- * It converts IDs to human-readable names.
+ * It converts IDs to human-readable names and handles potentially missing or corrupt data.
  */
-export function prepareFinancialInsightsInput(
+export async function prepareFinancialInsightsInput(
   allData: AllData,
   currentUserName: string
-): Omit<FinancialInsightsInput, 'history' | 'latestUserQuestion'> {
+): Promise<Omit<FinancialInsightsInput, 'history' | 'latestUserQuestion'>> {
+  // Default to empty arrays to prevent errors on undefined properties
   const {
-    incomes,
-    expenses,
-    bankAccounts,
-    checks,
-    loans,
-    previousDebts,
-    financialGoals,
-    categories,
-    payees,
-  } = allData;
+    incomes = [],
+    expenses = [],
+    bankAccounts = [],
+    checks = [],
+    loans = [],
+    previousDebts = [],
+    financialGoals = [],
+    categories = [],
+    payees = [],
+  } = allData || {};
 
   const getBankAccountName = (id: string) =>
     bankAccounts.find((b) => b.id === id)?.bankName || 'نامشخص';
@@ -50,7 +35,8 @@ export function prepareFinancialInsightsInput(
   const getPayeeName = (id?: string) =>
     id ? payees.find((p) => p.id === id)?.name || 'نامشخص' : 'نامشخص';
 
-  const enrichedIncomes: EnrichedIncome[] = incomes.map((i) => ({
+  // By adding .filter(Boolean), we remove any null/undefined items from the arrays before mapping
+  const enrichedIncomes = incomes.filter(Boolean).map((i) => ({
     description: i.description,
     amount: i.amount,
     date: i.date,
@@ -58,7 +44,7 @@ export function prepareFinancialInsightsInput(
     source: i.source,
   }));
 
-  const enrichedExpenses: EnrichedExpense[] = expenses.map((e) => ({
+  const enrichedExpenses = expenses.filter(Boolean).map((e) => ({
     description: e.description,
     amount: e.amount,
     date: e.date,
@@ -68,14 +54,14 @@ export function prepareFinancialInsightsInput(
     expenseFor: e.expenseFor ? USER_DETAILS[e.expenseFor]?.firstName || 'مشترک' : 'مشترک',
   }));
 
-  const insightsBankAccounts: InsightsBankAccount[] = bankAccounts.map((b) => ({
+  const insightsBankAccounts = bankAccounts.filter(Boolean).map((b) => ({
     bankName: b.bankName,
     balance: b.balance,
     ownerId: b.ownerId.startsWith('shared') ? 'مشترک' : (USER_DETAILS[b.ownerId as 'ali' | 'fatemeh']?.firstName || 'نامشخص'),
   }));
 
-  const insightsChecks: InsightsCheck[] = checks
-    .filter((c) => c.status === 'pending')
+  const insightsChecks = checks
+    .filter(c => c && c.status === 'pending') // Combined filter
     .map((c) => ({
       description: c.description,
       amount: c.amount,
@@ -84,8 +70,8 @@ export function prepareFinancialInsightsInput(
       bankAccountName: getBankAccountName(c.bankAccountId),
     }));
 
-  const insightsLoans: InsightsLoan[] = loans
-    .filter((l) => l.remainingAmount > 0)
+  const insightsLoans = loans
+    .filter(l => l && l.remainingAmount > 0) // Combined filter
     .map((l) => ({
       title: l.title,
       remainingAmount: l.remainingAmount,
@@ -93,15 +79,15 @@ export function prepareFinancialInsightsInput(
       payeeName: getPayeeName(l.payeeId),
     }));
     
-  const insightsDebts: InsightsDebt[] = previousDebts
-    .filter(d => d.remainingAmount > 0)
+  const insightsDebts = previousDebts
+    .filter(d => d && d.remainingAmount > 0) // Combined filter
     .map(d => ({
         description: d.description,
         remainingAmount: d.remainingAmount,
         payeeName: getPayeeName(d.payeeId),
     }));
 
-  const insightsFinancialGoals: InsightsFinancialGoal[] = financialGoals.map(
+  const insightsFinancialGoals = financialGoals.filter(Boolean).map(
     (g) => ({
       name: g.name,
       targetAmount: g.targetAmount,

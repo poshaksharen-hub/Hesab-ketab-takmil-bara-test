@@ -2,12 +2,13 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Sparkles, User, Bot } from 'lucide-react';
+import { Send, Sparkles, User, Bot, ArrowLeft } from 'lucide-react';
 import { prepareFinancialInsightsInput } from './actions';
 import { generateFinancialInsights } from '@/ai/flows/generate-financial-insights';
 import type { FinancialInsightsInput, ChatHistory } from '@/ai/flows/generate-financial-insights';
@@ -15,7 +16,6 @@ import { USER_DETAILS } from '@/lib/constants';
 import Markdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-
 
 function InsightsPageSkeleton() {
     return (
@@ -58,37 +58,38 @@ export default function InsightsPage() {
         if (!input.trim() || isThinking || !user) return;
 
         const userMessage: Message = { role: 'user', content: input };
-        setMessages(prev => [...prev, userMessage]);
+        const currentInput = input;
+        
+        const newMessages = [...messages, userMessage];
+
+        setMessages([...newMessages, { role: 'model', content: '...' }]);
         setInput('');
         setIsThinking(true);
-        
-        // Add a placeholder for the model's response
-        setMessages(prev => [...prev, { role: 'model', content: '...' }]);
 
         try {
             const currentUserName = user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
-            const financialDataInput = prepareFinancialInsightsInput(allData, currentUserName);
+            // Correctly awaiting the async server action
+            const financialDataInput = await prepareFinancialInsightsInput(allData, currentUserName);
             
-            const history: ChatHistory[] = messages.map(m => ({
+            const history: ChatHistory[] = newMessages.map(m => ({
                 role: m.role,
                 content: m.content
             }));
             
             const insightsInput: FinancialInsightsInput = {
                 ...financialDataInput,
-                history,
-                latestUserQuestion: input,
+                history, 
+                latestUserQuestion: currentInput,
             };
 
             const result = await generateFinancialInsights(insightsInput);
 
             const modelMessage: Message = { role: 'model', content: result.summary };
             
-            // Replace the placeholder with the actual response
             setMessages(prev => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = modelMessage;
-                return newMessages;
+                const updatedMessages = [...prev];
+                updatedMessages[updatedMessages.length - 1] = modelMessage;
+                return updatedMessages;
             });
 
         } catch (error: any) {
@@ -115,9 +116,14 @@ export default function InsightsPage() {
 
   return (
     <main className="flex flex-col h-[calc(100vh_-_5rem)]">
-        <div className="p-4 border-b">
-            <h1 className="font-headline text-2xl font-bold flex items-center gap-2"><Sparkles className="text-primary"/> تحلیل هوشمند مالی</h1>
-            <p className="text-muted-foreground text-sm mt-1">از دستیار هوشمند خود در مورد وضعیت مالی‌تان سوال بپرسید.</p>
+        <div className="p-4 border-b flex justify-between items-center">
+            <div>
+                <h1 className="font-headline text-2xl font-bold flex items-center gap-2"><Sparkles className="text-primary"/> تحلیل هوشمند مالی</h1>
+                <p className="text-muted-foreground text-sm mt-1">از دستیار هوشمند خود در مورد وضعیت مالی‌تان سوال بپرسید.</p>
+            </div>
+            <Link href="/" passHref>
+                <Button variant="outline"><ArrowLeft className="ml-2 h-4 w-4" /> بازگشت به داشبورد</Button>
+            </Link>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-6">

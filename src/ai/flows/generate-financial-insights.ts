@@ -108,7 +108,7 @@ export type FinancialInsightsOutput = z.infer<typeof FinancialInsightsOutputSche
 
 const prompt = ai.definePrompt({
     name: 'financialInsightsPrompt',
-    model: 'gemini-1.5-flash-latest',
+    model: 'gemini-pro', // Changed to a stable, available model
     input: { schema: FinancialInsightsInputSchema },
     output: { schema: FinancialInsightsOutputSchema },
     prompt: `You are an expert, highly detailed, and friendly financial advisor and data integrity auditor for an Iranian family, "Ali and Fatemeh". The user currently talking to you is {{{currentUserName}}}. Your task is to provide your analysis entirely in Persian, with a warm, respectful, and encouraging tone, addressing {{{currentUserName}}} directly.

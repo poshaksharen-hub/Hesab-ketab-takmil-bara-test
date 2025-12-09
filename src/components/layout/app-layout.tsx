@@ -49,6 +49,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import type { User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { useTransactionNotifier } from '@/hooks/use-transaction-notifier';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -110,7 +111,6 @@ function Menu({ onLinkClick, unreadCount }: { onLinkClick?: () => void; unreadCo
   );
 }
 
-// Extracted MobileMenuContent to be a standalone component
 const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClick, unreadCount }: {
   user: User | null;
   theme: string;
@@ -182,6 +182,7 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  useTransactionNotifier(); // Call the notifier hook
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useSimpleTheme();

@@ -89,7 +89,7 @@ export default function CheckDetailPage() {
         transaction.update(bankAccountRef, { balance: balanceAfter });
         
         // Create a detailed description for the expense
-        const expenseDescription = `پاس کردن چک به: ${payeeName}`;
+        const expenseDescription = `پاس کردن چک به: ${payeeName}`
 
 
         // Create the corresponding expense
@@ -97,7 +97,7 @@ export default function CheckDetailPage() {
         transaction.set(expenseRef, {
             id: expenseRef.id,
             ownerId: account.ownerId,
-            registeredByUserId: user.uid,
+            registeredByUserId: user.email,
             amount: checkToClear.amount,
             bankAccountId: checkToClear.bankAccountId,
             categoryId: checkToClear.categoryId,
@@ -175,8 +175,8 @@ export default function CheckDetailPage() {
   };
 
   const getRegisteredByUserName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    return user ? user.firstName : 'نامشخص';
+    const user = users.find(u => u.email === userId);
+    return user ? user.firstName : (userId === 'system' ? 'سیستم' : 'نامشخص');
   };
   
   const getExpenseForName = (expenseFor?: 'ali' | 'fatemeh' | 'shared') => {

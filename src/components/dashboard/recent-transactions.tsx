@@ -35,9 +35,14 @@ export function RecentTransactions({ transactions, categories, bankAccounts }: R
   }
 
   const getUserName = (userId: string) => {
-      if (userId.includes('ali')) return USER_DETAILS.ali.firstName;
-      if (userId.includes('fatemeh')) return USER_DETAILS.fatemeh.firstName;
-      return 'سیستم';
+    if (!userId) return 'نامشخص';
+    if (userId === 'system') return 'سیستم';
+    if (userId.includes(USER_DETAILS.ali.email)) return USER_DETAILS.ali.firstName;
+    if (userId.includes(USER_DETAILS.fatemeh.email)) return USER_DETAILS.fatemeh.firstName;
+    // Fallback for older UIDs if they exist
+    if (userId.includes('ali')) return USER_DETAILS.ali.firstName;
+    if (userId.includes('fatemeh')) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
   };
 
 

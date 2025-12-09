@@ -38,12 +38,19 @@ export default function ChatPage() {
     }
 
   return (
-    <main className="flex h-[calc(100vh_-_7rem)] flex-col">
-       <div className="flex items-center gap-4 p-4 border-b">
-            <h1 className="font-headline text-2xl font-bold tracking-tight flex items-center gap-2">
-                <MessageSquare className="h-6 w-6"/>
-                گفتگوی مشترک
-            </h1>
+    <main className="flex h-[calc(100vh_-_5rem)] flex-col">
+       <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" asChild>
+                    <Link href="/">
+                        <ArrowRight className="h-4 w-4" />
+                    </Link>
+                </Button>
+                <h1 className="font-headline text-2xl font-bold tracking-tight flex items-center gap-2">
+                    <MessageSquare className="h-6 w-6"/>
+                    گفتگوی مشترک
+                </h1>
+            </div>
         </div>
         <ChatInterface currentUser={user} />
     </main>
