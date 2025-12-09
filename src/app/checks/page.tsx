@@ -280,12 +280,12 @@ export default function ChecksPage() {
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
         <h1 className="font-headline text-3xl font-bold tracking-tight">
           مدیریت چک‌ها
         </h1>
-        <Button onClick={handleAddNew}>
+        <Button onClick={handleAddNew} className="hidden md:inline-flex">
           <PlusCircle className="ml-2 h-4 w-4" />
           ثبت چک جدید
         </Button>
@@ -319,6 +319,14 @@ export default function ChecksPage() {
           onEdit={handleEdit}
         />
       )}
+       <Button
+        onClick={handleAddNew}
+        className="md:hidden fixed bottom-20 left-4 h-14 w-14 rounded-full shadow-lg z-20"
+        size="icon"
+        aria-label="ثبت چک جدید"
+      >
+        <PlusCircle className="h-6 w-6" />
+      </Button>
     </main>
   );
 }

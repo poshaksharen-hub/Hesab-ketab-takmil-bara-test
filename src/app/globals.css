@@ -11,6 +11,10 @@
     font-display: swap;
   }
 
+  html, body, #__next {
+    @apply h-full;
+  }
+
   :root {
     --background: 226 100% 98%; /* Very Light Blue */
     --foreground: 236 65% 20%;

@@ -207,7 +207,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
   const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
   
-  const showHeader = !['/', '/chat', '/insights'].includes(pathname);
+  const showHeader = !['/', '/chat'].includes(pathname);
 
 
   if (isUserLoading && pathname !== '/login') {
@@ -295,29 +295,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
-         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2">
-                {showHeader ? (
-                     <Button variant="outline" size="icon" asChild>
-                        <Link href="/">
-                            <ArrowRight className="h-4 w-4" />
-                        </Link>
-                    </Button>
-                ) : (
-                    <Link href="/" className="flex items-center gap-2 md:hidden">
-                      <HesabKetabLogo className="size-7 text-primary" />
-                      <span className="font-headline text-xl font-bold">مشترکانه</span>
-                    </Link>
-                )}
-            </div>
+      <div className="flex flex-col h-full">
+         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm md:hidden">
+            <Link href="/" className="flex items-center gap-2">
+                <HesabKetabLogo className="size-7 text-primary" />
+                <span className="font-headline text-xl font-bold">مشترکانه</span>
+            </Link>
             
-            <div className="flex items-center gap-2 md:hidden">
-              <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <MenuIcon className="ml-2 h-4 w-4" />
-                      منو
+                    <Button variant="outline" size="icon" className="h-8 w-8">
+                      <MenuIcon className="h-4 w-4" />
+                      <span className="sr-only">باز کردن منو</span>
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
@@ -330,11 +319,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       unreadCount={unreadCount}
                     />
                 </SheetContent>
-              </Sheet>
-            </div>
+            </Sheet>
           </header>
-        {children}
-      </SidebarInset>
+          <SidebarInset className="flex-grow overflow-y-auto">
+             {children}
+          </SidebarInset>
+      </div>
        {/* Floating Action Button for Chat */}
       <div className={cn(
         "fixed bottom-4 left-4 z-50",

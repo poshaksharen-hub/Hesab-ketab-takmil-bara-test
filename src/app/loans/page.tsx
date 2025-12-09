@@ -106,8 +106,9 @@ export default function LoansPage() {
             date: startDate,
             icon: 'Landmark',
             color: 'rgb(139 92 246)',
+            registeredBy: users.find(u => u.id === user.uid)?.firstName || 'کاربر',
+            payee: payeeName,
             properties: [
-                { label: 'از', value: payeeName },
                 { label: 'واریز به', value: depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' },
             ]
         };
@@ -128,11 +129,11 @@ export default function LoansPage() {
             });
         }
     }
-}, [user, firestore, toast, payees, bankAccounts]);
+}, [user, firestore, toast, payees, bankAccounts, users]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
-    if (!user || !firestore || !bankAccounts || !categories) return;
+    if (!user || !firestore || !bankAccounts || !categories || !users) return;
 
     if (installmentAmount <= 0) {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ قسط باید بیشتر از صفر باشد."});
@@ -216,6 +217,8 @@ export default function LoansPage() {
             date: new Date().toISOString(),
             icon: 'CheckCircle',
             color: 'rgb(22 163 74)',
+            registeredBy: users.find(u => u.id === user.uid)?.firstName || 'کاربر',
+            payee: payees.find(p => p.id === loan.payeeId)?.name,
             properties: [
                 { label: 'از حساب', value: bankAccount?.bankName },
             ]
@@ -229,7 +232,7 @@ export default function LoansPage() {
             description: error.message,
         });
     }
-  }, [user, firestore, bankAccounts, categories, toast]);
+  }, [user, firestore, bankAccounts, categories, toast, users, payees]);
 
   const handleDelete = useCallback(async (loanId: string) => {
     if (!user || !firestore || !loans) return;
@@ -303,11 +306,11 @@ export default function LoansPage() {
   const isLoading = isUserLoading || isDashboardLoading;
   
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
         <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
         {!isFormOpen && (
-            <Button onClick={handleAddNew}>
+            <Button onClick={handleAddNew} className="hidden md:inline-flex">
                 <PlusCircle className="ml-2 h-4 w-4" />
                 ثبت وام جدید
             </Button>
@@ -351,6 +354,16 @@ export default function LoansPage() {
                 />
             )}
         </>
+      )}
+       {!isFormOpen && (
+        <Button
+          onClick={handleAddNew}
+          className="md:hidden fixed bottom-20 left-4 h-14 w-14 rounded-full shadow-lg z-20"
+          size="icon"
+          aria-label="ثبت وام جدید"
+        >
+          <PlusCircle className="h-6 w-6" />
+        </Button>
       )}
     </main>
   );

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -224,7 +223,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
   }
 
   return (
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {checks.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime()).map((check) => (
             <CheckCard 
                 key={check.id}
@@ -241,7 +240,3 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
       </div>
   );
 }
-
-    
-
-    

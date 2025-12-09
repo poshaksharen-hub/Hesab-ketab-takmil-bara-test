@@ -79,6 +79,8 @@ export default function DebtsPage() {
             date: debtData.startDate!,
             icon: 'Handshake',
             color: 'rgb(99 102 241)',
+            registeredBy: users.find(u => u.id === user.uid)?.firstName || 'کاربر',
+            payee: payeeName,
             properties: [
                 { label: 'شرح', value: values.description },
                 { label: 'نوع', value: values.isInstallment ? 'قسطی' : 'یکجا' },
@@ -94,11 +96,11 @@ export default function DebtsPage() {
         });
     }
 
-  }, [user, firestore, toast, payees]);
+  }, [user, firestore, toast, payees, users]);
 
 
   const handlePayDebt = useCallback(async ({ debt, paymentBankAccountId, amount }: { debt: PreviousDebt, paymentBankAccountId: string, amount: number }) => {
-    if (!user || !firestore || !categories || !bankAccounts) return;
+    if (!user || !firestore || !categories || !bankAccounts || !users) return;
 
     if (amount <= 0) {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ پرداختی باید بیشتر از صفر باشد."});
@@ -189,6 +191,8 @@ export default function DebtsPage() {
             date: new Date().toISOString(),
             icon: 'CheckCircle',
             color: 'rgb(22 163 74)',
+            registeredBy: users.find(u => u.id === user.uid)?.firstName || 'کاربر',
+            payee: payeeName,
             properties: [
                 { label: 'شرح', value: debt.description },
                 { label: 'از حساب', value: bankAccount?.bankName },
@@ -210,7 +214,7 @@ export default function DebtsPage() {
             });
         }
     }
-  }, [user, firestore, categories, bankAccounts, toast, payees]);
+  }, [user, firestore, categories, bankAccounts, toast, payees, users]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
     if (!user || !firestore || !previousDebts) return;
@@ -240,10 +244,10 @@ export default function DebtsPage() {
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
         <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
-        <Button onClick={() => setIsFormOpen(true)}>
+        <Button onClick={() => setIsFormOpen(true)} className='hidden md:inline-flex'>
           <PlusCircle className="ml-2 h-4 w-4" />
           ثبت بدهی جدید
         </Button>
@@ -281,6 +285,14 @@ export default function DebtsPage() {
             )}
         </>
       )}
+       <Button
+        onClick={() => setIsFormOpen(true)}
+        className="md:hidden fixed bottom-20 left-4 h-14 w-14 rounded-full shadow-lg z-20"
+        size="icon"
+        aria-label="ثبت بدهی جدید"
+      >
+        <PlusCircle className="h-6 w-6" />
+      </Button>
     </main>
   );
 }

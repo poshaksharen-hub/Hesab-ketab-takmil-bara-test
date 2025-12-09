@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -103,7 +102,7 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
 
 
   return (
-    <div className='grid grid-cols-1 gap-6 md:grid-cols-2 mt-4'>
+    <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-4'>
         {loans.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((loan) => {
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
