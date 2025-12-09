@@ -2,7 +2,7 @@
 'use client';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import {
   collection,
@@ -49,25 +49,23 @@ export default function DebtsPage() {
  const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) return;
 
-    // Separate dueDate from the rest of the values
     const { dueDate, ...restOfValues } = values;
 
     const debtData: Partial<PreviousDebt> = {
         ...restOfValues,
         registeredByUserId: user.uid,
         remainingAmount: values.amount,
-        paidInstallments: 0, // Always initialize with 0
+        paidInstallments: 0,
     };
 
-    // Only add dueDate back if it's not an installment plan
     if (!values.isInstallment && dueDate) {
         debtData.dueDate = dueDate;
     }
 
-    const newDebtRef = doc(collection(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts'));
-    
     try {
-        await updateDoc(newDebtRef, { ...debtData, id: newDebtRef.id });
+        const newDebtRef = doc(collection(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts'));
+        await setDoc(newDebtRef, { ...debtData, id: newDebtRef.id });
+        
         toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
         setIsFormOpen(false);
 
@@ -90,7 +88,7 @@ export default function DebtsPage() {
 
     } catch (error) {
         throw new FirestorePermissionError({
-            path: newDebtRef.path,
+            path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
             operation: 'create',
             requestResourceData: debtData,
         });
@@ -132,22 +130,19 @@ export default function DebtsPage() {
         }
         
         const newRemainingAmount = currentDebtData.remainingAmount - amount;
-        const newPaidInstallments = (currentDebtData.paidInstallments || 0) + 1; // Increment paid installments
+        const newPaidInstallments = (currentDebtData.paidInstallments || 0) + 1;
         const balanceBefore = accountData.balance;
         const balanceAfter = balanceBefore - amount;
         
         const expenseCategory = categories.find(c => c.name.includes('بدهی')) || categories[0];
         
-        // Update debt
         transaction.update(debtRef, { 
             remainingAmount: newRemainingAmount,
-            paidInstallments: newPaidInstallments // Save new count
+            paidInstallments: newPaidInstallments
         });
         
-        // Update account balance
         transaction.update(accountToPayFromRef, { balance: balanceAfter });
 
-        // Create payment record
         const newPaymentRef = doc(collection(familyDataRef, 'debtPayments'));
         transaction.set(newPaymentRef, {
             id: newPaymentRef.id,
@@ -158,7 +153,6 @@ export default function DebtsPage() {
             registeredByUserId: user.uid,
         });
         
-        // Create expense record
         const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
         transaction.set(newExpenseRef, {
             id: newExpenseRef.id,
@@ -225,7 +219,6 @@ export default function DebtsPage() {
         return;
     }
     
-    // Use paidInstallments to check for history
     if (debtToDelete.paidInstallments > 0) {
         toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این بدهی دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌های مرتبط را به صورت دستی برگردانید.'});
         return;
@@ -241,37 +234,35 @@ export default function DebtsPage() {
 
   }, [user, firestore, previousDebts, toast]);
 
+  const handleCancel = () => {
+    setIsFormOpen(false);
+  }
+
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild className="md:hidden">
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
+        <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
+        {!isFormOpen && (
+            <Button onClick={() => setIsFormOpen(true)} className='hidden md:inline-flex'>
+              <PlusCircle className="ml-2 h-4 w-4" />
+              ثبت بدهی جدید
             </Button>
-            <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
-        </div>
-        <Button onClick={() => setIsFormOpen(true)} className='hidden md:inline-flex'>
-          <PlusCircle className="ml-2 h-4 w-4" />
-          ثبت بدهی جدید
-        </Button>
+        )}
       </div>
 
-      <DebtForm
-          isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
-          onSubmit={handleFormSubmit}
-          payees={payees || []}
-        />
-      
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
             <Skeleton className="h-48 w-full rounded-xl" />
             <Skeleton className="h-48 w-full rounded-xl" />
         </div>
+      ) : isFormOpen ? (
+        <DebtForm
+            onCancel={handleCancel}
+            onSubmit={handleFormSubmit}
+            payees={payees || []}
+        />
       ) : (
         <>
             <DebtList
@@ -292,14 +283,16 @@ export default function DebtsPage() {
             )}
         </>
       )}
-       <Button
-        onClick={() => setIsFormOpen(true)}
-        className="md:hidden fixed bottom-20 left-4 h-14 w-14 rounded-full shadow-lg z-20"
-        size="icon"
-        aria-label="ثبت بدهی جدید"
-      >
-        <PlusCircle className="h-6 w-6" />
-      </Button>
+       {!isFormOpen && (
+         <Button
+            onClick={() => setIsFormOpen(true)}
+            className="md:hidden fixed bottom-20 left-4 h-14 w-14 rounded-full shadow-lg z-20"
+            size="icon"
+            aria-label="ثبت بدهی جدید"
+          >
+            <PlusCircle className="h-6 w-6" />
+          </Button>
+        )}
     </main>
   );
 }

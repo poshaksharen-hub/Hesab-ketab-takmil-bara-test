@@ -1,5 +1,4 @@
 
-
 "use client";
 import React, { useState } from 'react';
 import { z } from 'zod';
@@ -16,12 +15,12 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card';
 import { Input, CurrencyInput, NumericInput } from '@/components/ui/input';
 import {
   Select,
@@ -71,13 +70,12 @@ const formSchema = z.object({
 type DebtFormValues = z.infer<typeof formSchema>;
 
 interface DebtFormProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  onCancel: () => void;
   onSubmit: (data: any) => void;
   payees: Payee[];
 }
 
-export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps) {
+export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   
   const form = useForm<DebtFormValues>({
@@ -123,194 +121,194 @@ export function DebtForm({ isOpen, setIsOpen, onSubmit, payees }: DebtFormProps)
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle className="font-headline">
-                ثبت بدهی جدید
-                </DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-                    <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>شرح بدهی</FormLabel>
-                        <FormControl>
-                            <Textarea placeholder="مثال: قرض از دوست برای خرید..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="payeeId"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>بدهی به (طرف حساب)</FormLabel>
-                                <Select onValueChange={handlePayeeSelection} value={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                    <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>
-                                    {payees.map((payee) => (
-                                    <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="amount"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>مبلغ کل بدهی (تومان)</FormLabel>
-                                <FormControl>
-                                <CurrencyInput value={field.value} onChange={field.onChange} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="ownerId"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>این بدهی برای کیست؟</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                    <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="shared">مشترک</SelectItem>
-                                    <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
-                                    <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                                </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="startDate"
-                            render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>تاریخ ایجاد بدهی</FormLabel>
-                                <JalaliDatePicker value={field.value} onChange={field.onChange} />
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                    </div>
+      <Card>
+          <CardHeader>
+              <CardTitle className="font-headline">
+              ثبت بدهی جدید
+              </CardTitle>
+          </CardHeader>
+          <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+                <CardContent className="space-y-4">
+                  <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>شرح بدهی</FormLabel>
+                      <FormControl>
+                          <Textarea placeholder="مثال: قرض از دوست برای خرید..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="payeeId"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>بدهی به (طرف حساب)</FormLabel>
+                              <Select onValueChange={handlePayeeSelection} value={field.value}>
+                              <FormControl>
+                                  <SelectTrigger>
+                                  <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
+                                  </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  <SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>
+                                  {payees.map((payee) => (
+                                  <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
+                                  ))}
+                              </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField
+                          control={form.control}
+                          name="amount"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>مبلغ کل بدهی (تومان)</FormLabel>
+                              <FormControl>
+                              <CurrencyInput value={field.value} onChange={field.onChange} />
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="ownerId"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>این بدهی برای کیست؟</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                  <SelectTrigger>
+                                  <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
+                                  </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  <SelectItem value="shared">مشترک</SelectItem>
+                                  <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                                  <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                              </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField
+                          control={form.control}
+                          name="startDate"
+                          render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                              <FormLabel>تاریخ ایجاد بدهی</FormLabel>
+                              <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
 
-                    <div className="space-y-4 rounded-lg border p-4">
-                        <FormField
-                            control={form.control}
-                            name="isInstallment"
-                            render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <FormLabel>پرداخت مرحله‌ای (قسطی)</FormLabel>
-                                    <FormDescription>
-                                    آیا این بدهی به صورت قسطی پرداخت خواهد شد؟
-                                    </FormDescription>
-                                </div>
-                                <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                            </FormItem>
-                            )}
-                        />
-                        {isInstallment ? (
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-2">
-                               <FormField
-                                    control={form.control}
-                                    name="installmentAmount"
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>مبلغ پیشنهادی قسط</FormLabel>
-                                        <FormControl>
-                                            <CurrencyInput value={field.value || 0} onChange={field.onChange} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                               <FormField
-                                    control={form.control}
-                                    name="numberOfInstallments"
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
-                                        <FormControl>
-                                            <NumericInput {...field} value={field.value || ''} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="firstInstallmentDate"
-                                    render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>تاریخ اولین قسط</FormLabel>
-                                        <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                            </div>
-                        ) : (
-                             <div className="pt-2">
-                                <FormField
-                                    control={form.control}
-                                    name="dueDate"
-                                    render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>تاریخ سررسید پرداخت</FormLabel>
-                                        <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                             </div>
-                        )}
-                    </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
-                    <Button type="submit">ذخیره</Button>
-                </DialogFooter>
-                </form>
-            </Form>
-        </DialogContent>
-        </Dialog>
-        {isAddPayeeOpen && (
-            <AddPayeeDialog
-                isOpen={isAddPayeeOpen}
-                onOpenChange={setIsAddPayeeOpen}
-                onPayeeAdded={(newPayee) => {
-                    form.setValue('payeeId', newPayee.id);
-                }}
-            />
-        )}
+                  <div className="space-y-4 rounded-lg border p-4">
+                      <FormField
+                          control={form.control}
+                          name="isInstallment"
+                          render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between">
+                              <div className="space-y-0.5">
+                                  <FormLabel>پرداخت مرحله‌ای (قسطی)</FormLabel>
+                                  <FormDescription>
+                                  آیا این بدهی به صورت قسطی پرداخت خواهد شد؟
+                                  </FormDescription>
+                              </div>
+                              <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                              />
+                          </FormItem>
+                          )}
+                      />
+                      {isInstallment ? (
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-2">
+                             <FormField
+                                  control={form.control}
+                                  name="installmentAmount"
+                                  render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>مبلغ پیشنهادی قسط</FormLabel>
+                                      <FormControl>
+                                          <CurrencyInput value={field.value || 0} onChange={field.onChange} />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                                  )}
+                              />
+                             <FormField
+                                  control={form.control}
+                                  name="numberOfInstallments"
+                                  render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
+                                      <FormControl>
+                                          <NumericInput {...field} value={field.value || ''} />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                                  )}
+                              />
+                              <FormField
+                                  control={form.control}
+                                  name="firstInstallmentDate"
+                                  render={({ field }) => (
+                                  <FormItem className="flex flex-col">
+                                      <FormLabel>تاریخ اولین قسط</FormLabel>
+                                      <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
+                                      <FormMessage />
+                                  </FormItem>
+                                  )}
+                              />
+                          </div>
+                      ) : (
+                           <div className="pt-2">
+                              <FormField
+                                  control={form.control}
+                                  name="dueDate"
+                                  render={({ field }) => (
+                                  <FormItem className="flex flex-col">
+                                      <FormLabel>تاریخ سررسید پرداخت</FormLabel>
+                                      <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
+                                      <FormMessage />
+                                  </FormItem>
+                                  )}
+                              />
+                           </div>
+                      )}
+                  </div>
+                </CardContent>
+              <CardFooter>
+                  <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
+                  <Button type="submit">ذخیره</Button>
+              </CardFooter>
+              </form>
+          </Form>
+      </Card>
+      {isAddPayeeOpen && (
+          <AddPayeeDialog
+              isOpen={isAddPayeeOpen}
+              onOpenChange={setIsAddPayeeOpen}
+              onPayeeAdded={(newPayee) => {
+                  form.setValue('payeeId', newPayee.id);
+              }}
+          />
+      )}
     </>
   );
 }
