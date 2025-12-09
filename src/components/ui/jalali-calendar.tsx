@@ -7,12 +7,10 @@ import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 import 'react-day-picker/dist/style.css';
 
 import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -77,7 +75,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
         setSelectedDay(null);
         onChange(null);
       }
-      setIsOpen(false); // Close the dialog on selection
+      setIsOpen(false); // Close the popover on selection
   }
 
   const formatInputValue = () => {
@@ -86,8 +84,8 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
         <Button
           variant={"outline"}
           className={cn(
@@ -99,11 +97,8 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           <CalendarIcon className="ml-2 h-4 w-4" />
           {value ? formatInputValue() : <span>{placeholder}</span>}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center">
-         <DialogHeader>
-            <DialogTitle className="sr-only">انتخاب تاریخ</DialogTitle>
-         </DialogHeader>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center">
          <div className="bg-background rounded-lg">
             <Calendar
                 value={selectedDay}
@@ -113,7 +108,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
                 calendarClassName="responsive-calendar" // for custom styling
             />
          </div>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   )
 }

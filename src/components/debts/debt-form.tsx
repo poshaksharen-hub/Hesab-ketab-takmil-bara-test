@@ -58,6 +58,14 @@ const formSchema = z.object({
 }, {
     message: "برای بدهی قسطی، تاریخ اولین قسط و برای بدهی یکجا، تاریخ سررسید الزامی است.",
     path: ["isInstallment"], // General path, specific message shown in UI
+}).refine(data => {
+    if (data.isInstallment && data.firstInstallmentDate) {
+        return data.firstInstallmentDate >= data.startDate;
+    }
+    return true;
+}, {
+    message: "تاریخ اولین قسط نمی‌تواند قبل از تاریخ ایجاد بدهی باشد.",
+    path: ["firstInstallmentDate"],
 });
 
 type DebtFormValues = z.infer<typeof formSchema>;
