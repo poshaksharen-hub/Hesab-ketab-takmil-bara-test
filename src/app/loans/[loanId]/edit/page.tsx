@@ -83,14 +83,14 @@ export default function EditLoanPage() {
         toast({ title: 'موفقیت', description: 'وام با موفقیت ویرایش شد.' });
         router.push('/loans');
     }).catch((error: any) => {
-        if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
-                path: loanRef.path,
-                operation: 'update',
-                requestResourceData: values,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
+        const permissionError = new FirestorePermissionError({
+            path: loanRef.path,
+            operation: 'update',
+            requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        
+        if (error.name !== 'FirebaseError') {
             toast({
                 variant: 'destructive',
                 title: 'خطا در ویرایش وام',

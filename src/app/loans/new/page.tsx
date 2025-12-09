@@ -109,15 +109,17 @@ export default function NewLoanPage() {
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {
-        if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
-                path: 'family-data/shared-data/loans',
-                operation: 'create',
-                requestResourceData: values,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
+        // This is now the primary error handler for permission issues
+        const permissionError = new FirestorePermissionError({
+            path: `family-data/${FAMILY_DATA_DOC}/loans`,
+            operation: 'create',
+            requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
+        // Also show a toast for other types of errors
+        if (error.name !== 'FirebaseError') {
+             toast({
                 variant: 'destructive',
                 title: 'خطا در ثبت وام',
                 description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
