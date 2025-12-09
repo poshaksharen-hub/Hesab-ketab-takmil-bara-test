@@ -14,8 +14,7 @@ export async function sendSystemNotification(
     if (!firestore) return;
 
     try {
-        const actorEmail = Object.keys(USER_DETAILS).find(key => actorUserId.includes(key));
-        const actorName = actorEmail ? USER_DETAILS[actorEmail as 'ali' | 'fatemeh'].firstName : 'کاربر';
+        const actorName = details.registeredBy || 'کاربر';
         
         const chatMessagesRef = collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`);
         

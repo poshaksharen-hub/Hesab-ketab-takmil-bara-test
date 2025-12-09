@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -15,6 +16,9 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
+import { USER_DETAILS } from '@/lib/constants';
+import { formatJalaliDate } from '@/lib/utils';
+
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -31,7 +35,7 @@ export default function ChecksPage() {
   const { checks, bankAccounts, payees, categories, users } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'issueDate' | 'dueDate'> & {issueDate: Date, dueDate: Date}) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !allUsers) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
     const bankAccount = bankAccounts.find(acc => acc.id === values.bankAccountId);
@@ -77,21 +81,27 @@ export default function ChecksPage() {
         
         toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
 
-        const payeeName = payees.find(p => p.id === values.payeeId)?.name;
-        const categoryName = categories.find(c => c.id === values.categoryId)?.name;
+        const currentUser = allUsers.find(u => u.id === user.uid);
+        const payee = payees.find(p => p.id === values.payeeId);
+        const category = categories.find(c => c.id === values.categoryId);
+        const bankAccountOwnerName = bankAccount.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName;
 
         const notificationDetails: TransactionDetails = {
             type: 'check',
-            title: `ثبت چک جدید برای ${payeeName}`,
+            title: `ثبت چک برای ${payee?.name}`,
             amount: values.amount,
-            date: newCheckData.dueDate,
+            date: newCheckData.issueDate,
             icon: 'BookCopy',
             color: 'rgb(217 119 6)',
-            properties: [
-                { label: 'شرح', value: values.description || '-' },
-                { label: 'از حساب', value: bankAccount.bankName },
-                { label: 'بابت', value: categoryName },
-            ]
+            registeredBy: currentUser?.firstName || 'کاربر',
+            payee: payee?.name,
+            category: category?.name,
+            bankAccount: { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' },
+            expenseFor: USER_DETAILS[values.expenseFor]?.firstName || 'مشترک',
+            checkDetails: {
+              sayadId: values.sayadId,
+              dueDate: formatJalaliDate(new Date(newCheckData.dueDate)),
+            },
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
         
@@ -105,10 +115,10 @@ export default function ChecksPage() {
     }
     setIsFormOpen(false);
     setEditingCheck(null);
-  }, [user, firestore, editingCheck, toast, bankAccounts, payees, categories]);
+  }, [user, firestore, editingCheck, toast, bankAccounts, payees, categories, allUsers]);
 
   const handleClearCheck = React.useCallback(async (check: Check) => {
-    if (!user || !firestore || check.status === 'cleared') return;
+    if (!user || !firestore || check.status === 'cleared' || !allUsers) return;
     
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     const checkRef = doc(familyDataRef, 'checks', check.id);
@@ -120,7 +130,7 @@ export default function ChecksPage() {
     }
     const bankAccountRef = doc(familyDataRef, 'bankAccounts', account.id);
     const expensesColRef = collection(familyDataRef, 'expenses');
-    const payeeName = payees?.find(p => p.id === check.payeeId)?.name || 'نامشخص';
+    const payee = payees?.find(p => p.id === check.payeeId);
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -145,7 +155,7 @@ export default function ChecksPage() {
         transaction.update(bankAccountRef, { balance: balanceAfter });
         
         // Create a detailed description for the expense
-        const expenseDescription = `پاس کردن چک به: ${payeeName}`;
+        const expenseDescription = `پاس کردن چک به: ${payee?.name || 'نامشخص'}`;
 
 
         // Create the corresponding expense
@@ -170,20 +180,23 @@ export default function ChecksPage() {
       });
       toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
 
-      const categoryName = categories.find(c => c.id === check.categoryId)?.name;
+      const currentUser = allUsers.find(u => u.id === user.uid);
+      const category = categories.find(c => c.id === check.categoryId);
+      const bankAccountOwnerName = account.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName;
+
       const notificationDetails: TransactionDetails = {
             type: 'payment',
-            title: `چک پاس شد: ${payeeName}`,
+            title: `چک پاس شد: ${payee?.name}`,
             amount: check.amount,
             date: new Date().toISOString(),
             icon: 'CheckCircle',
             color: 'rgb(22 163 74)',
-            properties: [
-                { label: 'شرح', value: check.description || '-' },
-                { label: 'از حساب', value: account.bankName },
-                { label: 'بابت', value: categoryName },
-            ]
-        };
+            registeredBy: currentUser?.firstName || 'کاربر',
+            payee: payee?.name,
+            category: category?.name,
+            bankAccount: { name: account.bankName, owner: bankAccountOwnerName || 'نامشخص' },
+            expenseFor: USER_DETAILS[check.expenseFor]?.firstName || 'مشترک',
+      };
       await sendSystemNotification(firestore, user.uid, notificationDetails);
 
 
@@ -201,7 +214,7 @@ export default function ChecksPage() {
             });
        }
     }
-  }, [user, firestore, bankAccounts, payees, toast, categories]);
+  }, [user, firestore, bankAccounts, payees, categories, allUsers, toast]);
   
   const handleDeleteCheck = React.useCallback(async (check: Check) => {
     if (!user || !firestore) return;

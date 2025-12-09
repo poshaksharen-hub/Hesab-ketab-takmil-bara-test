@@ -32,7 +32,7 @@ export default function IncomePage() {
   const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => {
-    if (!user || !firestore || !allBankAccounts) return;
+    if (!user || !firestore || !allBankAccounts || !allUsers) return;
   
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -67,19 +67,23 @@ export default function IncomePage() {
       toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
       setIsFormOpen(false);
   
-        const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-        sendSystemNotification(firestore, user.uid, {
-            type: 'income',
-            title: `ثبت درآمد جدید: ${values.description}`,
-            amount: values.amount,
-            date: values.date,
-            icon: 'TrendingUp',
-            color: 'rgb(34 197 94)',
-            properties: [
-                { label: 'منبع', value: values.source || '-' },
-                { label: 'واریز به', value: bankAccount?.bankName },
-            ]
-        });
+      const currentUser = allUsers.find(u => u.id === user.uid);
+      const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
+      const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+      
+      const notificationDetails: TransactionDetails = {
+          type: 'income',
+          title: `ثبت درآمد جدید: ${values.description}`,
+          amount: values.amount,
+          date: values.date,
+          icon: 'TrendingUp',
+          color: 'rgb(34 197 94)',
+          registeredBy: currentUser?.firstName || 'کاربر',
+          payee: values.source,
+          category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
+          bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
+      };
+      await sendSystemNotification(firestore, user.uid, notificationDetails);
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -96,7 +100,7 @@ export default function IncomePage() {
           });
         }
     }
-  }, [user, firestore, allBankAccounts, toast]);
+  }, [user, firestore, allBankAccounts, allUsers, toast]);
 
   const handleDelete = React.useCallback(async (incomeId: string) => {
     if (!firestore || !allIncomes) return;

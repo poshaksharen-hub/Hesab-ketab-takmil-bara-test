@@ -37,7 +37,7 @@ export default function ExpensesPage() {
   } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
-    if (!user || !firestore || !allBankAccounts) return;
+    if (!user || !firestore || !allBankAccounts || !allUsers) return;
     
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -85,23 +85,26 @@ export default function ExpensesPage() {
         setIsFormOpen(false);
         toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         
-        const categoryName = allCategories.find(c => c.id === values.categoryId)?.name;
-        const payeeName = allPayees.find(p => p.id === values.payeeId)?.name;
+        const currentUser = allUsers.find(u => u.id === user.uid);
+        const category = allCategories.find(c => c.id === values.categoryId);
+        const payee = allPayees.find(p => p.id === values.payeeId);
         const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-        
-        sendSystemNotification(firestore, user.uid, {
+        const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+
+        const notificationDetails: TransactionDetails = {
             type: 'expense',
-            title: `ثبت هزینه: ${values.description}`,
+            title: values.description,
             amount: values.amount,
             date: values.date,
             icon: 'TrendingDown',
             color: 'rgb(220 38 38)',
-            properties: [
-                { label: 'دسته بندی', value: categoryName || '-' },
-                { label: 'طرف حساب', value: payeeName || '-' },
-                { label: 'از حساب', value: bankAccount?.bankName || '-' },
-            ]
-        });
+            registeredBy: currentUser?.firstName || 'کاربر',
+            category: category?.name,
+            payee: payee?.name,
+            bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
+            expenseFor: USER_DETAILS[values.expenseFor]?.firstName || 'مشترک',
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
 
 
     } catch (error: any) {
@@ -119,7 +122,7 @@ export default function ExpensesPage() {
           });
         }
     }
-  }, [user, firestore, allBankAccounts, allCategories, allPayees, toast]);
+  }, [user, firestore, allBankAccounts, allCategories, allPayees, allUsers, toast]);
 
    const handleDelete = React.useCallback(async (expenseId: string) => {
     if (!firestore || !allExpenses) return;

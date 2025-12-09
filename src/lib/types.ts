@@ -196,9 +196,34 @@ export type TransactionDetails = {
     date: string;
     icon: string;
     color: string;
-    properties: { label: string; value: string }[];
+    // New detailed fields
+    payee?: string;
+    category?: string;
+    bankAccount?: {
+      name: string;
+      owner: string;
+    };
+    toBankAccount?: {
+      name: string;
+      owner: string;
+    };
+    expenseFor?: string;
+    registeredBy: string;
+    // Specific fields for different types
+    checkDetails?: {
+      sayadId: string;
+      dueDate: string;
+    };
+    loanDetails?: {
+      payee: string;
+      totalAmount: number;
+    };
+    goalDetails?: {
+      name: string;
+      newCurrentAmount?: number;
+      targetAmount: number;
+    };
 };
-
 
 export type ChatMessage = {
     id: string;

@@ -14,6 +14,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
+import { USER_DETAILS } from '@/lib/constants';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -27,7 +28,7 @@ export default function TransfersPage() {
 
 
   const handleTransferSubmit = React.useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
-    if (!user || !firestore || !allBankAccounts) return;
+    if (!user || !firestore || !allBankAccounts || !allUsers) return;
 
     if (values.fromBankAccountId === values.toBankAccountId) {
       toast({
@@ -91,21 +92,22 @@ export default function TransfersPage() {
         description: "انتقال وجه با موفقیت انجام شد.",
       });
       
+      const currentUser = allUsers.find(u => u.id === user.uid);
       const fromAccount = allBankAccounts.find(b => b.id === values.fromBankAccountId);
       const toAccount = allBankAccounts.find(b => b.id === values.toBankAccountId);
+      const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[fromAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+      const toAccountOwner = toAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[toAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
       
       const notificationDetails: TransactionDetails = {
             type: 'transfer',
-            title: `انتقال وجه داخلی`,
+            title: `انتقال داخلی`,
             amount: values.amount,
             date: new Date().toISOString(),
             icon: 'ArrowRightLeft',
             color: 'rgb(59 130 246)',
-            properties: [
-                { label: 'از حساب', value: fromAccount?.bankName },
-                { label: 'به حساب', value: toAccount?.bankName },
-                { label: 'شرح', value: values.description || '-' },
-            ]
+            registeredBy: currentUser?.firstName || 'کاربر',
+            bankAccount: fromAccount ? { name: fromAccount.bankName, owner: fromAccountOwner || 'نامشخص' } : undefined,
+            toBankAccount: toAccount ? { name: toAccount.bankName, owner: toAccountOwner || 'نامشخص' } : undefined,
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
 
@@ -125,7 +127,7 @@ export default function TransfersPage() {
         });
       }
     }
-  }, [user, firestore, allBankAccounts, toast]);
+  }, [user, firestore, allBankAccounts, allUsers, toast]);
 
   const handleDeleteTransfer = useCallback(async (transferId: string) => {
     if (!firestore || !transfers) return;
