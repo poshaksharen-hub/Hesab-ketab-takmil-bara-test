@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, ArrowRight } from 'lucide-react';
+import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
 import { IncomeList } from '@/components/income/income-list';
 import { IncomeForm } from '@/components/income/income-form';
 import type { Income, BankAccount, UserProfile, TransactionDetails } from '@/lib/types';
@@ -15,9 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -87,11 +86,12 @@ export default function IncomePage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+            const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/incomes',
                 operation: 'create',
                 requestResourceData: values,
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -128,10 +128,11 @@ export default function IncomePage() {
         toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ آن از حساب کسر شد." });
     } catch (error: any) {
          if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+             const permissionError = new FirestorePermissionError({
                 path: `family-data/shared-data/incomes/${incomeId}`,
                 operation: 'delete',
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -142,7 +143,6 @@ export default function IncomePage() {
     }
   }, [firestore, allIncomes, toast]);
 
-  
   const handleAddNew = React.useCallback(() => {
     setIsFormOpen(true);
   }, []);
@@ -150,22 +150,24 @@ export default function IncomePage() {
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild className="md:hidden">
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/" passHref>
+            <Button variant="ghost" size="icon" className="md:hidden">
+                <ArrowRight className="h-5 w-5" />
             </Button>
-            <h1 className="font-headline text-3xl font-bold tracking-tight">
+          </Link>
+          <h1 className="font-headline text-3xl font-bold tracking-tight">
             مدیریت درآمدها
-            </h1>
+          </h1>
         </div>
-        <Button onClick={handleAddNew}>
-          <PlusCircle className="ml-2 h-4 w-4" />
-          ثبت درآمد جدید
-        </Button>
+        <div className="hidden md:block">
+            <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                ثبت درآمد جدید
+            </Button>
+        </div>
       </div>
 
        <IncomeForm
@@ -191,6 +193,18 @@ export default function IncomePage() {
           onDelete={handleDelete}
         />
       )}
-    </main>
+
+      {/* Floating Action Button for Mobile */}
+      <div className="md:hidden fixed bottom-20 right-4 z-50">
+          <Button
+            onClick={handleAddNew}
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-lg"
+            aria-label="ثبت درآمد جدید"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+      </div>
+    </div>
   );
 }

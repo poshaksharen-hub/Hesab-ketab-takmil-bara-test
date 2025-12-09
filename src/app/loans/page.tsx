@@ -5,19 +5,19 @@ import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
-import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId, TransactionDetails } from '@/lib/types';
+import { doc, runTransaction, collection, serverTimestamp } from 'firebase/firestore';
+import type { Loan, BankAccount, Category, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
-import { LoanForm } from '@/components/loans/loan-form';
 import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { formatCurrency } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { sendSystemNotification } from '@/lib/notifications';
-import { USER_DETAILS } from '@/lib/constants';
+import { Plus } from 'lucide-react';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -25,11 +25,9 @@ export default function LoansPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
-
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [payingLoan, setPayingLoan] = useState<Loan | null>(null);
 
   const { 
@@ -39,100 +37,6 @@ export default function LoansPage() {
     payees,
     users,
   } = allData;
-
-  const handleFormSubmit = useCallback(async (values: any) => {
-    if (!user || !firestore || !users) return;
-
-    const {
-        title,
-        amount,
-        installmentAmount,
-        numberOfInstallments,
-        startDate,
-        firstInstallmentDate,
-        payeeId,
-        ownerId, // This now correctly represents the beneficiary
-        depositOnCreate,
-        depositToAccountId,
-    } = values;
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            
-            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
-                title,
-                amount,
-                ownerId, // Use the ownerId directly from the form
-                installmentAmount: installmentAmount || 0,
-                numberOfInstallments: numberOfInstallments || 0,
-                startDate: startDate,
-                firstInstallmentDate: firstInstallmentDate,
-                payeeId: payeeId || undefined,
-                depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
-            };
-
-            const newLoanRef = doc(collection(familyDataRef, 'loans'));
-            transaction.set(newLoanRef, {
-                ...loanData,
-                id: newLoanRef.id,
-                registeredByUserId: user.uid,
-                paidInstallments: 0,
-                remainingAmount: loanData.amount,
-            });
-
-            if (depositOnCreate && depositToAccountId) {
-                const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
-                const bankAccountDoc = await transaction.get(bankAccountRef);
-
-                if (!bankAccountDoc.exists()) {
-                    throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
-                }
-                const bankAccountData = bankAccountDoc.data() as BankAccount;
-                const balanceAfter = bankAccountData.balance + loanData.amount;
-                transaction.update(bankAccountRef, { balance: balanceAfter });
-            }
-        });
-
-        toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
-        setIsFormOpen(false);
-        setEditingLoan(null);
-
-        const payeeName = payees.find(p => p.id === payeeId)?.name;
-        const bankAccount = bankAccounts.find(b => b.id === depositToAccountId);
-        const currentUser = users.find(u => u.id === user.uid);
-        const notificationDetails: TransactionDetails = {
-            type: 'loan',
-            title: `ثبت وام جدید: ${title}`,
-            amount: amount,
-            date: startDate,
-            icon: 'Landmark',
-            color: 'rgb(139 92 246)',
-            registeredBy: currentUser?.firstName || 'کاربر',
-            payee: payeeName,
-            properties: [
-                { label: 'واریز به', value: depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' },
-            ]
-        };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-    } catch (error: any) {
-        if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
-                path: 'family-data/shared-data/loans',
-                operation: 'create',
-                requestResourceData: values,
-            });
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'خطا در ثبت وام',
-                description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
-            });
-        }
-    }
-}, [user, firestore, toast, payees, bankAccounts, users]);
-
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
     if (!user || !firestore || !bankAccounts || !categories || !users || !payees) return;
@@ -289,60 +193,43 @@ export default function LoansPage() {
     }
 }, [user, firestore, loans, toast]);
 
-
   const handleAddNew = () => {
-    setEditingLoan(null);
-    setIsFormOpen(true);
+    router.push('/loans/new');
   };
 
   const handleEdit = useCallback((loan: Loan) => {
-    setEditingLoan(loan);
-    setIsFormOpen(true);
-  }, []);
-  
-  const handleCancel = () => {
-    setIsFormOpen(false);
-    setEditingLoan(null);
-  };
-
+    router.push(`/loans/${loan.id}/edit`);
+  }, [router]);
   
   const isLoading = isUserLoading || isDashboardLoading;
   
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
+    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
+        <div className="flex items-center gap-2">
+            <Link href="/" passHref>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                    <ArrowRight className="h-5 w-5" />
+                </Button>
+            </Link>
             <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
         </div>
-        {!isFormOpen && (
-            <Button onClick={handleAddNew} className="hidden md:inline-flex">
-                <PlusCircle className="ml-2 h-4 w-4" />
+        <div className="hidden md:block">
+            <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
                 ثبت وام جدید
             </Button>
-        )}
+        </div>
       </div>
       
       {isLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
             <Skeleton className="h-10 w-full" />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Skeleton className="h-48 w-full rounded-xl" />
                 <Skeleton className="h-48 w-full rounded-xl" />
             </div>
         </div>
-      ) : isFormOpen ? (
-        <LoanForm
-            onCancel={handleCancel}
-            onSubmit={handleFormSubmit}
-            initialData={editingLoan}
-            bankAccounts={bankAccounts || []}
-            payees={payees || []}
-        />
       ) : (
         <>
             <LoanList
@@ -365,16 +252,18 @@ export default function LoansPage() {
             )}
         </>
       )}
-       {!isFormOpen && (
-        <Button
-          onClick={handleAddNew}
-          className="md:hidden fixed bottom-20 left-4 h-14 w-14 rounded-full shadow-lg z-20"
-          size="icon"
-          aria-label="ثبت وام جدید"
-        >
-          <PlusCircle className="h-6 w-6" />
-        </Button>
-      )}
-    </main>
+      
+      {/* Floating Action Button for Mobile */}
+      <div className="md:hidden fixed bottom-20 right-4 z-50">
+          <Button
+            onClick={handleAddNew}
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-lg"
+            aria-label="ثبت وام جدید"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+      </div>
+    </div>
   );
 }

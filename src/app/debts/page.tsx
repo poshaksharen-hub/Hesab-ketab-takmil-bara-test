@@ -2,7 +2,7 @@
 'use client';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight } from 'lucide-react';
+import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import {
   collection,
@@ -26,6 +26,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -64,38 +65,38 @@ export default function DebtsPage() {
         debtData.dueDate = dueDate;
     }
 
-    try {
-        const newDebtRef = doc(collection(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts'));
-        await setDoc(newDebtRef, { ...debtData, id: newDebtRef.id });
-        
-        toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
-        setIsFormOpen(false);
+    const newDebtRef = doc(collection(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts'));
+    setDoc(newDebtRef, { ...debtData, id: newDebtRef.id })
+        .then(async () => {
+            toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
+            setIsFormOpen(false);
 
-        const payeeName = payees.find(p => p.id === values.payeeId)?.name;
-        const currentUser = users.find(u => u.id === user.uid);
-        const notificationDetails: TransactionDetails = {
-            type: 'debt',
-            title: `ثبت بدهی جدید به ${payeeName}`,
-            amount: values.amount,
-            date: debtData.startDate!,
-            icon: 'Handshake',
-            color: 'rgb(99 102 241)',
-            registeredBy: currentUser?.firstName || 'کاربر',
-            payee: payeeName,
-            properties: [
-                { label: 'شرح', value: values.description },
-                { label: 'نوع', value: values.isInstallment ? 'قسطی' : 'یکجا' },
-            ]
-        };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-    } catch (error) {
-        throw new FirestorePermissionError({
-            path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
-            operation: 'create',
-            requestResourceData: debtData,
+            const payeeName = payees.find(p => p.id === values.payeeId)?.name;
+            const currentUser = users.find(u => u.id === user.uid);
+            const notificationDetails: TransactionDetails = {
+                type: 'debt',
+                title: `ثبت بدهی جدید به ${payeeName}`,
+                amount: values.amount,
+                date: debtData.startDate!,
+                icon: 'Handshake',
+                color: 'rgb(99 102 241)',
+                registeredBy: currentUser?.firstName || 'کاربر',
+                payee: payeeName,
+                properties: [
+                    { label: 'شرح', value: values.description },
+                    { label: 'نوع', value: values.isInstallment ? 'قسطی' : 'یکجا' },
+                ]
+            };
+            await sendSystemNotification(firestore, user.uid, notificationDetails);
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
+                operation: 'create',
+                requestResourceData: debtData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
-    }
 
   }, [user, firestore, toast, payees, users]);
 
@@ -200,10 +201,11 @@ export default function DebtsPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+             const permissionError = new FirestorePermissionError({
                 path: `family-data/shared-data/previousDebts/${debt.id}`,
                 operation: 'write'
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: 'destructive',
@@ -233,14 +235,14 @@ export default function DebtsPage() {
     deleteDoc(debtRef).then(() => {
         toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
     }).catch(error => {
-        throw new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
+        const permissionError = new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
+        errorEmitter.emit('permission-error', permissionError);
     });
 
   }, [user, firestore, previousDebts, toast]);
 
-  const handleCancel = () => {
-    setIsFormOpen(false);
-  }
+  const handleAddNew = () => setIsFormOpen(true);
+  const handleCancel = () => setIsFormOpen(false);
 
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -248,15 +250,10 @@ export default function DebtsPage() {
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
             <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
         </div>
         {!isFormOpen && (
-            <Button onClick={() => setIsFormOpen(true)} className='hidden md:inline-flex'>
+            <Button onClick={handleAddNew} className='hidden md:inline-flex'>
               <PlusCircle className="ml-2 h-4 w-4" />
               ثبت بدهی جدید
             </Button>
@@ -296,12 +293,12 @@ export default function DebtsPage() {
       )}
        {!isFormOpen && (
          <Button
-            onClick={() => setIsFormOpen(true)}
-            className="md:hidden fixed bottom-20 left-4 h-14 w-14 rounded-full shadow-lg z-20"
+            onClick={handleAddNew}
+            className="md:hidden fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-20"
             size="icon"
             aria-label="ثبت بدهی جدید"
           >
-            <PlusCircle className="h-6 w-6" />
+            <Plus className="h-6 w-6" />
           </Button>
         )}
     </main>

@@ -3,86 +3,57 @@
 @tailwind utilities;
 
 @layer base {
-  @font-face {
-    font-family: 'Dastnevis';
-    src: url('https://github.com/poshaksharen-hub/Fontdastnevisfarsi/raw/8c4229b9b4fba90419dd3f0989775467309ac237/Far_DastNevis.otf') format('opentype');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-  }
-
-  html, body, #__next {
-    @apply h-full;
-  }
-
   :root {
-    --background: 226 100% 98%; /* Very Light Blue */
-    --foreground: 236 65% 20%;
-    --card: 226 100% 98%;
-    --card-foreground: 236 65% 20%;
-    --popover: 226 100% 98%;
-    --popover-foreground: 236 65% 20%;
-    --primary: 236 65% 30%; /* Deep Navy Blue */
-    --primary-foreground: 226 100% 98%;
-    --secondary: 225 16% 94%; /* Soft Gray-Blue */
-    --secondary-foreground: 236 65% 20%;
-    --muted: 225 16% 90%;
-    --muted-foreground: 236 20% 55%;
-    --accent: 39 100% 50%; /* Energetic Yellow-Orange */
-    --accent-foreground: 236 65% 10%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 225 16% 88%;
-    --input: 225 16% 88%;
-    --ring: 236 65% 40%;
-    --chart-1: 236 65% 40%;
-    --chart-2: 39 100% 55%;
-    --chart-3: 200 70% 50%;
-    --chart-4: 20 80% 55%;
-    --chart-5: 160 60% 45%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 263 70% 50%;
     --radius: 0.5rem;
-    --sidebar-background: 226 100% 99%;
-    --sidebar-foreground: 236 65% 25%;
-    --sidebar-primary: 236 65% 30%;
-    --sidebar-primary-foreground: 226 100% 98%;
-    --sidebar-accent: 226 100% 95%;
-    --sidebar-accent-foreground: 236 65% 20%;
-    --sidebar-border: 225 16% 92%;
-    --sidebar-ring: 236 65% 40%;
+    /* Custom variables */
+    --sidebar: 240 5% 96%;
+    --sidebar-foreground: 240 6% 10%;
+    --sidebar-muted: 240 5% 90%;
   }
+
   .dark {
-    --background: 236 20% 10%;
-    --foreground: 226 100% 98%;
-    --card: 236 20% 10%;
-    --card-foreground: 226 100% 98%;
-    --popover: 236 20% 10%;
-    --popover-foreground: 226 100% 98%;
-    --primary: 230 80% 70%;
-    --primary-foreground: 236 65% 10%;
-    --secondary: 236 20% 15%;
-    --secondary-foreground: 226 100% 98%;
-    --muted: 236 20% 15%;
-    --muted-foreground: 225 10% 65%;
-    --accent: 39 100% 50%;
-    --accent-foreground: 236 65% 10%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 236 20% 15%;
-    --input: 236 20% 15%;
-    --ring: 230 80% 70%;
-    --chart-1: 230 80% 70%;
-    --chart-2: 39 100% 50%;
-    --chart-3: 200 70% 60%;
-    --chart-4: 20 80% 60%;
-    --chart-5: 160 60% 55%;
-    --sidebar-background: 236 20% 8%;
-    --sidebar-foreground: 226 100% 98%;
-    --sidebar-primary: 230 80% 70%;
-    --sidebar-primary-foreground: 236 65% 10%;
-    --sidebar-accent: 236 20% 15%;
-    --sidebar-accent-foreground: 226 100% 98%;
-    --sidebar-border: 236 20% 15%;
-    --sidebar-ring: 230 80% 70%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 263 70% 50%;
+    /* Custom variables */
+    --sidebar: 240 4% 14%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-muted: 240 4% 20%;
   }
 }
 
@@ -93,58 +64,8 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Custom styles for react-modern-calendar-datepicker */
-.calendar-container .responsive-calendar {
-  font-family: inherit;
-  box-shadow: none;
-  border: none;
-}
-.calendar-container .Calendar__header {
-  background-color: hsl(var(--background));
-}
-.calendar-container .Calendar__header,
-.calendar-container .Calendar__monthYear,
-.calendar-container .Calendar__weekDay {
-  color: hsl(var(--foreground));
-}
-.calendar-container .Calendar__day {
-  color: hsl(var(--foreground));
-  border-radius: var(--radius);
-}
-.calendar-container .Calendar__day:hover {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-}
-.calendar-container .Calendar__day.-selected,
-.calendar-container .Calendar__day.-selectedStart,
-.calendar-container .Calendar__day.-selectedEnd {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
-.calendar-container .Calendar__day.-today {
-  color: hsl(var(--accent));
-  border: 1px solid hsl(var(--accent));
-}
-.calendar-container .Calendar__day.-weekend {
-  color: hsl(var(--destructive));
-}
-
-.calendar-container .Calendar__monthSelector,
-.calendar-container .Calendar__yearSelector {
-  border-radius: var(--radius);
-  border: 1px solid hsl(var(--border));
-}
-
-.calendar-container .Calendar__monthSelectorItem:hover,
-.calendar-container .Calendar__yearSelectorItem:hover {
-    background: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
-}
-
-.calendar-container .Calendar__monthSelectorItem.-active,
-.calendar-container .Calendar__yearSelectorItem.-active {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
+  
+  .font-headline {
+    font-family: "Alegreya", serif;
+  }
 }

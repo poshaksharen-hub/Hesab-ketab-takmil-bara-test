@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import type { BankAccount, Transfer, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, PlusCircle, Plus } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -25,10 +26,10 @@ export default function TransfersPage() {
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
   
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const { bankAccounts: allBankAccounts, users: allUsers, transfers } = allData;
 
-
-  const handleTransferSubmit = React.useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
+  const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
     if (!user || !firestore || !allBankAccounts || !allUsers) return;
 
     if (values.fromBankAccountId === values.toBankAccountId) {
@@ -67,13 +68,9 @@ export default function TransfersPage() {
         const toBalanceBefore = toCardData.balance;
         const toBalanceAfter = toBalanceBefore + values.amount;
 
-        // Deduct from source account
         transaction.update(fromCardRef, { balance: fromBalanceAfter });
-
-        // Add to destination account
         transaction.update(toCardRef, { balance: toBalanceAfter });
         
-        // Create a record of the transfer in the central collection
         const newTransferRef = doc(collection(familyDataRef, 'transfers'));
         transaction.set(newTransferRef, {
             ...values,
@@ -88,6 +85,7 @@ export default function TransfersPage() {
 
       });
       
+      setIsFormOpen(false);
       toast({
         title: "موفقیت",
         description: "انتقال وجه با موفقیت انجام شد.",
@@ -112,14 +110,14 @@ export default function TransfersPage() {
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
 
-
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
-        throw new FirestorePermissionError({
+        const permissionError = new FirestorePermissionError({
           path: 'family-data/shared-data/transfers',
           operation: 'create',
           requestResourceData: values,
         });
+        errorEmitter.emit('permission-error', permissionError);
       } else {
         toast({
           variant: "destructive",
@@ -156,11 +154,9 @@ export default function TransfersPage() {
             const fromAccountData = fromAccountDoc.data()!;
             const toAccountData = toAccountDoc.data()!;
             
-            // Revert the financial impact
             transaction.update(fromAccountRef, { balance: fromAccountData.balance + transferToDelete.amount });
             transaction.update(toAccountRef, { balance: toAccountData.balance - transferToDelete.amount });
 
-            // Delete the transfer record
             transaction.delete(transferRef);
         });
 
@@ -168,10 +164,11 @@ export default function TransfersPage() {
 
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+            const permissionError = new FirestorePermissionError({
                 path: `family-data/shared-data/transfers/${transferId}`,
                 operation: 'delete',
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -183,56 +180,73 @@ export default function TransfersPage() {
 
   }, [firestore, transfers, toast]);
 
+  const handleAddNew = useCallback(() => {
+    setIsFormOpen(true);
+  }, []);
 
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild className="md:hidden">
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
-            </Button>
+        <div className="flex items-center gap-2">
+            <Link href="/" passHref>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                  <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
             <h1 className="font-headline text-3xl font-bold tracking-tight">
-            انتقال داخلی بین حساب‌ها
+            انتقال داخلی
             </h1>
         </div>
+        <div className="hidden md:block">
+            <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                ثبت انتقال جدید
+            </Button>
+        </div>
       </div>
+
+      {isFormOpen && (
+          <TransferForm
+            bankAccounts={allBankAccounts || []}
+            onSubmit={handleTransferSubmit}
+            user={user}
+        />
+      )}
+
+      <p className="text-muted-foreground text-sm">
+          از این بخش برای جابجایی پول بین حساب‌های خود استفاده کنید. این عملیات به عنوان درآمد یا هزینه در گزارش‌ها ثبت نمی‌شود.
+      </p>
+
+      {isLoading ? (
+          <div className="space-y-4 mt-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+          </div>
+      ) : !isFormOpen && (
+          <TransferList 
+              transfers={transfers || []}
+              bankAccounts={allBankAccounts || []}
+              users={allUsers || []}
+              onDelete={handleDeleteTransfer}
+          />
+      )}
       
-      <div className="grid gap-8 lg:grid-cols-5">
-        <div className="lg:col-span-2">
-            <p className="text-muted-foreground mb-4">
-                از این بخش برای جابجایی پول بین حساب‌های خود استفاده کنید. این عملیات به عنوان درآمد یا هزینه در گزارش‌ها ثبت نمی‌شود.
-            </p>
-            {isLoading ? (
-                <Skeleton className="h-96 w-full" />
-            ) : (
-                <TransferForm
-                    bankAccounts={allBankAccounts || []}
-                    onSubmit={handleTransferSubmit}
-                    user={user}
-                />
-            )}
+      {/* Floating Action Button for Mobile */}
+      {!isFormOpen && (
+        <div className="md:hidden fixed bottom-20 right-4 z-50">
+            <Button
+              onClick={handleAddNew}
+              size="icon"
+              className="h-14 w-14 rounded-full shadow-lg"
+              aria-label="ثبت انتقال جدید"
+            >
+              <Plus className="h-6 w-6" />
+            </Button>
         </div>
-        <div className="lg:col-span-3">
-            {isLoading ? (
-                <div className="space-y-4">
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                </div>
-            ) : (
-                <TransferList 
-                    transfers={transfers || []}
-                    bankAccounts={allBankAccounts || []}
-                    users={allUsers || []}
-                    onDelete={handleDeleteTransfer}
-                />
-            )}
-        </div>
-      </div>
-    </main>
+      )}
+    </div>
   );
 }

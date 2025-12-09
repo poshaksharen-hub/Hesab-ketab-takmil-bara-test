@@ -9,6 +9,7 @@ import {
   DocumentSnapshot,
 } from 'firebase/firestore';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 
 /** Utility type to add an 'id' field to a given type T. */
@@ -72,13 +73,14 @@ export function useDoc<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        console.error("Firestore error in useDoc:", error);
-        // Throw a simplified, client-safe error.
-        // This will be caught by the nearest Next.js error boundary.
+        // Create a contextual error and emit it globally.
         const permissionError = new FirestorePermissionError({
           path: memoizedDocRef.path,
           operation: 'get',
         });
+        errorEmitter.emit('permission-error', permissionError);
+
+        // Also set local error state for component-level handling if needed.
         setError(permissionError);
         setData(null);
         setIsLoading(false);

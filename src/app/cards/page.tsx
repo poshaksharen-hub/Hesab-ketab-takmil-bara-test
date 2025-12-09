@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, ArrowRight } from 'lucide-react';
+import { PlusCircle, Search, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { toEnglishDigits } from '@/lib/utils';
 import { updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -31,7 +32,7 @@ export default function CardsPage() {
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
   
-  const { bankAccounts: allBankAccounts = [], users: allUsers = [], goals: allGoals = [] } = allData;
+  const { bankAccounts: allBankAccounts = [], users: allUsers = [] } = allData;
   const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared_account');
 
 
@@ -43,11 +44,20 @@ export default function CardsPage() {
     if (editingCard) {
       // --- Edit ---
       const cardRef = doc(collectionRef, editingCard.id);
-      // initialBalance should not be part of the update data.
       const { initialBalance, ...updateData } = values as any;
   
-      updateDocumentNonBlocking(cardRef, updateData)
-      toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
+      updateDoc(cardRef, updateData)
+        .then(() => {
+            toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: cardRef.path,
+                operation: 'update',
+                requestResourceData: updateData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
     } else {
         // --- Create ---
@@ -56,12 +66,20 @@ export default function CardsPage() {
             balance: values.initialBalance,
         };
         
-        addDocumentNonBlocking(collectionRef, newCard)
+        addDoc(collectionRef, newCard)
             .then((docRef) => {
               if (docRef) {
                 updateDoc(docRef, { id: docRef.id });
                 toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
               }
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: collectionRef.path,
+                    operation: 'create',
+                    requestResourceData: newCard,
+                });
+                errorEmitter.emit('permission-error', permissionError);
             });
     }
     setIsFormOpen(false);
@@ -83,7 +101,6 @@ export default function CardsPage() {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
-            // --- Check for dependencies ---
             const dependencyChecks = [
               { name: 'هزینه‌ها', collection: 'expenses', field: 'bankAccountId' },
               { name: 'درآمدها', collection: 'incomes', field: 'bankAccountId' },
@@ -108,10 +125,11 @@ export default function CardsPage() {
         toast({ title: "موفقیت", description: "کارت بانکی با موفقیت حذف شد." });
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+             const permissionError = new FirestorePermissionError({
                 path: cardToDeleteRef.path,
                 operation: 'delete',
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: "destructive",
@@ -143,58 +161,60 @@ export default function CardsPage() {
     return allBankAccounts.filter(card => 
       card.bankName.toLowerCase().includes(query) ||
       card.cardNumber.includes(query) ||
-      card.accountNumber.includes(query)
+      (card.accountNumber && card.accountNumber.includes(query))
     );
   }, [searchQuery, allBankAccounts]);
 
 
   return (
-    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild className="md:hidden">
-                <Link href="/">
-                    <ArrowRight className="h-4 w-4" />
-                </Link>
+    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link href="/" passHref>
+            <Button variant="ghost" size="icon" className="md:hidden">
+                <ArrowRight className="h-5 w-5" />
             </Button>
-            <h1 className="font-headline text-3xl font-bold tracking-tight">
+          </Link>
+          <h1 className="font-headline text-3xl font-bold tracking-tight">
             مدیریت کارت‌های بانکی
-            </h1>
+          </h1>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="جستجو در نام بانک, شماره کارت..."
-                className="w-full pl-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button onClick={handleAddNew} className="w-full sm:w-auto">
-              <PlusCircle className="ml-2 h-4 w-4" />
-              افزودن کارت جدید
+        <div className="hidden md:block">
+            <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                افزودن کارت جدید
             </Button>
         </div>
       </div>
 
+      <div className="relative w-full sm:w-64">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="جستجو در نام بانک, شماره کارت..."
+          className="w-full pl-9"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {isFormOpen && (
+        <CardForm
+            onSubmit={handleFormSubmit}
+            initialData={editingCard}
+            user={user}
+            users={allUsers}
+            hasSharedAccount={hasSharedAccount}
+            onCancel={() => setIsFormOpen(false)}
+        />
+      )}
+
       {isLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
               <Skeleton className="h-56 w-full rounded-xl" />
               <Skeleton className="h-56 w-full rounded-xl" />
           </div>
-      ) : isFormOpen ? (
-        <CardForm
-          isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
-          onSubmit={handleFormSubmit}
-          initialData={editingCard}
-          user={user}
-          users={allUsers}
-          hasSharedAccount={hasSharedAccount}
-        />
-      ) : (
+      ) : !isFormOpen && (
         <CardList
           cards={filteredBankAccounts}
           onEdit={handleEdit}
@@ -202,6 +222,18 @@ export default function CardsPage() {
           users={allUsers}
         />
       )}
-    </main>
+
+      {/* Floating Action Button for Mobile */}
+      <div className="md:hidden fixed bottom-20 right-4 z-50">
+          <Button
+            onClick={handleAddNew}
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-lg"
+            aria-label="افزودن کارت جدید"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+      </div>
+    </div>
   );
 }

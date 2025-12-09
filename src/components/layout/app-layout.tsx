@@ -292,7 +292,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </SidebarFooter>
       </Sidebar>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-1 flex-col h-full w-0">
          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm md:hidden">
             <Link href="/" className="flex items-center gap-2">
                 <HesabKetabLogo className="size-7 text-primary" />
