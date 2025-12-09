@@ -49,28 +49,32 @@ export default function LoansPage() {
     if (editingLoan) {
         // --- EDIT LOGIC ---
         const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
+        const { title, amount, installmentAmount, numberOfInstallments, startDate, firstInstallmentDate, payeeId, ownerId } = values;
+        
         runTransaction(firestore, async (transaction) => {
              const loanDoc = await transaction.get(loanRef);
              if (!loanDoc.exists()) throw new Error('این وام برای ویرایش یافت نشد.');
 
-             const submissionData = { ...values, startDate: values.startDate.toISOString(), firstInstallmentDate: values.firstInstallmentDate.toISOString() };
-             const { title, amount, installmentAmount, numberOfInstallments, startDate, firstInstallmentDate, payeeId, ownerId } = submissionData;
              const oldLoanData = loanDoc.data() as Loan;
              const amountDifference = amount - oldLoanData.amount;
              const newRemainingAmount = oldLoanData.remainingAmount + amountDifference;
              if (newRemainingAmount < 0) throw new Error('مبلغ جدید وام نمی‌تواند کمتر از مبلغ پرداخت شده باشد.');
 
-             transaction.update(loanRef, { title, amount, installmentAmount, numberOfInstallments, startDate, firstInstallmentDate, payeeId, ownerId, remainingAmount: newRemainingAmount });
+             transaction.update(loanRef, { title, amount, installmentAmount, numberOfInstallments, startDate: startDate.toISOString(), firstInstallmentDate: firstInstallmentDate.toISOString(), payeeId, ownerId, remainingAmount: newRemainingAmount });
         }).then(() => {
             toast({ title: 'موفقیت', description: 'وام با موفقیت ویرایش شد.' });
             setIsFormOpen(false);
             setEditingLoan(null);
         }).catch((error: any) => {
-             if (error.name !== 'FirebaseError') {
-                toast({ variant: 'destructive', title: 'خطا در ویرایش وام', description: error.message || 'مشکلی در ویرایش اطلاعات پیش آمد.' });
+             if (error.name === 'FirebaseError') {
+                const permissionError = new FirestorePermissionError({
+                    path: loanRef.path,
+                    operation: 'update',
+                    requestResourceData: values,
+                });
+                errorEmitter.emit('permission-error', permissionError);
              } else {
-                 const permissionError = new FirestorePermissionError({ path: loanRef.path, operation: 'update', requestResourceData: values });
-                 errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: 'destructive', title: 'خطا در ویرایش وام', description: error.message || 'مشکلی در ویرایش اطلاعات پیش آمد.' });
              }
         });
 
@@ -79,7 +83,7 @@ export default function LoansPage() {
         const { title, amount, installmentAmount, numberOfInstallments, startDate, firstInstallmentDate, payeeId, ownerId, depositOnCreate, depositToAccountId } = values;
         
         runTransaction(firestore, async (transaction) => {
-            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = { title, amount, ownerId, installmentAmount: installmentAmount || 0, numberOfInstallments: numberOfInstallments || 0, startDate: startDate, firstInstallmentDate: firstInstallmentDate, payeeId: payeeId || undefined, depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined };
+            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = { title, amount, ownerId, installmentAmount: installmentAmount || 0, numberOfInstallments: numberOfInstallments || 0, startDate: startDate.toISOString(), firstInstallmentDate: firstInstallmentDate.toISOString(), payeeId: payeeId || undefined, depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined };
             const newLoanRef = doc(collection(familyDataRef, 'loans'));
             transaction.set(newLoanRef, { ...loanData, id: newLoanRef.id, registeredByUserId: user.uid, paidInstallments: 0, remainingAmount: loanData.amount });
 
@@ -102,8 +106,12 @@ export default function LoansPage() {
             await sendSystemNotification(firestore, user.uid, notificationDetails);
         }).catch((error: any) => {
             if (error.name === 'FirebaseError') {
-                 const permissionError = new FirestorePermissionError({ path: `family-data/${FAMILY_DATA_DOC}/loans`, operation: 'create', requestResourceData: values });
-                 errorEmitter.emit('permission-error', permissionError);
+                 const permissionError = new FirestorePermissionError({
+                    path: `family-data/${FAMILY_DATA_DOC}/loans`,
+                    operation: 'create',
+                    requestResourceData: values,
+                });
+                errorEmitter.emit('permission-error', permissionError);
             } else {
                  toast({ variant: 'destructive', title: 'خطا در ثبت وام', description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.' });
             }
@@ -122,9 +130,9 @@ export default function LoansPage() {
 
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     const loanRef = doc(familyDataRef, 'loans', loan.id);
-    const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
-
+    
     runTransaction(firestore, async (transaction) => {
+        const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
         const loanDoc = await transaction.get(loanRef);
         const accountToPayFromDoc = await transaction.get(accountToPayFromRef);
 
@@ -165,10 +173,14 @@ export default function LoansPage() {
         const currentUser = users.find(u => u.id === user.uid);
         const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUser?.firstName || 'کاربر', payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
-    }).catch(async (error: any) => {
+    }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({ path: loanRef.path, operation: 'write', requestResourceData: { loanId: loan.id, paymentBankAccountId, installmentAmount } });
-             errorEmitter.emit('permission-error', permissionError);
+             const permissionError = new FirestorePermissionError({
+                path: loanRef.path,
+                operation: 'write',
+                requestResourceData: { loanId: loan.id, paymentBankAccountId, installmentAmount },
+            });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
              toast({ variant: "destructive", title: "خطا در پرداخت قسط", description: error.message });
         }
@@ -204,7 +216,7 @@ export default function LoansPage() {
         transaction.delete(loanRef);
     }).then(() => {
          toast({ title: "موفقیت", description: "وام با موفقیت حذف شد." });
-    }).catch(async (error: any) => {
+    }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({ path: loanRef.path, operation: 'delete' });
              errorEmitter.emit('permission-error', permissionError);
@@ -298,5 +310,3 @@ export default function LoansPage() {
     </div>
   );
 }
-
-    
