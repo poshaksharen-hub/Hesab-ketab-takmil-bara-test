@@ -2,7 +2,7 @@
 'use client';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import {
   collection,
@@ -12,6 +12,7 @@ import {
   updateDoc,
   runTransaction,
   deleteDoc,
+  setDoc,
 } from 'firebase/firestore';
 import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,6 +25,7 @@ import { PayDebtDialog } from '@/components/debts/pay-debt-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
+import { USER_DETAILS } from '@/lib/constants';
 
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -47,7 +49,7 @@ export default function DebtsPage() {
   } = allData;
 
  const handleFormSubmit = useCallback(async (values: any) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !payees || !users) return;
 
     const { dueDate, ...restOfValues } = values;
 
@@ -70,6 +72,7 @@ export default function DebtsPage() {
         setIsFormOpen(false);
 
         const payeeName = payees.find(p => p.id === values.payeeId)?.name;
+        const currentUser = users.find(u => u.id === user.uid);
         const notificationDetails: TransactionDetails = {
             type: 'debt',
             title: `ثبت بدهی جدید به ${payeeName}`,
@@ -77,7 +80,7 @@ export default function DebtsPage() {
             date: debtData.startDate!,
             icon: 'Handshake',
             color: 'rgb(99 102 241)',
-            registeredBy: users.find(u => u.id === user.uid)?.firstName || 'کاربر',
+            registeredBy: currentUser?.firstName || 'کاربر',
             payee: payeeName,
             properties: [
                 { label: 'شرح', value: values.description },
@@ -178,6 +181,7 @@ export default function DebtsPage() {
 
        const payeeName = payees.find(p => p.id === debt.payeeId)?.name;
        const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
+       const currentUser = users.find(u => u.id === user.uid);
        const notificationDetails: TransactionDetails = {
             type: 'payment',
             title: `پرداخت بدهی به ${payeeName}`,
@@ -185,7 +189,7 @@ export default function DebtsPage() {
             date: new Date().toISOString(),
             icon: 'CheckCircle',
             color: 'rgb(22 163 74)',
-            registeredBy: users.find(u => u.id === user.uid)?.firstName || 'کاربر',
+            registeredBy: currentUser?.firstName || 'کاربر',
             payee: payeeName,
             properties: [
                 { label: 'شرح', value: debt.description },

@@ -35,7 +35,7 @@ export default function ChecksPage() {
   const { checks, bankAccounts, payees, categories, users } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'issueDate' | 'dueDate'> & {issueDate: Date, dueDate: Date}) => {
-    if (!user || !firestore || !allUsers) return;
+    if (!user || !firestore || !allUsers || !bankAccounts || !payees || !categories) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
     const bankAccount = bankAccounts.find(acc => acc.id === values.bankAccountId);
@@ -118,7 +118,7 @@ export default function ChecksPage() {
   }, [user, firestore, editingCheck, toast, bankAccounts, payees, categories, allUsers]);
 
   const handleClearCheck = React.useCallback(async (check: Check) => {
-    if (!user || !firestore || check.status === 'cleared' || !allUsers) return;
+    if (!user || !firestore || check.status === 'cleared' || !allUsers || !bankAccounts || !payees || !categories) return;
     
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     const checkRef = doc(familyDataRef, 'checks', check.id);
@@ -283,7 +283,7 @@ export default function ChecksPage() {
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild className="md:hidden">
+            <Button variant="outline" size="icon" asChild>
                 <Link href="/">
                     <ArrowRight className="h-4 w-4" />
                 </Link>

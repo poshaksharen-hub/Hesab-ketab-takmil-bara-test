@@ -3,7 +3,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, addDoc, serverTimestamp, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import type { Loan, LoanPayment, BankAccount, Category, Payee, OwnerId, TransactionDetails } from '@/lib/types';
@@ -17,6 +17,7 @@ import { formatCurrency } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
+import { USER_DETAILS } from '@/lib/constants';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -40,7 +41,7 @@ export default function LoansPage() {
   } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !users) return;
 
     const {
         title,
@@ -99,6 +100,7 @@ export default function LoansPage() {
 
         const payeeName = payees.find(p => p.id === payeeId)?.name;
         const bankAccount = bankAccounts.find(b => b.id === depositToAccountId);
+        const currentUser = users.find(u => u.id === user.uid);
         const notificationDetails: TransactionDetails = {
             type: 'loan',
             title: `ثبت وام جدید: ${title}`,
@@ -106,7 +108,7 @@ export default function LoansPage() {
             date: startDate,
             icon: 'Landmark',
             color: 'rgb(139 92 246)',
-            registeredBy: users.find(u => u.id === user.uid)?.firstName || 'کاربر',
+            registeredBy: currentUser?.firstName || 'کاربر',
             payee: payeeName,
             properties: [
                 { label: 'واریز به', value: depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' },
@@ -133,7 +135,7 @@ export default function LoansPage() {
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
-    if (!user || !firestore || !bankAccounts || !categories || !users) return;
+    if (!user || !firestore || !bankAccounts || !categories || !users || !payees) return;
 
     if (installmentAmount <= 0) {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ قسط باید بیشتر از صفر باشد."});
@@ -210,6 +212,7 @@ export default function LoansPage() {
         setPayingLoan(null);
 
         const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
+        const currentUser = users.find(u => u.id === user.uid);
         const notificationDetails: TransactionDetails = {
             type: 'payment',
             title: `پرداخت قسط وام: ${loan.title}`,
@@ -217,7 +220,7 @@ export default function LoansPage() {
             date: new Date().toISOString(),
             icon: 'CheckCircle',
             color: 'rgb(22 163 74)',
-            registeredBy: users.find(u => u.id === user.uid)?.firstName || 'کاربر',
+            registeredBy: currentUser?.firstName || 'کاربر',
             payee: payees.find(p => p.id === loan.payeeId)?.name,
             properties: [
                 { label: 'از حساب', value: bankAccount?.bankName },
@@ -308,7 +311,14 @@ export default function LoansPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
+        </div>
         {!isFormOpen && (
             <Button onClick={handleAddNew} className="hidden md:inline-flex">
                 <PlusCircle className="ml-2 h-4 w-4" />
