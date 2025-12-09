@@ -168,8 +168,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             </CardHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-                <CardContent className="space-y-6">
-                    <FormField
+                <CardContent className="space-y-4">
+                  <FormField
                     control={form.control}
                     name="title"
                     render={({ field }) => (
