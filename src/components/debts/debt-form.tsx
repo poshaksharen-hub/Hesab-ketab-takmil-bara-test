@@ -293,7 +293,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                       )}
                   </div>
                 </CardContent>
-              <CardFooter>
+              <CardFooter className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
                   <Button type="submit">ذخیره</Button>
               </CardFooter>
