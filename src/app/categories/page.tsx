@@ -100,12 +100,22 @@ export default function CategoriesPage() {
     setIsFormOpen(true);
   }, []);
 
+  const handleCancel = () => {
+    setIsFormOpen(false);
+    setEditingCategory(null);
+  };
+
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
             <h1 className="font-headline text-3xl font-bold tracking-tight">
             مدیریت دسته‌بندی‌ها
             </h1>
@@ -126,7 +136,7 @@ export default function CategoriesPage() {
         <CategoryForm
           onSubmit={handleFormSubmit}
           initialData={editingCategory}
-          onCancel={() => setIsFormOpen(false)}
+          onCancel={handleCancel}
         />
       ) : (
         <CategoryList
