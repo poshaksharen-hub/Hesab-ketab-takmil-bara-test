@@ -27,13 +27,12 @@ const formSchema = z.object({
 type CategoryFormValues = z.infer<typeof formSchema>;
 
 interface CategoryFormProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
   onSubmit: (data: CategoryFormValues) => void;
   initialData: Category | null;
+  onCancel: () => void;
 }
 
-export function CategoryForm({ isOpen, setIsOpen, onSubmit, initialData }: CategoryFormProps) {
+export function CategoryForm({ onSubmit, initialData, onCancel }: CategoryFormProps) {
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -97,7 +96,7 @@ export function CategoryForm({ isOpen, setIsOpen, onSubmit, initialData }: Categ
               />
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
+                <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
                 <Button type="submit">ذخیره</Button>
             </CardFooter>
           </form>
