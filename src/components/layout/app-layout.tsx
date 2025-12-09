@@ -72,7 +72,6 @@ function Menu({ onLinkClick, unreadCount }: { onLinkClick?: () => void; unreadCo
   const pathname = usePathname();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
-    { href: '/insights', label: 'تحلیل هوشمند', icon: Sparkles },
     { href: '/chat', label: 'گفتگو', icon: MessageSquare, badge: unreadCount > 0 },
     { href: '/due-dates', label: 'سررسیدها', icon: Bell },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
