@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -51,46 +52,44 @@ export default function NewLoanPage() {
         depositToAccountId,
     } = values;
 
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            
-            const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
-                title,
-                amount,
-                ownerId,
-                installmentAmount: installmentAmount || 0,
-                numberOfInstallments: numberOfInstallments || 0,
-                startDate: startDate,
-                firstInstallmentDate: firstInstallmentDate,
-                payeeId: payeeId || undefined,
-                depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
-            };
+    runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        
+        const loanData: Omit<Loan, 'id' | 'registeredByUserId' | 'paidInstallments' | 'remainingAmount' > = {
+            title,
+            amount,
+            ownerId,
+            installmentAmount: installmentAmount || 0,
+            numberOfInstallments: numberOfInstallments || 0,
+            startDate: startDate,
+            firstInstallmentDate: firstInstallmentDate,
+            payeeId: payeeId || undefined,
+            depositToAccountId: (depositOnCreate && depositToAccountId) ? depositToAccountId : undefined,
+        };
 
-            const newLoanRef = doc(collection(familyDataRef, 'loans'));
-            transaction.set(newLoanRef, {
-                ...loanData,
-                id: newLoanRef.id,
-                registeredByUserId: user.uid,
-                paidInstallments: 0,
-                remainingAmount: loanData.amount,
-            });
-
-            if (depositOnCreate && depositToAccountId) {
-                const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
-                const bankAccountDoc = await transaction.get(bankAccountRef);
-
-                if (!bankAccountDoc.exists()) {
-                    throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
-                }
-                const bankAccountData = bankAccountDoc.data() as BankAccount;
-                const balanceAfter = bankAccountData.balance + loanData.amount;
-                transaction.update(bankAccountRef, { balance: balanceAfter });
-            }
+        const newLoanRef = doc(collection(familyDataRef, 'loans'));
+        transaction.set(newLoanRef, {
+            ...loanData,
+            id: newLoanRef.id,
+            registeredByUserId: user.uid,
+            paidInstallments: 0,
+            remainingAmount: loanData.amount,
         });
 
+        if (depositOnCreate && depositToAccountId) {
+            const bankAccountRef = doc(familyDataRef, 'bankAccounts', depositToAccountId);
+            const bankAccountDoc = await transaction.get(bankAccountRef);
+
+            if (!bankAccountDoc.exists()) {
+                throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
+            }
+            const bankAccountData = bankAccountDoc.data() as BankAccount;
+            const balanceAfter = bankAccountData.balance + loanData.amount;
+            transaction.update(bankAccountRef, { balance: balanceAfter });
+        }
+    }).then(async () => {
         toast({ title: 'موفقیت', description: 'وام جدید با موفقیت ثبت شد.' });
-        router.push('/loans'); // Redirect to the loans list
+        router.push('/loans');
 
         const payeeName = payees.find(p => p.id === payeeId)?.name;
         const bankAccount = bankAccounts.find(b => b.id === depositToAccountId);
@@ -109,14 +108,14 @@ export default function NewLoanPage() {
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-    } catch (error: any) {
+    }).catch(async (error: any) => {
         if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+             const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/loans',
                 operation: 'create',
                 requestResourceData: values,
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: 'destructive',
@@ -124,7 +123,7 @@ export default function NewLoanPage() {
                 description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
             });
         }
-    }
+    });
   }, [user, firestore, toast, payees, bankAccounts, users, router]);
 
 
@@ -141,7 +140,7 @@ export default function NewLoanPage() {
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
         <div className="flex items-center gap-2">
             <Link href="/loans" passHref>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="md:hidden">
                     <ArrowRight className="h-5 w-5" />
                 </Button>
             </Link>
@@ -157,5 +156,3 @@ export default function NewLoanPage() {
     </div>
   );
 }
-
-    

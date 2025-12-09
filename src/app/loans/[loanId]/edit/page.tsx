@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -41,58 +42,54 @@ export default function EditLoanPage() {
 
   const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore || !loanId) return;
+    
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+    const loanRef = doc(familyDataRef, 'loans', loanId);
 
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const loanRef = doc(familyDataRef, 'loans', loanId);
+    runTransaction(firestore, async (transaction) => {
+        const loanDoc = await transaction.get(loanRef);
+        if (!loanDoc.exists()) {
+            throw new Error('این وام برای ویرایش یافت نشد.');
+        }
 
-            const loanDoc = await transaction.get(loanRef);
-            if (!loanDoc.exists()) {
-                throw new Error('این وام برای ویرایش یافت نشد.');
-            }
+        const submissionData = {
+            ...values,
+            startDate: values.startDate.toISOString(),
+            firstInstallmentDate: values.firstInstallmentDate.toISOString(),
+        };
+        
+        const { title, amount, installmentAmount, numberOfInstallments, startDate, firstInstallmentDate, payeeId, ownerId } = submissionData;
 
-            const submissionData = {
-                ...values,
-                startDate: values.startDate.toISOString(),
-                firstInstallmentDate: values.firstInstallmentDate.toISOString(),
-            };
-            
-            // Since this is an edit, we don't handle the deposit logic here
-            // We only update the core loan data.
-            const { title, amount, installmentAmount, numberOfInstallments, startDate, firstInstallmentDate, payeeId, ownerId } = submissionData;
+        const oldLoanData = loanDoc.data() as Loan;
+        const amountDifference = amount - oldLoanData.amount;
+        const newRemainingAmount = oldLoanData.remainingAmount + amountDifference;
 
-            const oldLoanData = loanDoc.data() as Loan;
-            const amountDifference = amount - oldLoanData.amount;
-            const newRemainingAmount = oldLoanData.remainingAmount + amountDifference;
+        if (newRemainingAmount < 0) {
+             throw new Error('مبلغ جدید وام نمی‌تواند کمتر از مبلغ پرداخت شده باشد.');
+        }
 
-            if (newRemainingAmount < 0) {
-                 throw new Error('مبلغ جدید وام نمی‌تواند کمتر از مبلغ پرداخت شده باشد.');
-            }
-
-            transaction.update(loanRef, { 
-                title,
-                amount,
-                installmentAmount,
-                numberOfInstallments,
-                startDate,
-                firstInstallmentDate,
-                payeeId,
-                ownerId,
-                remainingAmount: newRemainingAmount
-             });
-        });
-
+        transaction.update(loanRef, { 
+            title,
+            amount,
+            installmentAmount,
+            numberOfInstallments,
+            startDate,
+            firstInstallmentDate,
+            payeeId,
+            ownerId,
+            remainingAmount: newRemainingAmount
+         });
+    }).then(() => {
         toast({ title: 'موفقیت', description: 'وام با موفقیت ویرایش شد.' });
-        router.push('/loans'); // Redirect to the loans list
-
-    } catch (error: any) {
+        router.push('/loans');
+    }).catch(async (error: any) => {
         if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
-                path: `family-data/shared-data/loans/${loanId}`,
+             const permissionError = new FirestorePermissionError({
+                path: loanRef.path,
                 operation: 'update',
                 requestResourceData: values,
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({
                 variant: 'destructive',
@@ -100,7 +97,7 @@ export default function EditLoanPage() {
                 description: error.message || 'مشکلی در ویرایش اطلاعات پیش آمد.',
             });
         }
-    }
+    });
   }, [user, firestore, toast, loanId, router]);
 
   if (isDashboardLoading) {
@@ -115,7 +112,14 @@ export default function EditLoanPage() {
   if (!initialData) {
       return (
           <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-              <h1 className="text-2xl font-bold">وام یافت نشد</h1>
+              <div className="flex items-center gap-2">
+                 <Link href="/loans" passHref>
+                    <Button variant="ghost" size="icon" className="md:hidden">
+                        <ArrowRight className="h-5 w-5" />
+                    </Button>
+                </Link>
+                <h1 className="text-2xl font-bold">وام یافت نشد</h1>
+              </div>
               <p>وامی با این شناسه وجود ندارد یا شما دسترسی لازم برای مشاهده آن را ندارید.</p>
               <Link href="/loans">
                   <Button>بازگشت به لیست وام‌ها</Button>
@@ -128,7 +132,7 @@ export default function EditLoanPage() {
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
         <div className="flex items-center gap-2">
             <Link href="/loans" passHref>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="md:hidden">
                     <ArrowRight className="h-5 w-5" />
                 </Button>
             </Link>
@@ -144,5 +148,3 @@ export default function EditLoanPage() {
     </div>
   );
 }
-
-    
