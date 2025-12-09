@@ -64,7 +64,7 @@ export default function LoansPage() {
         const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
         const { title, amount, installmentAmount, numberOfInstallments, startDate, firstInstallmentDate, payeeId, ownerId } = values;
 
-        getDoc(loanRef).then(loanDoc => {
+        getDoc(loanRef).then(async (loanDoc) => {
             if (!loanDoc.exists()) throw new Error('این وام برای ویرایش یافت نشد.');
 
             const oldLoanData = loanDoc.data() as Loan;
@@ -73,18 +73,23 @@ export default function LoansPage() {
             if (newRemainingAmount < 0) throw new Error('مبلغ جدید وام نمی‌تواند کمتر از مبلغ پرداخت شده باشد.');
             
             const updateData = { title, amount, installmentAmount, numberOfInstallments, startDate: startDate.toISOString(), firstInstallmentDate: firstInstallmentDate.toISOString(), payeeId, ownerId, remainingAmount: newRemainingAmount };
-            updateDoc(loanRef, updateData)
-                .then(() => {
-                    toast({ title: 'موفقیت', description: 'وام با موفقیت ویرایش شد.' });
-                    setIsFormOpen(false);
-                    setEditingLoan(null);
-                })
-                .catch(error => {
-                    const permissionError = new FirestorePermissionError({ path: loanRef.path, operation: 'update', requestResourceData: updateData });
-                    errorEmitter.emit('permission-error', permissionError);
+            
+            await updateDoc(loanRef, updateData)
+            toast({ title: 'موفقیت', description: 'وام با موفقیت ویرایش شد.' });
+            setIsFormOpen(false);
+            setEditingLoan(null);
+
+        }).catch((error: any) => {
+             if (error.name === 'FirebaseError') {
+                const permissionError = new FirestorePermissionError({
+                    path: loanRef.path,
+                    operation: 'update',
+                    requestResourceData: values,
                 });
-        }).catch(error => {
-             toast({ variant: 'destructive', title: 'خطا در ویرایش وام', description: error.message || 'مشکلی در ویرایش اطلاعات پیش آمد.' });
+                errorEmitter.emit('permission-error', permissionError);
+            } else {
+                 toast({ variant: 'destructive', title: 'خطا در ویرایش وام', description: error.message || 'مشکلی در ویرایش اطلاعات پیش آمد.' });
+            }
         });
 
     } else {
@@ -184,7 +189,6 @@ export default function LoansPage() {
         const expenseRef = doc(collection(familyDataRef, 'expenses'));
         const expenseCategory = categories?.find(c => c.name.includes('قسط')) || categories?.[0];
 
-        // Using a batch write for better (though not fully atomic) consistency
         const batch = writeBatch(firestore);
         batch.update(accountToPayFromRef, { balance: balanceAfter });
         batch.update(loanRef, { paidInstallments: newPaidInstallments, remainingAmount: newRemainingAmount });
@@ -203,7 +207,7 @@ export default function LoansPage() {
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
-                path: loanRef.path,
+                path: `family-data/${FAMILY_DATA_DOC}/loans`,
                 operation: 'write',
                 requestResourceData: { loanId: loan.id, paymentBankAccountId, installmentAmount },
             });
@@ -336,3 +340,5 @@ export default function LoansPage() {
     </div>
   );
 }
+
+    
