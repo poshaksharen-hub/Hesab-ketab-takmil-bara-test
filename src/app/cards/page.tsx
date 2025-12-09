@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
@@ -151,9 +151,16 @@ export default function CardsPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">
-          مدیریت کارت‌های بانکی
-        </h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild className="md:hidden">
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">
+            مدیریت کارت‌های بانکی
+            </h1>
+        </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

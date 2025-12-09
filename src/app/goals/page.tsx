@@ -3,7 +3,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import {
   collection,
@@ -433,9 +433,16 @@ export default function GoalsPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">
-          اهداف مالی
-        </h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild className="md:hidden">
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">
+            اهداف مالی
+            </h1>
+        </div>
         <Button onClick={handleAddNew}>
           <PlusCircle className="ml-2 h-4 w-4" />
           افزودن هدف جدید

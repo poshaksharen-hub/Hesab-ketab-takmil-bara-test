@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
+import { ArrowRight } from 'lucide-react';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -188,9 +189,16 @@ export default function TransfersPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">
-          انتقال داخلی بین حساب‌ها
-        </h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild className="md:hidden">
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">
+            انتقال داخلی بین حساب‌ها
+            </h1>
+        </div>
       </div>
       
       <div className="grid gap-8 lg:grid-cols-5">

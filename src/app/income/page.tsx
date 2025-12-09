@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, ArrowRight } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, serverTimestamp, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { IncomeList } from '@/components/income/income-list';
@@ -152,9 +152,16 @@ export default function IncomePage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">
-          مدیریت درآمدها
-        </h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild className="md:hidden">
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">
+            مدیریت درآمدها
+            </h1>
+        </div>
         <Button onClick={handleAddNew}>
           <PlusCircle className="ml-2 h-4 w-4" />
           ثبت درآمد جدید
