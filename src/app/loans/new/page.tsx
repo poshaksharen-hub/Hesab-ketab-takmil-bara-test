@@ -108,7 +108,7 @@ export default function NewLoanPage() {
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
-    }).catch(async (error: any) => {
+    }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/loans',
