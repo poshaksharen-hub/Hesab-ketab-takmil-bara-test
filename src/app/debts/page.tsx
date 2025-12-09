@@ -247,7 +247,14 @@ export default function DebtsPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/">
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
+        </div>
         {!isFormOpen && (
             <Button onClick={() => setIsFormOpen(true)} className='hidden md:inline-flex'>
               <PlusCircle className="ml-2 h-4 w-4" />
@@ -257,7 +264,7 @@ export default function DebtsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+        <div className="grid grid-cols-1 gap-4 mt-4">
             <Skeleton className="h-48 w-full rounded-xl" />
             <Skeleton className="h-48 w-full rounded-xl" />
         </div>
