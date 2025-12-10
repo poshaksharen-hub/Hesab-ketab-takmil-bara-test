@@ -24,9 +24,7 @@ export interface UseCollectionResult<T> {
   error: FirestoreError | null; // Error object, or null.
 }
 
-/* Internal implementation of Query:
-  https://github.com/firebase/firebase-js-sdk/blob/c5f08a9bc5da0d2b0207802c972d53724ccef055/packages/firestore/src/lite-api/reference.ts#L143
-*/
+/* Internal implementation of Query */
 export interface InternalQuery extends Query<DocumentData> {
   _query: {
     path: {
@@ -38,16 +36,13 @@ export interface InternalQuery extends Query<DocumentData> {
 
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
- * Handles nullable references/queries.
- * 
+ * Relies on the parent component to provide a valid query when it's ready (e.g., after authentication).
  *
- * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
- * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
- * references
- *  
+ * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN.
+ * 
  * @template T Optional type for document data. Defaults to any.
- * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
- * The Firestore CollectionReference or Query. Waits if null/undefined.
+ * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} memoizedTargetRefOrQuery -
+ * The Firestore CollectionReference or Query. Hook is dormant if query is null/undefined.
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
 export function useCollection<T = any>(
@@ -57,21 +52,22 @@ export function useCollection<T = any>(
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // A query is loading if it exists but we don't have data or an error yet.
+  const [isLoading, setIsLoading] = useState<boolean>(!!memoizedTargetRefOrQuery);
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
-    // If the query is not ready, do nothing and wait.
+    // If the query is null or undefined, it means we are waiting for dependencies (e.g., user auth).
+    // We should not be in a loading state, and should clear any previous data.
     if (!memoizedTargetRefOrQuery) {
-      // If we were previously loading, stop. Otherwise, maintain current state.
-      if (isLoading && data === null) {
-          setIsLoading(false);
-      }
+      setIsLoading(false);
+      setData(null);
+      setError(null);
       return;
     }
 
+    // We have a valid query, so we are officially in a loading state.
     setIsLoading(true);
-    setError(null);
 
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
@@ -82,21 +78,23 @@ export function useCollection<T = any>(
         }
         setData(results);
         setError(null);
-        setIsLoading(false);
+        setIsLoading(false); // Loading is complete.
       },
-      (error: FirestoreError) => {
-        console.error("Firestore error in useCollection:", error);
-        setError(error);
+      (err: FirestoreError) => {
+        console.error("Firestore error in useCollection:", err);
+        // This is critical for debugging permission errors.
+        setError(err);
         setData(null);
-        setIsLoading(false);
+        setIsLoading(false); // Loading is complete (with an error).
       }
     );
 
+    // Cleanup function to unsubscribe from the snapshot listener when the component unmounts or the query changes.
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+  }, [memoizedTargetRefOrQuery]); // The ONLY dependency should be the query itself. The parent component is responsible for changing the query.
   
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
+    throw new Error('useCollection query must be memoized with useMemoFirebase');
   }
 
   return { data, isLoading, error };

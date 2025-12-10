@@ -50,7 +50,8 @@ export function useDashboardData() {
 
     const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
 
-    const { data: usersData, isLoading: isLoadingUsers } = useCollection<UserProfile>(useMemoFirebase(() => (collectionsEnabled ? collection(firestore, 'users') : null), [collectionsEnabled, firestore]));
+    // CORRECTED: User profiles should be read from the family-data subcollection to adhere to security rules.
+    const { data: usersData, isLoading: isLoadingUsers } = useCollection<UserProfile>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'users') : null), [baseDocRef]));
     const { data: bankAccountsData, isLoading: ilba } = useCollection<BankAccount>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
     const { data: incomes, isLoading: ili } = useCollection<Income>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]));
     const { data: expenses, isLoading: ile } = useCollection<Expense>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]));

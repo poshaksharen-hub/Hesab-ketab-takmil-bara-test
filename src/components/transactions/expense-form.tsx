@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -37,6 +36,8 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
 import { AddCategoryDialog } from '../categories/add-category-dialog';
+import { useAuth } from '@/firebase/provider'; // Import useAuth to get the current user
+import { useToast } from '@/hooks/use-toast';
 
 
 const formSchema = z.object({
@@ -54,7 +55,8 @@ type ExpenseFormValues = z.infer<typeof formSchema>;
 interface ExpenseFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => void;
+  // Let the form handle who registered the expense
+  onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'ownerId'> & { registeredByUserId: string }) => void;
   initialData: Expense | null;
   bankAccounts: BankAccount[];
   categories: Category[];
@@ -62,6 +64,8 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees }: ExpenseFormProps) {
+  const { user } = useAuth(); // Get the authenticated user
+  const { toast } = useToast();
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   
@@ -91,9 +95,6 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
 
   useEffect(() => {
     // This logic is now removed to allow user to always choose.
-    // if (selectedAccount && selectedAccount.ownerId === 'shared_account') {
-    //   form.setValue('expenseFor', 'shared');
-    // }
   }, [selectedAccount, form]);
 
 
@@ -114,15 +115,27 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
   }, [isOpen, initialData, form]);
 
   function handleFormSubmit(data: ExpenseFormValues) {
-    const submissionData: any = {
+    if (!user) {
+        toast({
+            title: 'خطا در ثبت',
+            description: 'برای ثبت هزینه باید ابتدا وارد شوید.',
+            variant: 'destructive',
+        });
+        return;
+    }
+
+    const submissionData = {
         ...data,
         date: data.date.toISOString(),
+        registeredByUserId: user.uid, // Add the user's ID to the submission data
     };
+
     if (submissionData.payeeId === 'none') {
-        delete submissionData.payeeId;
+        delete (submissionData as any).payeeId;
     }
+    
     onSubmit(submissionData);
-    form.reset(); // Reset form after successful submission
+    form.reset(); 
   }
 
   const handlePayeeSelection = (value: string) => {

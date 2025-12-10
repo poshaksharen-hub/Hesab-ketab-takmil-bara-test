@@ -29,6 +29,8 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
+import type { User } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const baseSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
@@ -43,7 +45,6 @@ const baseSchema = z.object({
   depositToAccountId: z.string().optional(),
 });
 
-// Conditional validation: if depositOnCreate is true, depositToAccountId is required.
 const formSchema = baseSchema.refine(data => {
     if (data.depositOnCreate) {
         return !!data.depositToAccountId;
@@ -51,12 +52,11 @@ const formSchema = baseSchema.refine(data => {
     return true;
 }, {
     message: "برای واریز مبلغ، انتخاب حساب مقصد الزامی است.",
-    path: ["depositToAccountId"], // Attach error to this field
+    path: ["depositToAccountId"], 
 }).refine(data => data.firstInstallmentDate >= data.startDate, {
     message: "تاریخ اولین قسط نمی‌تواند قبل از تاریخ دریافت وام باشد.",
     path: ["firstInstallmentDate"],
 });
-
 
 type LoanFormValues = z.infer<typeof formSchema>;
 
@@ -67,9 +67,11 @@ interface LoanFormProps {
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
+  user: User | null;
 }
 
-export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
+export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, user }: LoanFormProps) {
+    const { toast } = useToast();
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
     
     const form = useForm<LoanFormValues>({
@@ -123,17 +125,15 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                 depositToAccountId: '',
             });
         }
-    }, [initialData, form]);
+    }, [initialData, form, isOpen]);
 
     const availableDepositAccounts = useMemo(() => {
         if (watchLoanOwnerId === 'shared') {
-            return bankAccounts; // If loan is for 'shared', can deposit to any account
+            return bankAccounts;
         }
-        // If loan is for 'ali' or 'fatemeh', only show their personal accounts.
         return bankAccounts.filter(acc => acc.ownerId === watchLoanOwnerId);
     }, [watchLoanOwnerId, bankAccounts]);
     
-    // When the available accounts change, reset the selected deposit account if it's no longer valid
     useEffect(() => {
         const currentDepositId = form.getValues('depositToAccountId');
         if (currentDepositId && !availableDepositAccounts.some(acc => acc.id === currentDepositId)) {
@@ -141,15 +141,24 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
         }
     }, [availableDepositAccounts, form]);
 
+    const handleFormSubmit = (data: LoanFormValues) => {
+        if (!user) {
+            toast({
+                title: 'خطا در ثبت',
+                description: 'برای ثبت وام باید ابتدا وارد شوید.',
+                variant: 'destructive',
+            });
+            return;
+        }
 
-    const handleFormSubmit = useCallback((data: LoanFormValues) => {
         const submissionData = {
             ...data,
-            startDate: data.startDate,
-            firstInstallmentDate: data.firstInstallmentDate,
+            startDate: data.startDate.toISOString(),
+            firstInstallmentDate: data.firstInstallmentDate.toISOString(),
+            registeredByUserId: user.uid,
         };
         onSubmit(submissionData);
-    }, [onSubmit]);
+    };
 
     const handlePayeeSelection = (value: string) => {
         if (value === 'add_new') {
@@ -369,5 +378,3 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
         </>
     );
 }
-
-    
