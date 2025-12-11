@@ -28,10 +28,10 @@ export default function IncomePage() {
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
-  const { incomes: allIncomes, bankAccounts: allBankAccounts, users: allUsers } = allData;
+  const { incomes: allIncomes, bankAccounts: allBankAccounts, users } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => {
-    if (!user || !firestore || !allBankAccounts || !allUsers) return;
+    if (!user || !firestore || !allBankAccounts || !users) return;
   
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -66,7 +66,7 @@ export default function IncomePage() {
       toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
       setIsFormOpen(false);
   
-      const currentUser = allUsers.find(u => u.id === user.uid);
+      const currentUser = users.find(u => u.id === user.uid);
       const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
       const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
       
@@ -100,7 +100,7 @@ export default function IncomePage() {
           });
         }
     }
-  }, [user, firestore, allBankAccounts, allUsers, toast]);
+  }, [user, firestore, allBankAccounts, users, toast]);
 
   const handleDelete = React.useCallback(async (incomeId: string) => {
     if (!firestore || !allIncomes) return;
@@ -189,7 +189,7 @@ export default function IncomePage() {
         <IncomeList
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}
-          users={allUsers || []}
+          users={users || []}
           onDelete={handleDelete}
         />
       )}

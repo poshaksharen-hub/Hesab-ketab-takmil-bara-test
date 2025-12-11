@@ -27,10 +27,10 @@ export default function TransfersPage() {
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const { bankAccounts: allBankAccounts, users: allUsers, transfers } = allData;
+  const { bankAccounts: allBankAccounts, users, transfers } = allData;
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
-    if (!user || !firestore || !allBankAccounts || !allUsers) return;
+    if (!user || !firestore || !allBankAccounts || !users) return;
 
     if (values.fromBankAccountId === values.toBankAccountId) {
       toast({
@@ -91,7 +91,7 @@ export default function TransfersPage() {
         description: "انتقال وجه با موفقیت انجام شد.",
       });
       
-      const currentUser = allUsers.find(u => u.id === user.uid);
+      const currentUser = users.find(u => u.id === user.uid);
       const fromAccount = allBankAccounts.find(b => b.id === values.fromBankAccountId);
       const toAccount = allBankAccounts.find(b => b.id === values.toBankAccountId);
       const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[fromAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
@@ -126,7 +126,7 @@ export default function TransfersPage() {
         });
       }
     }
-  }, [user, firestore, allBankAccounts, allUsers, toast]);
+  }, [user, firestore, allBankAccounts, users, toast]);
 
   const handleDeleteTransfer = useCallback(async (transferId: string) => {
     if (!firestore || !transfers) return;
@@ -229,7 +229,7 @@ export default function TransfersPage() {
           <TransferList 
               transfers={transfers || []}
               bankAccounts={allBankAccounts || []}
-              users={allUsers || []}
+              users={users || []}
               onDelete={handleDeleteTransfer}
           />
       )}

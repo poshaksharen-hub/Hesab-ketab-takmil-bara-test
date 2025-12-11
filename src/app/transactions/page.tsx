@@ -16,6 +16,8 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
+import { errorEmitter } from '@/firebase/error-emitter';
+
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -32,11 +34,11 @@ export default function ExpensesPage() {
     bankAccounts: allBankAccounts,
     categories: allCategories,
     payees: allPayees,
-    users: allUsers,
+    users,
   } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
-    if (!user || !firestore || !allBankAccounts || !allUsers) return;
+    if (!user || !firestore || !allBankAccounts || !users) return;
     
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -84,7 +86,7 @@ export default function ExpensesPage() {
         setIsFormOpen(false);
         toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         
-        const currentUser = allUsers.find(u => u.id === user.uid);
+        const currentUser = users.find(u => u.id === user.uid);
         const category = allCategories.find(c => c.id === values.categoryId);
         const payee = allPayees.find(p => p.id === values.payeeId);
         const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
@@ -108,11 +110,12 @@ export default function ExpensesPage() {
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
-          throw new FirestorePermissionError({
+          const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/expenses',
                 operation: 'create',
                 requestResourceData: values,
             });
+          errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -121,7 +124,7 @@ export default function ExpensesPage() {
           });
         }
     }
-  }, [user, firestore, allBankAccounts, allCategories, allPayees, allUsers, toast]);
+  }, [user, firestore, allBankAccounts, allCategories, allPayees, users, toast]);
 
    const handleDelete = React.useCallback(async (expenseId: string) => {
     if (!firestore || !allExpenses) return;
@@ -149,10 +152,11 @@ export default function ExpensesPage() {
         toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ آن به حساب بازگردانده شد." });
     } catch (error: any) {
          if (error.name === 'FirebaseError') {
-             throw new FirestorePermissionError({
+            const permissionError = new FirestorePermissionError({
                 path: `family-data/shared-data/expenses/${expenseId}`,
                 operation: 'delete',
             });
+            errorEmitter.emit('permission-error', permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -213,7 +217,7 @@ export default function ExpensesPage() {
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
           payees={allPayees || []}
-          users={allUsers || []}
+          users={users || []}
           onDelete={handleDelete}
         />
       )}

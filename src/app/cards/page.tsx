@@ -32,7 +32,7 @@ export default function CardsPage() {
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
   
-  const { bankAccounts: allBankAccounts = [], users: allUsers = [] } = allData;
+  const { bankAccounts: allBankAccounts = [], users } = allData;
   const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared_account');
 
 
@@ -200,12 +200,13 @@ export default function CardsPage() {
 
       {isFormOpen && (
         <CardForm
+            isOpen={isFormOpen}
+            setIsOpen={setIsFormOpen}
             onSubmit={handleFormSubmit}
             initialData={editingCard}
             user={user}
-            users={allUsers}
+            users={users}
             hasSharedAccount={hasSharedAccount}
-            onCancel={() => setIsFormOpen(false)}
         />
       )}
 
@@ -219,7 +220,7 @@ export default function CardsPage() {
           cards={filteredBankAccounts}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          users={allUsers}
+          users={users}
         />
       )}
 
