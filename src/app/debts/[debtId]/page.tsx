@@ -50,12 +50,6 @@ const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, lab
     );
 };
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم';
-};
 
 export default function DebtDetailPage() {
   const router = useRouter();
@@ -63,7 +57,7 @@ export default function DebtDetailPage() {
   const debtId = params.debtId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { previousDebts, debtPayments, bankAccounts, payees } = allData;
+  const { previousDebts, debtPayments, bankAccounts, payees, users } = allData;
 
   const { debt, paymentHistory } = useMemo(() => {
     if (isLoading || !debtId) {
@@ -79,13 +73,14 @@ export default function DebtDetailPage() {
             const bankAccount = bankAccounts.find(b => b.id === p.bankAccountId);
             const ownerId = bankAccount?.ownerId;
             const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
+            const registeredByName = users.find(u => u.id === p.registeredByUserId)?.firstName || 'نامشخص';
             
             return {
                 ...p,
                 bankName: bankAccount?.bankName || 'نامشخص',
                 bankCardNumber: bankAccount?.cardNumber.slice(-4) || '----',
                 ownerName,
-                registeredByName: getUserName(p.registeredByUserId)
+                registeredByName
             }
         })
         .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
@@ -94,7 +89,7 @@ export default function DebtDetailPage() {
       debt: currentDebt,
       paymentHistory: relatedPayments,
     };
-  }, [isLoading, debtId, previousDebts, debtPayments, bankAccounts]);
+  }, [isLoading, debtId, previousDebts, debtPayments, bankAccounts, users]);
 
   if (isLoading) {
     return <DebtDetailSkeleton />;
@@ -133,6 +128,8 @@ export default function DebtDetailPage() {
   } else if (debt.dueDate) {
       dueDateText = formatJalaliDate(new Date(debt.dueDate));
   }
+
+  const registeredByName = allData.users.find(u => u.id === debt.registeredByUserId)?.firstName || 'نامشخص';
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -174,7 +171,7 @@ export default function DebtDetailPage() {
                     <DetailItem icon={Calendar} label="تاریخ ایجاد" value={formatJalaliDate(new Date(debt.startDate))} />
                     <DetailItem icon={Clock} label="موعد پرداخت" value={dueDateText} />
                     <DetailItem icon={BookUser} label="طرف حساب" value={getPayeeName(debt.payeeId)} />
-                    <DetailItem icon={PenSquare} label="ثبت توسط" value={getUserName(debt.registeredByUserId)} />
+                    <DetailItem icon={PenSquare} label="ثبت توسط" value={registeredByName} />
                  </div>
             </CardContent>
        </Card>
