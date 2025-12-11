@@ -41,11 +41,11 @@ export default function DebtsPage() {
     bankAccounts,
     categories,
     payees,
-    users, // Though not directly used, we get it from the hook
+    users,
   } = allData;
 
  const handleFormSubmit = useCallback(async (values: any) => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !users) {
         toast({ title: "خطا", description: "برای ثبت بدهی باید ابتدا وارد شوید.", variant: "destructive" });
         return;
     };
@@ -68,7 +68,7 @@ export default function DebtsPage() {
         setIsFormOpen(false);
 
         const payeeName = payees.find(p => p.id === values.payeeId)?.name;
-        const currentUserFirstName = user.uid === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         
         const notificationDetails: TransactionDetails = {
             type: 'debt',
@@ -102,11 +102,11 @@ export default function DebtsPage() {
             });
         }
     }
-  }, [user, firestore, toast, payees]);
+  }, [user, firestore, toast, payees, users]);
 
 
   const handlePayDebt = useCallback(async ({ debt, paymentBankAccountId, amount }: { debt: PreviousDebt, paymentBankAccountId: string, amount: number }) => {
-    if (!user || !firestore || !categories || !bankAccounts || !payees) return;
+    if (!user || !firestore || !categories || !bankAccounts || !payees || !users) return;
 
     if (amount <= 0) {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ پرداختی باید بیشتر از صفر باشد."});
@@ -186,7 +186,7 @@ export default function DebtsPage() {
 
        const payeeName = payees.find(p => p.id === debt.payeeId)?.name;
        const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
-       const currentUserFirstName = user.uid === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+       const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
        
        const notificationDetails: TransactionDetails = {
             type: 'payment',
@@ -219,7 +219,7 @@ export default function DebtsPage() {
             });
         }
     }
-  }, [user, firestore, categories, bankAccounts, toast, payees]);
+  }, [user, firestore, categories, bankAccounts, toast, payees, users]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
     if (!user || !firestore || !previousDebts) return;
@@ -288,6 +288,7 @@ export default function DebtsPage() {
                 payees={payees || []}
                 onPay={setPayingDebt}
                 onDelete={handleDeleteDebt}
+                users={users || []}
             />
             {payingDebt && (
                 <PayDebtDialog

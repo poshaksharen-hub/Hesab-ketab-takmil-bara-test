@@ -37,7 +37,7 @@ function DebtDetailSkeleton() {
   );
 }
 
-const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
+const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string | null }) => {
     if (!value) return null;
     return (
         <div className="flex items-center gap-2 text-sm">
@@ -59,13 +59,13 @@ export default function DebtDetailPage() {
   const { isLoading, allData } = useDashboardData();
   const { previousDebts, debtPayments, bankAccounts, payees, users } = allData;
 
-  const { debt, paymentHistory } = useMemo(() => {
+  const { debt, paymentHistory, registeredByName } = useMemo(() => {
     if (isLoading || !debtId) {
-      return { debt: null, paymentHistory: [] };
+      return { debt: null, paymentHistory: [], registeredByName: 'نامشخص' };
     }
 
     const currentDebt = previousDebts.find((d) => d.id === debtId);
-    if (!currentDebt) return { debt: null, paymentHistory: [] };
+    if (!currentDebt) return { debt: null, paymentHistory: [], registeredByName: 'نامشخص' };
     
     const relatedPayments = debtPayments
         .filter(p => p.debtId === debtId)
@@ -73,21 +73,24 @@ export default function DebtDetailPage() {
             const bankAccount = bankAccounts.find(b => b.id === p.bankAccountId);
             const ownerId = bankAccount?.ownerId;
             const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
-            const registeredByName = users.find(u => u.id === p.registeredByUserId)?.firstName || 'نامشخص';
+            const paymentRegisteredByName = users.find(u => u.id === p.registeredByUserId)?.firstName || 'نامشخص';
             
             return {
                 ...p,
                 bankName: bankAccount?.bankName || 'نامشخص',
                 bankCardNumber: bankAccount?.cardNumber.slice(-4) || '----',
                 ownerName,
-                registeredByName
+                registeredByName: paymentRegisteredByName,
             }
         })
         .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+    
+    const debtRegisteredBy = users.find(u => u.id === currentDebt.registeredByUserId)?.firstName || 'نامشخص';
 
     return {
       debt: currentDebt,
       paymentHistory: relatedPayments,
+      registeredByName: debtRegisteredBy,
     };
   }, [isLoading, debtId, previousDebts, debtPayments, bankAccounts, users]);
 
@@ -128,8 +131,6 @@ export default function DebtDetailPage() {
   } else if (debt.dueDate) {
       dueDateText = formatJalaliDate(new Date(debt.dueDate));
   }
-
-  const registeredByName = allData.users.find(u => u.id === debt.registeredByUserId)?.firstName || 'نامشخص';
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
