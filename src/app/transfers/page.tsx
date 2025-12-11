@@ -40,93 +40,93 @@ export default function TransfersPage() {
       });
       return;
     }
+    
+    let fromCardRef: any; // Define here to be accessible in catch block
 
-    try {
-      await runTransaction(firestore, async (transaction) => {
-        
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        const fromCardRef = doc(familyDataRef, 'bankAccounts', values.fromBankAccountId);
-        const toCardRef = doc(familyDataRef, 'bankAccounts', values.toBankAccountId);
-
-        const fromCardDoc = await transaction.get(fromCardRef);
-        const toCardDoc = await transaction.get(toCardRef);
-
-        if (!fromCardDoc.exists() || !toCardDoc.exists()) {
-          throw new Error("یک یا هر دو حساب بانکی در پایگاه داده یافت نشدند.");
-        }
-
-        const fromCardData = fromCardDoc.data() as BankAccount;
-        const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
-
-        if (availableBalance < values.amount) {
-          throw new Error("موجودی قابل استفاده حساب مبدا برای این انتقال کافی نیست.");
-        }
-
-        const fromBalanceBefore = fromCardData.balance;
-        const fromBalanceAfter = fromBalanceBefore - values.amount;
-        const toCardData = toCardDoc.data() as BankAccount;
-        const toBalanceBefore = toCardData.balance;
-        const toBalanceAfter = toBalanceBefore + values.amount;
-
-        transaction.update(fromCardRef, { balance: fromBalanceAfter });
-        transaction.update(toCardRef, { balance: toBalanceAfter });
-        
-        const newTransferRef = doc(collection(familyDataRef, 'transfers'));
-        transaction.set(newTransferRef, {
-            ...values,
-            id: newTransferRef.id,
-            registeredByUserId: user.uid,
-            transferDate: new Date().toISOString(),
-            fromAccountBalanceBefore: fromBalanceBefore,
-            fromAccountBalanceAfter: fromBalanceAfter,
-            toAccountBalanceBefore: toBalanceBefore,
-            toAccountBalanceAfter: toBalanceAfter,
-        });
-
-      });
+    runTransaction(firestore, async (transaction) => {
       
-      setIsFormOpen(false);
-      toast({
-        title: "موفقیت",
-        description: "انتقال وجه با موفقیت انجام شد.",
-      });
-      
-      const currentUser = users.find(u => u.id === user.uid);
-      const fromAccount = allBankAccounts.find(b => b.id === values.fromBankAccountId);
-      const toAccount = allBankAccounts.find(b => b.id === values.toBankAccountId);
-      const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[fromAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
-      const toAccountOwner = toAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[toAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
-      
-      const notificationDetails: TransactionDetails = {
-            type: 'transfer',
-            title: `انتقال داخلی`,
-            amount: values.amount,
-            date: new Date().toISOString(),
-            icon: 'ArrowRightLeft',
-            color: 'rgb(59 130 246)',
-            registeredBy: currentUser?.firstName || 'کاربر',
-            bankAccount: fromAccount ? { name: fromAccount.bankName, owner: fromAccountOwner || 'نامشخص' } : undefined,
-            toBankAccount: toAccount ? { name: toAccount.bankName, owner: toAccountOwner || 'نامشخص' } : undefined,
-        };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+      const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+      fromCardRef = doc(familyDataRef, 'bankAccounts', values.fromBankAccountId);
+      const toCardRef = doc(familyDataRef, 'bankAccounts', values.toBankAccountId);
 
-    } catch (error: any) {
-      if (error.name === 'FirebaseError') {
-        const permissionError = new FirestorePermissionError({
-          path: 'family-data/shared-data/transfers',
-          operation: 'create',
-          requestResourceData: values,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "خطا در انتقال وجه",
-          description: error.message || "مشکلی در انجام عملیات پیش آمد. لطفا دوباره تلاش کنید.",
-        });
+      const fromCardDoc = await transaction.get(fromCardRef);
+      const toCardDoc = await transaction.get(toCardRef);
+
+      if (!fromCardDoc.exists() || !toCardDoc.exists()) {
+        throw new Error("یک یا هر دو حساب بانکی در پایگاه داده یافت نشدند.");
       }
-    }
-  }, [user, firestore, allBankAccounts, toast]);
+
+      const fromCardData = fromCardDoc.data() as BankAccount;
+      const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
+
+      if (availableBalance < values.amount) {
+        throw new Error("موجودی قابل استفاده حساب مبدا برای این انتقال کافی نیست.");
+      }
+
+      const fromBalanceBefore = fromCardData.balance;
+      const fromBalanceAfter = fromBalanceBefore - values.amount;
+      const toCardData = toCardDoc.data() as BankAccount;
+      const toBalanceBefore = toCardData.balance;
+      const toBalanceAfter = toBalanceBefore + values.amount;
+
+      transaction.update(fromCardRef, { balance: fromBalanceAfter });
+      transaction.update(toCardRef, { balance: toBalanceAfter });
+      
+      const newTransferRef = doc(collection(familyDataRef, 'transfers'));
+      transaction.set(newTransferRef, {
+          ...values,
+          id: newTransferRef.id,
+          registeredByUserId: user.uid,
+          transferDate: new Date().toISOString(),
+          fromAccountBalanceBefore: fromBalanceBefore,
+          fromAccountBalanceAfter: fromBalanceAfter,
+          toAccountBalanceBefore: toBalanceBefore,
+          toAccountBalanceAfter: toBalanceAfter,
+      });
+
+    }).then(async () => {
+        setIsFormOpen(false);
+        toast({
+            title: "موفقیت",
+            description: "انتقال وجه با موفقیت انجام شد.",
+        });
+        
+        const currentUser = users.find(u => u.id === user.uid);
+        const fromAccount = allBankAccounts.find(b => b.id === values.fromBankAccountId);
+        const toAccount = allBankAccounts.find(b => b.id === values.toBankAccountId);
+        const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[fromAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+        const toAccountOwner = toAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[toAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+        
+        const notificationDetails: TransactionDetails = {
+              type: 'transfer',
+              title: `انتقال داخلی`,
+              amount: values.amount,
+              date: new Date().toISOString(),
+              icon: 'ArrowRightLeft',
+              color: 'rgb(59 130 246)',
+              registeredBy: currentUser?.firstName || 'کاربر',
+              bankAccount: fromAccount ? { name: fromAccount.bankName, owner: fromAccountOwner || 'نامشخص' } : undefined,
+              toBankAccount: toAccount ? { name: toAccount.bankName, owner: toAccountOwner || 'نامشخص' } : undefined,
+          };
+          await sendSystemNotification(firestore, user.uid, notificationDetails);
+    }).catch((error: any) => {
+        if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({
+                path: fromCardRef.path, // More specific path
+                operation: 'write', // runTransaction is a 'write' op
+                requestResourceData: values,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "خطا در انتقال وجه",
+                description: error.message || "مشکلی در انجام عملیات پیش آمد. لطفا دوباره تلاش کنید.",
+            });
+        }
+    });
+
+  }, [user, firestore, allBankAccounts, users, toast]);
 
   const handleDeleteTransfer = useCallback(async (transferId: string) => {
     if (!firestore || !transfers) return;
@@ -136,36 +136,34 @@ export default function TransfersPage() {
       toast({ variant: "destructive", title: "خطا", description: "تراکنش انتقال مورد نظر یافت نشد." });
       return;
     }
+    
+    const transferRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'transfers', transferId);
 
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const transferRef = doc(familyDataRef, 'transfers', transferId);
-            const fromAccountRef = doc(familyDataRef, 'bankAccounts', transferToDelete.fromBankAccountId);
-            const toAccountRef = doc(familyDataRef, 'bankAccounts', transferToDelete.toBankAccountId);
+    runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const fromAccountRef = doc(familyDataRef, 'bankAccounts', transferToDelete.fromBankAccountId);
+        const toAccountRef = doc(familyDataRef, 'bankAccounts', transferToDelete.toBankAccountId);
 
-            const fromAccountDoc = await transaction.get(fromAccountRef);
-            const toAccountDoc = await transaction.get(toAccountRef);
+        const fromAccountDoc = await transaction.get(fromAccountRef);
+        const toAccountDoc = await transaction.get(toAccountRef);
 
-            if (!fromAccountDoc.exists() || !toAccountDoc.exists()) {
-                throw new Error("یک یا هر دو حساب بانکی مرتبط با این انتقال یافت نشدند.");
-            }
+        if (!fromAccountDoc.exists() || !toAccountDoc.exists()) {
+            throw new Error("یک یا هر دو حساب بانکی مرتبط با این انتقال یافت نشدند.");
+        }
 
-            const fromAccountData = fromAccountDoc.data()!;
-            const toAccountData = toAccountDoc.data()!;
-            
-            transaction.update(fromAccountRef, { balance: fromAccountData.balance + transferToDelete.amount });
-            transaction.update(toAccountRef, { balance: toAccountData.balance - transferToDelete.amount });
+        const fromAccountData = fromAccountDoc.data()!;
+        const toAccountData = toAccountDoc.data()!;
+        
+        transaction.update(fromAccountRef, { balance: fromAccountData.balance + transferToDelete.amount });
+        transaction.update(toAccountRef, { balance: toAccountData.balance - transferToDelete.amount });
 
-            transaction.delete(transferRef);
-        });
-
-        toast({ title: "موفقیت", description: "تراکنش انتقال با موفقیت حذف و مبالغ به حساب‌ها بازگردانده شد." });
-
-    } catch (error: any) {
-       if (error.name === 'FirebaseError') {
+        transaction.delete(transferRef);
+    }).then(() => {
+         toast({ title: "موفقیت", description: "تراکنش انتقال با موفقیت حذف و مبالغ به حساب‌ها بازگردانده شد." });
+    }).catch((error: any) => {
+        if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: `family-data/shared-data/transfers/${transferId}`,
+                path: transferRef.path,
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -176,7 +174,7 @@ export default function TransfersPage() {
             description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
           });
         }
-    }
+    });
 
   }, [firestore, transfers, toast]);
 
