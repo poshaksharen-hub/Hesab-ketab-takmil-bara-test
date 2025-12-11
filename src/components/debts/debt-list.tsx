@@ -29,11 +29,11 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
 
-  const getUserName = (userId: string) => {
+  const getUserName = (userId: string): string => {
     if (!userId) return 'نامشخص';
+    if (userId === 'system') return 'سیستم';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
     if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    if (userId === 'system') return 'سیستم';
     return 'نامشخص';
   };
 
