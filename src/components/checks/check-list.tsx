@@ -40,6 +40,13 @@ interface CheckListProps {
   onEdit: (check: Check) => void;
 }
 
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'سیستم'; // Fallback for system messages or other cases
+};
+
 const CheckCard = ({ check, bankAccounts, payees, categories, users, onClear, onDelete, onEdit }: {
     check: Check;
     bankAccounts: BankAccount[];

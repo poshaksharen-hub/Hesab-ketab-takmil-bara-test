@@ -32,6 +32,13 @@ function CheckDetailSkeleton() {
   );
 }
 
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'سیستم';
+};
+
 export default function CheckDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -172,14 +179,6 @@ export default function CheckDetailPage() {
     if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
     const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     return { name: userDetail ? `${userDetail.firstName} ${userDetail.lastName}` : "نامشخص" };
-  };
-
-  const getUserName = (userId: string) => {
-    if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
   };
   
   const getExpenseForName = (expenseFor?: 'ali' | 'fatemeh' | 'shared') => {

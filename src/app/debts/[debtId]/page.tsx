@@ -50,6 +50,12 @@ const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, lab
     );
 };
 
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'سیستم';
+};
 
 export default function DebtDetailPage() {
   const router = useRouter();
@@ -67,14 +73,6 @@ export default function DebtDetailPage() {
     const currentDebt = previousDebts.find((d) => d.id === debtId);
     if (!currentDebt) return { debt: null, paymentHistory: [] };
     
-    const getUserName = (userId: string) => {
-        if (!userId) return 'نامشخص';
-        if (userId === 'system') return 'سیستم';
-        if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-        if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-        return 'نامشخص';
-    };
-
     const relatedPayments = debtPayments
         .filter(p => p.debtId === debtId)
         .map(p => {
@@ -125,13 +123,6 @@ export default function DebtDetailPage() {
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
   
-  const getUserName = (userId: string) => {
-    if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
-  };
   const getOwnerName = (ownerId: 'ali' | 'fatemeh' | 'shared') => USER_DETAILS[ownerId]?.firstName || 'مشترک';
 
   const progress = 100 - (debt.remainingAmount / debt.amount) * 100;

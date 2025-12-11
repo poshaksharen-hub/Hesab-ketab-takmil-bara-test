@@ -31,6 +31,7 @@ interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
   onDelete: (incomeId: string) => void;
+  users: UserProfile[];
 }
 
 const DetailItem = ({
@@ -56,6 +57,12 @@ const DetailItem = ({
     );
   };
 
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'سیستم';
+};
 
 export function IncomeList({
   incomes,
@@ -64,14 +71,6 @@ export function IncomeList({
 }: IncomeListProps) {
   const getBankAccount = (id: string) => {
     return bankAccounts.find((acc) => acc.id === id);
-  };
-
-  const getUserName = (userId: string) => {
-    if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
   };
   
   const getOwnerSourceText = (ownerId: 'ali' | 'fatemeh' | 'daramad_moshtarak') => {

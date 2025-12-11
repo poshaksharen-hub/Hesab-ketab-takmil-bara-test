@@ -55,6 +55,13 @@ const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, lab
     );
 };
 
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'سیستم';
+};
+
 export default function LoanDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -118,13 +125,6 @@ export default function LoanDetailPage() {
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
   
-  const getUserName = (userId: string) => {
-    if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
-  };
   const getOwnerName = (ownerId: OwnerId) => USER_DETAILS[ownerId]?.firstName || 'مشترک';
 
 
@@ -207,4 +207,3 @@ export default function LoanDetailPage() {
     </main>
   );
 }
-    

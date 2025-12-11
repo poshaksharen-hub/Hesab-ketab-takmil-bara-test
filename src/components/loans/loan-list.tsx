@@ -43,13 +43,11 @@ interface LoanListProps {
   onEdit: (loan: Loan) => void;
 }
 
-// Standardized function to get user's first name from their UID
 const getUserName = (userId: string): string => {
     if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
     if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
+    return 'سیستم';
 };
 
 

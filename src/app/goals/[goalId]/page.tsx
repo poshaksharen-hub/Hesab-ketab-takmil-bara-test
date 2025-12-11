@@ -43,6 +43,13 @@ function GoalDetailSkeleton() {
   );
 }
 
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'سیستم';
+};
+
 export default function GoalDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -58,14 +65,6 @@ export default function GoalDetailPage() {
 
     const currentGoal = goals.find((g) => g.id === goalId);
     if (!currentGoal) return { goal: null, contributionsWithDetails: [] };
-
-    const getUserName = (userId: string) => {
-        if (!userId) return 'نامشخص';
-        if (userId === 'system') return 'سیستم';
-        if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-        if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-        return 'نامشخص';
-    };
 
     const detailedContributions = (currentGoal.contributions || [])
         .map(c => {

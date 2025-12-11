@@ -39,7 +39,15 @@ interface GoalListProps {
   onAchieve: (goal: FinancialGoal) => void;
   onRevert: (goal: FinancialGoal) => void;
   onDelete: (goalId: string) => void;
+  users: UserProfile[]; // Keep for future use, not needed for getUserName now
 }
+
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'سیستم';
+};
 
 export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }: GoalListProps) {
   
@@ -69,14 +77,6 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
     const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
-  };
-
-  const getUserName = (userId: string) => {
-    if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
   };
 
 

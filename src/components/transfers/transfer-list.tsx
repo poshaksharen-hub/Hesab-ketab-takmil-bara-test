@@ -26,22 +26,20 @@ const BalanceChange = ({ label, amount, type }: { label: string, amount: number,
   </div>
 );
 
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'سیستم';
+};
 
-export function TransferList({ transfers, bankAccounts, onDelete, users }: TransferListProps) {
+export function TransferList({ transfers, bankAccounts, onDelete }: TransferListProps) {
   
   const getAccountDisplayName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
     if (!account) return { name: 'نامشخص', owner: '' };
     const ownerName = account.ownerId === 'shared_account' ? '(مشترک)' : `(${USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || 'ناشناس'})`;
     return { name: account.bankName, owner: ownerName };
-  };
-
-  const getUserName = (userId: string) => {
-    if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
   };
   
   if (transfers.length === 0) {
