@@ -8,11 +8,7 @@ import {
   collection,
   doc,
   serverTimestamp,
-  addDoc,
-  updateDoc,
   runTransaction,
-  deleteDoc,
-  setDoc,
 } from 'firebase/firestore';
 import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,59 +41,67 @@ export default function DebtsPage() {
     bankAccounts,
     categories,
     payees,
-    users,
     debtPayments,
   } = allData;
+  const users = [USER_DETAILS.ali, USER_DETAILS.fatemeh];
 
  const handleFormSubmit = useCallback(async (values: any) => {
-    if (!user || !firestore || !payees || !users) return;
+    if (!user || !firestore) {
+        toast({ title: "خطا", description: "برای ثبت بدهی باید ابتدا وارد شوید.", variant: "destructive" });
+        return;
+    };
 
-    const { dueDate, ...restOfValues } = values;
-
-    const debtData: Partial<PreviousDebt> = {
-        ...restOfValues,
+    const debtData: Omit<PreviousDebt, 'id'> = {
+        ...values,
         registeredByUserId: user.uid,
         remainingAmount: values.amount,
         paidInstallments: 0,
     };
 
-    if (!values.isInstallment && dueDate) {
-        debtData.dueDate = dueDate;
-    }
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const newDebtRef = doc(collection(familyDataRef, 'previousDebts'));
+            transaction.set(newDebtRef, { ...debtData, id: newDebtRef.id });
+        });
 
-    const newDebtRef = doc(collection(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts'));
-    setDoc(newDebtRef, { ...debtData, id: newDebtRef.id })
-        .then(async () => {
-            toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
-            setIsFormOpen(false);
+        toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
+        setIsFormOpen(false);
 
-            const payeeName = payees.find(p => p.id === values.payeeId)?.name;
-            const currentUser = users.find(u => u.id === user.uid);
-            const notificationDetails: TransactionDetails = {
-                type: 'debt',
-                title: `ثبت بدهی جدید به ${payeeName}`,
-                amount: values.amount,
-                date: debtData.startDate!,
-                icon: 'Handshake',
-                color: 'rgb(99 102 241)',
-                registeredBy: currentUser?.firstName || 'کاربر',
-                payee: payeeName,
-                properties: [
-                    { label: 'شرح', value: values.description },
-                    { label: 'نوع', value: values.isInstallment ? 'قسطی' : 'یکجا' },
-                ]
-            };
-            await sendSystemNotification(firestore, user.uid, notificationDetails);
-        })
-        .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
+        const payeeName = payees.find(p => p.id === values.payeeId)?.name;
+        const currentUser = users.find(u => u.id === user.uid);
+        const notificationDetails: TransactionDetails = {
+            type: 'debt',
+            title: `ثبت بدهی جدید به ${payeeName}`,
+            amount: values.amount,
+            date: debtData.startDate!,
+            icon: 'Handshake',
+            color: 'rgb(99 102 241)',
+            registeredBy: currentUser?.firstName || 'کاربر',
+            payee: payeeName,
+            properties: [
+                { label: 'شرح', value: values.description },
+                { label: 'نوع', value: values.isInstallment ? 'قسطی' : 'یکجا' },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
+
+    } catch (error: any) {
+        if (error.name === 'FirebaseError') {
+             const permissionError = new FirestorePermissionError({
                 path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
                 operation: 'create',
                 requestResourceData: debtData,
             });
             errorEmitter.emit('permission-error', permissionError);
-        });
-
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'خطا در ثبت بدهی',
+                description: error.message,
+            });
+        }
+    }
   }, [user, firestore, toast, payees, users]);
 
 
@@ -230,15 +234,20 @@ export default function DebtsPage() {
         return;
     }
 
-    const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
-    
-    deleteDoc(debtRef).then(() => {
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
+            transaction.delete(debtRef);
+        });
         toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
-    }).catch(error => {
-        const permissionError = new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
-        errorEmitter.emit('permission-error', permissionError);
-    });
-
+    } catch(error: any) {
+        if (error.name === 'FirebaseError') {
+            const permissionError = new FirestorePermissionError({ path: `family-data/shared-data/previousDebts/${debtId}`, operation: 'delete'});
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({ variant: "destructive", title: "خطا در حذف", description: error.message || "مشکلی در حذف بدهی پیش آمد." });
+        }
+    }
   }, [user, firestore, previousDebts, toast]);
 
   const handleAddNew = () => setIsFormOpen(true);
@@ -276,7 +285,6 @@ export default function DebtsPage() {
             <DebtList
                 debts={previousDebts || []}
                 payees={payees || []}
-                users={users || []}
                 onPay={setPayingDebt}
                 onDelete={handleDeleteDebt}
             />
