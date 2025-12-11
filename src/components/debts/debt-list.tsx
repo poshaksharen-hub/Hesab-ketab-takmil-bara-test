@@ -33,6 +33,7 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
     if (!userId) return 'نامشخص';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
     if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    if (userId === 'system') return 'سیستم';
     return 'نامشخص';
   };
 

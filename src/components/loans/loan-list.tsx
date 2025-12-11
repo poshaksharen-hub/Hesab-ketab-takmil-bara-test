@@ -60,9 +60,9 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
 
   const getUserName = (userId: string) => {
     if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
     if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    if (userId === 'system') return 'سیستم';
     return 'نامشخص';
   };
 
