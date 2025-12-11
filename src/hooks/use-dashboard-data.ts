@@ -7,7 +7,6 @@ import type {
   Income,
   Expense,
   BankAccount,
-  UserProfile,
   Category,
   Check,
   FinancialGoal,
@@ -25,7 +24,6 @@ import { USER_DETAILS } from '@/lib/constants';
 const FAMILY_DATA_DOC = 'shared-data';
 
 type AllData = {
-  users: UserProfile[];
   incomes: Income[];
   expenses: Expense[];
   bankAccounts: BankAccount[];
@@ -50,8 +48,6 @@ export function useDashboardData() {
 
     const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
 
-    // CORRECTED: User profiles should be read from the family-data subcollection to adhere to security rules.
-    const { data: usersData, isLoading: isLoadingUsers } = useCollection<UserProfile>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'users') : null), [baseDocRef]));
     const { data: bankAccountsData, isLoading: ilba } = useCollection<BankAccount>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
     const { data: incomes, isLoading: ili } = useCollection<Income>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]));
     const { data: expenses, isLoading: ile } = useCollection<Expense>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]));
@@ -65,7 +61,7 @@ export function useDashboardData() {
     const { data: previousDebts, isLoading: ilpd } = useCollection<PreviousDebt>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
     const { data: debtPayments, isLoading: ildp } = useCollection<DebtPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]));
     
-    const isLoading = isAuthLoading || isLoadingUsers || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
+    const isLoading = isAuthLoading || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
 
     const allData = useMemo<AllData>(() => {
         const rawBankAccounts = bankAccountsData || [];
@@ -83,7 +79,6 @@ export function useDashboardData() {
         }));
 
         return {
-            users: usersData || [],
             incomes: incomes || [],
             expenses: expenses || [],
             bankAccounts: processedBankAccounts,
@@ -97,7 +92,7 @@ export function useDashboardData() {
             previousDebts: previousDebts || [],
             debtPayments: debtPayments || [],
         };
-    }, [usersData, bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
+    }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
 
 
   const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {

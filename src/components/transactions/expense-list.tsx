@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -37,7 +36,6 @@ interface ExpenseListProps {
   bankAccounts: BankAccount[];
   categories: Category[];
   payees: Payee[];
-  users: UserProfile[];
   onDelete: (expenseId: string) => void;
 }
 
@@ -70,7 +68,6 @@ export function ExpenseList({
   bankAccounts,
   categories,
   payees,
-  users,
   onDelete,
 }: ExpenseListProps) {
   const getBankAccount = (id: string) => {
@@ -79,8 +76,10 @@ export function ExpenseList({
   const getCategoryName = (id: string) => categories.find(cat => cat.id === id)?.name || 'نامشخص';
   
   const getUserName = (userId: string) => {
-      const user = users.find(u => u.id === userId);
-      return user ? user.firstName : 'نامشخص';
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
   };
 
    const getPayeeName = (payeeId?: string) => {

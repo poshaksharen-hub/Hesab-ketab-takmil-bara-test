@@ -57,7 +57,7 @@ export default function DebtDetailPage() {
   const debtId = params.debtId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { previousDebts, debtPayments, bankAccounts, payees, users } = allData;
+  const { previousDebts, debtPayments, bankAccounts, payees } = allData;
 
   const { debt, paymentHistory } = useMemo(() => {
     if (isLoading || !debtId) {
@@ -66,6 +66,13 @@ export default function DebtDetailPage() {
 
     const currentDebt = previousDebts.find((d) => d.id === debtId);
     if (!currentDebt) return { debt: null, paymentHistory: [] };
+    
+    const getRegisteredByName = (userId: string) => {
+        if (!userId) return 'نامشخص';
+        if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+        if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+        return 'نامشخص';
+    };
 
     const relatedPayments = debtPayments
         .filter(p => p.debtId === debtId)
@@ -73,13 +80,13 @@ export default function DebtDetailPage() {
             const bankAccount = bankAccounts.find(b => b.id === p.bankAccountId);
             const ownerId = bankAccount?.ownerId;
             const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
-            const registeredByName = users.find(u => u.id === p.registeredByUserId)?.firstName || 'نامشخص';
+            
             return {
                 ...p,
                 bankName: bankAccount?.bankName || 'نامشخص',
                 bankCardNumber: bankAccount?.cardNumber.slice(-4) || '----',
                 ownerName,
-                registeredByName
+                registeredByName: getRegisteredByName(p.registeredByUserId)
             }
         })
         .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
@@ -88,7 +95,7 @@ export default function DebtDetailPage() {
       debt: currentDebt,
       paymentHistory: relatedPayments,
     };
-  }, [isLoading, debtId, previousDebts, debtPayments, bankAccounts, users]);
+  }, [isLoading, debtId, previousDebts, debtPayments, bankAccounts]);
 
   if (isLoading) {
     return <DebtDetailSkeleton />;
@@ -117,7 +124,12 @@ export default function DebtDetailPage() {
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
   
-  const getUserName = (userId: string) => users.find(u => u.id === userId)?.firstName || 'نامشخص';
+  const getUserName = (userId: string) => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
+  };
   const getOwnerName = (ownerId: 'ali' | 'fatemeh' | 'shared') => USER_DETAILS[ownerId]?.firstName || 'مشترک';
 
   const progress = 100 - (debt.remainingAmount / debt.amount) * 100;

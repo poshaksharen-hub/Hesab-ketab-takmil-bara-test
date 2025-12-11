@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Transfer, BankAccount, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
-import { ArrowDown, ArrowUp, ArrowRight, Banknote, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowRight, Banknote, Trash2, PenSquare } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
@@ -16,7 +15,6 @@ import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
 interface TransferListProps {
   transfers: Transfer[];
   bankAccounts: BankAccount[];
-  users: UserProfile[];
   onDelete: (transferId: string) => void;
 }
 
@@ -28,13 +26,20 @@ const BalanceChange = ({ label, amount, type }: { label: string, amount: number,
 );
 
 
-export function TransferList({ transfers, bankAccounts, users, onDelete }: TransferListProps) {
+export function TransferList({ transfers, bankAccounts, onDelete }: TransferListProps) {
   
   const getAccountDisplayName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
     if (!account) return { name: 'نامشخص', owner: '' };
     const ownerName = account.ownerId === 'shared_account' ? '(مشترک)' : `(${USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || 'ناشناس'})`;
     return { name: account.bankName, owner: ownerName };
+  };
+
+  const getUserName = (userId: string) => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
   };
   
   if (transfers.length === 0) {
@@ -117,12 +122,16 @@ export function TransferList({ transfers, bankAccounts, users, onDelete }: Trans
                         </div>
                     </div>
                 </CardContent>
-                 <CardFooter className="p-2 bg-muted/50">
+                 <CardFooter className="p-2 bg-muted/50 flex justify-between items-center">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground" title={`ثبت توسط: ${getUserName(transfer.registeredByUserId)}`}>
+                        <PenSquare className="h-3 w-3" />
+                        <span>{getUserName(transfer.registeredByUserId)}</span>
+                    </div>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                           <Button variant="ghost" className="w-full text-xs text-destructive" aria-label="حذف انتقال">
+                           <Button variant="ghost" className="h-8 text-xs text-destructive" aria-label="حذف انتقال">
                                 <Trash2 className="ml-2 h-4 w-4" />
-                                حذف تراکنش انتقال
+                                حذف تراکنش
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>

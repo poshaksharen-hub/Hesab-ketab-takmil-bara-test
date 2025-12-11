@@ -35,14 +35,13 @@ import Link from 'next/link';
 
 interface GoalListProps {
   goals: FinancialGoal[];
-  users: UserProfile[];
   onContribute: (goal: FinancialGoal) => void;
   onAchieve: (goal: FinancialGoal) => void;
   onRevert: (goal: FinancialGoal) => void;
   onDelete: (goalId: string) => void;
 }
 
-export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDelete }: GoalListProps) {
+export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }: GoalListProps) {
   
   if (goals.length === 0) {
     return (
@@ -73,8 +72,10 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
   };
 
   const getUserName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    return user ? user.firstName : 'نامشخص';
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
   };
 
 

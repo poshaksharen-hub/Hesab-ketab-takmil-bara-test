@@ -41,7 +41,7 @@ export default function CheckDetailPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { isLoading, allData } = useDashboardData();
-  const { checks, bankAccounts, payees, categories, users } = allData;
+  const { checks, bankAccounts, payees, categories } = allData;
 
   const { check } = useMemo(() => {
     if (isLoading || !checkId) {
@@ -97,7 +97,7 @@ export default function CheckDetailPage() {
         transaction.set(expenseRef, {
             id: expenseRef.id,
             ownerId: account.ownerId,
-            registeredByUserId: user.email,
+            registeredByUserId: user.uid,
             amount: checkToClear.amount,
             bankAccountId: checkToClear.bankAccountId,
             categoryId: checkToClear.categoryId,
@@ -175,8 +175,11 @@ export default function CheckDetailPage() {
   };
 
   const getRegisteredByUserName = (userId: string) => {
-    const user = users.find(u => u.email === userId);
-    return user ? user.firstName : (userId === 'system' ? 'سیستم' : 'نامشخص');
+    if (!userId) return 'نامشخص';
+    if (userId === 'system') return 'سیستم';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
   };
   
   const getExpenseForName = (expenseFor?: 'ali' | 'fatemeh' | 'shared') => {

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -31,7 +30,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
-  users: UserProfile[];
   onDelete: (incomeId: string) => void;
 }
 
@@ -62,7 +60,6 @@ const DetailItem = ({
 export function IncomeList({
   incomes,
   bankAccounts,
-  users,
   onDelete,
 }: IncomeListProps) {
   const getBankAccount = (id: string) => {
@@ -70,8 +67,10 @@ export function IncomeList({
   };
 
   const getUserName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    return user ? user.firstName : 'نامشخص';
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
   };
   
   const getOwnerSourceText = (ownerId: 'ali' | 'fatemeh' | 'daramad_moshtarak') => {

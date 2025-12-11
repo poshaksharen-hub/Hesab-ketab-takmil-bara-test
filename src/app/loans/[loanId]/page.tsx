@@ -61,7 +61,7 @@ export default function LoanDetailPage() {
   const loanId = params.loanId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { loans, loanPayments, bankAccounts, users, payees } = allData;
+  const { loans, loanPayments, bankAccounts, payees } = allData;
 
   const { loan, paymentHistory } = useMemo(() => {
     if (isLoading || !loanId) {
@@ -89,7 +89,7 @@ export default function LoanDetailPage() {
       loan: currentLoan,
       paymentHistory: relatedPayments,
     };
-  }, [isLoading, loanId, loans, loanPayments, bankAccounts, users]);
+  }, [isLoading, loanId, loans, loanPayments, bankAccounts]);
 
   if (isLoading) {
     return <LoanDetailSkeleton />;
@@ -118,7 +118,12 @@ export default function LoanDetailPage() {
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
   
-  const getUserName = (userId: string) => users.find(u => u.id === userId)?.firstName || 'نامشخص';
+  const getUserName = (userId: string) => {
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
+  };
   const getOwnerName = (ownerId: OwnerId) => USER_DETAILS[ownerId]?.firstName || 'مشترک';
 
 

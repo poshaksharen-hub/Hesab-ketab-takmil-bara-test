@@ -8,16 +8,22 @@ export const ALLOWED_USERS = [
 ];
 
 type UserDetail = {
+  id: string; // Firebase Auth UID
+  email: string;
   firstName: string;
   lastName: string;
 };
 
 export const USER_DETAILS: Record<'ali' | 'fatemeh', UserDetail> = {
   ali: {
+    id: 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2',
+    email: 'ali@khanevadati.app',
     firstName: 'علی',
     lastName: 'کاکایی',
   },
   fatemeh: {
+    id: 'rK7p9W3qZ5c1xV8fB6n4mY2wI9O1',
+    email: 'fatemeh@khanevadati.app',
     firstName: 'فاطمه',
     lastName: 'صالح',
   },

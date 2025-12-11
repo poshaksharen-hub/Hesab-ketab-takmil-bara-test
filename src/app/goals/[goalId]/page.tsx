@@ -49,7 +49,7 @@ export default function GoalDetailPage() {
   const goalId = params.goalId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { goals, bankAccounts, users } = allData;
+  const { goals, bankAccounts } = allData;
 
   const { goal, contributionsWithDetails } = useMemo(() => {
     if (isLoading || !goalId) {
@@ -59,17 +59,23 @@ export default function GoalDetailPage() {
     const currentGoal = goals.find((g) => g.id === goalId);
     if (!currentGoal) return { goal: null, contributionsWithDetails: [] };
 
+    const getRegisteredByName = (userId: string) => {
+        if (!userId) return 'نامشخص';
+        if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+        if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+        return 'نامشخص';
+    };
+
     const detailedContributions = (currentGoal.contributions || [])
         .map(c => {
             const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
             const ownerId = bankAccount?.ownerId;
             const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
-            const registeredByName = users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص';
             return {
                 ...c,
                 bankName: bankAccount?.bankName || 'نامشخص',
                 ownerName,
-                registeredByName,
+                registeredByName: getRegisteredByName(c.registeredByUserId)
             }
         })
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -78,7 +84,7 @@ export default function GoalDetailPage() {
       goal: currentGoal,
       contributionsWithDetails: detailedContributions,
     };
-  }, [isLoading, goalId, goals, bankAccounts, users]);
+  }, [isLoading, goalId, goals, bankAccounts]);
 
   if (isLoading) {
     return <GoalDetailSkeleton />;
