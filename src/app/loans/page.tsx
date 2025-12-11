@@ -74,12 +74,25 @@ export default function LoansPage() {
 
             const oldLoanData = loanDoc.data() as Loan;
             const amountDifference = loanValues.amount - oldLoanData.amount;
+            
+            // Correctly calculate the new remaining amount
             const newRemainingAmount = oldLoanData.remainingAmount + amountDifference;
             if (newRemainingAmount < 0) throw new Error('مبلغ جدید وام نمی‌تواند کمتر از مبلغ پرداخت شده باشد.');
             
+            // Handle bank account balance update if the loan was deposited initially
+            if (oldLoanData.depositToAccountId && amountDifference !== 0) {
+                const accountRef = doc(familyDataRef, 'bankAccounts', oldLoanData.depositToAccountId);
+                const accountDoc = await transaction.get(accountRef);
+                if (accountDoc.exists()) {
+                    const accountData = accountDoc.data() as BankAccount;
+                    transaction.update(accountRef, { balance: accountData.balance + amountDifference });
+                }
+            }
+
             const updateData = { 
                 ...loanValues,
-                remainingAmount: newRemainingAmount 
+                ownerId: oldLoanData.ownerId, // Ensure ownerId is preserved
+                remainingAmount: newRemainingAmount,
             };
             transaction.update(loanRef, updateData);
         }).then(() => {
@@ -113,7 +126,7 @@ export default function LoansPage() {
             
             const promises = [setDoc(newLoanRef, loanData)];
 
-            if (loanData.depositToAccountId) {
+            if (loanData.depositOnCreate && loanData.depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', loanData.depositToAccountId);
                 const bankAccountDoc = await getDoc(bankAccountRef);
                 if (!bankAccountDoc.exists()) throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
