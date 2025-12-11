@@ -41,6 +41,7 @@ export default function DebtsPage() {
     bankAccounts,
     categories,
     payees,
+    users, // Though not directly used, we get it from the hook
   } = allData;
 
  const handleFormSubmit = useCallback(async (values: any) => {

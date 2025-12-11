@@ -43,6 +43,16 @@ interface LoanListProps {
   onEdit: (loan: Loan) => void;
 }
 
+// Standardized function to get user's first name from their UID
+const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    if (userId === 'system') return 'سیستم';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
+};
+
+
 export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
@@ -57,15 +67,6 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
     const ownerName = account.ownerId === 'shared_account' ? 'حساب مشترک' : (USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || 'ناشناس');
     return { bankName: account.bankName, ownerName };
   };
-
-  const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
-  };
-
 
   if (loans.length === 0) {
     return (
@@ -110,6 +111,7 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
             const isCompleted = loan.remainingAmount <= 0;
             const depositAccountInfo = getAccountInfo(loan.depositToAccountId);
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(loan.ownerId);
+            const registeredByName = getUserName(loan.registeredByUserId);
 
             return (
              <div key={loan.id} className="relative group">
@@ -189,9 +191,9 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
                                 <Progress value={progress} className="h-2" />
                                 <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
                                     <span>{`${loan.numberOfInstallments > 0 ? (loan.numberOfInstallments - loan.paidInstallments) + ' قسط باقی‌مانده' : 'پرداخت نشده'}`}</span>
-                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(loan.registeredByUserId)}`}>
+                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${registeredByName}`}>
                                       <PenSquare className="h-3 w-3" />
-                                      <span>{getUserName(loan.registeredByUserId)}</span>
+                                      <span>{registeredByName}</span>
                                     </div>
                                     <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments || '؟'} قسط`}</span>
                                 </div>

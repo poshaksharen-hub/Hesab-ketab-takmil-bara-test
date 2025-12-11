@@ -22,19 +22,20 @@ interface DebtListProps {
   onDelete: (debtId: string) => void;
 }
 
-export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
-  
-  const getPayeeName = (payeeId?: string) => {
-    if (!payeeId) return 'نامشخص';
-    return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
-  };
-
-  const getUserName = (userId: string): string => {
+// Standardized function to get user's first name from their UID
+const getUserName = (userId: string): string => {
     if (!userId) return 'نامشخص';
     if (userId === 'system') return 'سیستم';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
     if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
     return 'نامشخص';
+};
+
+export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
+  
+  const getPayeeName = (payeeId?: string) => {
+    if (!payeeId) return 'نامشخص';
+    return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
 
   if (debts.length === 0) {
@@ -63,6 +64,7 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
             const progress = 100 - (debt.remainingAmount / debt.amount) * 100;
             const isCompleted = debt.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(debt.ownerId);
+            const registeredByName = getUserName(debt.registeredByUserId);
 
             return (
              <div key={debt.id} className="relative group">
@@ -132,9 +134,9 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
                                 <Progress value={progress} className="h-2" />
                                 <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
                                     <span>{`${Math.round(progress)}٪ پرداخت شده`}</span>
-                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(debt.registeredByUserId)}`}>
+                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${registeredByName}`}>
                                     <PenSquare className="h-3 w-3" />
-                                    <span>{getUserName(debt.registeredByUserId)}</span>
+                                    <span>{registeredByName}</span>
                                     </div>
                                 </div>
                             </div>
