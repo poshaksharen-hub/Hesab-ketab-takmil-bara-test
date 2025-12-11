@@ -33,16 +33,6 @@ import { getNextDueDate } from '@/lib/date-utils';
 import Link from 'next/link';
 import { USER_DETAILS } from '@/lib/constants';
 
-
-interface LoanListProps {
-  loans: Loan[];
-  payees: Payee[];
-  bankAccounts: BankAccount[];
-  onDelete: (loanId: string) => void;
-  onPay: (loan: Loan) => void;
-  onEdit: (loan: Loan) => void;
-}
-
 const getUserName = (userId: string): string => {
     if (!userId) return 'نامشخص';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
@@ -50,20 +40,19 @@ const getUserName = (userId: string): string => {
     return 'سیستم';
 };
 
+interface LoanListProps {
+  loans: Loan[];
+  payees: Payee[];
+  onDelete: (loanId: string) => void;
+  onPay: (loan: Loan) => void;
+  onEdit: (loan: Loan) => void;
+}
 
-export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit }: LoanListProps) {
+export function LoanList({ loans, payees, onDelete, onPay, onEdit }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
-  };
-
-  const getAccountInfo = (accountId?: string) => {
-    if (!accountId) return { bankName: 'نامشخص', ownerName: '' };
-    const account = bankAccounts.find(acc => acc.id === accountId);
-    if (!account) return { bankName: 'نامشخص', ownerName: '' };
-    const ownerName = account.ownerId === 'shared_account' ? 'حساب مشترک' : (USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || 'ناشناس');
-    return { bankName: account.bankName, ownerName };
   };
 
   if (loans.length === 0) {
@@ -107,7 +96,6 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
         {loans.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((loan) => {
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
-            const depositAccountInfo = getAccountInfo(loan.depositToAccountId);
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(loan.ownerId);
             const registeredByName = getUserName(loan.registeredByUserId);
 
@@ -126,12 +114,6 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit 
                                         {getLoanStatus(loan)}
                                         {loan.payeeId && <span className="text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
                                     </CardDescription>
-                                    {depositAccountInfo.bankName !== 'نامشخص' && (
-                                        <CardDescription className="flex items-center gap-2 text-xs text-primary pt-1">
-                                            <Landmark className="h-3 w-3" />
-                                            <span>واریز شده به: {depositAccountInfo.bankName} ({depositAccountInfo.ownerName})</span>
-                                        </CardDescription>
-                                    )}
                                 </div>
                             <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                <DropdownMenu>

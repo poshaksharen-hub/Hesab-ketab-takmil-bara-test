@@ -49,10 +49,11 @@ export default function LoansPage() {
     bankAccounts,
     categories,
     payees,
+    users,
   } = allData;
 
  const handleFormSubmit = useCallback(async (values: any) => {
-    if (!user || !firestore || !payees || !bankAccounts) {
+    if (!user || !firestore) {
         toast({
             title: 'خطای سیستمی',
             description: 'سرویس‌های مورد نیاز بارگذاری نشده‌اند. لطفا صفحه را رفرش کنید.',
@@ -105,7 +106,7 @@ export default function LoansPage() {
             const loanData: Loan = { 
                 id: newLoanRef.id,
                 ...loanValues,
-                registeredByUserId: registeredByUserId,
+                registeredByUserId: user.uid,
                 paidInstallments: 0, 
                 remainingAmount: loanValues.amount 
             };
@@ -130,10 +131,10 @@ export default function LoansPage() {
 
              const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
              const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
-             const currentUserFirstName = registeredByUserId === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+             const currentUserFirstName = user.uid === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
              
              const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
-             await sendSystemNotification(firestore, registeredByUserId, notificationDetails);
+             await sendSystemNotification(firestore, user.uid, notificationDetails);
 
         } catch (error: any) {
             if (error.name === 'FirebaseError') {
@@ -148,7 +149,7 @@ export default function LoansPage() {
             }
         }
     }
-  }, [firestore, toast, payees, bankAccounts, editingLoan, user]);
+  }, [user, firestore, editingLoan, bankAccounts, payees, toast]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
@@ -215,7 +216,7 @@ export default function LoansPage() {
              toast({ variant: "destructive", title: "خطا در پرداخت قسط", description: error.message });
         }
     });
-  }, [user, firestore, bankAccounts, categories, toast, payees]);
+  }, [user, firestore, bankAccounts, categories, payees, toast]);
 
   const handleDelete = useCallback(async (loanId: string) => {
     if (!user || !firestore || !loans) return;
@@ -288,7 +289,6 @@ export default function LoansPage() {
       
       {isLoading ? (
         <div className="space-y-4 mt-4">
-            <Skeleton className="h-10 w-full" />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Skeleton className="h-48 w-full rounded-xl" />
                 <Skeleton className="h-48 w-full rounded-xl" />
@@ -296,19 +296,20 @@ export default function LoansPage() {
         </div>
       ) : (
         <>
-            <LoanForm
-                isOpen={isFormOpen}
-                setIsOpen={setIsFormOpen}
-                onSubmit={handleFormSubmit}
-                initialData={editingLoan}
-                bankAccounts={bankAccounts || []}
-                payees={payees || []}
-                user={user}
-            />
+            {isFormOpen && (
+                <LoanForm
+                    isOpen={isFormOpen}
+                    setIsOpen={setIsFormOpen}
+                    onSubmit={handleFormSubmit}
+                    initialData={editingLoan}
+                    bankAccounts={bankAccounts || []}
+                    payees={payees || []}
+                    user={user}
+                />
+            )}
             <LoanList
                 loans={loans || []}
                 payees={payees || []}
-                bankAccounts={bankAccounts || []}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
                 onEdit={handleEdit}
