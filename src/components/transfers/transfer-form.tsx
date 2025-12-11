@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React from 'react';
@@ -151,7 +150,7 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                         ))}
                       </SelectContent>
                     </Select>
-                     {toAccount && (
+                     {toAccount && toAccountId && (
                         <p className="text-xs text-muted-foreground pt-1">
                             موجودی فعلی مقصد: {formatCurrency(toAccount.balance, 'IRT')}
                         </p>
