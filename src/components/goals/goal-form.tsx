@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -104,19 +104,21 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     onSubmit(submissionData);
   }
 
-  const sortedBankAccounts = [...bankAccounts].sort((a,b) => {
-    const getGroup = (ownerId: string) => {
-      if (ownerId === 'shared_account') return 0;
-      if (ownerId === loggedInUserOwnerId) return 1;
-      return 2;
-    }
-    const groupA = getGroup(a.ownerId);
-    const groupB = getGroup(b.ownerId);
-    if (groupA !== groupB) {
-      return groupA - groupB;
-    }
-    return b.balance - a.balance;
-  });
+  const sortedBankAccounts = useMemo(() => {
+    return [...bankAccounts].sort((a,b) => {
+      const getGroup = (ownerId: string) => {
+        if (ownerId === 'shared_account') return 0;
+        if (ownerId === loggedInUserOwnerId) return 1;
+        return 2;
+      }
+      const groupA = getGroup(a.ownerId);
+      const groupB = getGroup(b.ownerId);
+      if (groupA !== groupB) {
+        return groupA - groupB;
+      }
+      return b.balance - a.balance;
+    });
+  }, [bankAccounts, loggedInUserOwnerId]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
