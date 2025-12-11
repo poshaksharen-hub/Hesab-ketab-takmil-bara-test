@@ -32,12 +32,6 @@ function CheckDetailSkeleton() {
   );
 }
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم';
-};
 
 export default function CheckDetailPage() {
   const router = useRouter();
@@ -48,7 +42,7 @@ export default function CheckDetailPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { isLoading, allData } = useDashboardData();
-  const { checks, bankAccounts, payees, categories } = allData;
+  const { checks, bankAccounts, payees, categories, users } = allData;
 
   const { check } = useMemo(() => {
     if (isLoading || !checkId) {
@@ -187,6 +181,7 @@ export default function CheckDetailPage() {
     return USER_DETAILS[expenseFor]?.firstName || 'نامشخص';
   };
 
+  const registeredByName = users.find(u => u.id === check.registeredByUserId)?.firstName || 'نامشخص';
   const bankAccount = getBankAccount(check.bankAccountId);
   const { name: ownerName } = getOwnerDetails(bankAccount);
   const expenseForName = getExpenseForName(check.expenseFor);
@@ -298,7 +293,7 @@ export default function CheckDetailPage() {
                     <PenSquare className="w-5 h-5 text-muted-foreground" />
                     <div>
                         <p className="text-sm text-muted-foreground">ثبت توسط</p>
-                        <p className="font-semibold">{getUserName(check.registeredByUserId)}</p>
+                        <p className="font-semibold">{registeredByName}</p>
                     </div>
                 </div>
             </CardContent>

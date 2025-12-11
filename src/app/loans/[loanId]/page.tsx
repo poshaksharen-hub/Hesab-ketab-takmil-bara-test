@@ -55,12 +55,6 @@ const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, lab
     );
 };
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم';
-};
 
 export default function LoanDetailPage() {
   const router = useRouter();
@@ -68,7 +62,7 @@ export default function LoanDetailPage() {
   const loanId = params.loanId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { loans, loanPayments, bankAccounts, payees } = allData;
+  const { loans, loanPayments, bankAccounts, payees, users } = allData;
 
   const { loan, paymentHistory } = useMemo(() => {
     if (isLoading || !loanId) {
@@ -126,7 +120,7 @@ export default function LoanDetailPage() {
   };
   
   const getOwnerName = (ownerId: OwnerId) => USER_DETAILS[ownerId]?.firstName || 'مشترک';
-
+  const registeredByName = users.find(u => u.id === loan.registeredByUserId)?.firstName || 'نامشخص';
 
   const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
 
@@ -165,7 +159,7 @@ export default function LoanDetailPage() {
                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <DetailItem icon={loan.ownerId === 'shared' ? Users : User} label="وام برای" value={getOwnerName(loan.ownerId)} />
                     <DetailItem icon={Calendar} label="تاریخ دریافت" value={formatJalaliDate(new Date(loan.startDate))} />
-                    <DetailItem icon={PenSquare} label="ثبت توسط" value={getUserName(loan.registeredByUserId)} />
+                    <DetailItem icon={PenSquare} label="ثبت توسط" value={registeredByName} />
                  </div>
             </CardContent>
        </Card>
