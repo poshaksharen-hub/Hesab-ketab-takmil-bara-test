@@ -7,7 +7,7 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, PiggyBank, Calendar, Landmark, User, Users } from 'lucide-react';
+import { ArrowRight, PiggyBank, Calendar, Landmark, User, Users, PenSquare } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
@@ -136,11 +136,10 @@ export default function GoalDetailPage() {
                  <PiggyBank className="w-8 h-8 text-primary" />
                 {goal.name}
               </h1>
-              <div className="text-muted-foreground flex items-center gap-4">
+              <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1">
                   <div className="flex items-center gap-1"><OwnerIcon className="w-4 h-4" /> <span>هدف برای: {ownerName}</span></div>
-                  <span>|</span>
+                  <div className="flex items-center gap-1"><PenSquare className="w-4 h-4" /> <span>ثبت توسط: {getUserName(goal.registeredByUserId)}</span></div>
                   <div className="flex items-center gap-1"><Calendar className="w-4 h-4" /> <span>تاریخ هدف: {formatJalaliDate(new Date(goal.targetDate))}</span></div>
-                  <span>|</span>
                   <div>اولویت: {getPriorityBadge(goal.priority)}</div>
               </div>
             </div>
