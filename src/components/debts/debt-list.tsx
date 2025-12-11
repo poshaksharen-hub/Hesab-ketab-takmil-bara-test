@@ -31,8 +31,8 @@ export function DebtList({ debts, payees, users, onPay, onDelete }: DebtListProp
   };
 
   const getUserName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    return user ? user.firstName : 'نامشخص';
+    const userProfile = users.find(u => u.id === userId);
+    return userProfile ? userProfile.firstName : 'نامشخص';
   };
 
   if (debts.length === 0) {
