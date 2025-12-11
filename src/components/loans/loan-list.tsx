@@ -50,17 +50,22 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
   };
 
   const getUserName = (userId: string) => {
-      return users.find(u => u.id === userId)?.firstName || 'نامشخص';
+      const user = users.find(u => u.id === userId);
+      return user ? user.firstName : 'سیستم';
   };
+
 
   if (loans.length === 0) {
     return (
         <Card className="mt-4">
-            <CardHeader>
-                <CardTitle className="font-headline">لیست وام‌ها</CardTitle>
-            </CardHeader>
             <CardContent>
-                <p className='text-center text-muted-foreground py-8'>هیچ وامی برای نمایش وجود ندارد.</p>
+                <div className="text-center py-12">
+                    <Landmark className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-semibold">هنوز وامی ثبت نشده است</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        با کلیک بر روی دکمه "ثبت وام جدید"، اولین وام خود را ثبت کنید.
+                    </p>
+                </div>
             </CardContent>
         </Card>
     )
@@ -84,7 +89,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
     const userDetailKey = ownerId as 'ali' | 'fatemeh';
-    const userDetail = Object.values(USER_DETAILS).find(u => u.email.startsWith(userDetailKey));
+    const userDetail = users.find(u => u.email.startsWith(userDetailKey));
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };

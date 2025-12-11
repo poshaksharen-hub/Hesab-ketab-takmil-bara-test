@@ -213,7 +213,7 @@ export default function LoansPage() {
         
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
-        const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUserFirstName, payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
+        const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUserFirstName, payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.name }] };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
@@ -271,6 +271,11 @@ export default function LoansPage() {
     setEditingLoan(null);
     setIsFormOpen(true);
   };
+  
+  const handleCancelForm = () => {
+      setEditingLoan(null);
+      setIsFormOpen(false);
+  }
 
   const handleEdit = useCallback((loan: Loan) => {
     setEditingLoan(loan);
@@ -290,12 +295,14 @@ export default function LoansPage() {
             </Link>
             <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
         </div>
-        <div className="hidden md:block">
-            <Button onClick={handleAddNew}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                ثبت وام جدید
-            </Button>
-        </div>
+        {!isFormOpen && (
+            <div className="hidden md:block">
+                <Button onClick={handleAddNew}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    ثبت وام جدید
+                </Button>
+            </div>
+        )}
       </div>
       
       {isLoading ? (
@@ -305,17 +312,17 @@ export default function LoansPage() {
                 <Skeleton className="h-48 w-full rounded-xl" />
             </div>
         </div>
-      ) : (
-        <>
+      ) : isFormOpen ? (
             <LoanForm
-                isOpen={isFormOpen}
-                setIsOpen={setIsFormOpen}
+                onCancel={handleCancelForm}
                 onSubmit={handleFormSubmit}
                 initialData={editingLoan}
                 bankAccounts={bankAccounts || []}
                 payees={payees || []}
                 user={user}
             />
+      ) : (
+        <>
             <LoanList
                 loans={loans || []}
                 payees={payees || []}
@@ -336,19 +343,18 @@ export default function LoansPage() {
         </>
       )}
       
-      {/* Floating Action Button for Mobile */}
-      <div className="md:hidden fixed bottom-20 right-4 z-50">
-          <Button
-            onClick={handleAddNew}
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg"
-            aria-label="ثبت وام جدید"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-      </div>
+      {!isFormOpen && (
+        <div className="md:hidden fixed bottom-20 right-4 z-50">
+            <Button
+                onClick={handleAddNew}
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg"
+                aria-label="ثبت وام جدید"
+            >
+                <Plus className="h-6 w-6" />
+            </Button>
+        </div>
+      )}
     </div>
   );
 }
-
-    
