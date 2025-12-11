@@ -33,26 +33,24 @@ import { getNextDueDate } from '@/lib/date-utils';
 import Link from 'next/link';
 import { USER_DETAILS } from '@/lib/constants';
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم';
-};
-
 interface LoanListProps {
   loans: Loan[];
   payees: Payee[];
+  users: UserProfile[];
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
   onEdit: (loan: Loan) => void;
 }
 
-export function LoanList({ loans, payees, onDelete, onPay, onEdit }: LoanListProps) {
+export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+  };
+
+  const getUserName = (userId: string) => {
+      return users.find(u => u.id === userId)?.firstName || 'نامشخص';
   };
 
   if (loans.length === 0) {
@@ -199,3 +197,5 @@ export function LoanList({ loans, payees, onDelete, onPay, onEdit }: LoanListPro
     </div>
   );
 }
+
+    

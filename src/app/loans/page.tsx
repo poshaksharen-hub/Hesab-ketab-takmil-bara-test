@@ -53,7 +53,7 @@ export default function LoansPage() {
   } = allData;
 
  const handleFormSubmit = useCallback(async (values: any) => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !users || !bankAccounts || !payees) {
         toast({
             title: 'خطای سیستمی',
             description: 'سرویس‌های مورد نیاز بارگذاری نشده‌اند. لطفا صفحه را رفرش کنید.',
@@ -75,11 +75,9 @@ export default function LoansPage() {
             const oldLoanData = loanDoc.data() as Loan;
             const amountDifference = loanValues.amount - oldLoanData.amount;
             
-            // Correctly calculate the new remaining amount
             const newRemainingAmount = oldLoanData.remainingAmount + amountDifference;
             if (newRemainingAmount < 0) throw new Error('مبلغ جدید وام نمی‌تواند کمتر از مبلغ پرداخت شده باشد.');
             
-            // Handle bank account balance update if the loan was deposited initially
             if (oldLoanData.depositToAccountId && amountDifference !== 0) {
                 const accountRef = doc(familyDataRef, 'bankAccounts', oldLoanData.depositToAccountId);
                 const accountDoc = await transaction.get(accountRef);
@@ -91,7 +89,7 @@ export default function LoansPage() {
 
             const updateData = { 
                 ...loanValues,
-                ownerId: oldLoanData.ownerId, // Ensure ownerId is preserved
+                ownerId: oldLoanData.ownerId, 
                 remainingAmount: newRemainingAmount,
             };
             transaction.update(loanRef, updateData);
@@ -144,7 +142,7 @@ export default function LoansPage() {
 
              const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
              const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
-             const currentUserFirstName = user.uid === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+             const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
              
              const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
              await sendSystemNotification(firestore, user.uid, notificationDetails);
@@ -162,11 +160,11 @@ export default function LoansPage() {
             }
         }
     }
-  }, [user, firestore, editingLoan, bankAccounts, payees, toast]);
+  }, [user, firestore, editingLoan, bankAccounts, payees, users, toast]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
-    if (!user || !firestore || !bankAccounts || !categories || !payees) return;
+    if (!user || !firestore || !bankAccounts || !categories || !payees || !users) return;
 
     if (installmentAmount <= 0) {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ قسط باید بیشتر از صفر باشد."});
@@ -213,7 +211,7 @@ export default function LoansPage() {
         toast({ title: "موفقیت", description: "قسط با موفقیت پرداخت و به عنوان هزینه ثبت شد." });
         setPayingLoan(null);
         
-        const currentUserFirstName = user.uid === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
         const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUserFirstName, payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
@@ -229,7 +227,7 @@ export default function LoansPage() {
              toast({ variant: "destructive", title: "خطا در پرداخت قسط", description: error.message });
         }
     });
-  }, [user, firestore, bankAccounts, categories, payees, toast]);
+  }, [user, firestore, bankAccounts, categories, payees, users, toast]);
 
   const handleDelete = useCallback(async (loanId: string) => {
     if (!user || !firestore || !loans) return;
@@ -321,6 +319,7 @@ export default function LoansPage() {
             <LoanList
                 loans={loans || []}
                 payees={payees || []}
+                users={users || []}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
                 onEdit={handleEdit}
@@ -351,3 +350,5 @@ export default function LoansPage() {
     </div>
   );
 }
+
+    
