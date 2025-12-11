@@ -18,11 +18,12 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 interface DebtListProps {
   debts: PreviousDebt[];
   payees: Payee[];
+  users: UserProfile[];
   onPay: (debt: PreviousDebt) => void;
   onDelete: (debtId: string) => void;
 }
 
-export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
+export function DebtList({ debts, payees, users, onPay, onDelete }: DebtListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -31,9 +32,8 @@ export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
 
   const getUserName = (userId: string) => {
     if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
+    const user = users.find(u => u.id === userId);
+    return user ? user.firstName : 'نامشخص';
   };
 
   if (debts.length === 0) {

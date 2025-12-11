@@ -42,8 +42,8 @@ export default function DebtsPage() {
     categories,
     payees,
     debtPayments,
+    users,
   } = allData;
-  const users = [USER_DETAILS.ali, USER_DETAILS.fatemeh];
 
  const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore) {
@@ -285,6 +285,7 @@ export default function DebtsPage() {
             <DebtList
                 debts={previousDebts || []}
                 payees={payees || []}
+                users={users || []}
                 onPay={setPayingDebt}
                 onDelete={handleDeleteDebt}
             />
