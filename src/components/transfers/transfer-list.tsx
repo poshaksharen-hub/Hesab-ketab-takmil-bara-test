@@ -1,9 +1,9 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Transfer, BankAccount, UserProfile } from '@/lib/types';
+import type { Transfer, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { ArrowDown, ArrowUp, ArrowRight, Banknote, Trash2, PenSquare } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
@@ -16,7 +16,6 @@ interface TransferListProps {
   transfers: Transfer[];
   bankAccounts: BankAccount[];
   onDelete: (transferId: string) => void;
-  users: UserProfile[];
 }
 
 const BalanceChange = ({ label, amount, type }: { label: string, amount: number, type: 'before' | 'after' }) => (
@@ -26,12 +25,6 @@ const BalanceChange = ({ label, amount, type }: { label: string, amount: number,
   </div>
 );
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم';
-};
 
 export function TransferList({ transfers, bankAccounts, onDelete }: TransferListProps) {
   
@@ -41,6 +34,15 @@ export function TransferList({ transfers, bankAccounts, onDelete }: TransferList
     const ownerName = account.ownerId === 'shared_account' ? '(مشترک)' : `(${USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || 'ناشناس'})`;
     return { name: account.bankName, owner: ownerName };
   };
+
+  const getUserName = useMemo(() => {
+    return (userId: string): string => {
+        if (!userId) return 'نامشخص';
+        if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+        if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+        return 'سیستم';
+    }
+  }, []);
   
   if (transfers.length === 0) {
     return (

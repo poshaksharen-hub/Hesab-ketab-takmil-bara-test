@@ -30,7 +30,7 @@ export default function TransfersPage() {
   const { bankAccounts: allBankAccounts, users, transfers } = allData;
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
-    if (!user || !firestore || !allBankAccounts || !users) return;
+    if (!user || !firestore || !allBankAccounts) return;
 
     if (values.fromBankAccountId === values.toBankAccountId) {
       toast({
@@ -126,7 +126,7 @@ export default function TransfersPage() {
         });
       }
     }
-  }, [user, firestore, allBankAccounts, users, toast]);
+  }, [user, firestore, allBankAccounts, toast]);
 
   const handleDeleteTransfer = useCallback(async (transferId: string) => {
     if (!firestore || !transfers) return;
@@ -229,7 +229,6 @@ export default function TransfersPage() {
           <TransferList 
               transfers={transfers || []}
               bankAccounts={allBankAccounts || []}
-              users={users || []}
               onDelete={handleDeleteTransfer}
           />
       )}
