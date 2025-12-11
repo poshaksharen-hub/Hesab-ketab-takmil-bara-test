@@ -16,6 +16,7 @@ interface TransferListProps {
   transfers: Transfer[];
   bankAccounts: BankAccount[];
   onDelete: (transferId: string) => void;
+  users: UserProfile[];
 }
 
 const BalanceChange = ({ label, amount, type }: { label: string, amount: number, type: 'before' | 'after' }) => (
@@ -26,7 +27,7 @@ const BalanceChange = ({ label, amount, type }: { label: string, amount: number,
 );
 
 
-export function TransferList({ transfers, bankAccounts, onDelete }: TransferListProps) {
+export function TransferList({ transfers, bankAccounts, onDelete, users }: TransferListProps) {
   
   const getAccountDisplayName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
@@ -37,6 +38,7 @@ export function TransferList({ transfers, bankAccounts, onDelete }: TransferList
 
   const getUserName = (userId: string) => {
     if (!userId) return 'نامشخص';
+    if (userId === 'system') return 'سیستم';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
     if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
     return 'نامشخص';

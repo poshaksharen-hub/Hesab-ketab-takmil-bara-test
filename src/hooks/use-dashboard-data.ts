@@ -17,6 +17,7 @@ import type {
   ExpenseFor,
   PreviousDebt,
   DebtPayment,
+  UserProfile, // Keep UserProfile type for consistency if needed elsewhere, but it's not fetched here.
 } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 import { USER_DETAILS } from '@/lib/constants';
@@ -36,6 +37,7 @@ type AllData = {
   loanPayments: LoanPayment[];
   previousDebts: PreviousDebt[];
   debtPayments: DebtPayment[];
+  users: UserProfile[]; // Keep this for type consistency, but it will be a static list.
 };
 
 export type DashboardFilter = 'all' | 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
@@ -61,6 +63,9 @@ export function useDashboardData() {
     const { data: previousDebts, isLoading: ilpd } = useCollection<PreviousDebt>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
     const { data: debtPayments, isLoading: ildp } = useCollection<DebtPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]));
     
+    // We no longer fetch users from Firestore. We use the static constant.
+    const staticUsers: UserProfile[] = Object.values(USER_DETAILS);
+
     const isLoading = isAuthLoading || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
 
     const allData = useMemo<AllData>(() => {
@@ -91,8 +96,9 @@ export function useDashboardData() {
             loanPayments: loanPayments || [],
             previousDebts: previousDebts || [],
             debtPayments: debtPayments || [],
+            users: staticUsers, // Use the static user list
         };
-    }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments]);
+    }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments, staticUsers]);
 
 
   const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {

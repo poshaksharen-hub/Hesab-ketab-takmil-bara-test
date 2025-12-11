@@ -65,7 +65,7 @@ export default function CardTransactionsPage() {
   const cardId = params.cardId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { incomes, expenses, transfers, bankAccounts, categories } = allData;
+  const { incomes, expenses, transfers, bankAccounts, categories, users } = allData;
 
   const { card, ledger } = useMemo(() => {
     if (isLoading || !cardId) {

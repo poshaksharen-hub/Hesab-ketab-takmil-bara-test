@@ -59,8 +59,9 @@ export default function GoalDetailPage() {
     const currentGoal = goals.find((g) => g.id === goalId);
     if (!currentGoal) return { goal: null, contributionsWithDetails: [] };
 
-    const getRegisteredByName = (userId: string) => {
+    const getUserName = (userId: string) => {
         if (!userId) return 'نامشخص';
+        if (userId === 'system') return 'سیستم';
         if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
         if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
         return 'نامشخص';
@@ -75,7 +76,7 @@ export default function GoalDetailPage() {
                 ...c,
                 bankName: bankAccount?.bankName || 'نامشخص',
                 ownerName,
-                registeredByName: getRegisteredByName(c.registeredByUserId)
+                registeredByName: getUserName(c.registeredByUserId)
             }
         })
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());

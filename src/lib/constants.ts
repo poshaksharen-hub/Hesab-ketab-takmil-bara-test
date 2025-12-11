@@ -14,6 +14,8 @@ type UserDetail = {
   lastName: string;
 };
 
+// This is now the Single Source of Truth for user identity.
+// The IDs must match the Firebase Auth UIDs.
 export const USER_DETAILS: Record<'ali' | 'fatemeh', UserDetail> = {
   ali: {
     id: 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2',

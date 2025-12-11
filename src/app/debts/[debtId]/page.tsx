@@ -67,8 +67,9 @@ export default function DebtDetailPage() {
     const currentDebt = previousDebts.find((d) => d.id === debtId);
     if (!currentDebt) return { debt: null, paymentHistory: [] };
     
-    const getRegisteredByName = (userId: string) => {
+    const getUserName = (userId: string) => {
         if (!userId) return 'نامشخص';
+        if (userId === 'system') return 'سیستم';
         if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
         if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
         return 'نامشخص';
@@ -86,7 +87,7 @@ export default function DebtDetailPage() {
                 bankName: bankAccount?.bankName || 'نامشخص',
                 bankCardNumber: bankAccount?.cardNumber.slice(-4) || '----',
                 ownerName,
-                registeredByName: getRegisteredByName(p.registeredByUserId)
+                registeredByName: getUserName(p.registeredByUserId)
             }
         })
         .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
@@ -126,6 +127,7 @@ export default function DebtDetailPage() {
   
   const getUserName = (userId: string) => {
     if (!userId) return 'نامشخص';
+    if (userId === 'system') return 'سیستم';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
     if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
     return 'نامشخص';

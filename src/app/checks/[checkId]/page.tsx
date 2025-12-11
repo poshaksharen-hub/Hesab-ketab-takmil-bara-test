@@ -174,7 +174,7 @@ export default function CheckDetailPage() {
     return { name: userDetail ? `${userDetail.firstName} ${userDetail.lastName}` : "نامشخص" };
   };
 
-  const getRegisteredByUserName = (userId: string) => {
+  const getUserName = (userId: string) => {
     if (!userId) return 'نامشخص';
     if (userId === 'system') return 'سیستم';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
@@ -299,7 +299,7 @@ export default function CheckDetailPage() {
                     <PenSquare className="w-5 h-5 text-muted-foreground" />
                     <div>
                         <p className="text-sm text-muted-foreground">ثبت توسط</p>
-                        <p className="font-semibold">{getRegisteredByUserName(check.registeredByUserId)}</p>
+                        <p className="font-semibold">{getUserName(check.registeredByUserId)}</p>
                     </div>
                 </div>
             </CardContent>

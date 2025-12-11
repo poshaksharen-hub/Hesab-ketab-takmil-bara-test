@@ -37,6 +37,7 @@ interface ExpenseListProps {
   categories: Category[];
   payees: Payee[];
   onDelete: (expenseId: string) => void;
+  users: UserProfile[]; // Keep for potential future use, but logic will use constants.
 }
 
 const DetailItem = ({
@@ -77,6 +78,7 @@ export function ExpenseList({
   
   const getUserName = (userId: string) => {
     if (!userId) return 'نامشخص';
+    if (userId === 'system') return 'سیستم';
     if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
     if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
     return 'نامشخص';
