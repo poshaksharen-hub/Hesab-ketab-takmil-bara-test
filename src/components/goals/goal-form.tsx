@@ -1,5 +1,4 @@
 
-
 "use client";
 import React, { useEffect } from 'react';
 import { z } from 'zod';
@@ -186,7 +185,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                       render={({ field }) => (
                       <FormItem className="flex flex-col">
                           <FormLabel>تاریخ هدف</FormLabel>
-                          <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                          <JalaliDatePicker title="تاریخ هدف" value={field.value} onChange={field.onChange} />
                           <FormMessage />
                       </FormItem>
                       )}

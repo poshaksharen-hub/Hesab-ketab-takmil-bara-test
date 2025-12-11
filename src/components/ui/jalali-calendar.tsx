@@ -31,6 +31,7 @@ interface JalaliDatePickerProps {
   onChange: (date: Date | null) => void;
   className?: string;
   placeholder?: string;
+  title?: string;
 }
 
 const toDateObject = (date: Date | null): Day | null => {
@@ -59,7 +60,7 @@ const fromDateObject = (day: Day | null): Date | null => {
 };
 
 
-export function JalaliDatePicker({ value, onChange, className, placeholder = "یک تاریخ انتخاب کنید" }: JalaliDatePickerProps) {
+export function JalaliDatePicker({ value, onChange, className, placeholder = "یک تاریخ انتخاب کنید", title = "انتخاب تاریخ" }: JalaliDatePickerProps) {
   const [selectedDay, setSelectedDay] = useState<Day | null>(toDateObject(value));
   const [isOpen, setIsOpen] = useState(false);
   
@@ -98,7 +99,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           {value ? formatInputValue() : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+      <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center" title={title}>
          <div className="bg-background rounded-lg">
             <Calendar
                 value={selectedDay}

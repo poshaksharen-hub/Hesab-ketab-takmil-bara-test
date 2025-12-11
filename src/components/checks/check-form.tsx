@@ -268,7 +268,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                           render={({ field }) => (
                           <FormItem className="flex flex-col">
                               <FormLabel>تاریخ صدور</FormLabel>
-                              <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                              <JalaliDatePicker title="تاریخ صدور" value={field.value} onChange={field.onChange} />
                               <FormMessage />
                           </FormItem>
                           )}
@@ -279,7 +279,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                           render={({ field }) => (
                           <FormItem className="flex flex-col">
                               <FormLabel>تاریخ سررسید</FormLabel>
-                              <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                              <JalaliDatePicker title="تاریخ سررسید" value={field.value} onChange={field.onChange} />
                               <FormMessage />
                           </FormItem>
                           )}

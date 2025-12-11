@@ -47,7 +47,7 @@ const DialogContent = React.forwardRef<
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
-DialogContent.displayName = DialogPrimitive.Content.displayName;
+DialogContent.displayName = "DialogContent";
 
 
 // We are renaming Popover to Dialog to force a modal-like behavior
@@ -55,8 +55,8 @@ const Popover = Dialog;
 const PopoverTrigger = DialogTrigger;
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof DialogContent>,
-  React.ComponentPropsWithoutRef<typeof DialogContent>
->(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogContent> & { title: string }
+>(({ className, align = "center", sideOffset = 4, title, ...props }, ref) => (
     <DialogContent
         ref={ref}
         className={cn(
@@ -64,9 +64,11 @@ const PopoverContent = React.forwardRef<
             className
         )}
         {...props}
-    />
+    >
+        <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+        {props.children}
+    </DialogContent>
 ));
 PopoverContent.displayName = "PopoverContent";
 
 export { Popover, PopoverTrigger, PopoverContent };
-

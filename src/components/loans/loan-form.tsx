@@ -290,7 +290,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                                         render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel>تاریخ دریافت وام</FormLabel>
-                                            <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                                            <JalaliDatePicker title="تاریخ دریافت وام" value={field.value} onChange={field.onChange} />
                                             <FormMessage />
                                         </FormItem>
                                         )}
@@ -301,7 +301,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                                         render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel>تاریخ اولین قسط</FormLabel>
-                                            <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                                            <JalaliDatePicker title="تاریخ اولین قسط" value={field.value} onChange={field.onChange} />
                                             <FormMessage />
                                         </FormItem>
                                         )}

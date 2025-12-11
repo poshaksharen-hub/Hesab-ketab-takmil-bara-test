@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useEffect, useMemo, useCallback } from 'react';
@@ -178,7 +177,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>تاریخ</FormLabel>
-                    <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                    <JalaliDatePicker title="تاریخ درآمد" value={field.value} onChange={field.onChange} />
                     <FormMessage />
                   </FormItem>
                 )}

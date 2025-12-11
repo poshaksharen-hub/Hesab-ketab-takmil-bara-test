@@ -210,7 +210,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                           render={({ field }) => (
                           <FormItem className="flex flex-col">
                               <FormLabel>تاریخ ایجاد بدهی</FormLabel>
-                              <JalaliDatePicker value={field.value} onChange={field.onChange} />
+                              <JalaliDatePicker title="تاریخ ایجاد بدهی" value={field.value} onChange={field.onChange} />
                               <FormMessage />
                           </FormItem>
                           )}
@@ -270,7 +270,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                                   render={({ field }) => (
                                   <FormItem className="flex flex-col">
                                       <FormLabel>تاریخ اولین قسط</FormLabel>
-                                      <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
+                                      <JalaliDatePicker title="تاریخ اولین قسط" value={field.value || null} onChange={field.onChange} />
                                       <FormMessage />
                                   </FormItem>
                                   )}
@@ -284,7 +284,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                                   render={({ field }) => (
                                   <FormItem className="flex flex-col">
                                       <FormLabel>تاریخ سررسید پرداخت</FormLabel>
-                                      <JalaliDatePicker value={field.value || null} onChange={field.onChange} />
+                                      <JalaliDatePicker title="تاریخ سررسید پرداخت" value={field.value || null} onChange={field.onChange} />
                                       <FormMessage />
                                   </FormItem>
                                   )}
