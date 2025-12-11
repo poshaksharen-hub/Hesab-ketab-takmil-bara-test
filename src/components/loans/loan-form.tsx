@@ -29,7 +29,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
-import type { User } from 'firebase/auth';
+import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 const baseSchema = z.object({
@@ -67,12 +67,13 @@ interface LoanFormProps {
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
-  user: User | null;
 }
 
-export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, user }: LoanFormProps) {
+export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
+    const { user } = useUser();
     const { toast } = useToast();
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
+    const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
     
     const form = useForm<LoanFormValues>({
         resolver: zodResolver(formSchema),
@@ -80,7 +81,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
             title: '',
             payeeId: '',
             amount: 0,
-            ownerId: 'shared',
+            ownerId: loggedInUserOwnerId,
             installmentAmount: 0,
             numberOfInstallments: 0,
             startDate: new Date(),
@@ -100,32 +101,34 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     const watchLoanOwnerId = form.watch('ownerId');
     
     useEffect(() => {
-        if (initialData) {
-            form.reset({
-                ...initialData,
-                startDate: new Date(initialData.startDate),
-                firstInstallmentDate: new Date(initialData.firstInstallmentDate),
-                payeeId: initialData.payeeId || '',
-                installmentAmount: initialData.installmentAmount || 0,
-                numberOfInstallments: initialData.numberOfInstallments || 0,
-                depositOnCreate: !!initialData.depositToAccountId,
-                depositToAccountId: initialData.depositToAccountId || '',
-            });
-        } else {
-            form.reset({
-                title: '',
-                payeeId: '',
-                amount: 0,
-                ownerId: 'shared',
-                installmentAmount: 0,
-                numberOfInstallments: 0,
-                startDate: new Date(),
-                firstInstallmentDate: new Date(),
-                depositOnCreate: false,
-                depositToAccountId: '',
-            });
+        if (isOpen) {
+            if (initialData) {
+                form.reset({
+                    ...initialData,
+                    startDate: new Date(initialData.startDate),
+                    firstInstallmentDate: new Date(initialData.firstInstallmentDate),
+                    payeeId: initialData.payeeId || '',
+                    installmentAmount: initialData.installmentAmount || 0,
+                    numberOfInstallments: initialData.numberOfInstallments || 0,
+                    depositOnCreate: !!initialData.depositToAccountId,
+                    depositToAccountId: initialData.depositToAccountId || '',
+                });
+            } else {
+                form.reset({
+                    title: '',
+                    payeeId: '',
+                    amount: 0,
+                    ownerId: loggedInUserOwnerId,
+                    installmentAmount: 0,
+                    numberOfInstallments: 0,
+                    startDate: new Date(),
+                    firstInstallmentDate: new Date(),
+                    depositOnCreate: false,
+                    depositToAccountId: '',
+                });
+            }
         }
-    }, [initialData, form, isOpen]);
+    }, [initialData, form, isOpen, loggedInUserOwnerId]);
 
     const availableDepositAccounts = useMemo(() => {
         if (watchLoanOwnerId === 'shared') {
