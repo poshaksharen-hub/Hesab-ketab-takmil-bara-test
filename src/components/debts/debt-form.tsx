@@ -128,7 +128,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
               </CardTitle>
           </CardHeader>
           <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(handleFormSubmit)}>
                 <CardContent className="space-y-4">
                   <FormField
                   control={form.control}
@@ -293,10 +293,10 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                       )}
                   </div>
                 </CardContent>
-              <CardFooter className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-                  <Button type="submit">ذخیره</Button>
-              </CardFooter>
+                <CardFooter className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
+                    <Button type="submit">ذخیره</Button>
+                </CardFooter>
               </form>
           </Form>
       </Card>
