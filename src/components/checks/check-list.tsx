@@ -34,25 +34,16 @@ interface CheckListProps {
   bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
-  users: UserProfile[];
   onClear: (check: Check) => void;
   onDelete: (check: Check) => void;
   onEdit: (check: Check) => void;
 }
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم'; // Fallback for system messages or other cases
-};
-
-const CheckCard = ({ check, bankAccounts, payees, categories, users, onClear, onDelete, onEdit }: {
+const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete, onEdit }: {
     check: Check;
     bankAccounts: BankAccount[];
     payees: Payee[];
     categories: Category[];
-    users: UserProfile[];
     onClear: (check: Check) => void;
     onDelete: (check: Check) => void;
     onEdit: (check: Check) => void;
@@ -214,7 +205,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, users, onClear, on
     );
 };
 
-export function CheckList({ checks, bankAccounts, payees, categories, onClear, onDelete, onEdit, users = [] }: CheckListProps) {
+export function CheckList({ checks, bankAccounts, payees, categories, onClear, onDelete, onEdit }: CheckListProps) {
   
   if (checks.length === 0) {
     return (
@@ -238,7 +229,6 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
                 bankAccounts={bankAccounts}
                 payees={payees}
                 categories={categories}
-                users={users}
                 onClear={onClear}
                 onDelete={onDelete}
                 onEdit={onEdit}

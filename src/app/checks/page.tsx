@@ -33,7 +33,7 @@ export default function ChecksPage() {
   const { checks, bankAccounts, payees, categories, users } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'issueDate' | 'dueDate'> & {issueDate: Date, dueDate: Date}) => {
-    if (!user || !firestore || !allUsers || !bankAccounts || !payees || !categories) return;
+    if (!user || !firestore || !users || !bankAccounts || !payees || !categories) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
     const bankAccount = bankAccounts.find(acc => acc.id === values.bankAccountId);
@@ -80,7 +80,7 @@ export default function ChecksPage() {
         
         toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
 
-        const currentUser = allUsers.find(u => u.id === user.uid);
+        const currentUser = users.find(u => u.id === user.uid);
         const payee = payees.find(p => p.id === values.payeeId);
         const category = categories.find(c => c.id === values.categoryId);
         const bankAccountOwnerName = bankAccount.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName;
@@ -115,10 +115,10 @@ export default function ChecksPage() {
     }
     setIsFormOpen(false);
     setEditingCheck(null);
-  }, [user, firestore, editingCheck, toast, bankAccounts, payees, categories, allUsers]);
+  }, [user, firestore, editingCheck, toast, bankAccounts, payees, categories, users]);
 
   const handleClearCheck = React.useCallback(async (check: Check) => {
-    if (!user || !firestore || check.status === 'cleared' || !allUsers || !bankAccounts || !payees || !categories) return;
+    if (!user || !firestore || check.status === 'cleared' || !users || !bankAccounts || !payees || !categories) return;
     
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     const checkRef = doc(familyDataRef, 'checks', check.id);
@@ -180,7 +180,7 @@ export default function ChecksPage() {
       });
       toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
 
-      const currentUser = allUsers.find(u => u.id === user.uid);
+      const currentUser = users.find(u => u.id === user.uid);
       const category = categories.find(c => c.id === check.categoryId);
       const bankAccountOwnerName = account.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName;
 
@@ -215,7 +215,7 @@ export default function ChecksPage() {
             });
        }
     }
-  }, [user, firestore, bankAccounts, payees, categories, allUsers, toast]);
+  }, [user, firestore, bankAccounts, payees, categories, users, toast]);
   
   const handleDeleteCheck = React.useCallback(async (check: Check) => {
     if (!user || !firestore) return;
@@ -324,7 +324,6 @@ export default function ChecksPage() {
           bankAccounts={bankAccounts || []}
           payees={payees || []}
           categories={categories || []}
-          users={users || []}
           onClear={handleClearCheck}
           onDelete={handleDeleteCheck}
           onEdit={handleEdit}
