@@ -29,8 +29,8 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
-import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import type { User as AuthUser } from 'firebase/auth';
 
 const baseSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
@@ -67,13 +67,12 @@ interface LoanFormProps {
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
+  user: AuthUser | null;
 }
 
-export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees }: LoanFormProps) {
-    const { user } = useUser();
+export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, user }: LoanFormProps) {
     const { toast } = useToast();
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
-    const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
     
     const form = useForm<LoanFormValues>({
         resolver: zodResolver(formSchema),
@@ -81,7 +80,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
             title: '',
             payeeId: '',
             amount: 0,
-            ownerId: loggedInUserOwnerId,
+            ownerId: 'shared',
             installmentAmount: 0,
             numberOfInstallments: 0,
             startDate: new Date(),
@@ -102,6 +101,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
     
     useEffect(() => {
         if (isOpen) {
+            const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
             if (initialData) {
                 form.reset({
                     ...initialData,
@@ -128,7 +128,7 @@ export function LoanForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                 });
             }
         }
-    }, [initialData, form, isOpen, loggedInUserOwnerId]);
+    }, [initialData, form, isOpen, user]);
 
     const availableDepositAccounts = useMemo(() => {
         if (watchLoanOwnerId === 'shared') {

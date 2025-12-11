@@ -309,17 +309,15 @@ export default function LoansPage() {
         </div>
       ) : (
         <>
-            {isFormOpen && (
-                <LoanForm
-                    isOpen={isFormOpen}
-                    setIsOpen={setIsFormOpen}
-                    onSubmit={handleFormSubmit}
-                    initialData={editingLoan}
-                    bankAccounts={bankAccounts || []}
-                    payees={payees || []}
-                    user={user}
-                />
-            )}
+            <LoanForm
+                isOpen={isFormOpen}
+                setIsOpen={setIsFormOpen}
+                onSubmit={handleFormSubmit}
+                initialData={editingLoan}
+                bankAccounts={bankAccounts || []}
+                payees={payees || []}
+                user={user}
+            />
             <LoanList
                 loans={loans || []}
                 payees={payees || []}
