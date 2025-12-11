@@ -83,7 +83,8 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
 
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
+    const userDetailKey = ownerId as 'ali' | 'fatemeh';
+    const userDetail = Object.values(USER_DETAILS).find(u => u.email.startsWith(userDetailKey));
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };
@@ -197,5 +198,3 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
     </div>
   );
 }
-
-    

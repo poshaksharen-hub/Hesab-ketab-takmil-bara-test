@@ -73,14 +73,14 @@ export default function DebtDetailPage() {
             const bankAccount = bankAccounts.find(b => b.id === p.bankAccountId);
             const ownerId = bankAccount?.ownerId;
             const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
-            const paymentRegisteredByName = users.find(u => u.id === p.registeredByUserId)?.firstName || 'نامشخص';
+            const paymentRegisteredBy = users.find(u => u.id === p.registeredByUserId)?.firstName || 'نامشخص';
             
             return {
                 ...p,
                 bankName: bankAccount?.bankName || 'نامشخص',
                 bankCardNumber: bankAccount?.cardNumber.slice(-4) || '----',
                 ownerName,
-                registeredByName: paymentRegisteredByName,
+                registeredByName: paymentRegisteredBy,
             }
         })
         .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
@@ -121,7 +121,11 @@ export default function DebtDetailPage() {
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
   
-  const getOwnerName = (ownerId: 'ali' | 'fatemeh' | 'shared') => USER_DETAILS[ownerId]?.firstName || 'مشترک';
+  const getOwnerName = (ownerId: 'ali' | 'fatemeh' | 'shared') => {
+      if (ownerId === 'shared') return 'مشترک';
+      const userDetail = Object.values(USER_DETAILS).find(u => u.email.startsWith(ownerId));
+      return userDetail?.firstName || 'نامشخص';
+  };
 
   const progress = 100 - (debt.remainingAmount / debt.amount) * 100;
   

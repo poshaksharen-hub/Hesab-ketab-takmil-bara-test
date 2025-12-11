@@ -39,18 +39,17 @@ interface GoalListProps {
   onAchieve: (goal: FinancialGoal) => void;
   onRevert: (goal: FinancialGoal) => void;
   onDelete: (goalId: string) => void;
-  users: UserProfile[]; // Keep for future use, not needed for getUserName now
+  users: UserProfile[];
 }
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم';
-};
-
-export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }: GoalListProps) {
+export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, users }: GoalListProps) {
   
+  const getUserName = (userId: string): string => {
+    if (!userId) return 'نامشخص';
+    const user = users.find(u => u.id === userId);
+    return user?.firstName || 'سیستم';
+  };
+
   if (goals.length === 0) {
     return (
         <Card>
@@ -74,7 +73,8 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
 
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
+    const userDetailKey = ownerId as 'ali' | 'fatemeh';
+    const userDetail = USER_DETAILS[userDetailKey];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };
@@ -86,6 +86,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
             const progress = (goal.targetAmount > 0) ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
             const isAchieved = goal.isAchieved;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(goal.ownerId);
+            const registeredByName = getUserName(goal.registeredByUserId);
 
             return (
             <div key={goal.id} className="relative group">
@@ -168,9 +169,9 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete }:
                                 <Progress value={progress} className="h-2" />
                                 <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
                                     <span>{Math.round(progress)}٪ تکمیل شده</span>
-                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${getUserName(goal.registeredByUserId)}`}>
+                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${registeredByName}`}>
                                     <PenSquare className="h-3 w-3" />
-                                    <span>{getUserName(goal.registeredByUserId)}</span>
+                                    <span>{registeredByName}</span>
                                     </div>
                                     <span>تا: {formatJalaliDate(new Date(goal.targetDate))}</span>
                                 </div>

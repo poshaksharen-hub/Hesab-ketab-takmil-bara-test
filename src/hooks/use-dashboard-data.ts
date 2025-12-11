@@ -17,7 +17,7 @@ import type {
   ExpenseFor,
   PreviousDebt,
   DebtPayment,
-  UserProfile, // Keep UserProfile type for consistency if needed elsewhere, but it's not fetched here.
+  UserProfile,
 } from '@/lib/types';
 import type { DateRange } from 'react-day-picker';
 import { USER_DETAILS } from '@/lib/constants';
@@ -37,7 +37,7 @@ type AllData = {
   loanPayments: LoanPayment[];
   previousDebts: PreviousDebt[];
   debtPayments: DebtPayment[];
-  users: UserProfile[]; // Keep this for type consistency, but it will be a static list.
+  users: UserProfile[];
 };
 
 export type DashboardFilter = 'all' | 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';
@@ -63,16 +63,14 @@ export function useDashboardData() {
     const { data: previousDebts, isLoading: ilpd } = useCollection<PreviousDebt>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
     const { data: debtPayments, isLoading: ildp } = useCollection<DebtPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]));
     
-    // We no longer fetch users from Firestore. We use the static constant.
-    const staticUsers: UserProfile[] = Object.values(USER_DETAILS);
+    const { data: usersData, isLoading: ilu } = useCollection<UserProfile>(useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]));
 
-    const isLoading = isAuthLoading || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
+    const isLoading = isAuthLoading || ilu || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
 
     const allData = useMemo<AllData>(() => {
         const rawBankAccounts = bankAccountsData || [];
         const activeGoals = (goals || []).filter(g => !g.isAchieved);
         
-        // Calculate blocked balances for each account
         const blockedBalances = activeGoals.flatMap(g => g.contributions).reduce((acc, contribution) => {
             acc[contribution.bankAccountId] = (acc[contribution.bankAccountId] || 0) + contribution.amount;
             return acc;
@@ -96,9 +94,9 @@ export function useDashboardData() {
             loanPayments: loanPayments || [],
             previousDebts: previousDebts || [],
             debtPayments: debtPayments || [],
-            users: staticUsers, // Use the static user list
+            users: usersData || [],
         };
-    }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments, staticUsers]);
+    }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments, usersData]);
 
 
   const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {
