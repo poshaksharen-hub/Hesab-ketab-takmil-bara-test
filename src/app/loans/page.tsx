@@ -49,11 +49,10 @@ export default function LoansPage() {
     bankAccounts,
     categories,
     payees,
-    users,
   } = allData;
 
  const handleFormSubmit = useCallback(async (values: any) => {
-    if (!firestore || !users || !payees || !bankAccounts) {
+    if (!user || !firestore || !payees || !bankAccounts) {
         toast({
             title: 'خطای سیستمی',
             description: 'سرویس‌های مورد نیاز بارگذاری نشده‌اند. لطفا صفحه را رفرش کنید.',
@@ -100,7 +99,7 @@ export default function LoansPage() {
         });
     } else {
         // --- CREATE LOGIC ---
-        runTransaction(firestore, async (transaction) => {
+        try {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const newLoanRef = doc(collection(familyDataRef, 'loans'));
             const loanData: Loan = { 
@@ -111,29 +110,32 @@ export default function LoansPage() {
                 remainingAmount: loanValues.amount 
             };
             
+            const promises = [setDoc(newLoanRef, loanData)];
+
             if (loanData.depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', loanData.depositToAccountId);
-                const bankAccountDoc = await transaction.get(bankAccountRef);
+                const bankAccountDoc = await getDoc(bankAccountRef);
                 if (!bankAccountDoc.exists()) throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
                 
                 const bankAccountData = bankAccountDoc.data() as BankAccount;
                 const balanceAfter = bankAccountData.balance + loanData.amount;
-                transaction.update(bankAccountRef, { balance: balanceAfter });
+                promises.push(updateDoc(bankAccountRef, { balance: balanceAfter }));
             }
             
-            transaction.set(newLoanRef, loanData);
-        }).then(async () => {
+            await Promise.all(promises);
+
             toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
             setIsFormOpen(false);
             setEditingLoan(null);
 
              const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
              const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
-             const currentUser = users.find(u => u.id === registeredByUserId);
-             const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUser?.firstName || 'کاربر', payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
+             const currentUserFirstName = registeredByUserId === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+             
+             const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
              await sendSystemNotification(firestore, registeredByUserId, notificationDetails);
 
-        }).catch((error: any) => {
+        } catch (error: any) {
             if (error.name === 'FirebaseError') {
                  const permissionError = new FirestorePermissionError({
                     path: `family-data/${FAMILY_DATA_DOC}/loans`,
@@ -144,13 +146,13 @@ export default function LoansPage() {
             } else {
                 toast({ variant: 'destructive', title: `خطا در ثبت وام`, description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.' });
             }
-        });
+        }
     }
-  }, [firestore, toast, payees, bankAccounts, users, editingLoan]);
+  }, [firestore, toast, payees, bankAccounts, editingLoan, user]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
-    if (!user || !firestore || !bankAccounts || !categories || !users || !payees) return;
+    if (!user || !firestore || !bankAccounts || !categories || !payees) return;
 
     if (installmentAmount <= 0) {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ قسط باید بیشتر از صفر باشد."});
@@ -196,10 +198,10 @@ export default function LoansPage() {
     }).then(async () => {
         toast({ title: "موفقیت", description: "قسط با موفقیت پرداخت و به عنوان هزینه ثبت شد." });
         setPayingLoan(null);
-
+        
+        const currentUserFirstName = user.uid === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
         const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
-        const currentUser = users.find(u => u.id === user.uid);
-        const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUser?.firstName || 'کاربر', payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
+        const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUserFirstName, payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
@@ -213,7 +215,7 @@ export default function LoansPage() {
              toast({ variant: "destructive", title: "خطا در پرداخت قسط", description: error.message });
         }
     });
-  }, [user, firestore, bankAccounts, categories, toast, users, payees]);
+  }, [user, firestore, bankAccounts, categories, toast, payees]);
 
   const handleDelete = useCallback(async (loanId: string) => {
     if (!user || !firestore || !loans) return;
@@ -307,7 +309,6 @@ export default function LoansPage() {
                 loans={loans || []}
                 payees={payees || []}
                 bankAccounts={bankAccounts || []}
-                users={users || []}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
                 onEdit={handleEdit}

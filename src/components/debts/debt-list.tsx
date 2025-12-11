@@ -5,7 +5,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, History, PenSquare } from 'lucide-react';
-import type { PreviousDebt, Payee, OwnerId, UserProfile } from '@/lib/types';
+import type { PreviousDebt, Payee, OwnerId } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '../ui/badge';
@@ -18,12 +18,11 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 interface DebtListProps {
   debts: PreviousDebt[];
   payees: Payee[];
-  users: UserProfile[];
   onPay: (debt: PreviousDebt) => void;
   onDelete: (debtId: string) => void;
 }
 
-export function DebtList({ debts, payees, users, onPay, onDelete }: DebtListProps) {
+export function DebtList({ debts, payees, onPay, onDelete }: DebtListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -32,8 +31,9 @@ export function DebtList({ debts, payees, users, onPay, onDelete }: DebtListProp
 
   const getUserName = (userId: string) => {
     if (!userId) return 'نامشخص';
-    const user = users.find(u => u.id === userId);
-    return user ? user.firstName : 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
   };
 
   if (debts.length === 0) {

@@ -41,8 +41,6 @@ export default function DebtsPage() {
     bankAccounts,
     categories,
     payees,
-    debtPayments,
-    users,
   } = allData;
 
  const handleFormSubmit = useCallback(async (values: any) => {
@@ -69,7 +67,8 @@ export default function DebtsPage() {
         setIsFormOpen(false);
 
         const payeeName = payees.find(p => p.id === values.payeeId)?.name;
-        const currentUser = users.find(u => u.id === user.uid);
+        const currentUserFirstName = user.uid === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+        
         const notificationDetails: TransactionDetails = {
             type: 'debt',
             title: `ثبت بدهی جدید به ${payeeName}`,
@@ -77,7 +76,7 @@ export default function DebtsPage() {
             date: debtData.startDate!,
             icon: 'Handshake',
             color: 'rgb(99 102 241)',
-            registeredBy: currentUser?.firstName || 'کاربر',
+            registeredBy: currentUserFirstName,
             payee: payeeName,
             properties: [
                 { label: 'شرح', value: values.description },
@@ -102,11 +101,11 @@ export default function DebtsPage() {
             });
         }
     }
-  }, [user, firestore, toast, payees, users]);
+  }, [user, firestore, toast, payees]);
 
 
   const handlePayDebt = useCallback(async ({ debt, paymentBankAccountId, amount }: { debt: PreviousDebt, paymentBankAccountId: string, amount: number }) => {
-    if (!user || !firestore || !categories || !bankAccounts || !users) return;
+    if (!user || !firestore || !categories || !bankAccounts || !payees) return;
 
     if (amount <= 0) {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ پرداختی باید بیشتر از صفر باشد."});
@@ -186,7 +185,8 @@ export default function DebtsPage() {
 
        const payeeName = payees.find(p => p.id === debt.payeeId)?.name;
        const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
-       const currentUser = users.find(u => u.id === user.uid);
+       const currentUserFirstName = user.uid === USER_DETAILS.ali.id ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+       
        const notificationDetails: TransactionDetails = {
             type: 'payment',
             title: `پرداخت بدهی به ${payeeName}`,
@@ -194,7 +194,7 @@ export default function DebtsPage() {
             date: new Date().toISOString(),
             icon: 'CheckCircle',
             color: 'rgb(22 163 74)',
-            registeredBy: currentUser?.firstName || 'کاربر',
+            registeredBy: currentUserFirstName,
             payee: payeeName,
             properties: [
                 { label: 'شرح', value: debt.description },
@@ -218,7 +218,7 @@ export default function DebtsPage() {
             });
         }
     }
-  }, [user, firestore, categories, bankAccounts, toast, payees, users]);
+  }, [user, firestore, categories, bankAccounts, toast, payees]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
     if (!user || !firestore || !previousDebts) return;
@@ -285,7 +285,6 @@ export default function DebtsPage() {
             <DebtList
                 debts={previousDebts || []}
                 payees={payees || []}
-                users={users || []}
                 onPay={setPayingDebt}
                 onDelete={handleDeleteDebt}
             />

@@ -38,13 +38,12 @@ interface LoanListProps {
   loans: Loan[];
   payees: Payee[];
   bankAccounts: BankAccount[];
-  users: UserProfile[];
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
   onEdit: (loan: Loan) => void;
 }
 
-export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit, users }: LoanListProps) {
+export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -60,8 +59,10 @@ export function LoanList({ loans, payees, bankAccounts, onDelete, onPay, onEdit,
   };
 
   const getUserName = (userId: string) => {
-    const userProfile = users.find(u => u.id === userId);
-    return userProfile ? userProfile.firstName : 'نامشخص';
+    if (!userId) return 'نامشخص';
+    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
+    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
+    return 'نامشخص';
   };
 
 
