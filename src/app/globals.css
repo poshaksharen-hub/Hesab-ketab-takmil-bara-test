@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -24,10 +24,13 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 263 70% 50%;
     --radius: 0.5rem;
-    /* Custom variables */
-    --sidebar: 240 5% 96%;
-    --sidebar-foreground: 240 6% 10%;
-    --sidebar-muted: 240 5% 90%;
+    
+    /* Custom variables for charts */
+    --chart-1: 263 70% 50%; /* Primary */
+    --chart-2: 160 60% 45%; /* Green */
+    --chart-3: 30 80% 55%; /* Orange */
+    --chart-4: 280 65% 60%; /* Purple */
+    --chart-5: 0 70% 60%; /* Red */
   }
 
   .dark {
@@ -50,10 +53,13 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 263 70% 50%;
-    /* Custom variables */
-    --sidebar: 240 4% 14%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-muted: 240 4% 20%;
+
+    /* Custom variables for charts */
+    --chart-1: 263 70% 55%; /* Primary */
+    --chart-2: 150 60% 50%; /* Green */
+    --chart-3: 35 80% 60%; /* Orange */
+    --chart-4: 280 70% 65%; /* Purple */
+    --chart-5: 0 75% 65%; /* Red */
   }
 }
 
@@ -62,10 +68,11 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-secondary text-foreground;
   }
   
   .font-headline {
-    font-family: "Alegreya", serif;
+    font-family: "Vazirmatn", serif;
+    font-weight: 700;
   }
 }

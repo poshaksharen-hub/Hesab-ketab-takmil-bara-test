@@ -118,9 +118,9 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
   onLinkClick?: () => void;
   unreadCount: number;
 }) => {
-    const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-    const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
-    const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
+    const userDetail = Object.values(USER_DETAILS).find(u => u.email === user?.email);
+    const userAvatar = getPlaceholderImage(`${user?.email?.startsWith('ali') ? 'ali' : 'fatemeh'}-avatar`);
+    const userName = userDetail?.firstName || 'کاربر';
 
     return (
         <div className="flex h-full flex-col">
@@ -202,9 +202,9 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isUserLoading, user, pathname, router]);
 
-  const userShortName = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-  const userAvatar = getPlaceholderImage(`${userShortName}-avatar`);
-  const userName = USER_DETAILS[userShortName]?.firstName || 'کاربر';
+  const userDetail = Object.values(USER_DETAILS).find(u => u.email === user?.email);
+  const userAvatar = getPlaceholderImage(`${user?.email?.startsWith('ali') ? 'ali' : 'fatemeh'}-avatar`);
+  const userName = userDetail?.firstName || 'کاربر';
   
   if (isUserLoading && pathname !== '/login') {
     return (
@@ -305,7 +305,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
                       <span className="sr-only">باز کردن منو</span>
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[18rem] bg-sidebar p-0 text-sidebar-foreground">
+                <SheetContent side="right" className="w-[18rem] bg-card p-0 text-card-foreground">
                     <MobileMenuContent 
                       user={user} 
                       theme={theme} 

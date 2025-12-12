@@ -27,7 +27,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, ArrowLeft, FolderKanban, BookUser, Target } from 'lucide-react';
+import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, ArrowLeft, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
 import type { DashboardFilter } from '@/hooks/use-dashboard-data';
 import { useToast } from '@/hooks/use-toast';
@@ -75,26 +75,33 @@ function DashboardSkeleton() {
 const quickAccessItems = [
     { href: '/income', label: 'درآمدها', icon: TrendingUp, color: 'text-emerald-500' },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown, color: 'text-red-500' },
-    { href: '/checks', label: 'چک‌ها', icon: BookCopy, color: 'text-blue-500' },
+    { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft, color: 'text-blue-500' },
+    { href: '/cards', label: 'کارت‌ها', icon: CreditCard, color: 'text-sky-500' },
+    { href: '/checks', label: 'چک‌ها', icon: BookCopy, color: 'text-amber-500' },
     { href: '/loans', label: 'وام‌ها', icon: Landmark, color: 'text-violet-500' },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake, color: 'text-indigo-500' },
+    { href: '/goals', label: 'اهداف', icon: Target, color: 'text-teal-500' },
     { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban, color: 'text-orange-500' },
     { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser, color: 'text-pink-500' },
-    { href: '/goals', label: 'اهداف مالی', icon: Target, color: 'text-teal-500' },
+    { href: '/chat', label: 'گفتگو', icon: MessageSquare, color: 'text-cyan-500' },
+    { href: '/due-dates', label: 'سررسیدها', icon: Bell, color: 'text-rose-500' },
 ];
 
 function QuickAccess() {
     return (
         <Card>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 pt-6">
+            <CardHeader>
+                <CardTitle className='font-headline text-lg'>دسترسی سریع</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 pt-0">
                 {quickAccessItems.map(item => (
                     <Link key={item.href} href={item.href} className="group">
-                        <Card className="hover:bg-accent hover:shadow-lg transition-all duration-200 h-full">
-                            <CardContent className="flex flex-col items-center justify-center p-4 h-full text-center aspect-square">
-                                <item.icon className={cn("h-8 w-8 mb-2 transition-transform group-hover:scale-110", item.color)} />
-                                <span className="text-sm font-semibold">{item.label}</span>
-                            </CardContent>
-                        </Card>
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent hover:shadow-sm transition-all duration-200 h-full">
+                           <div className={`flex items-center justify-center h-10 w-10 rounded-full bg-opacity-10 bg-gradient-to-br ${item.color.replace('text-', 'from-').replace('-500', '-200')} ${item.color.replace('text-', 'to-').replace('-500', '-300')}`}>
+                             <item.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", item.color)} />
+                           </div>
+                           <span className="text-sm font-semibold">{item.label}</span>
+                        </div>
                     </Link>
                 ))}
             </CardContent>
@@ -237,6 +244,7 @@ export default function DashboardPage() {
                         transactions={details.transactions} 
                         categories={allData.categories} 
                         bankAccounts={allData.bankAccounts}
+                        users={allData.users}
                     />
                 </CardContent>
             </Card>

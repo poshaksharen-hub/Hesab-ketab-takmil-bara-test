@@ -16,9 +16,10 @@ type RecentTransactionsProps = {
   transactions: (Income | Expense)[];
   categories: Category[];
   bankAccounts: BankAccount[];
+  users: UserProfile[];
 };
 
-export function RecentTransactions({ transactions, categories, bankAccounts }: RecentTransactionsProps) {
+export function RecentTransactions({ transactions, categories, bankAccounts, users }: RecentTransactionsProps) {
     
   if (!transactions || transactions.length === 0) {
     return (
@@ -36,13 +37,8 @@ export function RecentTransactions({ transactions, categories, bankAccounts }: R
 
   const getUserName = (userId: string) => {
     if (!userId) return 'نامشخص';
-    if (userId === 'system') return 'سیستم';
-    if (userId.includes(USER_DETAILS.ali.email)) return USER_DETAILS.ali.firstName;
-    if (userId.includes(USER_DETAILS.fatemeh.email)) return USER_DETAILS.fatemeh.firstName;
-    // Fallback for older UIDs if they exist
-    if (userId.includes('ali')) return USER_DETAILS.ali.firstName;
-    if (userId.includes('fatemeh')) return USER_DETAILS.fatemeh.firstName;
-    return 'نامشخص';
+    const user = users.find(u => u.id === userId);
+    return user ? user.firstName : 'سیستم';
   };
 
 

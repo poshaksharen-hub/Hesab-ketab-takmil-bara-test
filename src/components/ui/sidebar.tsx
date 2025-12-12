@@ -8,12 +8,12 @@ import { cn } from '@/lib/utils';
 
 const sidebarStyles = tv({
   slots: {
-    base: 'flex flex-col bg-sidebar text-sidebar-foreground data-[collapsed=true]:w-14 w-64 transition-all duration-300 ease-in-out',
+    base: 'flex flex-col bg-card text-card-foreground data-[collapsed=true]:w-14 w-64 transition-all duration-300 ease-in-out',
     header: 'p-4 border-b border-border',
     content: 'flex-1 overflow-y-auto',
     menu: 'flex flex-col gap-1 p-2',
     menuItem: 'flex items-center',
-    menuButton: 'group flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-sidebar-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
+    menuButton: 'group flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
     menuButtonIcon: 'size-5',
     menuButtonTooltip: 'invisible absolute left-full ml-2 -translate-y-1/2 rounded-md bg-popover px-2 py-1 text-sm font-medium text-popover-foreground shadow-md group-hover:visible',
     footer: 'p-4 border-t border-border mt-auto',
@@ -111,7 +111,7 @@ export const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenu
     return (
       <button
         ref={ref}
-        className={cn(menuButton(), isActive && 'bg-sidebar-muted', className)}
+        className={cn(menuButton(), isActive && 'bg-muted', className)}
         {...props}
       >
         {children}
