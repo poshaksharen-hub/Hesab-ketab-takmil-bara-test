@@ -32,10 +32,13 @@ export default function IncomePage() {
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
+    
+    let transactionRef: any; // To hold the reference for error reporting
   
-    try {
-      await runTransaction(firestore, async (transaction) => {
+    runTransaction(firestore, async (transaction) => {
         const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        transactionRef = familyDataRef; // General ref for transaction
+        
         const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
         if (!account) throw new Error("کارت بانکی یافت نشد");
   
@@ -53,6 +56,8 @@ export default function IncomePage() {
         transaction.update(targetCardRef, { balance: balanceAfter });
 
         const newIncomeRef = doc(collection(familyDataRef, 'incomes'));
+        transactionRef = newIncomeRef; // More specific ref
+        
         const newIncomeData = {
             ...values,
             id: newIncomeRef.id,
@@ -61,34 +66,34 @@ export default function IncomePage() {
             balanceAfter: balanceAfter,
         };
         transaction.set(newIncomeRef, newIncomeData);
-      });
+      })
+      .then(async () => {
+          toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
+          setIsFormOpen(false);
       
-      toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
-      setIsFormOpen(false);
-  
-      const currentUser = users.find(u => u.id === user.uid);
-      const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-      const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
-      
-      const notificationDetails: TransactionDetails = {
-          type: 'income',
-          title: `ثبت درآمد جدید: ${values.description}`,
-          amount: values.amount,
-          date: values.date,
-          icon: 'TrendingUp',
-          color: 'rgb(34 197 94)',
-          registeredBy: currentUser?.firstName || 'کاربر',
-          payee: values.source,
-          category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
-          bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
-      };
-      await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-    } catch (error: any) {
+          const currentUser = users.find(u => u.id === user.uid);
+          const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
+          const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+          
+          const notificationDetails: TransactionDetails = {
+              type: 'income',
+              title: `ثبت درآمد جدید: ${values.description}`,
+              amount: values.amount,
+              date: values.date,
+              icon: 'TrendingUp',
+              color: 'rgb(34 197 94)',
+              registeredBy: currentUser?.firstName || 'کاربر',
+              payee: values.source,
+              category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
+              bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
+          };
+          await sendSystemNotification(firestore, user.uid, notificationDetails);
+      })
+      .catch((error: any) => {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: 'family-data/shared-data/incomes',
-                operation: 'create',
+                path: transactionRef.path,
+                operation: 'write',
                 requestResourceData: values,
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -99,7 +104,7 @@ export default function IncomePage() {
             description: error.message || "مشکلی در ثبت اطلاعات پیش آمد. لطفا دوباره تلاش کنید.",
           });
         }
-    }
+      });
   }, [user, firestore, allBankAccounts, users, toast]);
 
   const handleDelete = React.useCallback(async (incomeId: string) => {
@@ -110,26 +115,28 @@ export default function IncomePage() {
         toast({ variant: "destructive", title: "خطا", description: "تراکنش درآمد مورد نظر یافت نشد." });
         return;
     }
+    
+    const incomeRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'incomes', incomeId);
 
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const incomeRef = doc(familyDataRef, 'incomes', incomeId);
-            const accountRef = doc(familyDataRef, 'bankAccounts', incomeToDelete.bankAccountId);
+    runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const accountRef = doc(familyDataRef, 'bankAccounts', incomeToDelete.bankAccountId);
 
-            const accountDoc = await transaction.get(accountRef);
-            if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این درآمد یافت نشد.");
+        const accountDoc = await transaction.get(accountRef);
+        if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این درآمد یافت نشد.");
 
-            const accountData = accountDoc.data()!;
-            transaction.update(accountRef, { balance: accountData.balance - incomeToDelete.amount });
+        const accountData = accountDoc.data()!;
+        transaction.update(accountRef, { balance: accountData.balance - incomeToDelete.amount });
 
-            transaction.delete(incomeRef);
-        });
+        transaction.delete(incomeRef);
+    })
+    .then(() => {
         toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ آن از حساب کسر شد." });
-    } catch (error: any) {
+    })
+    .catch((error: any) => {
          if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
-                path: `family-data/shared-data/incomes/${incomeId}`,
+            const permissionError = new FirestorePermissionError({
+                path: incomeRef.path,
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -140,7 +147,7 @@ export default function IncomePage() {
             description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
           });
         }
-    }
+    });
   }, [firestore, allIncomes, toast]);
 
   const handleAddNew = React.useCallback(() => {

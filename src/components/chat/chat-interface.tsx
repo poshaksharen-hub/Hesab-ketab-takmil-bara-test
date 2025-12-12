@@ -18,6 +18,7 @@ import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -79,18 +80,16 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
         senderName: replyingToMessage.senderName,
       };
     }
-
-    try {
-      const newDocRef = await addDoc(messagesCollectionRef, {
-        ...newMessage,
-        timestamp: serverTimestamp(),
-      });
-      // This is the bug fix part. It ensures the message 'id' field is populated.
-      await updateDoc(newDocRef, { id: newDocRef.id });
-      setReplyingToMessage(null);
-    } catch (error) {
-      console.error("Error sending message:", error);
+    
+    const dataToSend = {
+      ...newMessage,
+      timestamp: serverTimestamp(),
     }
+
+    addDocumentNonBlocking(messagesCollectionRef, dataToSend, (id) => {
+        updateDoc(doc(messagesCollectionRef, id), { id });
+        setReplyingToMessage(null);
+    });
   };
 
   return (

@@ -43,21 +43,10 @@ export default function CardsPage() {
   
     if (editingCard) {
       // --- Edit ---
-      const cardRef = doc(collectionRef, editingCard.id);
       const { initialBalance, ...updateData } = values as any;
-  
-      updateDoc(cardRef, updateData)
-        .then(() => {
-            toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
-        })
-        .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: cardRef.path,
-                operation: 'update',
-                requestResourceData: updateData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
+      updateDocumentNonBlocking(doc(collectionRef, editingCard.id), updateData, () => {
+        toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
+      });
 
     } else {
         // --- Create ---
@@ -66,21 +55,10 @@ export default function CardsPage() {
             balance: values.initialBalance,
         };
         
-        addDoc(collectionRef, newCard)
-            .then((docRef) => {
-              if (docRef) {
-                updateDoc(docRef, { id: docRef.id });
-                toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
-              }
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: collectionRef.path,
-                    operation: 'create',
-                    requestResourceData: newCard,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            });
+        addDocumentNonBlocking(collectionRef, newCard, (id) => {
+            updateDoc(doc(collectionRef, id), { id });
+            toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
+        });
     }
     setIsFormOpen(false);
     setEditingCard(null);
