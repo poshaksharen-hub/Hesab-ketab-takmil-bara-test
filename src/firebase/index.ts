@@ -6,6 +6,8 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -26,8 +28,22 @@ export function initializeFirebase() {
       }
       firebaseApp = initializeApp(firebaseConfig);
     }
+    
+    // Pass the initialized app to get the SDKs
+    const sdks = getSdks(firebaseApp);
+    
+    // Initialize App Check
+    if (typeof window !== 'undefined') {
+       // This is the debug token from your App Check settings
+      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = 'B61C64B6-960D-41BA-9360-D3F94322063F';
 
-    return getSdks(firebaseApp);
+      initializeAppCheck(firebaseApp, {
+        provider: new ReCaptchaV3Provider('6LdrqP4pAAAAAOVBv43G40wSCl2aFce_2uI1sS3n'), // Replace with your reCAPTCHA v3 site key
+        isTokenAutoRefreshEnabled: true
+      });
+    }
+    
+    return sdks;
   }
 
   // If already initialized, return the SDKs with the already initialized App
