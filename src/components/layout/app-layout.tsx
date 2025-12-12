@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, FirebaseClientProvider } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
@@ -179,8 +179,7 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
     );
 };
 
-
-export function AppLayout({ children }: { children: React.ReactNode }) {
+const AppContent = ({ children }: { children: React.ReactNode }) => {
   useTransactionNotifier(); // Call the notifier hook
   const pathname = usePathname();
   const router = useRouter();
@@ -341,4 +340,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     </SidebarProvider>
   );
+}
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <FirebaseClientProvider>
+      <AppContent>{children}</AppContent>
+    </FirebaseClientProvider>
+  )
 }
