@@ -10,6 +10,9 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
+
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -57,8 +60,6 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
-    // If the query is null or undefined, it means we are waiting for dependencies (e.g., user auth).
-    // We should not be in a loading state, and should clear any previous data.
     if (!memoizedTargetRefOrQuery) {
       setIsLoading(false);
       setData(null);
@@ -66,7 +67,6 @@ export function useCollection<T = any>(
       return;
     }
 
-    // We have a valid query, so we are officially in a loading state.
     setIsLoading(true);
 
     const unsubscribe = onSnapshot(
@@ -78,20 +78,25 @@ export function useCollection<T = any>(
         }
         setData(results);
         setError(null);
-        setIsLoading(false); // Loading is complete.
+        setIsLoading(false);
       },
       (err: FirestoreError) => {
-        console.error("Firestore error in useCollection:", err);
-        // This is critical for debugging permission errors.
+        // Create a contextual error and emit it globally
+        const permissionError = new FirestorePermissionError({
+            path: (memoizedTargetRefOrQuery as InternalQuery)._query.path.canonicalString(),
+            operation: 'list', // 'list' is for collection queries
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
+        // Also set local error state for component-level handling if needed
         setError(err);
         setData(null);
-        setIsLoading(false); // Loading is complete (with an error).
+        setIsLoading(false);
       }
     );
 
-    // Cleanup function to unsubscribe from the snapshot listener when the component unmounts or the query changes.
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]); // The ONLY dependency should be the query itself. The parent component is responsible for changing the query.
+  }, [memoizedTargetRefOrQuery]);
   
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error('useCollection query must be memoized with useMemoFirebase');

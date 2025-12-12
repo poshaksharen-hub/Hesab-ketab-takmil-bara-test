@@ -39,50 +39,45 @@ export default function ExpensesPage() {
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            
-            const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
-            if (!account) throw new Error("کارت بانکی یافت نشد");
-            
-            const fromCardRef = doc(familyDataRef, 'bankAccounts', account.id);
-            const fromCardDoc = await transaction.get(fromCardRef);
-
-            if (!fromCardDoc.exists()) {
-                throw new Error("کارت بانکی مورد نظر یافت نشد.");
-            }
-            const fromCardData = fromCardDoc.data() as BankAccount;
-            const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
-            
-            if (availableBalance < values.amount) {
-                throw new Error("موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست.");
-            }
-            
-            const balanceBefore = fromCardData.balance;
-            const balanceAfter = balanceBefore - values.amount;
-            
-            transaction.update(fromCardRef, { balance: balanceAfter });
-
-            const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
-            
-            const newExpenseData: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId'> = {
-                ...values,
-                ownerId: account.ownerId,
-                registeredByUserId: user.uid,
-                balanceBefore,
-                balanceAfter,
-            };
-
-            transaction.set(newExpenseRef, {
-                ...newExpenseData,
-                id: newExpenseRef.id,
-                type: 'expense',
-                createdAt: serverTimestamp(),
-            });
-        });
+    runTransaction(firestore, async (transaction) => {
+        const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
+        if (!account) throw new Error("کارت بانکی یافت نشد");
         
+        const fromCardRef = doc(familyDataRef, 'bankAccounts', account.id);
+        const fromCardDoc = await transaction.get(fromCardRef);
+
+        if (!fromCardDoc.exists()) {
+            throw new Error("کارت بانکی مورد نظر یافت نشد.");
+        }
+        const fromCardData = fromCardDoc.data() as BankAccount;
+        const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
+        
+        if (availableBalance < values.amount) {
+            throw new Error("موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست.");
+        }
+        
+        const balanceBefore = fromCardData.balance;
+        const balanceAfter = balanceBefore - values.amount;
+        
+        transaction.update(fromCardRef, { balance: balanceAfter });
+
+        const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
+        
+        const newExpenseData = {
+            ...values,
+            ownerId: account.ownerId,
+            registeredByUserId: user.uid,
+            balanceBefore,
+            balanceAfter,
+            id: newExpenseRef.id,
+            type: 'expense' as const,
+            createdAt: serverTimestamp(),
+        };
+
+        transaction.set(newExpenseRef, newExpenseData);
+    }).then(async () => {
         setIsFormOpen(false);
         toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         
@@ -106,9 +101,7 @@ export default function ExpensesPage() {
             expenseFor: USER_DETAILS[values.expenseFor]?.firstName || 'مشترک',
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-
-    } catch (error: any) {
+    }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
           const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/expenses',
@@ -123,7 +116,7 @@ export default function ExpensesPage() {
             description: error.message || "مشکلی در ثبت هزینه پیش آمد.",
           });
         }
-    }
+    });
   }, [user, firestore, allBankAccounts, allCategories, allPayees, users, toast]);
 
    const handleDelete = React.useCallback(async (expenseId: string) => {
@@ -134,26 +127,25 @@ export default function ExpensesPage() {
         toast({ variant: "destructive", title: "خطا", description: "تراکنش هزینه مورد نظر یافت نشد." });
         return;
     }
+    const expenseRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'expenses', expenseId);
 
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const expenseRef = doc(familyDataRef, 'expenses', expenseId);
-            const accountRef = doc(familyDataRef, 'bankAccounts', expenseToDelete.bankAccountId);
+    runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const accountRef = doc(familyDataRef, 'bankAccounts', expenseToDelete.bankAccountId);
 
-            const accountDoc = await transaction.get(accountRef);
-            if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این هزینه یافت نشد.");
+        const accountDoc = await transaction.get(accountRef);
+        if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این هزینه یافت نشد.");
 
-            const accountData = accountDoc.data()!;
-            transaction.update(accountRef, { balance: accountData.balance + expenseToDelete.amount });
+        const accountData = accountDoc.data()!;
+        transaction.update(accountRef, { balance: accountData.balance + expenseToDelete.amount });
 
-            transaction.delete(expenseRef);
-        });
+        transaction.delete(expenseRef);
+    }).then(() => {
         toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ آن به حساب بازگردانده شد." });
-    } catch (error: any) {
+    }).catch((error: any) => {
          if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: `family-data/shared-data/expenses/${expenseId}`,
+                path: expenseRef.path,
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -164,7 +156,7 @@ export default function ExpensesPage() {
             description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
           });
         }
-    }
+    });
   }, [firestore, allExpenses, toast]);
 
   

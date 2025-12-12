@@ -56,14 +56,12 @@ export default function DebtsPage() {
         remainingAmount: values.amount,
         paidInstallments: 0,
     };
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const newDebtRef = doc(collection(familyDataRef, 'previousDebts'));
-            transaction.set(newDebtRef, { ...debtData, id: newDebtRef.id });
-        });
-
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+    const newDebtRef = doc(collection(familyDataRef, 'previousDebts'));
+    
+    runTransaction(firestore, async (transaction) => {
+        transaction.set(newDebtRef, { ...debtData, id: newDebtRef.id });
+    }).then(async () => {
         toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
         setIsFormOpen(false);
 
@@ -85,11 +83,10 @@ export default function DebtsPage() {
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-    } catch (error: any) {
+    }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
-                path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
+                path: newDebtRef.path,
                 operation: 'create',
                 requestResourceData: debtData,
             });
@@ -101,7 +98,7 @@ export default function DebtsPage() {
                 description: error.message,
             });
         }
-    }
+    });
   }, [user, firestore, toast, payees, users]);
 
 
@@ -112,11 +109,10 @@ export default function DebtsPage() {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ پرداختی باید بیشتر از صفر باشد."});
         return;
     }
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+    const debtRef = doc(familyDataRef, 'previousDebts', debt.id);
 
-    try {
-      await runTransaction(firestore, async (transaction) => {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        const debtRef = doc(familyDataRef, 'previousDebts', debt.id);
+    runTransaction(firestore, async (transaction) => {
         const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
         
         const debtDoc = await transaction.get(debtRef);
@@ -180,7 +176,7 @@ export default function DebtsPage() {
             balanceBefore: balanceBefore,
             balanceAfter: balanceAfter,
         });
-      });
+    }).then(async () => {
       toast({ title: "موفقیت", description: "پرداخت با موفقیت ثبت و به عنوان هزینه در سیستم منظور شد." });
       setPayingDebt(null);
 
@@ -203,11 +199,10 @@ export default function DebtsPage() {
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-    } catch (error: any) {
+    }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
-                path: `family-data/shared-data/previousDebts/${debt.id}`,
+                path: debtRef.path,
                 operation: 'write'
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -218,7 +213,7 @@ export default function DebtsPage() {
                 description: error.message,
             });
         }
-    }
+    });
   }, [user, firestore, categories, bankAccounts, toast, payees, users]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
@@ -235,20 +230,19 @@ export default function DebtsPage() {
         return;
     }
 
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
-            transaction.delete(debtRef);
-        });
+    const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
+    runTransaction(firestore, async (transaction) => {
+        transaction.delete(debtRef);
+    }).then(() => {
         toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
-    } catch(error: any) {
+    }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({ path: `family-data/shared-data/previousDebts/${debtId}`, operation: 'delete'});
+            const permissionError = new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
             errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({ variant: "destructive", title: "خطا در حذف", description: error.message || "مشکلی در حذف بدهی پیش آمد." });
         }
-    }
+    });
   }, [user, firestore, previousDebts, toast]);
 
   const handleAddNew = () => setIsFormOpen(true);
