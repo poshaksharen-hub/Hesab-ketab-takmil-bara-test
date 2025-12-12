@@ -73,18 +73,18 @@ function DashboardSkeleton() {
 }
 
 const quickAccessItems = [
+    { href: '/chat', label: 'گفتگو', icon: MessageSquare, color: 'text-cyan-500' },
+    { href: '/due-dates', label: 'سررسیدها', icon: Bell, color: 'text-rose-500' },
     { href: '/income', label: 'درآمدها', icon: TrendingUp, color: 'text-emerald-500' },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown, color: 'text-red-500' },
-    { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft, color: 'text-blue-500' },
     { href: '/cards', label: 'کارت‌ها', icon: CreditCard, color: 'text-sky-500' },
+    { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft, color: 'text-blue-500' },
+    { href: '/goals', label: 'اهداف', icon: Target, color: 'text-teal-500' },
+    { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser, color: 'text-pink-500' },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy, color: 'text-amber-500' },
     { href: '/loans', label: 'وام‌ها', icon: Landmark, color: 'text-violet-500' },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake, color: 'text-indigo-500' },
-    { href: '/goals', label: 'اهداف', icon: Target, color: 'text-teal-500' },
     { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban, color: 'text-orange-500' },
-    { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser, color: 'text-pink-500' },
-    { href: '/chat', label: 'گفتگو', icon: MessageSquare, color: 'text-cyan-500' },
-    { href: '/due-dates', label: 'سررسیدها', icon: Bell, color: 'text-rose-500' },
 ];
 
 function QuickAccess() {

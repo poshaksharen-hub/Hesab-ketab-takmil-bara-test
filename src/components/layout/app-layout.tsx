@@ -76,14 +76,14 @@ function Menu({ onLinkClick, unreadCount }: { onLinkClick?: () => void; unreadCo
     { href: '/due-dates', label: 'سررسیدها', icon: Bell },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },
-    { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft },
     { href: '/cards', label: 'کارت‌های بانکی', icon: CreditCard },
-    { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban },
+    { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft },
+    { href: '/goals', label: 'اهداف مالی', icon: Target },
     { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy },
     { href: '/loans', label: 'وام‌ها', icon: Landmark },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake },
-    { href: '/goals', label: 'اهداف مالی', icon: Target },
+    { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban },
   ];
 
   return (
@@ -118,7 +118,7 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
   onLinkClick?: () => void;
   unreadCount: number;
 }) => {
-    const userDetail = Object.values(USER_DETAILS).find(u => u.email === user?.email);
+    const userDetail = user ? USER_DETAILS[user.email?.startsWith('ali') ? 'ali' : 'fatemeh'] : null;
     const userAvatar = getPlaceholderImage(`${user?.email?.startsWith('ali') ? 'ali' : 'fatemeh'}-avatar`);
     const userName = userDetail?.firstName || 'کاربر';
 
@@ -202,7 +202,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isUserLoading, user, pathname, router]);
 
-  const userDetail = Object.values(USER_DETAILS).find(u => u.email === user?.email);
+  const userDetail = user ? USER_DETAILS[user.email?.startsWith('ali') ? 'ali' : 'fatemeh'] : null;
   const userAvatar = getPlaceholderImage(`${user?.email?.startsWith('ali') ? 'ali' : 'fatemeh'}-avatar`);
   const userName = userDetail?.firstName || 'کاربر';
   
@@ -223,7 +223,7 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <SidebarProvider>
-      <Sidebar side="right">
+      <Sidebar side="right" className="bg-card">
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <HesabKetabLogo className="size-8 text-primary" />
