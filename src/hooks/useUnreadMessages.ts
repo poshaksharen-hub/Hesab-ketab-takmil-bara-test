@@ -32,7 +32,7 @@ export function useUnreadMessages() {
     // Filter messages that weren't sent by the current user AND
     // where the 'readBy' field either doesn't exist or doesn't include the user's UID.
     return allMessages.filter(msg => 
-        msg.senderId !== user.uid && 
+        msg.senderId !== user.uid && msg.senderId !== 'system' &&
         (!msg.readBy || !msg.readBy.includes(user.uid))
     ).length;
   }, [allMessages, user]);

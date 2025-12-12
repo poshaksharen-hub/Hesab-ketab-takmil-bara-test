@@ -63,9 +63,26 @@ export function useDashboardData() {
     const { data: previousDebts, isLoading: ilpd } = useCollection<PreviousDebt>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
     const { data: debtPayments, isLoading: ildp } = useCollection<DebtPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]));
     
-    const { data: usersData, isLoading: ilu } = useCollection<UserProfile>(useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]));
-
-    const isLoading = isAuthLoading || ilu || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
+    const isLoading = isAuthLoading || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp;
+    
+    // Statically create users from constants instead of fetching from Firestore to avoid permission issues.
+    // This is safe and efficient as this app is designed for a fixed set of users.
+    const users = useMemo<UserProfile[]>(() => {
+        return [
+            {
+                id: USER_DETAILS.ali.email, // Using email as a stable key before UID is available
+                email: USER_DETAILS.ali.email,
+                firstName: USER_DETAILS.ali.firstName,
+                lastName: USER_DETAILS.ali.lastName,
+            },
+            {
+                id: USER_DETAILS.fatemeh.email,
+                email: USER_DETAILS.fatemeh.email,
+                firstName: USER_DETAILS.fatemeh.firstName,
+                lastName: USER_DETAILS.fatemeh.lastName,
+            }
+        ];
+    }, []);
 
     const allData = useMemo<AllData>(() => {
         const rawBankAccounts = bankAccountsData || [];
@@ -94,9 +111,9 @@ export function useDashboardData() {
             loanPayments: loanPayments || [],
             previousDebts: previousDebts || [],
             debtPayments: debtPayments || [],
-            users: usersData || [],
+            users: users, // Use the static user list
         };
-    }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments, usersData]);
+    }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments, users]);
 
 
   const getFilteredData = (ownerFilter: DashboardFilter, dateRange?: DateRange) => {
