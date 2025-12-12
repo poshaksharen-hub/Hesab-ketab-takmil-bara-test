@@ -28,22 +28,22 @@ export const useTransactionNotifier = () => {
   const now = useMemoFirebase(() => Timestamp.now(), []);
 
   const incomesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, `family-data/${FAMILY_DATA_DOC}/incomes`),
       where('createdAt', '>', now),
       orderBy('createdAt', 'desc')
     );
-  }, [firestore, now]);
+  }, [firestore, now, user]);
 
   const expensesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, `family-data/${FAMILY_DATA_DOC}/expenses`),
       where('createdAt', '>', now),
       orderBy('createdAt', 'desc')
     );
-  }, [firestore, now]);
+  }, [firestore, now, user]);
 
   const { data: newIncomes } = useCollection<Income>(incomesQuery);
   const { data: newExpenses } = useCollection<Expense>(expensesQuery);
@@ -51,12 +51,12 @@ export const useTransactionNotifier = () => {
   const prevIncomes = usePrevious(newIncomes);
   const prevExpenses = usePrevious(newExpenses);
 
-  const getUserFirstName = (email: string | undefined) => {
-      if (!email) return 'نامشخص';
-      if (email.includes(USER_DETAILS.ali.email)) return USER_DETAILS.ali.firstName;
-      if (email.includes(USER_DETAILS.fatemeh.email)) return USER_DETAILS.fatemeh.firstName;
-      return 'سیستم';
-  }
+  const getUserFirstName = (userId: string) => {
+    // Since we only have two users, this is a safe and efficient way.
+    // In a larger app, you might fetch user profiles.
+    const userProfile = Object.values(USER_DETAILS).find(u => u.email.startsWith(userId.split('@')[0]));
+    return userProfile?.firstName || 'کاربر';
+  };
 
   useEffect(() => {
     if (!user || !newIncomes || !prevIncomes) return;
@@ -64,7 +64,7 @@ export const useTransactionNotifier = () => {
     const newlyAdded = newIncomes.filter(i => !prevIncomes.some(pi => pi.id === i.id));
 
     newlyAdded.forEach(income => {
-      if (income.registeredByUserId !== user.email) {
+      if (income.registeredByUserId !== user.uid) {
         const registeredBy = getUserFirstName(income.registeredByUserId);
         toast({
           title: `💸 درآمد جدید توسط ${registeredBy}`,
@@ -80,7 +80,7 @@ export const useTransactionNotifier = () => {
     const newlyAdded = newExpenses.filter(e => !prevExpenses.some(pe => pe.id === e.id));
 
     newlyAdded.forEach(expense => {
-      if (expense.registeredByUserId !== user.email) {
+      if (expense.registeredByUserId !== user.uid) {
         const registeredBy = getUserFirstName(expense.registeredByUserId);
         toast({
           title: `💳 هزینه جدید توسط ${registeredBy}`,
@@ -90,6 +90,6 @@ export const useTransactionNotifier = () => {
     });
   }, [newExpenses, prevExpenses, user, toast]);
 
+
   return null; // This hook doesn't render anything
 };
-

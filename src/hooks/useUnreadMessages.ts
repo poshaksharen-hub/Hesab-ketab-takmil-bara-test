@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { ChatMessage } from '@/lib/types';
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -16,14 +16,17 @@ export function useUnreadMessages() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const messagesCollectionRef = useMemoFirebase(() => {
+  const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !user) {
       return null;
     }
-    return collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`);
+    // This query fetches all messages. The filtering logic is done on the client.
+    // For very large chat histories, a more optimized query would be needed,
+    // but for a family app, this is acceptable and simpler.
+    return query(collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`));
   }, [firestore, user]);
 
-  const { data: allMessages, isLoading: isLoadingMessages } = useCollection<ChatMessage>(messagesCollectionRef);
+  const { data: allMessages, isLoading: isLoadingMessages } = useCollection<ChatMessage>(messagesQuery);
 
   const unreadCount = useMemo(() => {
     if (!allMessages || !user) {
