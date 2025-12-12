@@ -137,6 +137,7 @@ export type Loan = {
     firstInstallmentDate: string;
     numberOfInstallments: number;
     paidInstallments: number;
+    depositOnCreate: boolean;
     depositToAccountId?: string;
 }
 

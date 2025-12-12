@@ -116,7 +116,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 title: '',
                 payeeId: '',
                 amount: 0,
-                ownerId: loggedInUserOwnerId,
+                ownerId: loggedInUserOwnerId as 'ali' | 'fatemeh' | 'shared',
                 installmentAmount: 0,
                 numberOfInstallments: 0,
                 startDate: new Date(),

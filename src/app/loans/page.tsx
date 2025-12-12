@@ -13,7 +13,8 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
-  setDoc
+  setDoc,
+  writeBatch
 } from 'firebase/firestore';
 import type { Loan, BankAccount, Category, TransactionDetails, LoanPayment, Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -63,12 +64,13 @@ export default function LoansPage() {
     }
 
     const { registeredByUserId, ...loanValues } = values;
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+
 
     if (editingLoan) {
         // --- EDIT LOGIC ---
+        const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
         runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
             const loanDoc = await transaction.get(loanRef);
             if (!loanDoc.exists()) throw new Error('این وام برای ویرایش یافت نشد.');
 
@@ -78,6 +80,7 @@ export default function LoansPage() {
             const newRemainingAmount = oldLoanData.remainingAmount + amountDifference;
             if (newRemainingAmount < 0) throw new Error('مبلغ جدید وام نمی‌تواند کمتر از مبلغ پرداخت شده باشد.');
             
+            // Adjust balance if the loan was initially deposited to an account
             if (oldLoanData.depositToAccountId && amountDifference !== 0) {
                 const accountRef = doc(familyDataRef, 'bankAccounts', oldLoanData.depositToAccountId);
                 const accountDoc = await transaction.get(accountRef);
@@ -86,10 +89,9 @@ export default function LoansPage() {
                     transaction.update(accountRef, { balance: accountData.balance + amountDifference });
                 }
             }
-
+            
             const updateData = { 
                 ...loanValues,
-                ownerId: oldLoanData.ownerId, 
                 remainingAmount: newRemainingAmount,
             };
             transaction.update(loanRef, updateData);
@@ -100,7 +102,7 @@ export default function LoansPage() {
         }).catch((error: any) => {
             if (error.name === 'FirebaseError') {
                  const permissionError = new FirestorePermissionError({
-                    path: `family-data/${FAMILY_DATA_DOC}/loans/${editingLoan.id}`,
+                    path: loanRef.path,
                     operation: 'update',
                     requestResourceData: loanValues,
                 });
@@ -111,34 +113,30 @@ export default function LoansPage() {
         });
     } else {
         // --- CREATE LOGIC ---
-        try {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            const newLoanRef = doc(collection(familyDataRef, 'loans'));
-            const loanData: Loan = { 
-                id: newLoanRef.id,
-                ...loanValues,
-                registeredByUserId: user.uid,
-                paidInstallments: 0, 
-                remainingAmount: loanValues.amount 
-            };
-            
-            const promises = [setDoc(newLoanRef, loanData)];
+        const newLoanRef = doc(collection(familyDataRef, 'loans'));
+        const loanData: Loan = { 
+            id: newLoanRef.id,
+            ...loanValues,
+            registeredByUserId: user.uid,
+            paidInstallments: 0, 
+            remainingAmount: loanValues.amount 
+        };
 
+        runTransaction(firestore, async (transaction) => {
+            transaction.set(newLoanRef, loanData);
             if (loanData.depositOnCreate && loanData.depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', loanData.depositToAccountId);
-                const bankAccountDoc = await getDoc(bankAccountRef);
+                const bankAccountDoc = await transaction.get(bankAccountRef);
                 if (!bankAccountDoc.exists()) throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
                 
                 const bankAccountData = bankAccountDoc.data() as BankAccount;
                 const balanceAfter = bankAccountData.balance + loanData.amount;
-                promises.push(updateDoc(bankAccountRef, { balance: balanceAfter }));
+                transaction.update(bankAccountRef, { balance: balanceAfter });
             }
-            
-            await Promise.all(promises);
-
-            toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
-            setIsFormOpen(false);
-            setEditingLoan(null);
+        }).then(async () => {
+             toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
+             setIsFormOpen(false);
+             setEditingLoan(null);
 
              const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
              const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
@@ -146,19 +144,18 @@ export default function LoansPage() {
              
              const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
              await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-        } catch (error: any) {
+        }).catch(error => {
             if (error.name === 'FirebaseError') {
                  const permissionError = new FirestorePermissionError({
-                    path: `family-data/${FAMILY_DATA_DOC}/loans`,
+                    path: newLoanRef.path,
                     operation: 'create',
-                    requestResourceData: loanValues,
+                    requestResourceData: loanData,
                 });
                 errorEmitter.emit('permission-error', permissionError);
             } else {
                 toast({ variant: 'destructive', title: `خطا در ثبت وام`, description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.' });
             }
-        }
+        });
     }
   }, [user, firestore, editingLoan, bankAccounts, payees, users, toast]);
 
@@ -171,11 +168,11 @@ export default function LoansPage() {
         return;
     }
     
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+    const loanRef = doc(familyDataRef, 'loans', loan.id);
+    const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
+
     runTransaction(firestore, async (transaction) => {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        const loanRef = doc(familyDataRef, 'loans', loan.id);
-        const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
-        
         const loanDoc = await transaction.get(loanRef);
         const accountToPayFromDoc = await transaction.get(accountToPayFromRef);
 
@@ -218,9 +215,8 @@ export default function LoansPage() {
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
-                path: `family-data/${FAMILY_DATA_DOC}/loans/${loan.id}`,
+                path: loanRef.path, // Simplified path
                 operation: 'write',
-                requestResourceData: { loanId: loan.id, paymentBankAccountId, installmentAmount },
             });
             errorEmitter.emit('permission-error', permissionError);
         } else {
@@ -245,17 +241,20 @@ export default function LoansPage() {
     const loanRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'loans', loanId);
 
     try {
+        const batch = writeBatch(firestore);
+
         if (loanToDelete.depositToAccountId) {
             const depositAccountRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', loanToDelete.depositToAccountId);
             const depositAccountDoc = await getDoc(depositAccountRef);
             if (depositAccountDoc.exists()) {
                 const accountData = depositAccountDoc.data() as BankAccount;
-                await updateDoc(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
+                batch.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
             } else {
                 console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found. The deletion will proceed without reversing the initial deposit.`);
             }
         }
-        await deleteDoc(loanRef);
+        batch.delete(loanRef);
+        await batch.commit();
         toast({ title: "موفقیت", description: "وام با موفقیت حذف شد." });
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -358,3 +357,4 @@ export default function LoansPage() {
     </div>
   );
 }
+
