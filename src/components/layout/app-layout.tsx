@@ -50,7 +50,6 @@ import { USER_DETAILS } from '@/lib/constants';
 import type { User } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
-import { useTransactionNotifier } from '@/hooks/use-transaction-notifier';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -182,7 +181,6 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
 };
 
 const AppContent = ({ children }: { children: React.ReactNode }) => {
-  useTransactionNotifier(); // Call the notifier hook
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useSimpleTheme();
