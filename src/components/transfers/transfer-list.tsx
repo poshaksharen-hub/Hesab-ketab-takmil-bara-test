@@ -32,7 +32,7 @@ export function TransferList({ transfers, bankAccounts, onDelete, users }: Trans
   const getAccountDisplayName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
     if (!account) return { name: 'نامشخص', owner: '' };
-    const ownerName = account.ownerId === 'shared_account' ? '(مشترک)' : `(${USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName || 'ناشناس'})`;
+    const ownerName = account.ownerId === 'shared_account' ? '(مشترک)' : `(${(account.ownerId && USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName) || 'ناشناس'})`;
     return { name: account.bankName, owner: ownerName };
   };
 

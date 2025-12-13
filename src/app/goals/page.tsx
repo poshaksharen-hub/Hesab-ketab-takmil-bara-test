@@ -121,7 +121,7 @@ export default function GoalsPage() {
   }, [user, firestore, toast, categories]);
 
   const handleAddToGoal = useCallback(async ({ goal, amount, bankAccountId }: { goal: FinancialGoal, amount: number, bankAccountId: string }) => {
-     if (!user || !firestore) return;
+     if (!user || !firestore || !users) return;
 
      try {
         await runTransaction(firestore, async (transaction) => {

@@ -85,7 +85,7 @@ export default function ExpensesPage() {
         const category = allCategories.find(c => c.id === values.categoryId);
         const payee = allPayees.find(p => p.id === values.payeeId);
         const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-        const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+        const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
 
         const notificationDetails: TransactionDetails = {
             type: 'expense',
@@ -98,7 +98,7 @@ export default function ExpensesPage() {
             category: category?.name,
             payee: payee?.name,
             bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
-            expenseFor: USER_DETAILS[values.expenseFor]?.firstName || 'مشترک',
+            expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {

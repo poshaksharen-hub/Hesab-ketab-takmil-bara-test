@@ -73,7 +73,7 @@ export default function IncomePage() {
       
           const currentUser = users.find(u => u.id === user.uid);
           const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-          const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+          const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
           
           const notificationDetails: TransactionDetails = {
               type: 'income',

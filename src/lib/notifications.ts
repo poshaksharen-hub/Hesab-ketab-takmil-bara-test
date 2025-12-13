@@ -1,8 +1,8 @@
+'use server';
 
 import { collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 import type { TransactionDetails } from './types';
-import { USER_DETAILS } from './constants';
 
 const FAMILY_DATA_DOC = 'shared-data';
 

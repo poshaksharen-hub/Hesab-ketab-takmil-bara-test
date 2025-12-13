@@ -83,7 +83,7 @@ export default function ChecksPage() {
         const currentUser = users.find(u => u.id === user.uid);
         const payee = payees.find(p => p.id === values.payeeId);
         const category = categories.find(c => c.id === values.categoryId);
-        const bankAccountOwnerName = bankAccount.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName;
+        const bankAccountOwnerName = bankAccount.ownerId === 'shared_account' ? 'مشترک' : (bankAccount.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
 
         const notificationDetails: TransactionDetails = {
             type: 'check',
@@ -96,7 +96,7 @@ export default function ChecksPage() {
             payee: payee?.name,
             category: category?.name,
             bankAccount: { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' },
-            expenseFor: USER_DETAILS[values.expenseFor]?.firstName || 'مشترک',
+            expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             checkDetails: {
               sayadId: values.sayadId,
               dueDate: formatJalaliDate(new Date(newCheckData.dueDate)),
@@ -182,7 +182,7 @@ export default function ChecksPage() {
 
       const currentUser = users.find(u => u.id === user.uid);
       const category = categories.find(c => c.id === check.categoryId);
-      const bankAccountOwnerName = account.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName;
+      const bankAccountOwnerName = account.ownerId === 'shared_account' ? 'مشترک' : (account.ownerId && USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName);
 
       const notificationDetails: TransactionDetails = {
             type: 'payment',
@@ -195,7 +195,7 @@ export default function ChecksPage() {
             payee: payee?.name,
             category: category?.name,
             bankAccount: { name: account.bankName, owner: bankAccountOwnerName || 'نامشخص' },
-            expenseFor: USER_DETAILS[check.expenseFor]?.firstName || 'مشترک',
+            expenseFor: (check.expenseFor && USER_DETAILS[check.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
       };
       await sendSystemNotification(firestore, user.uid, notificationDetails);
 

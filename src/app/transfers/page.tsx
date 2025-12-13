@@ -30,7 +30,7 @@ export default function TransfersPage() {
   const { bankAccounts: allBankAccounts, users, transfers } = allData;
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
-    if (!user || !firestore || !allBankAccounts) return;
+    if (!user || !firestore || !allBankAccounts || !users) return;
 
     if (values.fromBankAccountId === values.toBankAccountId) {
       toast({
@@ -94,8 +94,8 @@ export default function TransfersPage() {
         const currentUser = users.find(u => u.id === user.uid);
         const fromAccount = allBankAccounts.find(b => b.id === values.fromBankAccountId);
         const toAccount = allBankAccounts.find(b => b.id === values.toBankAccountId);
-        const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[fromAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
-        const toAccountOwner = toAccount?.ownerId === 'shared_account' ? 'مشترک' : USER_DETAILS[toAccount?.ownerId as 'ali' | 'fatemeh']?.firstName;
+        const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : (fromAccount?.ownerId && USER_DETAILS[fromAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+        const toAccountOwner = toAccount?.ownerId === 'shared_account' ? 'مشترک' : (toAccount?.ownerId && USER_DETAILS[toAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
         
         const notificationDetails: TransactionDetails = {
               type: 'transfer',
@@ -227,6 +227,7 @@ export default function TransfersPage() {
           <TransferList 
               transfers={transfers || []}
               bankAccounts={allBankAccounts || []}
+              users={users || []}
               onDelete={handleDeleteTransfer}
           />
       )}
