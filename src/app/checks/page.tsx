@@ -8,7 +8,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, query, where, getDocs, addDoc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
-import type { Check, BankAccount, Payee, Category, Expense, TransactionDetails } from '@/lib/types';
+import type { Check, BankAccount, Payee, Category, Expense, TransactionDetails, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -43,15 +43,15 @@ export default function ChecksPage() {
         return;
     }
 
-
     if (editingCheck) {
       const checkRef = doc(checksColRef, editingCheck.id);
       const updatedCheck = {
         ...values,
         issueDate: (values.issueDate as any).toISOString ? (values.issueDate as any).toISOString() : values.issueDate,
         dueDate: (values.dueDate as any).toISOString ? (values.dueDate as any).toISOString() : values.dueDate,
-        ownerId: bankAccount.ownerId // Automatically set ownerId from bank account
-      }
+        ownerId: bankAccount.ownerId, // Automatically set ownerId from bank account
+        registeredByUserId: editingCheck.registeredByUserId, // Preserve original registrar
+      };
       updateDoc(checkRef, updatedCheck)
         .then(() => {
           toast({ title: "موفقیت", description: "چک با موفقیت ویرایش شد." });
@@ -65,19 +65,18 @@ export default function ChecksPage() {
             errorEmitter.emit('permission-error', permissionError);
         });
     } else {
-      const newCheckData = {
+      const newCheckData: Omit<Check, 'id'> = {
         ...values,
-        id: '', // Will be set later
         issueDate: (values.issueDate as any).toISOString(),
         dueDate: (values.dueDate as any).toISOString(),
-        registeredByUserId: user.uid,
+        registeredByUserId: user.uid, // Set registrar here
         status: 'pending' as 'pending',
         ownerId: bankAccount.ownerId, // Automatically set ownerId from bank account
       };
       
       try {
-        const docRef = await addDoc(checksColRef, newCheckData);
-        await updateDoc(docRef, { id: docRef.id });
+        const docRef = await addDoc(checksColRef, {});
+        await updateDoc(docRef, { ...newCheckData, id: docRef.id });
         
         toast({ title: "موفقیت", description: "چک جدید با موفقیت ثبت شد." });
 
@@ -149,17 +148,11 @@ export default function ChecksPage() {
         const balanceBefore = bankAccountData.balance;
         const balanceAfter = balanceBefore - check.amount;
 
-        // Update check status and cleared date
         transaction.update(checkRef, { status: 'cleared', clearedDate });
-        
-        // Update bank account balance
         transaction.update(bankAccountRef, { balance: balanceAfter });
         
-        // Create a detailed description for the expense
         const expenseDescription = `پاس کردن چک به: ${payee?.name || 'نامشخص'}`;
 
-
-        // Create the corresponding expense
         const expenseRef = doc(expensesColRef);
         transaction.set(expenseRef, {
             id: expenseRef.id,
@@ -200,11 +193,10 @@ export default function ChecksPage() {
       };
       await sendSystemNotification(firestore, user.uid, notificationDetails);
 
-
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: checkRef.path, // Simplified path for the transaction
+                path: checkRef.path,
                 operation: 'write', 
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -226,7 +218,6 @@ export default function ChecksPage() {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const checkRef = doc(familyDataRef, 'checks', check.id);
             
-            // If the check was cleared, we need to reverse the financial impact
             if (check.status === 'cleared') {
                 const expenseQuery = query(collection(familyDataRef, 'expenses'), where('checkId', '==', check.id));
                 const expenseSnapshot = await getDocs(expenseQuery);
@@ -247,7 +238,6 @@ export default function ChecksPage() {
                 }
             }
             
-            // Finally, delete the check itself
             transaction.delete(checkRef);
         });
 
@@ -268,7 +258,6 @@ export default function ChecksPage() {
         }
     }
 }, [user, firestore, toast]);
-
 
   const handleAddNew = React.useCallback(() => {
     setEditingCheck(null);
@@ -303,15 +292,16 @@ export default function ChecksPage() {
         </div>
       </div>
 
-      <CheckForm
-        isOpen={isFormOpen}
-        setIsOpen={setIsFormOpen}
-        onSubmit={handleFormSubmit}
-        initialData={editingCheck}
-        bankAccounts={bankAccounts || []}
-        payees={payees || []}
-        categories={categories || []}
-      />
+      {isFormOpen && (
+          <CheckForm
+            onSubmit={handleFormSubmit}
+            initialData={editingCheck}
+            bankAccounts={bankAccounts || []}
+            payees={payees || []}
+            categories={categories || []}
+            onCancel={() => { setIsFormOpen(false); setEditingCheck(null); }}
+        />
+      )}
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
@@ -319,7 +309,7 @@ export default function ChecksPage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
           </div>
-      ) : (
+      ) : !isFormOpen && (
         <CheckList
           checks={checks || []}
           bankAccounts={bankAccounts || []}
@@ -332,17 +322,18 @@ export default function ChecksPage() {
         />
       )}
 
-      {/* Floating Action Button for Mobile */}
-      <div className="md:hidden fixed bottom-20 right-4 z-50">
-          <Button
-            onClick={handleAddNew}
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg"
-            aria-label="ثبت چک جدید"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-      </div>
+      {!isFormOpen && (
+          <div className="md:hidden fixed bottom-20 right-4 z-50">
+              <Button
+                onClick={handleAddNew}
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg"
+                aria-label="ثبت چک جدید"
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+          </div>
+      )}
     </div>
   );
 }

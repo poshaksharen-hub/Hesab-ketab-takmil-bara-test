@@ -41,12 +41,10 @@ export default function TransfersPage() {
       return;
     }
     
-    let fromCardRef: any; // Define here to be accessible in catch block
-
     runTransaction(firestore, async (transaction) => {
       
       const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-      fromCardRef = doc(familyDataRef, 'bankAccounts', values.fromBankAccountId);
+      const fromCardRef = doc(familyDataRef, 'bankAccounts', values.fromBankAccountId);
       const toCardRef = doc(familyDataRef, 'bankAccounts', values.toBankAccountId);
 
       const fromCardDoc = await transaction.get(fromCardRef);
@@ -74,10 +72,9 @@ export default function TransfersPage() {
       
       const newTransferRef = doc(collection(familyDataRef, 'transfers'));
       
-      const newTransferData = {
+      const newTransferData: Omit<Transfer, 'id'> = {
           ...values,
-          id: newTransferRef.id,
-          registeredByUserId: user.uid,
+          registeredByUserId: user.uid, // Set registrar here
           transferDate: new Date().toISOString(),
           fromAccountBalanceBefore: fromBalanceBefore,
           fromAccountBalanceAfter: fromBalanceAfter,
@@ -85,7 +82,7 @@ export default function TransfersPage() {
           toAccountBalanceAfter: toBalanceAfter,
       };
       
-      transaction.set(newTransferRef, newTransferData);
+      transaction.set(newTransferRef, {...newTransferData, id: newTransferRef.id});
 
     }).then(async () => {
         setIsFormOpen(false);
@@ -115,8 +112,8 @@ export default function TransfersPage() {
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: fromCardRef.path, // More specific path
-                operation: 'write', // runTransaction is a 'write' op
+                path: 'family-data/shared-data/transfers',
+                operation: 'write',
                 requestResourceData: values,
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -185,6 +182,10 @@ export default function TransfersPage() {
     setIsFormOpen(true);
   }, []);
 
+  const handleCancelForm = useCallback(() => {
+    setIsFormOpen(false);
+  }, []);
+
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
@@ -200,12 +201,14 @@ export default function TransfersPage() {
             انتقال داخلی
             </h1>
         </div>
-        <div className="hidden md:block">
-            <Button onClick={handleAddNew}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                ثبت انتقال جدید
-            </Button>
-        </div>
+        {!isFormOpen && (
+            <div className="hidden md:block">
+                <Button onClick={handleAddNew}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    ثبت انتقال جدید
+                </Button>
+            </div>
+        )}
       </div>
 
       {isFormOpen && (
@@ -213,6 +216,7 @@ export default function TransfersPage() {
             bankAccounts={allBankAccounts || []}
             onSubmit={handleTransferSubmit}
             user={user}
+            onCancel={handleCancelForm}
         />
       )}
 
@@ -235,7 +239,6 @@ export default function TransfersPage() {
           />
       )}
       
-      {/* Floating Action Button for Mobile */}
       {!isFormOpen && (
         <div className="md:hidden fixed bottom-20 right-4 z-50">
             <Button

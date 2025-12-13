@@ -15,8 +15,9 @@ import {
   getDocs,
   addDoc,
   serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
-import type { FinancialGoal, BankAccount, Category, TransactionDetails, Expense } from '@/lib/types';
+import type { FinancialGoal, BankAccount, Category, TransactionDetails, Expense, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { GoalList } from '@/components/goals/goal-list';
@@ -70,8 +71,8 @@ export default function GoalsPage() {
             const newGoalRef = doc(collection(familyDataRef, 'financialGoals'));
             const newGoalData: Omit<FinancialGoal, 'id'> = {
                 ...goalData,
-                id: newGoalRef.id,
-                registeredByUserId: user.uid,
+                targetDate: goalData.targetDate.toISOString(),
+                registeredByUserId: user.uid, // Set registrar here
                 isAchieved: false,
                 currentAmount: 0,
                 contributions: [],
@@ -90,7 +91,7 @@ export default function GoalsPage() {
                  transaction.update(initialAccountDoc.ref, { blockedBalance: newBlockedBalance });
             }
             
-            transaction.set(newGoalRef, newGoalData);
+            transaction.set(newGoalRef, { ...newGoalData, id: newGoalRef.id });
         });
 
       toast({
@@ -227,8 +228,6 @@ export default function GoalsPage() {
                 }
             }
 
-
-            // Handle cash portion if needed
             if (cashPaymentNeeded > 0) {
                 if (!paymentCardId) throw new Error("برای پرداخت مابقی هزینه، انتخاب کارت الزامی است.");
                 const paymentAccountRef = doc(familyDataRef, 'bankAccounts', paymentCardId);
@@ -287,7 +286,6 @@ export default function GoalsPage() {
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
-
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -451,21 +449,22 @@ export default function GoalsPage() {
         </div>
       </div>
 
-       <GoalForm
-          isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
+       {isFormOpen && (
+        <GoalForm
           onSubmit={handleFormSubmit}
           initialData={editingGoal}
           bankAccounts={bankAccounts || []}
           user={user}
+          onCancel={() => { setIsFormOpen(false); setEditingGoal(null); }}
         />
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
           <Skeleton className="h-48 w-full rounded-xl" />
           <Skeleton className="h-48 w-full rounded-xl" />
         </div>
-      ) : (
+      ) : !isFormOpen && (
         <>
           <GoalList
             goals={goals || []}
@@ -496,17 +495,18 @@ export default function GoalsPage() {
         </>
       )}
 
-      {/* Floating Action Button for Mobile */}
-      <div className="md:hidden fixed bottom-20 right-4 z-50">
-          <Button
-            onClick={handleAddNew}
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg"
-            aria-label="افزودن هدف جدید"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-      </div>
+      {!isFormOpen && (
+        <div className="md:hidden fixed bottom-20 right-4 z-50">
+            <Button
+              onClick={handleAddNew}
+              size="icon"
+              className="h-14 w-14 rounded-full shadow-lg"
+              aria-label="افزودن هدف جدید"
+            >
+              <Plus className="h-6 w-6" />
+            </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp, addDoc, updateDoc } from 'firebase/firestore';
 import { IncomeList } from '@/components/income/income-list';
 import { IncomeForm } from '@/components/income/income-form';
 import type { Income, BankAccount, UserProfile, TransactionDetails } from '@/lib/types';
@@ -33,11 +33,8 @@ export default function IncomePage() {
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category' >) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
     
-    let transactionRef: any; // To hold the reference for error reporting
-  
     runTransaction(firestore, async (transaction) => {
         const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        transactionRef = familyDataRef; // General ref for transaction
         
         const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
         if (!account) throw new Error("کارت بانکی یافت نشد");
@@ -56,18 +53,17 @@ export default function IncomePage() {
         transaction.update(targetCardRef, { balance: balanceAfter });
 
         const newIncomeRef = doc(collection(familyDataRef, 'incomes'));
-        transactionRef = newIncomeRef; // More specific ref
         
-        const newIncomeData: Omit<Income, 'id'> & { id: string } = {
+        const newIncomeData: Omit<Income, 'id'> = {
             ...values,
-            id: newIncomeRef.id,
+            date: (values.date as any).toISOString(),
             type: 'income',
             category: 'درآمد',
-            registeredByUserId: user.uid,
+            registeredByUserId: user.uid, // Set registrar here
             createdAt: serverTimestamp(),
             balanceAfter: balanceAfter,
         };
-        transaction.set(newIncomeRef, newIncomeData);
+        transaction.set(newIncomeRef, {...newIncomeData, id: newIncomeRef.id});
       })
       .then(async () => {
           setIsFormOpen(false);
@@ -94,7 +90,7 @@ export default function IncomePage() {
       .catch((error: any) => {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
-                path: transactionRef.path,
+                path: 'family-data/shared-data/incomes',
                 operation: 'write',
                 requestResourceData: values,
             });
@@ -155,6 +151,10 @@ export default function IncomePage() {
   const handleAddNew = React.useCallback(() => {
     setIsFormOpen(true);
   }, []);
+  
+  const handleCancelForm = React.useCallback(() => {
+    setIsFormOpen(false);
+  }, []);
 
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -171,22 +171,25 @@ export default function IncomePage() {
             مدیریت درآمدها
           </h1>
         </div>
-        <div className="hidden md:block">
-            <Button onClick={handleAddNew}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                ثبت درآمد جدید
-            </Button>
-        </div>
+        {!isFormOpen && (
+            <div className="hidden md:block">
+                <Button onClick={handleAddNew}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    ثبت درآمد جدید
+                </Button>
+            </div>
+        )}
       </div>
 
-       <IncomeForm
-          isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
-          onSubmit={handleFormSubmit}
-          initialData={null}
-          bankAccounts={allBankAccounts || []}
-          user={user}
+       {isFormOpen && (
+        <IncomeForm
+            onSubmit={handleFormSubmit}
+            initialData={null}
+            bankAccounts={allBankAccounts || []}
+            user={user}
+            onCancel={handleCancelForm}
         />
+       )}
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
@@ -194,7 +197,7 @@ export default function IncomePage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
           </div>
-      ) : (
+      ) : !isFormOpen && (
         <IncomeList
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}
@@ -203,17 +206,18 @@ export default function IncomePage() {
         />
       )}
 
-      {/* Floating Action Button for Mobile */}
-      <div className="md:hidden fixed bottom-20 right-4 z-50">
-          <Button
-            onClick={handleAddNew}
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg"
-            aria-label="ثبت درآمد جدید"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-      </div>
+      {!isFormOpen && (
+          <div className="md:hidden fixed bottom-20 right-4 z-50">
+              <Button
+                onClick={handleAddNew}
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg"
+                aria-label="ثبت درآمد جدید"
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+          </div>
+      )}
     </div>
   );
 }

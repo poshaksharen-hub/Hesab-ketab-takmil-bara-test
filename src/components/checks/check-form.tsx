@@ -51,16 +51,15 @@ const formSchema = z.object({
 type CheckFormValues = z.infer<typeof formSchema>;
 
 interface CheckFormProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
   onSubmit: (data: any) => void;
   initialData: Check | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
+  onCancel: () => void;
 }
 
-export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, payees, categories }: CheckFormProps) {
+export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categories, onCancel }: CheckFormProps) {
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
 
@@ -105,10 +104,6 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
       });
     }
   }, [initialData, form]);
-
-  function handleFormSubmit(data: CheckFormValues) {
-    onSubmit(data);
-  }
   
   const handlePayeeSelection = (value: string) => {
     if (value === 'add_new') {
@@ -144,7 +139,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
             </CardTitle>
             </CardHeader>
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
@@ -322,7 +317,7 @@ export function CheckForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccoun
                   />
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
+                    <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
                     <Button type="submit">ذخیره</Button>
                 </CardFooter>
             </form>

@@ -10,6 +10,8 @@ import {
   serverTimestamp,
   runTransaction,
   writeBatch,
+  addDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,7 +26,6 @@ import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
 import { errorEmitter } from '@/firebase/error-emitter';
-
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -53,16 +54,22 @@ export default function DebtsPage() {
 
     const debtData: Omit<PreviousDebt, 'id'> = {
         ...values,
-        registeredByUserId: user.uid,
+        registeredByUserId: user.uid, // Set registrar here
         remainingAmount: values.amount,
         paidInstallments: 0,
+        startDate: values.startDate.toISOString(),
+        firstInstallmentDate: values.isInstallment && values.firstInstallmentDate ? values.firstInstallmentDate.toISOString() : undefined,
+        dueDate: !values.isInstallment && values.dueDate ? values.dueDate.toISOString() : undefined,
     };
-    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-    const newDebtRef = doc(collection(familyDataRef, 'previousDebts'));
     
-    runTransaction(firestore, async (transaction) => {
-        transaction.set(newDebtRef, { ...debtData, id: newDebtRef.id });
-    }).then(async () => {
+    try {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const newDebtRef = doc(collection(familyDataRef, 'previousDebts'));
+        
+        await runTransaction(firestore, async (transaction) => {
+            transaction.set(newDebtRef, { ...debtData, id: newDebtRef.id });
+        });
+        
         toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
         setIsFormOpen(false);
 
@@ -84,10 +91,11 @@ export default function DebtsPage() {
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
-    }).catch((error: any) => {
+
+    } catch (error: any) {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
-                path: newDebtRef.path,
+                path: 'family-data/shared-data/previousDebts',
                 operation: 'create',
                 requestResourceData: debtData,
             });
@@ -99,7 +107,7 @@ export default function DebtsPage() {
                 description: error.message,
             });
         }
-    });
+    }
   }, [user, firestore, toast, payees, users]);
 
 

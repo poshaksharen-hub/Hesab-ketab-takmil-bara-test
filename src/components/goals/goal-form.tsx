@@ -48,15 +48,14 @@ const formSchema = z.object({
 type GoalFormValues = z.infer<typeof formSchema>;
 
 interface GoalFormProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
   onSubmit: (data: GoalFormValues) => void;
   initialData: FinancialGoal | null;
   bankAccounts: BankAccount[];
   user: User | null;
+  onCancel: () => void;
 }
 
-export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, user }: GoalFormProps) {
+export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }: GoalFormProps) {
   const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
 
   const form = useForm<GoalFormValues>({
@@ -73,7 +72,6 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
   });
 
   useEffect(() => {
-    // Editing is disabled, so we only handle the create case.
     form.reset({
       name: '',
       targetAmount: 0,
@@ -95,12 +93,6 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
   const availableBalance = selectedBankAccount ? (selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0)) : 0;
 
-
-  function handleFormSubmit(data: GoalFormValues) {
-    if (!user) return;
-    onSubmit(data);
-  }
-
   const sortedBankAccounts = useMemo(() => {
     return [...bankAccounts].sort((a,b) => {
       const getGroup = (ownerId: string) => {
@@ -118,7 +110,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
   }, [bankAccounts, loggedInUserOwnerId]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open onOpenChange={onCancel}>
        <DialogContent>
         <DialogHeader>
           <DialogTitle className="font-headline">
@@ -126,7 +118,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
           </DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -266,7 +258,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
                   </div>
               </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
+              <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
               <Button type="submit" disabled={!!initialData}>ذخیره</Button>
             </DialogFooter>
           </form>

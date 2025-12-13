@@ -43,9 +43,10 @@ interface TransferFormProps {
   onSubmit: (data: TransferFormValues) => void;
   bankAccounts: BankAccount[];
   user: User | null;
+  onCancel: () => void;
 }
 
-export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps) {
+export function TransferForm({ onSubmit, bankAccounts, user, onCancel }: TransferFormProps) {
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,13 +74,11 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
 
   const sortedFromAccounts = [...bankAccounts].sort((a, b) => b.balance - a.balance);
 
-  // Filter destination accounts based on the source account
   const availableToAccounts = React.useMemo(() => {
     const sorted = [...bankAccounts].sort((a,b) => b.balance - a.balance);
     return sorted.filter(acc => acc.id !== fromAccountId);
   }, [fromAccountId, bankAccounts]);
 
-  // Reset 'to' account if it becomes invalid
   React.useEffect(() => {
     const toAccountId = form.getValues('toBankAccountId');
     if (toAccountId && !availableToAccounts.some(acc => acc.id === toAccountId)) {
@@ -184,7 +183,8 @@ export function TransferForm({ onSubmit, bankAccounts, user }: TransferFormProps
                 )}
               />
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
                 <Button type="submit" className="w-full">تایید و انتقال</Button>
             </CardFooter>
           </form>

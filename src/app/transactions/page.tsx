@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import { ExpenseForm } from '@/components/transactions/expense-form';
 import type { Expense, BankAccount, Category, UserProfile, TransactionDetails } from '@/lib/types';
@@ -17,7 +17,6 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { errorEmitter } from '@/firebase/error-emitter';
-
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -67,9 +66,10 @@ export default function ExpensesPage() {
         
         const newExpenseData = {
             ...values,
+            date: (values.date as any).toISOString(),
             id: newExpenseRef.id,
             ownerId: account.ownerId,
-            registeredByUserId: user.uid,
+            registeredByUserId: user.uid, // Set registrar here
             balanceBefore,
             balanceAfter,
             type: 'expense' as const,
@@ -163,6 +163,10 @@ export default function ExpensesPage() {
   const handleAddNew = React.useCallback(() => {
     setIsFormOpen(true);
   }, []);
+
+  const handleCancelForm = React.useCallback(() => {
+    setIsFormOpen(false);
+  }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -179,24 +183,27 @@ export default function ExpensesPage() {
             مدیریت هزینه‌ها
           </h1>
         </div>
-        <div className="hidden md:block">
-            <Button onClick={handleAddNew}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                ثبت هزینه جدید
-            </Button>
-        </div>
+        {!isFormOpen && (
+            <div className="hidden md:block">
+                <Button onClick={handleAddNew}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    ثبت هزینه جدید
+                </Button>
+            </div>
+        )}
       </div>
 
-       <ExpenseForm
-          isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
-          onSubmit={handleFormSubmit}
-          initialData={null}
-          bankAccounts={allBankAccounts || []}
-          categories={allCategories || []}
-          payees={allPayees || []}
-          user={user}
-        />
+       {isFormOpen && (
+            <ExpenseForm
+                onSubmit={handleFormSubmit}
+                initialData={null}
+                bankAccounts={allBankAccounts || []}
+                categories={allCategories || []}
+                payees={allPayees || []}
+                user={user}
+                onCancel={handleCancelForm}
+            />
+       )}
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
@@ -204,7 +211,7 @@ export default function ExpensesPage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
           </div>
-      ) : (
+      ) : !isFormOpen && (
         <ExpenseList
           expenses={allExpenses || []}
           bankAccounts={allBankAccounts || []}
@@ -215,17 +222,18 @@ export default function ExpensesPage() {
         />
       )}
       
-      {/* Floating Action Button for Mobile */}
-      <div className="md:hidden fixed bottom-20 right-4 z-50">
-          <Button
-            onClick={handleAddNew}
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg"
-            aria-label="ثبت هزینه جدید"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-      </div>
+      {!isFormOpen && (
+          <div className="md:hidden fixed bottom-20 right-4 z-50">
+              <Button
+                onClick={handleAddNew}
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg"
+                aria-label="ثبت هزینه جدید"
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+          </div>
+      )}
     </div>
   );
 }
