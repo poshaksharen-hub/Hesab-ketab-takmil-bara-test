@@ -68,10 +68,10 @@ export default function IncomePage() {
         transaction.set(newIncomeRef, newIncomeData);
       })
       .then(async () => {
-          toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
           setIsFormOpen(false);
+          toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
       
-          const currentUser = users.find(u => u.id === user.uid);
+          const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
           const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
           const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
           
@@ -82,12 +82,12 @@ export default function IncomePage() {
               date: values.date,
               icon: 'TrendingUp',
               color: 'rgb(34 197 94)',
-              registeredBy: currentUser?.firstName || 'کاربر',
+              registeredBy: currentUserFirstName,
               payee: values.source,
               category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
               bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
           };
-          await sendSystemNotification(firestore, user.uid, notificationDetails);
+          await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
       })
       .catch((error: any) => {
         if (error.name === 'FirebaseError') {

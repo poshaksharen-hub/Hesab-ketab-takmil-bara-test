@@ -36,8 +36,8 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
 import { AddCategoryDialog } from '../categories/add-category-dialog';
-import { useAuth } from '@/firebase/provider'; // Import useAuth to get the current user
 import { useToast } from '@/hooks/use-toast';
+import type { User as AuthUser } from 'firebase/auth';
 
 
 const formSchema = z.object({
@@ -55,16 +55,15 @@ type ExpenseFormValues = z.infer<typeof formSchema>;
 interface ExpenseFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  // Let the form handle who registered the expense
-  onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'ownerId'> & { registeredByUserId: string }) => void;
+  onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'ownerId'>) => void;
   initialData: Expense | null;
   bankAccounts: BankAccount[];
   categories: Category[];
   payees: Payee[];
+  user: AuthUser | null;
 }
 
-export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees }: ExpenseFormProps) {
-  const { user } = useAuth(); // Get the authenticated user
+export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees, user }: ExpenseFormProps) {
   const { toast } = useToast();
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -89,14 +88,6 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
     const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
     return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
   };
-
-  const selectedBankAccountId = form.watch('bankAccountId');
-  const selectedAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
-
-  useEffect(() => {
-    // This logic is now removed to allow user to always choose.
-  }, [selectedAccount, form]);
-
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -127,7 +118,6 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
-        registeredByUserId: user.uid, // Add the user's ID to the submission data
     };
 
     if (submissionData.payeeId === 'none') {

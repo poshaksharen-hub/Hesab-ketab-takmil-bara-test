@@ -175,18 +175,33 @@ export default function CardsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-
-      {isFormOpen && (
-        <CardForm
-            isOpen={isFormOpen}
-            setIsOpen={setIsFormOpen}
-            onSubmit={handleFormSubmit}
-            initialData={editingCard}
-            user={user}
-            users={users}
-            hasSharedAccount={hasSharedAccount}
-        />
-      )}
+      
+      <div className="md:hidden">
+        {isFormOpen && (
+           <CardForm
+              isOpen={isFormOpen}
+              setIsOpen={setIsFormOpen}
+              onSubmit={handleFormSubmit}
+              initialData={editingCard}
+              user={user}
+              users={users}
+              hasSharedAccount={hasSharedAccount}
+            />
+        )}
+      </div>
+      <div className="hidden md:block">
+         {isFormOpen && (
+           <CardForm
+              isOpen={isFormOpen}
+              setIsOpen={setIsFormOpen}
+              onSubmit={handleFormSubmit}
+              initialData={editingCard}
+              user={user}
+              users={users}
+              hasSharedAccount={hasSharedAccount}
+            />
+        )}
+      </div>
 
       {isLoading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
@@ -198,7 +213,6 @@ export default function CardsPage() {
           cards={filteredBankAccounts}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          users={users}
         />
       )}
 

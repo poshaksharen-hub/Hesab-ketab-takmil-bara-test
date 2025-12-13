@@ -37,7 +37,7 @@ export default function ExpensesPage() {
     users,
   } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'registeredByUserId' | 'ownerId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     
@@ -68,7 +68,6 @@ export default function ExpensesPage() {
         const newExpenseData = {
             ...values,
             ownerId: account.ownerId,
-            registeredByUserId: user.uid,
             balanceBefore,
             balanceAfter,
             id: newExpenseRef.id,
@@ -81,7 +80,7 @@ export default function ExpensesPage() {
         setIsFormOpen(false);
         toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         
-        const currentUser = users.find(u => u.id === user.uid);
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const category = allCategories.find(c => c.id === values.categoryId);
         const payee = allPayees.find(p => p.id === values.payeeId);
         const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
@@ -94,13 +93,12 @@ export default function ExpensesPage() {
             date: values.date,
             icon: 'TrendingDown',
             color: 'rgb(220 38 38)',
-            registeredBy: currentUser?.firstName || 'کاربر',
             category: category?.name,
             payee: payee?.name,
             bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
             expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
           const permissionError = new FirestorePermissionError({
@@ -195,6 +193,7 @@ export default function ExpensesPage() {
           bankAccounts={allBankAccounts || []}
           categories={allCategories || []}
           payees={allPayees || []}
+          user={user}
         />
 
       {isLoading ? (

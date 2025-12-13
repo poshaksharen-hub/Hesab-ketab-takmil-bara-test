@@ -1,3 +1,4 @@
+
 'use server';
 
 import { collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -9,23 +10,27 @@ const FAMILY_DATA_DOC = 'shared-data';
 export async function sendSystemNotification(
     firestore: Firestore,
     actorUserId: string,
-    details: TransactionDetails
+    details: Omit<TransactionDetails, 'registeredBy'>, // Remove registeredBy from here
+    registeredBy: string // Add it as a separate parameter
 ) {
     if (!firestore) return;
 
     try {
-        const actorName = details.registeredBy || 'کاربر';
+        const notificationDetails: TransactionDetails = {
+            ...details,
+            registeredBy, // Use the provided parameter
+        };
         
         const chatMessagesRef = collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`);
         
-        const notificationText = `${actorName} یک تراکنش جدید ثبت کرد: ${details.title}`;
+        const notificationText = `${registeredBy} یک تراکنش جدید ثبت کرد: ${details.title}`;
 
         const newDocRef = await addDoc(chatMessagesRef, {
             senderId: 'system',
             senderName: 'دستیار هوشمند مشترکانه',
             text: notificationText,
             type: 'system',
-            transactionDetails: details,
+            transactionDetails: notificationDetails,
             readBy: [actorUserId], // The actor has "read" it by creating it
             timestamp: serverTimestamp(),
         });

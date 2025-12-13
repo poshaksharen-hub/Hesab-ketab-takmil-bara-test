@@ -91,7 +91,7 @@ export default function TransfersPage() {
             description: "انتقال وجه با موفقیت انجام شد.",
         });
         
-        const currentUser = users.find(u => u.id === user.uid);
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const fromAccount = allBankAccounts.find(b => b.id === values.fromBankAccountId);
         const toAccount = allBankAccounts.find(b => b.id === values.toBankAccountId);
         const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : (fromAccount?.ownerId && USER_DETAILS[fromAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
@@ -104,11 +104,10 @@ export default function TransfersPage() {
               date: new Date().toISOString(),
               icon: 'ArrowRightLeft',
               color: 'rgb(59 130 246)',
-              registeredBy: currentUser?.firstName || 'کاربر',
               bankAccount: fromAccount ? { name: fromAccount.bankName, owner: fromAccountOwner || 'نامشخص' } : undefined,
               toBankAccount: toAccount ? { name: toAccount.bankName, owner: toAccountOwner || 'نامشخص' } : undefined,
           };
-          await sendSystemNotification(firestore, user.uid, notificationDetails);
+          await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({

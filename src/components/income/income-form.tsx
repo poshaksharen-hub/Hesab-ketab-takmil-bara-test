@@ -72,22 +72,22 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   });
 
   useEffect(() => {
-    if (initialData) {
+    if (!isOpen) {
+        form.reset({
+            description: '',
+            amount: 0,
+            date: new Date(),
+            ownerId: loggedInUserOwnerId,
+            bankAccountId: '',
+            source: ''
+        });
+    } else if (initialData) {
         form.reset({ 
             ...initialData, 
             date: new Date(initialData.date),
         });
-    } else {
-      form.reset({
-        description: '',
-        amount: 0,
-        date: new Date(),
-        ownerId: loggedInUserOwnerId,
-        bankAccountId: '',
-        source: ''
-      });
     }
-  }, [initialData, form, user, loggedInUserOwnerId]);
+  }, [initialData, form, user, loggedInUserOwnerId, isOpen]);
 
   const selectedOwnerId = form.watch('ownerId');
   
