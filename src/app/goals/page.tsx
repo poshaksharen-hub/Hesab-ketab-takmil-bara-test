@@ -167,7 +167,7 @@ export default function GoalsPage() {
                 { label: 'از حساب', value: bankAccount?.bankName },
             ]
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
 
      } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در افزودن پس‌انداز', description: error.message || "مشکلی در عملیات پیش آمد." });
@@ -289,7 +289,7 @@ export default function GoalsPage() {
                 { label: 'هزینه نهایی', value: formatCurrency(actualCost, 'IRT') },
             ]
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
 
 
     } catch (error: any) {

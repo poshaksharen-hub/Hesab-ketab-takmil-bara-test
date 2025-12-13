@@ -2,7 +2,7 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection } from '@/firebase';
 import {
   collection,
   query,
@@ -26,12 +26,12 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
   const firestore = useFirestore();
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
 
-  const messagesCollectionRef = useMemoFirebase(
+  const messagesCollectionRef = useMemo(
     () => (firestore ? collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`) : null),
     [firestore]
   );
 
-  const messagesQuery = useMemoFirebase(
+  const messagesQuery = useMemo(
     () => (messagesCollectionRef ? query(messagesCollectionRef, orderBy('timestamp', 'asc')) : null),
     [messagesCollectionRef]
   );

@@ -83,7 +83,7 @@ export default function DebtsPage() {
                 { label: 'نوع', value: values.isInstallment ? 'قسطی' : 'یکجا' },
             ]
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
@@ -199,7 +199,7 @@ export default function DebtsPage() {
                 { label: 'از حساب', value: bankAccount?.bankName },
             ]
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({

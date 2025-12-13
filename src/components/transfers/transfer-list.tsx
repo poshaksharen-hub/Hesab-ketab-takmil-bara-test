@@ -61,7 +61,7 @@ export function TransferList({ transfers, bankAccounts, onDelete, users }: Trans
       {transfers.sort((a,b) => new Date(b.transferDate).getTime() - new Date(a.transferDate).getTime()).map((transfer) => {
         const fromAccount = getAccountDisplayName(transfer.fromBankAccountId);
         const toAccount = getAccountDisplayName(transfer.toBankAccountId);
-        const registeredByName = users.find(u => u.id === transfer.registeredByUserId)?.firstName || 'سیستم';
+        const registeredByName = users.find(u => u.id === transfer.registeredByUserId)?.firstName || 'نامشخص';
 
 
         return (

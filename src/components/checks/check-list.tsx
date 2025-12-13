@@ -37,6 +37,7 @@ interface CheckListProps {
   onClear: (check: Check) => void;
   onDelete: (check: Check) => void;
   onEdit: (check: Check) => void;
+  users: UserProfile[];
 }
 
 const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete, onEdit }: {
@@ -205,7 +206,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
     );
 };
 
-export function CheckList({ checks, bankAccounts, payees, categories, onClear, onDelete, onEdit }: CheckListProps) {
+export function CheckList({ checks, bankAccounts, payees, categories, onClear, onDelete, onEdit, users }: CheckListProps) {
   
   if (checks.length === 0) {
     return (

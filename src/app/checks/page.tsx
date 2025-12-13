@@ -102,7 +102,7 @@ export default function ChecksPage() {
               dueDate: formatJalaliDate(new Date(newCheckData.dueDate)),
             },
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUser?.firstName || 'کاربر');
         
       } catch (error) {
            const permissionError = new FirestorePermissionError({
@@ -197,7 +197,7 @@ export default function ChecksPage() {
             bankAccount: { name: account.bankName, owner: bankAccountOwnerName || 'نامشخص' },
             expenseFor: (check.expenseFor && USER_DETAILS[check.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
       };
-      await sendSystemNotification(firestore, user.uid, notificationDetails);
+      await sendSystemNotification(firestore, user.uid, notificationDetails, currentUser?.firstName || 'کاربر');
 
 
     } catch (error: any) {
@@ -327,6 +327,7 @@ export default function ChecksPage() {
           onClear={handleClearCheck}
           onDelete={handleDeleteCheck}
           onEdit={handleEdit}
+          users={users || []}
         />
       )}
 
