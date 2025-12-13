@@ -1,6 +1,9 @@
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env' });
 
 // This file is the central point for Genkit configuration.
 // By initializing it here, we ensure that Genkit is configured once
