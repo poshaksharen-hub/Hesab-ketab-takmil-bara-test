@@ -36,6 +36,11 @@ export function TransferList({ transfers, bankAccounts, onDelete, users }: Trans
     return { name: account.bankName, owner: ownerName };
   };
 
+  const getRegisteredByName = (userId?: string) => {
+    if (!userId) return "نامشخص";
+    return users.find(u => u.id === userId)?.firstName || "نامشخص";
+  }
+
   if (transfers.length === 0) {
     return (
         <Card>
@@ -61,7 +66,7 @@ export function TransferList({ transfers, bankAccounts, onDelete, users }: Trans
       {transfers.sort((a,b) => new Date(b.transferDate).getTime() - new Date(a.transferDate).getTime()).map((transfer) => {
         const fromAccount = getAccountDisplayName(transfer.fromBankAccountId);
         const toAccount = getAccountDisplayName(transfer.toBankAccountId);
-        const registeredByName = users.find(u => u.id === transfer.registeredByUserId)?.firstName || 'نامشخص';
+        const registeredByName = getRegisteredByName(transfer.registeredByUserId);
 
 
         return (

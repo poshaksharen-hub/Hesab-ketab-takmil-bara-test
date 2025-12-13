@@ -81,6 +81,11 @@ export function IncomeList({
     }
   }
 
+  const getRegisteredByName = (userId?: string) => {
+    if (!userId) return "نامشخص";
+    return users.find(u => u.id === userId)?.firstName || "نامشخص";
+  }
+
 
   if (incomes.length === 0) {
     return (
@@ -116,7 +121,7 @@ export function IncomeList({
           )
           .map((income) => {
             const bankAccount = getBankAccount(income.bankAccountId);
-            const registeredByName = users.find(u => u.id === income.registeredByUserId)?.firstName || 'سیستم';
+            const registeredByName = getRegisteredByName(income.registeredByUserId);
 
             return (
               <Card key={income.id} className="flex flex-col">

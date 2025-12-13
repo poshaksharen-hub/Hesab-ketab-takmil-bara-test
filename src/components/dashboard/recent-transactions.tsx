@@ -70,6 +70,11 @@ export function RecentTransactions({ transactions, categories, bankAccounts, use
 
       return <Badge variant="secondary">{text}</Badge>;
   }
+  
+  const getRegisteredByName = (userId?: string) => {
+      if (!userId) return "نامشخص";
+      return users.find(u => u.id === userId)?.firstName || "نامشخص";
+  }
 
   return (
     <div className="space-y-4">
@@ -77,7 +82,7 @@ export function RecentTransactions({ transactions, categories, bankAccounts, use
         const isIncome = 'source' in transaction;
         const categoryId = 'categoryId' in transaction ? transaction.categoryId : 'درآمد';
         const categoryName = getCategoryName(categoryId);
-        const registeredByName = users.find(u => u.id === transaction.registeredByUserId)?.firstName || 'سیستم';
+        const registeredByName = getRegisteredByName(transaction.registeredByUserId);
         const transactionDate = 'createdAt' in transaction && transaction.createdAt ? transaction.createdAt : transaction.date;
         
         return (

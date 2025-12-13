@@ -96,6 +96,11 @@ export function ExpenseList({
     return ` (${userDetail.firstName})`;
   };
 
+  const getRegisteredByName = (userId?: string) => {
+      if (!userId) return "نامشخص";
+      return users.find(u => u.id === userId)?.firstName || "نامشخص";
+  }
+
 
   if (expenses.length === 0) {
     return (
@@ -132,7 +137,7 @@ export function ExpenseList({
             )
             .map((expense) => {
                 const bankAccount = getBankAccount(expense.bankAccountId);
-                const registeredByName = users.find(u => u.id === expense.registeredByUserId)?.firstName || 'سیستم';
+                const registeredByName = getRegisteredByName(expense.registeredByUserId);
 
                 return (
                 <Card key={expense.id} className="flex flex-col">
