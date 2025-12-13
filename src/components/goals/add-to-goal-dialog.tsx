@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React from 'react';
@@ -91,10 +90,14 @@ export function AddToGoalDialog({
   };
 
   const selectedBankAccountId = form.watch('bankAccountId');
+  const amountToContribute = form.watch('amount');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
   const availableBalance = selectedBankAccount ? selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0) : 0;
+  
+  const hasInsufficientFunds = amountToContribute > availableBalance;
 
   function handleFormSubmit(data: AddToGoalFormValues) {
+    if (hasInsufficientFunds) return;
     onSubmit({
       goal,
       ...data,
@@ -156,7 +159,7 @@ export function AddToGoalDialog({
                     <CurrencyInput value={field.value} onChange={field.onChange} />
                   </FormControl>
                   {selectedBankAccount && (
-                    <FormDescription className={cn(availableBalance < field.value && "text-destructive")}>
+                    <FormDescription className={cn(hasInsufficientFunds && "text-destructive font-bold")}>
                         موجودی قابل استفاده: {formatCurrency(availableBalance, 'IRT')}
                     </FormDescription>
                   )}
@@ -169,7 +172,7 @@ export function AddToGoalDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 انصراف
               </Button>
-              <Button type="submit">افزودن و مسدود کردن</Button>
+              <Button type="submit" disabled={hasInsufficientFunds}>افزودن و مسدود کردن</Button>
             </DialogFooter>
           </form>
         </Form>
