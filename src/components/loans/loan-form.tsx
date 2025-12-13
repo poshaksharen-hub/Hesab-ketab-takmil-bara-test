@@ -156,7 +156,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             ...data,
             startDate: data.startDate.toISOString(),
             firstInstallmentDate: data.firstInstallmentDate.toISOString(),
-            registeredByUserId: user.uid,
         };
         onSubmit(submissionData);
     };
@@ -236,7 +235,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>این وام برای کیست؟</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
                                 <FormControl>
                                     <SelectTrigger>
                                     <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
@@ -248,6 +247,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                     <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
                                 </SelectContent>
                                 </Select>
+                                {!!initialData && <FormDescription>مالکیت وام پس از ثبت قابل تغییر نیست.</FormDescription>}
                                 <FormMessage />
                             </FormItem>
                             )}
