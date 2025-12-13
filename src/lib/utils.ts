@@ -50,7 +50,6 @@ export function formatCardNumber(cardNumber?: string) {
     return cardNumber.replace(/(\d{4})/g, '$1 ').trim();
 };
 
-// --- START REPLACEMENT ---
 const units = ["", "یک", "دو", "سه", "چهار", "پنج", "شش", "هفت", "هشت", "نه"];
 const teens = ["ده", "یازده", "دوازده", "سیزده", "چهارده", "پانزده", "شانزده", "هفده", "هجده", "نوزده"];
 const tens = ["", "ده", "بیست", "سی", "چهل", "پنجاه", "شصت", "هفتاد", "هشتاد", "نود"];
@@ -96,5 +95,4 @@ export function amountToWords(amount: number): string {
     
     return result.reverse().join(" و ").trim();
 }
-// --- END REPLACEMENT ---
 
