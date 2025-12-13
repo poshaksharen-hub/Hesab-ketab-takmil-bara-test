@@ -55,7 +55,7 @@ type ExpenseFormValues = z.infer<typeof formSchema>;
 interface ExpenseFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'type' | 'ownerId'>) => void;
+  onSubmit: (data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'type' | 'ownerId'>) => void;
   initialData: Expense | null;
   bankAccounts: BankAccount[];
   categories: Category[];
@@ -118,13 +118,14 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
     const submissionData = {
         ...data,
         date: data.date.toISOString(),
+        registeredByUserId: user.uid,
     };
 
     if (submissionData.payeeId === 'none') {
         delete (submissionData as any).payeeId;
     }
     
-    onSubmit(submissionData);
+    onSubmit(submissionData as any);
     form.reset(); 
   }
 

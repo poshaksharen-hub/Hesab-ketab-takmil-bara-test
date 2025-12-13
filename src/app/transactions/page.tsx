@@ -93,12 +93,13 @@ export default function ExpensesPage() {
             date: values.date,
             icon: 'TrendingDown',
             color: 'rgb(220 38 38)',
+            registeredBy: currentUserFirstName,
             category: category?.name,
             payee: payee?.name,
             bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
             expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
           const permissionError = new FirestorePermissionError({
