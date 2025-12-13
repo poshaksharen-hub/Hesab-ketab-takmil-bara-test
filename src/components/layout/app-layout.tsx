@@ -38,7 +38,8 @@ import {
   Sparkles,
   Menu as MenuIcon,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  DatabaseZap,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -84,6 +85,7 @@ function Menu({ onLinkClick, unreadCount }: { onLinkClick?: () => void; unreadCo
     { href: '/loans', label: 'وام‌ها', icon: Landmark },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake },
     { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban },
+    { href: '/data-migration', label: 'اصلاح داده‌ها', icon: DatabaseZap },
   ];
 
   return (
