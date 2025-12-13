@@ -79,6 +79,10 @@ export function useDashboardData() {
             ...acc,
             blockedBalance: blockedBalances[acc.id] || 0,
         }));
+        
+        // This is now the single source of truth for user identity information.
+        const processedUsers = usersData || [];
+
 
         return {
             incomes: incomes || [],
@@ -93,7 +97,7 @@ export function useDashboardData() {
             loanPayments: loanPayments || [],
             previousDebts: previousDebts || [],
             debtPayments: debtPayments || [],
-            users: usersData || [],
+            users: processedUsers,
         };
     }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments, usersData]);
 

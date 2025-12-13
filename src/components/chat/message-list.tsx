@@ -24,8 +24,7 @@ interface MessageListProps {
 
 export function MessageList({ messages, currentUserId, onReply }: MessageListProps) {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
-  const { allData } = useDashboardData();
-  const { users } = allData;
+  const { allData: { users } } = useDashboardData();
 
   const otherUser = useMemo(() => {
     return users.find(u => u.id !== currentUserId);
@@ -73,7 +72,8 @@ export function MessageList({ messages, currentUserId, onReply }: MessageListPro
         }
         
         const isCurrentUser = message.senderId === currentUserId;
-        const senderKey = message.senderName === USER_DETAILS.ali.firstName ? 'ali' : 'fatemeh';
+        const sender = users.find(u => u.id === message.senderId);
+        const senderKey = sender?.email.startsWith('ali') ? 'ali' : 'fatemeh';
         const avatar = getPlaceholderImage(`${senderKey}-avatar`);
 
         return (

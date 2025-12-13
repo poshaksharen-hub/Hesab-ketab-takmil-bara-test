@@ -5,10 +5,11 @@ import { useEffect, useRef } from 'react';
 import { useCollection, useUser, useFirestore } from '@/firebase';
 import { collection, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import { Income, Expense } from '@/lib/types';
+import { Income, Expense, UserProfile } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { useMemoFirebase } from '@/firebase';
+import { useDashboardData } from './use-dashboard-data';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -24,6 +25,8 @@ export const useTransactionNotifier = () => {
   const { user } = useUser();
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { allData: { users } } = useDashboardData();
+
 
   const now = useMemoFirebase(() => Timestamp.now(), []);
 
@@ -52,10 +55,7 @@ export const useTransactionNotifier = () => {
   const prevExpenses = usePrevious(newExpenses);
 
   const getUserFirstName = (userId: string) => {
-    // Since we only have two users, this is a safe and efficient way.
-    // In a larger app, you might fetch user profiles.
-    const userProfile = Object.values(USER_DETAILS).find(u => u.email.startsWith(userId.split('@')[0]));
-    return userProfile?.firstName || 'کاربر';
+    return users.find(u => u.id === userId)?.firstName || 'کاربر';
   };
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export const useTransactionNotifier = () => {
         });
       }
     });
-  }, [newIncomes, prevIncomes, user, toast]);
+  }, [newIncomes, prevIncomes, user, toast, users]);
 
   useEffect(() => {
     if (!user || !newExpenses || !prevExpenses) return;
@@ -88,7 +88,7 @@ export const useTransactionNotifier = () => {
         });
       }
     });
-  }, [newExpenses, prevExpenses, user, toast]);
+  }, [newExpenses, prevExpenses, user, toast, users]);
 
 
   return null; // This hook doesn't render anything
