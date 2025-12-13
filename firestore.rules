@@ -4,23 +4,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // This rule correctly matches all documents and sub-collections
-    // within family-data and gives full read/write access
-    // to any authenticated user.
+    // Rule for Shared Family Data
+    // This rule grants full read and write access to all documents and sub-collections
+    // within the `/family-data` path to ANY authenticated user (i.e., Ali or Fatemeh).
+    // This is the core of the shared financial management model.
     match /family-data/{path=**} {
       allow read, write: if request.auth != null;
     }
 
-    // Allow users to create their own profile, and read/update/delete ONLY
-    // their own profile. This prevents listing all users.
+    // Rules for User Profiles
+    // These rules are more restrictive to protect individual user profile data.
     match /users/{userId} {
-      // Any authenticated user can GET another user's profile individually.
+      // Any authenticated user can GET another user's profile individually by its ID.
+      // This is necessary for the app to display user names correctly.
       allow get: if request.auth != null; 
-      // Explicitly deny listing the entire collection for security.
+      
+      // Explicitly DENY listing the entire collection for security and privacy.
       allow list: if false; 
+      
       // A user can only update or delete their OWN profile.
       allow update, delete: if request.auth != null && request.auth.uid == userId;
-      // Any authenticated user can create a user profile document (e.g., on first sign-up).
+
+      // Any authenticated user can create a user profile document, which happens
+      // automatically on the first sign-in if the profile doesn't exist.
       allow create: if request.auth != null;
     }
   }
