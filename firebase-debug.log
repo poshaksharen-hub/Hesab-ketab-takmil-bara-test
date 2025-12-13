@@ -1,0 +1,82 @@
+[debug] [2025-12-13T02:12:45.311Z] ----------------------------------------------------------------------
+[debug] [2025-12-13T02:12:45.316Z] Command:       /nix/store/ws50yvm6vzlzf7jzz6n7xh4szddrack1-nodejs-20.19.1/bin/node /home/user/.global_modules/bin/firebase init hosting
+[debug] [2025-12-13T02:12:45.316Z] CLI Version:   14.27.0
+[debug] [2025-12-13T02:12:45.317Z] Platform:      linux
+[debug] [2025-12-13T02:12:45.317Z] Node Version:  v20.19.1
+[debug] [2025-12-13T02:12:45.318Z] Time:          Sat Dec 13 2025 02:12:45 GMT+0000 (Coordinated Universal Time)
+[debug] [2025-12-13T02:12:45.318Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-12-13T02:12:45.327Z] No OAuth tokens found
+[debug] [2025-12-13T02:12:45.328Z] No OAuth tokens found
+[error] Failed to fetch Firebase Project from current Studio Workspace: Unable to refresh auth: not yet authenticated.
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  /home/user/studio
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2025-12-13T02:12:45.339Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2025-12-13T02:12:45.346Z] ----------------------------------------------------------------------
+[debug] [2025-12-13T02:12:45.351Z] Command:       /nix/store/ws50yvm6vzlzf7jzz6n7xh4szddrack1-nodejs-20.19.1/bin/node /home/user/.global_modules/bin/firebase init hosting
+[debug] [2025-12-13T02:12:45.352Z] CLI Version:   14.27.0
+[debug] [2025-12-13T02:12:45.353Z] Platform:      linux
+[debug] [2025-12-13T02:12:45.353Z] Node Version:  v20.19.1
+[debug] [2025-12-13T02:12:45.354Z] Time:          Sat Dec 13 2025 02:12:45 GMT+0000 (Coordinated Universal Time)
+[debug] [2025-12-13T02:12:45.354Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-12-13T02:12:45.364Z] No OAuth tokens found
+[debug] [2025-12-13T02:12:45.365Z] No OAuth tokens found
+[error] Failed to fetch Firebase Project from current Studio Workspace: Unable to refresh auth: not yet authenticated.
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  /home/user/studio
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2025-12-13T02:12:45.388Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2025-12-13T02:12:55.724Z] Running auto auth
+[debug] [2025-12-13T02:12:55.731Z] Running auto auth
+[debug] [2025-12-13T02:12:55.776Z] No OAuth tokens found
+[debug] [2025-12-13T02:12:55.783Z] No OAuth tokens found
+[debug] [2025-12-13T02:12:55.794Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 [none]
+[debug] [2025-12-13T02:12:55.788Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 [none]
+[debug] [2025-12-13T02:12:56.166Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 200
+[debug] [2025-12-13T02:12:56.183Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 200
+[debug] [2025-12-13T02:12:56.167Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 {"projectId":"alikhan1372-f9798","projectNumber":"474507800004","displayName":"Alikhan1372","name":"projects/alikhan1372-f9798","resources":{"hostingSite":"alikhan1372-f9798"},"state":"ACTIVE","etag":"1_ed18be99-7eea-4ab8-9544-10fed4a9456f"}
+[info] i  Using project alikhan1372-f9798 (Alikhan1372) . 
+[info] 
+=== Hosting Setup
+[debug] [2025-12-13T02:12:56.192Z] No OAuth tokens found
+[debug] [2025-12-13T02:12:56.194Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 [none]
+[debug] [2025-12-13T02:12:56.183Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 {"projectId":"alikhan1372-f9798","projectNumber":"474507800004","displayName":"Alikhan1372","name":"projects/alikhan1372-f9798","resources":{"hostingSite":"alikhan1372-f9798"},"state":"ACTIVE","etag":"1_ed18be99-7eea-4ab8-9544-10fed4a9456f"}
+[info] i  Using project alikhan1372-f9798 (Alikhan1372) . 
+[info] 
+=== Hosting Setup
+[debug] [2025-12-13T02:12:56.216Z] No OAuth tokens found
+[debug] [2025-12-13T02:12:56.216Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 [none]
+[debug] [2025-12-13T02:12:56.536Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 200
+[debug] [2025-12-13T02:12:56.537Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 {"projectId":"alikhan1372-f9798","projectNumber":"474507800004","displayName":"Alikhan1372","name":"projects/alikhan1372-f9798","resources":{"hostingSite":"alikhan1372-f9798"},"state":"ACTIVE","etag":"1_ed18be99-7eea-4ab8-9544-10fed4a9456f"}
+[debug] [2025-12-13T02:12:56.536Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 200
+[debug] [2025-12-13T02:12:56.539Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/alikhan1372-f9798 {"projectId":"alikhan1372-f9798","projectNumber":"474507800004","displayName":"Alikhan1372","name":"projects/alikhan1372-f9798","resources":{"hostingSite":"alikhan1372-f9798"},"state":"ACTIVE","etag":"1_ed18be99-7eea-4ab8-9544-10fed4a9456f"}

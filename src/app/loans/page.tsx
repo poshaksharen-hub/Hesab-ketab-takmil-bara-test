@@ -117,7 +117,6 @@ export default function LoansPage() {
         const loanData: Loan = { 
             id: newLoanRef.id,
             ...loanValues,
-            registeredByUserId: user.uid,
             paidInstallments: 0, 
             remainingAmount: loanValues.amount 
         };
@@ -357,4 +356,3 @@ export default function LoansPage() {
     </div>
   );
 }
-
