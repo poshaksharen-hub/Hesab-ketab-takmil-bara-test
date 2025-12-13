@@ -1,18 +1,17 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { PayeeList } from '@/components/payees/payee-list';
 import { PayeeForm } from '@/components/payees/payee-form';
-import type { Payee } from '@/lib/types';
+import type { Payee, Check, Expense, Loan, PreviousDebt } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import Link from 'next/link';
 import { errorEmitter } from '@/firebase/error-emitter';
 
@@ -22,13 +21,26 @@ export default function PayeesPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
-
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingPayee, setEditingPayee] = React.useState<Payee | null>(null);
 
-  const { payees, checks, expenses, loans, previousDebts } = allData;
+  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
+
+  const payeesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'payees') : null), [baseDocRef]);
+  const checksQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'checks') : null), [baseDocRef]);
+  const expensesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]);
+  const loansQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'loans') : null), [baseDocRef]);
+  const previousDebtsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]);
+  
+  const { data: payees, isLoading: ilP } = useCollection<Payee>(payeesQuery);
+  const { data: checks, isLoading: ilC } = useCollection<Check>(checksQuery);
+  const { data: expenses, isLoading: ilE } = useCollection<Expense>(expensesQuery);
+  const { data: loans, isLoading: ilL } = useCollection<Loan>(loansQuery);
+  const { data: previousDebts, isLoading: ilD } = useCollection<PreviousDebt>(previousDebtsQuery);
+
+  const isDashboardLoading = ilP || ilC || ilE || ilL || ilD;
+
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Payee, 'id'>) => {
     if (!user || !firestore) return;

@@ -3,7 +3,8 @@
 
 import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { USER_DETAILS } from '@/lib/constants';
-import type { FinancialGoal, FinancialGoalContribution, BankAccount, OwnerId } from '@/lib/types';
+import type { FinancialGoal, FinancialGoalContribution, BankAccount, OwnerId, UserProfile } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
@@ -43,17 +44,28 @@ function GoalDetailSkeleton() {
   );
 }
 
+const FAMILY_DATA_DOC = 'shared-data';
 
 export default function GoalDetailPage() {
   const router = useRouter();
   const params = useParams();
   const goalId = params.goalId as string;
+  const firestore = useFirestore();
 
-  const { isLoading, allData } = useDashboardData();
-  const { goals, bankAccounts, users } = allData;
+  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
+  
+  const goalsQuery = useMemo(() => baseDocRef ? collection(baseDocRef, 'financialGoals') : null, [baseDocRef]);
+  const bankAccountsQuery = useMemo(() => baseDocRef ? collection(baseDocRef, 'bankAccounts') : null, [baseDocRef]);
+
+  const { data: goals, isLoading: ilG } = useCollection<FinancialGoal>(goalsQuery);
+  const { data: bankAccounts, isLoading: ilB } = useCollection<BankAccount>(bankAccountsQuery);
+  const users = useMemo<UserProfile[]>(() => [USER_DETAILS.ali, USER_DETAILS.fatemeh], []);
+
+  const isLoading = ilG || ilB;
+
 
   const { goal, contributionsWithDetails } = useMemo(() => {
-    if (isLoading || !goalId) {
+    if (isLoading || !goalId || !goals || !bankAccounts) {
       return { goal: null, contributionsWithDetails: [] };
     }
 
@@ -87,7 +99,7 @@ export default function GoalDetailPage() {
 
   if (!goal) {
     return (
-      <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <main className="flex-1 p-4 pt-6 md:p-8">
         <Card>
           <CardHeader>
             <CardTitle>هدف مالی یافت نشد</CardTitle>

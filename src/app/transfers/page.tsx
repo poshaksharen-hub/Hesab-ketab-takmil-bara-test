@@ -1,15 +1,14 @@
 
 'use client';
 
-import React, { useCallback, useState } from 'react';
-import { useUser, useFirestore } from '@/firebase';
+import React, { useCallback, useState, useMemo } from 'react';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import type { BankAccount, Transfer, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TransferForm } from '@/components/transfers/transfer-form';
 import { TransferList } from '@/components/transfers/transfer-list';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -24,10 +23,17 @@ export default function TransfersPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const { bankAccounts: allBankAccounts, users, transfers } = allData;
+  
+  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
+  
+  const bankAccountsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]);
+  const transfersQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'transfers') : null), [baseDocRef]);
+  
+  const { data: allBankAccounts, isLoading: ilB } = useCollection<BankAccount>(bankAccountsQuery);
+  const { data: transfers, isLoading: ilT } = useCollection<Transfer>(transfersQuery);
+  const users = useMemo<UserProfile[]>(() => [USER_DETAILS.ali, USER_DETAILS.fatemeh], []);
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
@@ -186,7 +192,7 @@ export default function TransfersPage() {
     setIsFormOpen(false);
   }, []);
 
-  const isLoading = isUserLoading || isDashboardLoading;
+  const isLoading = isUserLoading || ilB || ilT;
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">

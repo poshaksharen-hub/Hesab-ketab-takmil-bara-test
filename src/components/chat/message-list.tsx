@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useRef, useEffect, useMemo } from 'react';
@@ -10,7 +9,6 @@ import { getPlaceholderImage } from '@/lib/placeholder-images';
 import { formatDistanceToNow } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 import { USER_DETAILS } from '@/lib/constants';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Check, CheckCheck, CornerDownLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import { SystemMessageCard } from './system-message-card';
@@ -20,15 +18,15 @@ interface MessageListProps {
   messages: ChatMessage[];
   currentUserId: string;
   onReply: (message: ChatMessage) => void;
+  allUsers: UserProfile[];
 }
 
-export function MessageList({ messages, currentUserId, onReply }: MessageListProps) {
+export function MessageList({ messages, currentUserId, onReply, allUsers }: MessageListProps) {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
-  const { allData: { users } } = useDashboardData();
 
   const otherUser = useMemo(() => {
-    return users.find(u => u.id !== currentUserId);
-  }, [users, currentUserId]);
+    return allUsers.find(u => u.id !== currentUserId);
+  }, [allUsers, currentUserId]);
 
 
   useEffect(() => {
@@ -72,7 +70,7 @@ export function MessageList({ messages, currentUserId, onReply }: MessageListPro
         }
         
         const isCurrentUser = message.senderId === currentUserId;
-        const sender = users.find(u => u.id === message.senderId);
+        const sender = allUsers.find(u => u.id === message.senderId);
         const senderKey = sender?.email.startsWith('ali') ? 'ali' : 'fatemeh';
         const avatar = getPlaceholderImage(`${senderKey}-avatar`);
 

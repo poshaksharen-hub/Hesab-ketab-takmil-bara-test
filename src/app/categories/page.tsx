@@ -1,18 +1,17 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { CategoryList } from '@/components/categories/category-list';
 import { CategoryForm } from '@/components/categories/category-form';
-import type { Category } from '@/lib/types';
+import type { Category, Expense, Check } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import Link from 'next/link';
 import { errorEmitter } from '@/firebase/error-emitter';
 
@@ -22,12 +21,19 @@ export default function CategoriesPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
 
-  const { categories, expenses, checks } = allData;
+  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
+  
+  const categoriesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'categories') : null), [baseDocRef]);
+  const expensesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]);
+  const checksQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'checks') : null), [baseDocRef]);
+  
+  const { data: categories, isLoading: ilC } = useCollection<Category>(categoriesQuery);
+  const { data: expenses, isLoading: ilE } = useCollection<Expense>(expensesQuery);
+  const { data: checks, isLoading: ilCh } = useCollection<Check>(checksQuery);
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Category, 'id'>) => {
     if (!user || !firestore) return;
@@ -111,7 +117,7 @@ export default function CategoriesPage() {
   }, []);
 
 
-  const isLoading = isUserLoading || isDashboardLoading;
+  const isLoading = isUserLoading || ilC || ilE || ilCh;
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">

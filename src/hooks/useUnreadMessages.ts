@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import type { ChatMessage } from '@/lib/types';
 
 const FAMILY_DATA_DOC = 'shared-data';

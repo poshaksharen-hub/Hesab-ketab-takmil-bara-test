@@ -1,12 +1,13 @@
 
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ArrowRight, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ChatInterface } from '@/components/chat/chat-interface';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { collection, doc } from 'firebase/firestore';
 
 function ChatPageSkeleton() {
     return (
@@ -30,10 +31,17 @@ function ChatPageSkeleton() {
     )
 }
 
+const FAMILY_DATA_DOC = 'shared-data';
+
 export default function ChatPage() {
     const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
 
-    if (isUserLoading || !user) {
+    const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
+    const chatMessagesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'chatMessages') : null), [baseDocRef]);
+    const { isLoading: isLoadingMessages } = useCollection(chatMessagesQuery);
+    
+    if (isUserLoading || isLoadingMessages || !user) {
         return <ChatPageSkeleton />;
     }
 

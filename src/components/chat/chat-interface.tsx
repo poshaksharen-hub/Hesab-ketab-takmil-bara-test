@@ -13,7 +13,7 @@ import {
   doc,
   updateDoc,
 } from 'firebase/firestore';
-import type { ChatMessage } from '@/lib/types';
+import type { ChatMessage, UserProfile } from '@/lib/types';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,11 +35,19 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
     () => (messagesCollectionRef ? query(messagesCollectionRef, orderBy('timestamp', 'asc')) : null),
     [messagesCollectionRef]
   );
+  
+  const usersQuery = useMemo(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
 
-  const { data: messages, isLoading } = useCollection<ChatMessage>(messagesQuery);
+  const { data: messages, isLoading: isLoadingMessages } = useCollection<ChatMessage>(messagesQuery);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
+  const allUsers = users ? users : [USER_DETAILS.ali, USER_DETAILS.fatemeh];
+
 
   useEffect(() => {
-    if (!firestore || !messages || messages.length === 0 || isLoading || !currentUser) return;
+    if (!firestore || !messages || messages.length === 0 || isLoadingMessages || !currentUser) return;
+
+    const otherUser = allUsers.find(u => u.id !== currentUser.uid);
+    if (!otherUser) return;
 
     const unreadMessages = messages.filter(
       (msg) => msg.senderId !== currentUser.uid && (!msg.readBy || !msg.readBy.includes(currentUser.uid))
@@ -48,16 +56,18 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
     if (unreadMessages.length > 0) {
       const batch = writeBatch(firestore);
       unreadMessages.forEach((message) => {
-        const messageRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`, message.id);
-        const currentReadBy = message.readBy || [];
-        batch.update(messageRef, {
-          readBy: [...currentReadBy, currentUser.uid],
-        });
+        if (message.id) { // Ensure message has an ID before trying to update
+          const messageRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`, message.id);
+          const currentReadBy = message.readBy || [];
+          batch.update(messageRef, {
+            readBy: [...currentReadBy, currentUser.uid],
+          });
+        }
       });
 
       batch.commit().catch(console.error);
     }
-  }, [messages, firestore, currentUser, isLoading]);
+  }, [messages, firestore, currentUser, isLoadingMessages, allUsers]);
 
   const handleSendMessage = async (text: string) => {
     if (!messagesCollectionRef || text.trim() === '') return;
@@ -95,7 +105,7 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="flex-grow overflow-y-auto p-4">
-        {isLoading ? (
+        {(isLoadingMessages || isLoadingUsers) ? (
           <div className="space-y-4">
             <Skeleton className="h-12 w-3/4 self-start rounded-lg" />
             <Skeleton className="h-16 w-1/2 self-end rounded-lg" />
@@ -106,6 +116,7 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
             messages={messages || []}
             currentUserId={currentUser.uid}
             onReply={setReplyingToMessage}
+            allUsers={allUsers}
           />
         )}
       </div>

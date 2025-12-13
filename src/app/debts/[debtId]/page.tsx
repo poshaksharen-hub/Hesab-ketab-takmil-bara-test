@@ -60,7 +60,7 @@ export default function DebtDetailPage() {
   const { previousDebts, debtPayments, bankAccounts, payees, users } = allData;
 
   const { debt, paymentHistory, registeredByName } = useMemo(() => {
-    if (isLoading || !debtId) {
+    if (isLoading || !debtId || !previousDebts || !debtPayments || !bankAccounts || !users) {
       return { debt: null, paymentHistory: [], registeredByName: 'نامشخص' };
     }
 
@@ -117,7 +117,7 @@ export default function DebtDetailPage() {
   }
   
   const getPayeeName = (payeeId?: string) => {
-    if (!payeeId) return 'نامشخص';
+    if (!payeeId || !payees) return 'نامشخص';
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
   

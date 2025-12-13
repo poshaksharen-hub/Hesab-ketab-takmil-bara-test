@@ -3,17 +3,17 @@
 
 import React, { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, User, Users, FolderKanban, TrendingDown, Wallet } from 'lucide-react';
-import type { Expense, ExpenseFor } from '@/lib/types';
+import type { Expense, ExpenseFor, UserProfile, Category, BankAccount, Payee } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import Link from 'next/link';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 type FilterType = 'all' | ExpenseFor;
 
@@ -45,12 +45,11 @@ export default function CategoryDetailPage() {
   const params = useParams();
   const categoryId = params.categoryId as string;
   const [filter, setFilter] = useState<FilterType>('all');
-
   const { isLoading, allData } = useDashboardData();
-  const { expenses, categories, bankAccounts, users, payees } = allData;
+  const { expenses, categories, bankAccounts, payees, users } = allData;
 
   const { category, filteredExpenses, totalAmount } = useMemo(() => {
-    if (isLoading || !categoryId) {
+    if (isLoading || !categoryId || !categories || !expenses) {
       return { category: null, filteredExpenses: [], totalAmount: 0 };
     }
     const currentCategory = categories.find((c) => c.id === categoryId);
@@ -145,10 +144,10 @@ export default function CategoryDetailPage() {
          <TabsContent value={filter}>
             <ExpenseList
                 expenses={filteredExpenses}
-                bankAccounts={bankAccounts}
-                categories={categories}
-                users={users}
-                payees={payees}
+                bankAccounts={bankAccounts || []}
+                categories={categories || []}
+                users={users || []}
+                payees={payees || []}
                 onDelete={handleDelete}
             />
          </TabsContent>

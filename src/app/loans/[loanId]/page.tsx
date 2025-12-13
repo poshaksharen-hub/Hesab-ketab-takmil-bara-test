@@ -65,7 +65,7 @@ export default function LoanDetailPage() {
   const { loans, loanPayments, bankAccounts, payees, users } = allData;
 
   const { loan, paymentHistory } = useMemo(() => {
-    if (isLoading || !loanId) {
+    if (isLoading || !loanId || !loans || !loanPayments || !bankAccounts || !payees || !users) {
       return { loan: null, paymentHistory: [] };
     }
 
@@ -90,7 +90,7 @@ export default function LoanDetailPage() {
       loan: currentLoan,
       paymentHistory: relatedPayments,
     };
-  }, [isLoading, loanId, loans, loanPayments, bankAccounts]);
+  }, [isLoading, loanId, loans, loanPayments, bankAccounts, payees, users]);
 
   if (isLoading) {
     return <LoanDetailSkeleton />;
@@ -115,7 +115,7 @@ export default function LoanDetailPage() {
   }
 
   const getPayeeName = (payeeId?: string) => {
-    if (!payeeId) return 'نامشخص';
+    if (!payeeId || !payees) return 'نامشخص';
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
   

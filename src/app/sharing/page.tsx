@@ -1,13 +1,20 @@
 
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Target, ArrowLeft } from 'lucide-react';
+import { useUser, useFirestore, useCollection } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
+
+const FAMILY_DATA_DOC = 'shared-data';
 
 export default function SharingRedirectPage() {
+  const firestore = useFirestore();
+  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
+
  
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 flex items-center justify-center">

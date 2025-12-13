@@ -79,7 +79,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, u
             const progress = (goal.targetAmount > 0) ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
             const isAchieved = goal.isAchieved;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(goal.ownerId);
-            const registeredByName = users.find(u => u.id === goal.registeredByUserId)?.firstName || 'سیستم';
+            const registeredByName = users.find(u => u.id === goal.registeredByUserId)?.firstName || 'نامشخص';
 
             return (
             <div key={goal.id} className="relative group">

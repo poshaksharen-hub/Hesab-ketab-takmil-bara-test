@@ -1,18 +1,17 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, ArrowRight, Plus } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
 import { CardForm } from '@/components/cards/card-form';
-import type { BankAccount, UserProfile, OwnerId } from '@/lib/types';
+import type { BankAccount, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 import { Input } from '@/components/ui/input';
 import { toEnglishDigits } from '@/lib/utils';
@@ -26,24 +25,38 @@ export default function CardsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
-
+  
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
-  
-  const { bankAccounts: allBankAccounts = [], users } = allData;
-  const hasSharedAccount = allBankAccounts.some(acc => acc.ownerId === 'shared_account');
 
+  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance'>) => {
+  const bankAccountsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]);
+  const incomesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]);
+  const expensesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]);
+  const transfersQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'transfers') : null), [baseDocRef]);
+  const checksQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'checks') : null), [baseDocRef]);
+  const loanPaymentsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'loanPayments') : null), [baseDocRef]);
+  const debtPaymentsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]);
+
+  const { data: allBankAccounts, isLoading: isBankAccountsLoading } = useCollection<BankAccount>(bankAccountsQuery);
+  const users = useMemo<UserProfile[]>(() => [USER_DETAILS.ali, USER_DETAILS.fatemeh], []);
+
+  const hasSharedAccount = useMemo(() => (allBankAccounts || []).some(acc => acc.ownerId === 'shared_account'), [allBankAccounts]);
+
+  const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId'>) => {
     if (!user || !firestore) return;
     
     const collectionRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts');
+    const dataToSend = {
+      ...values,
+      registeredByUserId: user.uid,
+    }
   
     if (editingCard) {
       // --- Edit ---
-      const { initialBalance, ...updateData } = values as any;
+      const { initialBalance, ...updateData } = dataToSend as any;
       updateDocumentNonBlocking(doc(collectionRef, editingCard.id), updateData, () => {
         toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
       });
@@ -51,7 +64,7 @@ export default function CardsPage() {
     } else {
         // --- Create ---
         const newCard = { 
-            ...values,
+            ...dataToSend,
             balance: values.initialBalance,
         };
         
@@ -77,20 +90,20 @@ export default function CardsPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             
             const dependencyChecks = [
-              { name: 'هزینه‌ها', collection: 'expenses', field: 'bankAccountId' },
-              { name: 'درآمدها', collection: 'incomes', field: 'bankAccountId' },
-              { name: 'انتقال‌ها (مبدا)', collection: 'transfers', field: 'fromBankAccountId' },
-              { name: 'انتقال‌ها (مقصد)', collection: 'transfers', field: 'toBankAccountId' },
-              { name: 'چک‌ها', collection: 'checks', field: 'bankAccountId' },
-              { name: 'پرداخت وام‌ها', collection: 'loanPayments', field: 'bankAccountId' },
-              { name: 'پرداخت بدهی‌ها', collection: 'debtPayments', field: 'bankAccountId' },
+              { name: 'هزینه‌ها', query: expensesQuery, field: 'bankAccountId' },
+              { name: 'درآمدها', query: incomesQuery, field: 'bankAccountId' },
+              { name: 'انتقال‌ها (مبدا)', query: transfersQuery, field: 'fromBankAccountId' },
+              { name: 'انتقال‌ها (مقصد)', query: transfersQuery, field: 'toBankAccountId' },
+              { name: 'چک‌ها', query: checksQuery, field: 'bankAccountId' },
+              { name: 'پرداخت وام‌ها', query: loanPaymentsQuery, field: 'bankAccountId' },
+              { name: 'پرداخت بدهی‌ها', query: debtPaymentsQuery, field: 'bankAccountId' },
             ];
 
             for (const dep of dependencyChecks) {
-                const q = query(collection(familyDataRef, dep.collection), where(dep.field, '==', cardId));
+                if (!dep.query) continue;
+                const q = query(dep.query, where(dep.field, '==', cardId));
                 const snapshot = await getDocs(q);
                 if (!snapshot.empty) {
                     throw new Error(`امکان حذف وجود ندارد. این کارت در یک یا چند تراکنش (${dep.name}) استفاده شده است.`);
@@ -116,7 +129,7 @@ export default function CardsPage() {
             });
         }
     }
-  }, [user, firestore, allBankAccounts, toast]);
+  }, [user, firestore, allBankAccounts, toast, expensesQuery, incomesQuery, transfersQuery, checksQuery, loanPaymentsQuery, debtPaymentsQuery]);
 
 
   const handleEdit = React.useCallback((card: BankAccount) => {
@@ -129,9 +142,10 @@ export default function CardsPage() {
     setIsFormOpen(true);
   }, []);
   
-  const isLoading = isUserLoading || isDashboardLoading;
+  const isLoading = isUserLoading || isBankAccountsLoading;
   
   const filteredBankAccounts = React.useMemo(() => {
+    if (!allBankAccounts) return [];
     if (!searchQuery) {
       return allBankAccounts;
     }

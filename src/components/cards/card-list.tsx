@@ -27,7 +27,6 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getBankTheme } from '@/lib/bank-data';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useUser } from '@/firebase';
 import { Separator } from '../ui/separator';
 
@@ -214,10 +213,9 @@ interface CardListProps {
   cards: BankAccount[];
   onEdit: (card: BankAccount) => void;
   onDelete: (cardId: string) => void;
-  users: UserProfile[];
 }
 
-export function CardList({ cards, onEdit, onDelete, users }: CardListProps) {
+export function CardList({ cards, onEdit, onDelete }: CardListProps) {
   const { user } = useUser();
   const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
 

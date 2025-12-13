@@ -57,7 +57,7 @@ export default function PayeeDetailPage() {
   const { expenses, checks, loans, payees, previousDebts } = allData;
 
   const { payee, summary, combinedHistory } = useMemo(() => {
-    if (isLoading || !payeeId) {
+    if (isLoading || !payeeId || !payees || !expenses || !checks || !loans || !previousDebts) {
       return { payee: null, summary: {}, combinedHistory: [] };
     }
 

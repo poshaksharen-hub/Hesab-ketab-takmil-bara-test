@@ -1,14 +1,12 @@
 
-
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useCollection, useFirestore } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
-import { isEqual } from 'date-fns';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { isEqual, startOfDay, endOfDay } from 'date-fns';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
@@ -29,10 +27,13 @@ import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, ArrowLeft, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
-import type { DashboardFilter } from '@/hooks/use-dashboard-data';
+import type { DashboardFilter } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { collection, doc } from 'firebase/firestore';
+import type { Income, Expense, BankAccount, Category, Check, FinancialGoal, Loan, Payee, Transfer, LoanPayment, PreviousDebt, DebtPayment, UserProfile } from '@/lib/types';
 
+const FAMILY_DATA_DOC = 'shared-data';
 
 function DashboardSkeleton() {
   const auth = useAuth();
@@ -112,11 +113,11 @@ function QuickAccess() {
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [ownerFilter, setOwnerFilter] = useState<DashboardFilter>('all');
-  const [date, setDate] = useState<DateRange | undefined>(getDateRange('thisMonth').range);
+  const [date, setDate] = useState<DateRange | undefined>(() => getDateRange('thisMonth').range);
   const [activePreset, setActivePreset] = useState<ReturnType<typeof getDateRange>['preset']>('thisMonth');
 
-  const { isLoading, getFilteredData, allData } = useDashboardData();
   const { toast } = useToast();
   
   useEffect(() => {
@@ -126,10 +127,67 @@ export default function DashboardPage() {
     }
   }, [user, isUserLoading]);
 
-  const { summary, details, globalSummary } = getFilteredData(ownerFilter, date);
-  
+  // --- Data Fetching ---
+  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
 
-  const effectiveLoading = isUserLoading || isLoading;
+  const { data: incomes, isLoading: ilI } = useCollection<Income>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]));
+  const { data: expenses, isLoading: ilE } = useCollection<Expense>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]));
+  const { data: bankAccounts, isLoading: ilBA } = useCollection<BankAccount>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
+  const { data: categories, isLoading: ilC } = useCollection<Category>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'categories') : null), [baseDocRef]));
+  const { data: checks, isLoading: ilCH } = useCollection<Check>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'checks') : null), [baseDocRef]));
+  const { data: loans, isLoading: ilL } = useCollection<Loan>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'loans') : null), [baseDocRef]));
+  const { data: payees, isLoading: ilP } = useCollection<Payee>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'payees') : null), [baseDocRef]));
+  const { data: previousDebts, isLoading: ilPD } = useCollection<PreviousDebt>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
+  const users = useMemo<UserProfile[]>(() => [USER_DETAILS.ali, USER_DETAILS.fatemeh], []);
+
+  const isLoading = isUserLoading || ilI || ilE || ilBA || ilC || ilCH || ilL || ilP || ilPD;
+  // --- End Data Fetching ---
+
+
+  const { summary, details, globalSummary } = useMemo(() => {
+    const dateMatches = (d: string) => {
+        if (!date || !date.from || !date.to) return true;
+        const itemDate = new Date(d);
+        // Ensure we compare date parts only, ignoring time
+        return itemDate >= startOfDay(date.from) && itemDate <= endOfDay(date.to);
+    };
+
+    let filteredIncomes: Income[] = [];
+    let filteredExpenses: Expense[] = [];
+
+    if (ownerFilter === 'all') {
+        filteredIncomes = (incomes || []).filter(i => dateMatches(i.date));
+        filteredExpenses = (expenses || []).filter(e => dateMatches(e.date));
+    } else if (ownerFilter === 'daramad_moshtarak') {
+        filteredIncomes = (incomes || []).filter(i => i.ownerId === 'daramad_moshtarak' && dateMatches(i.date));
+    } else { // 'ali', 'fatemeh', or 'shared' (for expenses)
+        if (ownerFilter === 'ali' || ownerFilter === 'fatemeh') {
+             filteredIncomes = (incomes || []).filter(i => i.ownerId === ownerFilter && dateMatches(i.date));
+        }
+        filteredExpenses = (expenses || []).filter(e => e.expenseFor === ownerFilter && dateMatches(e.date));
+    }
+
+    const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const allTransactions = [...filteredIncomes, ...filteredExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Global summaries (not filtered by date/owner)
+    const aliBalance = (bankAccounts || []).filter(b => b.ownerId === 'ali').reduce((sum, acc) => sum + acc.balance, 0);
+    const fatemehBalance = (bankAccounts || []).filter(b => b.ownerId === 'fatemeh').reduce((sum, acc) => sum + acc.balance, 0);
+    const sharedBalance = (bankAccounts || []).filter(b => b.ownerId === 'shared_account').reduce((sum, acc) => sum + acc.balance, 0);
+    const totalAssets = aliBalance + fatemehBalance + sharedBalance;
+    const pendingChecksAmount = (checks || []).filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0);
+    const remainingLoanAmount = (loans || []).reduce((sum, l) => sum + l.remainingAmount, 0);
+    const remainingDebtsAmount = (previousDebts || []).reduce((sum, d) => sum + d.remainingAmount, 0);
+    const totalLiabilities = pendingChecksAmount + remainingLoanAmount + remainingDebtsAmount;
+    const netWorth = totalAssets - totalLiabilities;
+    
+    return {
+      summary: { totalIncome, totalExpense, netWorth, totalAssets, totalLiabilities, pendingChecksAmount, remainingLoanAmount, remainingDebtsAmount },
+      details: { expenses: filteredExpenses, transactions: allTransactions },
+      globalSummary: { aliBalance, fatemehBalance, sharedBalance },
+    };
+  }, [ownerFilter, date, incomes, expenses, bankAccounts, checks, loans, previousDebts]);
 
   useEffect(() => {
     let matchedPreset: ReturnType<typeof getDateRange>['preset'] | null = null;
@@ -145,7 +203,7 @@ export default function DashboardPage() {
   }, [date]);
 
 
-  if (effectiveLoading) {
+  if (isLoading) {
     return <DashboardSkeleton />;
   }
   
@@ -213,7 +271,7 @@ export default function DashboardPage() {
                     <CardTitle className="font-headline">هزینه‌ها بر اساس دسته‌بندی</CardTitle>
                     </CardHeader>
                     <CardContent>
-                    <CategorySpending expenses={details.expenses} categories={allData.categories}/>
+                    <CategorySpending expenses={details.expenses} categories={categories || []}/>
                     </CardContent>
                 </Card>
             </div>
@@ -224,10 +282,10 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent className="pl-2">
                     <UpcomingDeadlines 
-                        checks={allData.checks} 
-                        loans={allData.loans}
-                        payees={allData.payees}
-                        previousDebts={allData.previousDebts}
+                        checks={checks || []} 
+                        loans={loans || []}
+                        payees={payees || []}
+                        previousDebts={previousDebts || []}
                     />
                     </CardContent>
                 </Card>
@@ -242,9 +300,9 @@ export default function DashboardPage() {
                 <CardContent>
                     <RecentTransactions 
                         transactions={details.transactions} 
-                        categories={allData.categories} 
-                        bankAccounts={allData.bankAccounts}
-                        users={allData.users}
+                        categories={categories || []} 
+                        bankAccounts={bankAccounts || []}
+                        users={users || []}
                     />
                 </CardContent>
             </Card>

@@ -3,17 +3,17 @@
 
 import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, TrendingDown, TrendingUp, ArrowRightLeft, User, Users } from 'lucide-react';
-import type { Income, Expense, BankAccount, Transfer } from '@/lib/types';
+import type { Income, Expense, BankAccount, Transfer, UserProfile, Category } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 type Transaction = (Omit<Income, 'date'> | Omit<Expense, 'date'> | Omit<Transfer, 'transferDate'>) & {
   type: 'income' | 'expense' | 'transfer';
@@ -63,12 +63,11 @@ export default function CardTransactionsPage() {
   const router = useRouter();
   const params = useParams();
   const cardId = params.cardId as string;
-
   const { isLoading, allData } = useDashboardData();
   const { incomes, expenses, transfers, bankAccounts, categories, users } = allData;
 
   const { card, ledger } = useMemo(() => {
-    if (isLoading || !cardId) {
+    if (isLoading || !cardId || !incomes || !expenses || !transfers || !bankAccounts) {
       return { card: null, ledger: [] };
     }
 
