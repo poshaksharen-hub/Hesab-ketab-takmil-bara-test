@@ -1,7 +1,7 @@
 
 'use client';
 import { useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type {
   Income,
@@ -48,6 +48,24 @@ export function useDashboardData() {
     const firestore = useFirestore();
     const collectionsEnabled = !isAuthLoading && !!user && !!firestore;
 
+    // --- Start User Data Fetching ---
+    // Since security rules prevent listing all users, we fetch each user doc individually.
+    // We assume we know the user IDs or can derive them. Here we use static details.
+    const aliUserRef = useMemoFirebase(() => (firestore ? doc(firestore, 'users', USER_DETAILS.ali.uid) : null), [firestore]);
+    const fatemehUserRef = useMemoFirebase(() => (firestore ? doc(firestore, 'users', USER_DETAILS.fatemeh.uid) : null), [firestore]);
+
+    const { data: aliProfile, isLoading: iluAli } = useDoc<UserProfile>(aliUserRef);
+    const { data: fatemehProfile, isLoading: iluFatemeh } = useDoc<UserProfile>(fatemehUserRef);
+
+    const usersData = useMemo(() => {
+        const profiles = [];
+        if (aliProfile) profiles.push(aliProfile);
+        if (fatemehProfile) profiles.push(fatemehProfile);
+        return profiles;
+    }, [aliProfile, fatemehProfile]);
+    const ilu = iluAli || iluFatemeh;
+    // --- End User Data Fetching ---
+
     const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
 
     const { data: bankAccountsData, isLoading: ilba } = useCollection<BankAccount>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
@@ -62,7 +80,6 @@ export function useDashboardData() {
     const { data: transfers, isLoading: ilt } = useCollection<Transfer>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'transfers') : null), [baseDocRef]));
     const { data: previousDebts, isLoading: ilpd } = useCollection<PreviousDebt>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
     const { data: debtPayments, isLoading: ildp } = useCollection<DebtPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]));
-    const { data: usersData, isLoading: ilu } = useCollection<UserProfile>(useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]));
     
     const isLoading = isAuthLoading || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp || ilu;
 
@@ -79,10 +96,6 @@ export function useDashboardData() {
             ...acc,
             blockedBalance: blockedBalances[acc.id] || 0,
         }));
-        
-        // This is now the single source of truth for user identity information.
-        const processedUsers = usersData || [];
-
 
         return {
             incomes: incomes || [],
@@ -97,7 +110,7 @@ export function useDashboardData() {
             loanPayments: loanPayments || [],
             previousDebts: previousDebts || [],
             debtPayments: debtPayments || [],
-            users: processedUsers,
+            users: usersData,
         };
     }, [bankAccountsData, incomes, expenses, categories, checks, goals, loans, payees, transfers, loanPayments, previousDebts, debtPayments, usersData]);
 
