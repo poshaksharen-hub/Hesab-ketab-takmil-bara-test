@@ -87,7 +87,7 @@ export default function CheckDetailPage() {
   };
   
   const bankAccount = getBankAccount(check.bankAccountId);
-  const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(check.liabilityOwnerId);
+  const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(check.ownerId);
   const expenseForName = check.expenseFor && USER_DETAILS[check.expenseFor] ? USER_DETAILS[check.expenseFor].firstName : 'مشترک';
   const isCleared = check.status === 'cleared';
 
@@ -181,9 +181,9 @@ export default function CheckDetailPage() {
                     <p className="font-sans text-xs">صاحب حساب:</p>
                     <p className="font-sans text-sm font-bold">{ownerName}</p>
                     <div className="absolute -bottom-2 -right-4 w-32 h-16 pointer-events-none">
-                        {check.liabilityOwnerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
-                        {check.liabilityOwnerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
-                        {check.liabilityOwnerId === 'shared_account' && (
+                        {check.ownerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
+                        {check.ownerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300 opacity-80" />}
+                        {check.ownerId === 'shared_account' && (
                             <>
                                 <SignatureAli className="w-24 h-12 absolute -top-2 right-4 text-gray-700 dark:text-gray-300 opacity-80" />
                                 <SignatureFatemeh className="w-24 h-12 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300 opacity-80" />

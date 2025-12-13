@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useCallback } from 'react';
@@ -6,12 +7,9 @@ import { useUser, useFirestore } from '@/firebase';
 import {
   collection,
   doc,
-  runTransaction,
   writeBatch,
   getDocs,
   query,
-  where,
-  limit
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +28,7 @@ export default function DataMigrationPage() {
   const { toast } = useToast();
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationDone, setMigrationDone] = useState(false);
+  const [migrationLog, setMigrationLog] = useState<string[]>([]);
 
   const handleMigration = useCallback(async () => {
     if (!user || !firestore) {
@@ -43,34 +42,46 @@ export default function DataMigrationPage() {
 
     setIsMigrating(true);
     setMigrationDone(false);
+    setMigrationLog([]);
     toast({ title: 'شروع شد', description: 'عملیات اصلاح داده‌های قدیمی آغاز شد...' });
 
     try {
       const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-      const defaultUserId = USER_DETAILS.ali.uid; // Assume Ali is the default user for old records
+      const defaultUserId = USER_DETAILS.ali.uid; // Assume Ali is the default user
 
       for (const collectionName of COLLECTIONS_TO_MIGRATE) {
         const collRef = collection(familyDataRef, collectionName);
-        const q = query(collRef, where('registeredByUserId', '==', null));
-        
-        const snapshot = await getDocs(q);
+        // Fetch all documents instead of querying for null
+        const snapshot = await getDocs(query(collRef));
 
         if (snapshot.empty) {
-          console.log(`No documents to migrate in ${collectionName}.`);
+          setMigrationLog(prev => [...prev, `مجموعه ${collectionName} خالی است یا نیازی به اصلاح ندارد.`]);
           continue;
         }
 
         const batch = writeBatch(firestore);
-        snapshot.docs.forEach((doc) => {
-          batch.update(doc.ref, { registeredByUserId: defaultUserId });
+        let docsToUpdate = 0;
+
+        snapshot.docs.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
+          // Update document only if registeredByUserId field is missing
+          if (!data.registeredByUserId) {
+            batch.update(docSnapshot.ref, { registeredByUserId: defaultUserId });
+            docsToUpdate++;
+          }
         });
-        await batch.commit();
-        console.log(`Migrated ${snapshot.size} documents in ${collectionName}.`);
+
+        if (docsToUpdate > 0) {
+          await batch.commit();
+          setMigrationLog(prev => [...prev, `${docsToUpdate} سند در مجموعه ${collectionName} با موفقیت اصلاح شد.`]);
+        } else {
+           setMigrationLog(prev => [...prev, `هیچ سندی برای اصلاح در مجموعه ${collectionName} یافت نشد.`]);
+        }
       }
 
       toast({
         title: 'موفقیت!',
-        description: 'تمام داده‌های قدیمی با موفقیت اصلاح شدند. اکنون نام ثبت‌کننده به درستی نمایش داده می‌شود.',
+        description: 'عملیات اصلاح داده‌ها به پایان رسید. لطفاً گزارش را بررسی کنید.',
         variant: 'default',
         className: 'bg-emerald-500 text-white'
       });
@@ -83,6 +94,7 @@ export default function DataMigrationPage() {
         title: 'خطا در اصلاح داده‌ها',
         description: error.message || 'یک خطای ناشناخته رخ داد.',
       });
+      setMigrationLog(prev => [...prev, `خطا: ${error.message}`]);
     } finally {
       setIsMigrating(false);
     }
@@ -102,10 +114,10 @@ export default function DataMigrationPage() {
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-sm">
-            **مهم:** با فشردن دکمه زیر، تمام تراکنش‌های قدیمی که ثبت‌کننده آن‌ها "نامشخص" یا "کاربر" نمایش داده می‌شود، به نام "علی" ثبت خواهند شد. این یک فرض منطقی برای داده‌های اولیه است.
+            **مهم:** با فشردن دکمه زیر، تمام تراکنش‌های قدیمی که ثبت‌کننده آن‌ها "نامشخص" نمایش داده می‌شود، به نام "علی" ثبت خواهند شد. این یک فرض منطقی برای داده‌های اولیه است.
           </p>
           <p className="mb-4 text-sm">
-            این عملیات را فقط **یک بار** انجام دهید.
+            این عملیات را فقط **یک بار** اجرا کنید.
           </p>
           {migrationDone ? (
              <div className="p-4 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center gap-2">
@@ -121,6 +133,14 @@ export default function DataMigrationPage() {
                 {isMigrating && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                 {isMigrating ? 'در حال اصلاح...' : 'شروع اصلاح داده‌ها'}
             </Button>
+          )}
+          {migrationLog.length > 0 && (
+            <div className="mt-4 p-3 rounded-md bg-muted/50 border text-xs space-y-1 font-mono">
+              <p className="font-bold">گزارش عملیات:</p>
+              {migrationLog.map((log, index) => (
+                <p key={index}>{log}</p>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

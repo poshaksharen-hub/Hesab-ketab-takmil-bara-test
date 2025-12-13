@@ -73,7 +73,7 @@ export default function DebtDetailPage() {
             const bankAccount = bankAccounts.find(b => b.id === p.bankAccountId);
             const ownerId = bankAccount?.ownerId;
             const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
-            const paymentRegisteredBy = users.find(u => u.id === p.registeredByUserId)?.firstName || 'سیستم';
+            const paymentRegisteredBy = users.find(u => u.id === p.registeredByUserId)?.firstName || 'نامشخص';
             
             return {
                 ...p,
@@ -85,7 +85,7 @@ export default function DebtDetailPage() {
         })
         .sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
     
-    const debtRegisteredBy = users.find(u => u.id === currentDebt.registeredByUserId)?.firstName || 'سیستم';
+    const debtRegisteredBy = users.find(u => u.id === currentDebt.registeredByUserId)?.firstName || 'نامشخص';
 
     return {
       debt: currentDebt,
