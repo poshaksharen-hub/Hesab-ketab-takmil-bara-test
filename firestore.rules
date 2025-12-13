@@ -14,10 +14,13 @@ service cloud.firestore {
     // Allow users to create their own profile, and read/update/delete ONLY
     // their own profile. This prevents listing all users.
     match /users/{userId} {
-      // allow get, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow get: if request.auth != null; // Any authenticated user can GET another user's profile
-      allow list: if false; // Explicitly deny listing the entire collection
+      // Any authenticated user can GET another user's profile individually.
+      allow get: if request.auth != null; 
+      // Explicitly deny listing the entire collection for security.
+      allow list: if false; 
+      // A user can only update or delete their OWN profile.
       allow update, delete: if request.auth != null && request.auth.uid == userId;
+      // Any authenticated user can create a user profile document (e.g., on first sign-up).
       allow create: if request.auth != null;
     }
   }
