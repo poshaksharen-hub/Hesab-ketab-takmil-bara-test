@@ -97,9 +97,11 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
 
 
   function handleFormSubmit(data: GoalFormValues) {
+    if (!user) return;
     const submissionData = {
       ...data,
       targetDate: data.targetDate.toISOString(),
+      registeredByUserId: user.uid,
     };
     onSubmit(submissionData);
   }

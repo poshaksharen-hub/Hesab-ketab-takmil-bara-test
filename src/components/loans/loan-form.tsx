@@ -156,6 +156,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             ...data,
             startDate: data.startDate.toISOString(),
             firstInstallmentDate: data.firstInstallmentDate.toISOString(),
+            registeredByUserId: user.uid,
         };
         onSubmit(submissionData);
     };
