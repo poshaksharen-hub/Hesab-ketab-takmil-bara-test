@@ -47,24 +47,25 @@ export function useDashboardData() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
     const collectionsEnabled = !isAuthLoading && !!user && !!firestore;
-
-    // --- Start User Data Fetching ---
-    // Since security rules prevent listing all users, we fetch each user doc individually.
-    // We assume we know the user IDs or can derive them. Here we use static details.
-    const aliUserRef = useMemoFirebase(() => (firestore ? doc(firestore, 'users', USER_DETAILS.ali.uid) : null), [firestore]);
-    const fatemehUserRef = useMemoFirebase(() => (firestore ? doc(firestore, 'users', USER_DETAILS.fatemeh.uid) : null), [firestore]);
-
-    const { data: aliProfile, isLoading: iluAli } = useDoc<UserProfile>(aliUserRef);
-    const { data: fatemehProfile, isLoading: iluFatemeh } = useDoc<UserProfile>(fatemehUserRef);
-
-    const usersData = useMemo(() => {
-        const profiles = [];
-        if (aliProfile) profiles.push(aliProfile);
-        if (fatemehProfile) profiles.push(fatemehProfile);
-        return profiles;
-    }, [aliProfile, fatemehProfile]);
-    const ilu = iluAli || iluFatemeh;
-    // --- End User Data Fetching ---
+    
+    // Construct users list from static constants, removing the need for Firestore reads.
+    const usersData = useMemo<UserProfile[]>(() => {
+        return [
+            {
+                id: USER_DETAILS.ali.uid,
+                email: USER_DETAILS.ali.email,
+                firstName: USER_DETAILS.ali.firstName,
+                lastName: USER_DETAILS.ali.lastName,
+            },
+            {
+                id: USER_DETAILS.fatemeh.uid,
+                email: USER_DETAILS.fatemeh.email,
+                firstName: USER_DETAILS.fatemeh.firstName,
+                lastName: USER_DETAILS.fatemeh.lastName,
+            }
+        ]
+    }, []);
+    const ilu = false; // No longer loading from Firestore.
 
     const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
 
