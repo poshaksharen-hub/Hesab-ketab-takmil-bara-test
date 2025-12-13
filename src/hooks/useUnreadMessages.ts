@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { ChatMessage } from '@/lib/types';
 
@@ -16,7 +16,7 @@ export function useUnreadMessages() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const messagesQuery = useMemoFirebase(() => {
+  const messagesQuery = useMemo(() => {
     if (!firestore || !user) {
       return null;
     }

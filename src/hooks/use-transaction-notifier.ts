@@ -1,14 +1,13 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useCollection, useUser, useFirestore } from '@/firebase';
 import { collection, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { Income, Expense, UserProfile } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
-import { useMemoFirebase } from '@/firebase';
 import { useDashboardData } from './use-dashboard-data';
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -28,9 +27,9 @@ export const useTransactionNotifier = () => {
   const { allData: { users } } = useDashboardData();
 
 
-  const now = useMemoFirebase(() => Timestamp.now(), []);
+  const now = useMemo(() => Timestamp.now(), []);
 
-  const incomesQuery = useMemoFirebase(() => {
+  const incomesQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, `family-data/${FAMILY_DATA_DOC}/incomes`),
@@ -39,7 +38,7 @@ export const useTransactionNotifier = () => {
     );
   }, [firestore, now, user]);
 
-  const expensesQuery = useMemoFirebase(() => {
+  const expensesQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, `family-data/${FAMILY_DATA_DOC}/expenses`),

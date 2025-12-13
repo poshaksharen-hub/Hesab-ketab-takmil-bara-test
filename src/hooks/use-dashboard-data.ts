@@ -1,7 +1,7 @@
 
 'use client';
 import { useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { useFirestore, useCollection, useDoc, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type {
   Income,
@@ -48,7 +48,6 @@ export function useDashboardData() {
     const firestore = useFirestore();
     const collectionsEnabled = !isAuthLoading && !!user && !!firestore;
     
-    // Construct users list from static constants, removing the need for Firestore reads.
     const usersData = useMemo<UserProfile[]>(() => {
         return [
             {
@@ -65,22 +64,45 @@ export function useDashboardData() {
             }
         ]
     }, []);
-    const ilu = false; // No longer loading from Firestore.
+    const ilu = false;
 
-    const baseDocRef = useMemoFirebase(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
+    const baseDocRef = useMemo(() => (collectionsEnabled ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [collectionsEnabled, firestore]);
 
-    const { data: bankAccountsData, isLoading: ilba } = useCollection<BankAccount>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
-    const { data: incomes, isLoading: ili } = useCollection<Income>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]));
-    const { data: expenses, isLoading: ile } = useCollection<Expense>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]));
-    const { data: categories, isLoading: ilc } = useCollection<Category>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'categories') : null), [baseDocRef]));
-    const { data: checks, isLoading: ilch } = useCollection<Check>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'checks') : null), [baseDocRef]));
-    const { data: goals, isLoading: ilg } = useCollection<FinancialGoal>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'financialGoals') : null), [baseDocRef]));
-    const { data: loans, isLoading: ill } = useCollection<Loan>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'loans') : null), [baseDocRef]));
-    const { data: loanPayments, isLoading: illp } = useCollection<LoanPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'loanPayments') : null), [baseDocRef]));
-    const { data: payees, isLoading: ilp } = useCollection<Payee>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'payees') : null), [baseDocRef]));
-    const { data: transfers, isLoading: ilt } = useCollection<Transfer>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'transfers') : null), [baseDocRef]));
-    const { data: previousDebts, isLoading: ilpd } = useCollection<PreviousDebt>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
-    const { data: debtPayments, isLoading: ildp } = useCollection<DebtPayment>(useMemoFirebase(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]));
+    const bankAccountsCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'bankAccounts') : null, [baseDocRef]);
+    const { data: bankAccountsData, isLoading: ilba } = useCollection<BankAccount>(bankAccountsCollectionRef);
+    
+    const incomesCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'incomes') : null, [baseDocRef]);
+    const { data: incomes, isLoading: ili } = useCollection<Income>(incomesCollectionRef);
+
+    const expensesCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'expenses') : null, [baseDocRef]);
+    const { data: expenses, isLoading: ile } = useCollection<Expense>(expensesCollectionRef);
+
+    const categoriesCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'categories') : null, [baseDocRef]);
+    const { data: categories, isLoading: ilc } = useCollection<Category>(categoriesCollectionRef);
+
+    const checksCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'checks') : null, [baseDocRef]);
+    const { data: checks, isLoading: ilch } = useCollection<Check>(checksCollectionRef);
+
+    const goalsCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'financialGoals') : null, [baseDocRef]);
+    const { data: goals, isLoading: ilg } = useCollection<FinancialGoal>(goalsCollectionRef);
+
+    const loansCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'loans') : null, [baseDocRef]);
+    const { data: loans, isLoading: ill } = useCollection<Loan>(loansCollectionRef);
+
+    const loanPaymentsCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'loanPayments') : null, [baseDocRef]);
+    const { data: loanPayments, isLoading: illp } = useCollection<LoanPayment>(loanPaymentsCollectionRef);
+
+    const payeesCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'payees') : null, [baseDocRef]);
+    const { data: payees, isLoading: ilp } = useCollection<Payee>(payeesCollectionRef);
+
+    const transfersCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'transfers') : null, [baseDocRef]);
+    const { data: transfers, isLoading: ilt } = useCollection<Transfer>(transfersCollectionRef);
+
+    const previousDebtsCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'previousDebts') : null, [baseDocRef]);
+    const { data: previousDebts, isLoading: ilpd } = useCollection<PreviousDebt>(previousDebtsCollectionRef);
+
+    const debtPaymentsCollectionRef = useMemo(() => baseDocRef ? collection(baseDocRef, 'debtPayments') : null, [baseDocRef]);
+    const { data: debtPayments, isLoading: ildp } = useCollection<DebtPayment>(debtPaymentsCollectionRef);
     
     const isLoading = isAuthLoading || ilba || ili || ile || ilc || ilch || ilg || ill || illp || ilp || ilt || ilpd || ildp || ilu;
 
