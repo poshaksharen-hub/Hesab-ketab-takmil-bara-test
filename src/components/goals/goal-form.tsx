@@ -50,7 +50,7 @@ type GoalFormValues = z.infer<typeof formSchema>;
 interface GoalFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: GoalFormValues) => void;
   initialData: FinancialGoal | null;
   bankAccounts: BankAccount[];
   user: User | null;
@@ -98,12 +98,7 @@ export function GoalForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccount
 
   function handleFormSubmit(data: GoalFormValues) {
     if (!user) return;
-    const submissionData = {
-      ...data,
-      targetDate: data.targetDate.toISOString(),
-      registeredByUserId: user.uid,
-    };
-    onSubmit(submissionData);
+    onSubmit(data);
   }
 
   const sortedBankAccounts = useMemo(() => {

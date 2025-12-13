@@ -73,7 +73,8 @@ export default function TransfersPage() {
       transaction.update(toCardRef, { balance: toBalanceAfter });
       
       const newTransferRef = doc(collection(familyDataRef, 'transfers'));
-      transaction.set(newTransferRef, {
+      
+      const newTransferData = {
           ...values,
           id: newTransferRef.id,
           registeredByUserId: user.uid,
@@ -82,7 +83,9 @@ export default function TransfersPage() {
           fromAccountBalanceAfter: fromBalanceAfter,
           toAccountBalanceBefore: toBalanceBefore,
           toAccountBalanceAfter: toBalanceAfter,
-      });
+      };
+      
+      transaction.set(newTransferRef, newTransferData);
 
     }).then(async () => {
         setIsFormOpen(false);
@@ -104,10 +107,11 @@ export default function TransfersPage() {
               date: new Date().toISOString(),
               icon: 'ArrowRightLeft',
               color: 'rgb(59 130 246)',
+              registeredBy: currentUserFirstName,
               bankAccount: fromAccount ? { name: fromAccount.bankName, owner: fromAccountOwner || 'نامشخص' } : undefined,
               toBankAccount: toAccount ? { name: toAccount.bankName, owner: toAccountOwner || 'نامشخص' } : undefined,
           };
-          await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+          await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({

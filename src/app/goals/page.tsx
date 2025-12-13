@@ -67,15 +67,15 @@ export default function GoalsPage() {
                 }
             }
 
+            const newGoalRef = doc(collection(familyDataRef, 'financialGoals'));
             const newGoalData: Omit<FinancialGoal, 'id'> = {
                 ...goalData,
+                id: newGoalRef.id,
                 registeredByUserId: user.uid,
                 isAchieved: false,
                 currentAmount: 0,
                 contributions: [],
             };
-
-            const newGoalRef = doc(collection(familyDataRef, 'financialGoals'));
              
             if (accountData && initialAccountDoc && initialContributionAmount > 0) {
                 newGoalData.contributions.push({
@@ -90,10 +90,7 @@ export default function GoalsPage() {
                  transaction.update(initialAccountDoc.ref, { blockedBalance: newBlockedBalance });
             }
             
-            transaction.set(newGoalRef, {
-                ...newGoalData,
-                id: newGoalRef.id,
-            });
+            transaction.set(newGoalRef, newGoalData);
         });
 
       toast({
@@ -167,7 +164,7 @@ export default function GoalsPage() {
                 { label: 'از حساب', value: bankAccount?.bankName },
             ]
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
 
      } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در افزودن پس‌انداز', description: error.message || "مشکلی در عملیات پیش آمد." });
@@ -289,7 +286,7 @@ export default function GoalsPage() {
                 { label: 'هزینه نهایی', value: formatCurrency(actualCost, 'IRT') },
             ]
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
 
 
     } catch (error: any) {

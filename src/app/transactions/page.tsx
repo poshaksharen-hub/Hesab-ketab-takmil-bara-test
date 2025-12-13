@@ -37,7 +37,7 @@ export default function ExpensesPage() {
     users,
   } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     
@@ -67,10 +67,11 @@ export default function ExpensesPage() {
         
         const newExpenseData = {
             ...values,
+            id: newExpenseRef.id,
             ownerId: account.ownerId,
+            registeredByUserId: user.uid,
             balanceBefore,
             balanceAfter,
-            id: newExpenseRef.id,
             type: 'expense' as const,
             createdAt: serverTimestamp(),
         };
@@ -90,7 +91,7 @@ export default function ExpensesPage() {
             type: 'expense',
             title: values.description,
             amount: values.amount,
-            date: values.date,
+            date: (values.date as any),
             icon: 'TrendingDown',
             color: 'rgb(220 38 38)',
             registeredBy: currentUserFirstName,

@@ -32,7 +32,7 @@ export default function ChecksPage() {
   
   const { checks, bankAccounts, payees, categories, users } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status' | 'issueDate' | 'dueDate'> & {issueDate: Date, dueDate: Date}) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Check, 'id' | 'registeredByUserId' | 'status'>) => {
     if (!user || !firestore || !users || !bankAccounts || !payees || !categories) return;
 
     const checksColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'checks');
@@ -48,8 +48,8 @@ export default function ChecksPage() {
       const checkRef = doc(checksColRef, editingCheck.id);
       const updatedCheck = {
         ...values,
-        issueDate: values.issueDate.toISOString(),
-        dueDate: values.dueDate.toISOString(),
+        issueDate: (values.issueDate as any).toISOString ? (values.issueDate as any).toISOString() : values.issueDate,
+        dueDate: (values.dueDate as any).toISOString ? (values.dueDate as any).toISOString() : values.dueDate,
         ownerId: bankAccount.ownerId // Automatically set ownerId from bank account
       }
       updateDoc(checkRef, updatedCheck)
@@ -67,8 +67,9 @@ export default function ChecksPage() {
     } else {
       const newCheckData = {
         ...values,
-        issueDate: values.issueDate.toISOString(),
-        dueDate: values.dueDate.toISOString(),
+        id: '', // Will be set later
+        issueDate: (values.issueDate as any).toISOString(),
+        dueDate: (values.dueDate as any).toISOString(),
         registeredByUserId: user.uid,
         status: 'pending' as 'pending',
         ownerId: bankAccount.ownerId, // Automatically set ownerId from bank account
@@ -102,7 +103,7 @@ export default function ChecksPage() {
               dueDate: formatJalaliDate(new Date(newCheckData.dueDate)),
             },
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUser?.firstName || 'کاربر');
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
         
       } catch (error) {
            const permissionError = new FirestorePermissionError({
@@ -197,7 +198,7 @@ export default function ChecksPage() {
             bankAccount: { name: account.bankName, owner: bankAccountOwnerName || 'نامشخص' },
             expenseFor: (check.expenseFor && USER_DETAILS[check.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
       };
-      await sendSystemNotification(firestore, user.uid, notificationDetails, currentUser?.firstName || 'کاربر');
+      await sendSystemNotification(firestore, user.uid, notificationDetails);
 
 
     } catch (error: any) {

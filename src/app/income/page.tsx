@@ -30,7 +30,7 @@ export default function IncomePage() {
 
   const { incomes: allIncomes, bankAccounts: allBankAccounts, users } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category' >) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
     
     let transactionRef: any; // To hold the reference for error reporting
@@ -58,9 +58,11 @@ export default function IncomePage() {
         const newIncomeRef = doc(collection(familyDataRef, 'incomes'));
         transactionRef = newIncomeRef; // More specific ref
         
-        const newIncomeData = {
+        const newIncomeData: Omit<Income, 'id'> & { id: string } = {
             ...values,
             id: newIncomeRef.id,
+            type: 'income',
+            category: 'درآمد',
             registeredByUserId: user.uid,
             createdAt: serverTimestamp(),
             balanceAfter: balanceAfter,
@@ -79,7 +81,7 @@ export default function IncomePage() {
               type: 'income',
               title: `ثبت درآمد جدید: ${values.description}`,
               amount: values.amount,
-              date: values.date,
+              date: (values.date as any),
               icon: 'TrendingUp',
               color: 'rgb(34 197 94)',
               registeredBy: currentUserFirstName,
@@ -87,7 +89,7 @@ export default function IncomePage() {
               category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
               bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
           };
-          await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+          await sendSystemNotification(firestore, user.uid, notificationDetails);
       })
       .catch((error: any) => {
         if (error.name === 'FirebaseError') {
