@@ -9,6 +9,7 @@ import {
   doc,
   serverTimestamp,
   runTransaction,
+  writeBatch,
 } from 'firebase/firestore';
 import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -218,31 +219,31 @@ export default function DebtsPage() {
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
     if (!user || !firestore || !previousDebts) return;
-
-    const debtToDelete = previousDebts.find(d => d.id === debtId);
-    if (!debtToDelete) {
-        toast({ variant: 'destructive', title: 'خطا', description: 'بدهی مورد نظر یافت نشد.'});
-        return;
-    }
     
-    if (debtToDelete.paidInstallments > 0) {
-        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این بدهی دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌های مرتبط را به صورت دستی برگردانید.'});
-        return;
-    }
-
     const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
-    runTransaction(firestore, async (transaction) => {
-        transaction.delete(debtRef);
-    }).then(() => {
+    
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const debtDoc = await transaction.get(debtRef);
+            if (!debtDoc.exists()) throw new Error("بدهی مورد نظر یافت نشد.");
+            
+            const debtToDelete = debtDoc.data() as PreviousDebt;
+            if (debtToDelete.paidInstallments > 0) {
+                throw new Error('این بدهی دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌های مرتبط را به صورت دستی برگردانید.');
+            }
+            
+            transaction.delete(debtRef);
+        });
+
         toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
-    }).catch((error: any) => {
-        if (error.name === 'FirebaseError') {
+    } catch (error: any) {
+         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
             errorEmitter.emit('permission-error', permissionError);
         } else {
             toast({ variant: "destructive", title: "خطا در حذف", description: error.message || "مشکلی در حذف بدهی پیش آمد." });
         }
-    });
+    }
   }, [user, firestore, previousDebts, toast]);
 
   const handleAddNew = () => setIsFormOpen(true);
