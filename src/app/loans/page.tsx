@@ -13,7 +13,6 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
-  setDoc,
   writeBatch
 } from 'firebase/firestore';
 import type { Loan, BankAccount, Category, TransactionDetails, LoanPayment, Expense } from '@/lib/types';
@@ -30,6 +29,7 @@ import { useRouter } from 'next/navigation';
 import { sendSystemNotification } from '@/lib/notifications';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { USER_DETAILS } from '@/lib/constants';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -113,47 +113,41 @@ export default function LoansPage() {
         });
     } else {
         // --- CREATE LOGIC ---
-        const newLoanRef = doc(collection(familyDataRef, 'loans'));
-        const loanData: Loan = { 
-            id: newLoanRef.id,
+        const loanCollectionRef = collection(familyDataRef, 'loans');
+        const loanData = {
             ...loanValues,
-            paidInstallments: 0, 
-            remainingAmount: loanValues.amount 
+            paidInstallments: 0,
+            remainingAmount: loanValues.amount,
         };
 
-        runTransaction(firestore, async (transaction) => {
-            transaction.set(newLoanRef, loanData);
+        addDocumentNonBlocking(loanCollectionRef, loanData, async (newId) => {
+            const newLoanRef = doc(loanCollectionRef, newId);
+            updateDocumentNonBlocking(newLoanRef, { id: newId });
+
             if (loanData.depositOnCreate && loanData.depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', loanData.depositToAccountId);
-                const bankAccountDoc = await transaction.get(bankAccountRef);
-                if (!bankAccountDoc.exists()) throw new Error('حساب بانکی انتخاب شده برای واریز یافت نشد.');
-                
-                const bankAccountData = bankAccountDoc.data() as BankAccount;
-                const balanceAfter = bankAccountData.balance + loanData.amount;
-                transaction.update(bankAccountRef, { balance: balanceAfter });
+                try {
+                    const bankAccountDoc = await getDoc(bankAccountRef);
+                    if (bankAccountDoc.exists()) {
+                        const bankAccountData = bankAccountDoc.data() as BankAccount;
+                        const balanceAfter = bankAccountData.balance + loanData.amount;
+                        updateDocumentNonBlocking(bankAccountRef, { balance: balanceAfter });
+                    }
+                } catch (e) {
+                    console.error("Failed to update account balance after loan creation", e);
+                }
             }
-        }).then(async () => {
-             toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
-             setIsFormOpen(false);
-             setEditingLoan(null);
 
-             const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
-             const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
-             const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
-             
-             const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
-             await sendSystemNotification(firestore, user.uid, notificationDetails);
-        }).catch(error => {
-            if (error.name === 'FirebaseError') {
-                 const permissionError = new FirestorePermissionError({
-                    path: newLoanRef.path,
-                    operation: 'create',
-                    requestResourceData: loanData,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            } else {
-                toast({ variant: 'destructive', title: `خطا در ثبت وام`, description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.' });
-            }
+            toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
+            setIsFormOpen(false);
+            setEditingLoan(null);
+
+            const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
+            const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
+            const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+            
+            const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
+            await sendSystemNotification(firestore, user.uid, notificationDetails);
         });
     }
   }, [user, firestore, editingLoan, bankAccounts, payees, users, toast]);
