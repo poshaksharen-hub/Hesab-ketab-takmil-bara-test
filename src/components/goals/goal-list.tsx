@@ -44,12 +44,6 @@ interface GoalListProps {
 
 export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, users }: GoalListProps) {
   
-  const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    const user = users.find(u => u.id === userId);
-    return user?.firstName || 'سیستم';
-  };
-
   if (goals.length === 0) {
     return (
         <Card>
@@ -73,8 +67,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, u
 
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetailKey = ownerId as 'ali' | 'fatemeh';
-    const userDetail = USER_DETAILS[userDetailKey];
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };
@@ -86,7 +79,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, u
             const progress = (goal.targetAmount > 0) ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
             const isAchieved = goal.isAchieved;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(goal.ownerId);
-            const registeredByName = getUserName(goal.registeredByUserId);
+            const registeredByName = users.find(u => u.id === goal.registeredByUserId)?.firstName || 'سیستم';
 
             return (
             <div key={goal.id} className="relative group">

@@ -181,7 +181,7 @@ export default function CheckDetailPage() {
     return USER_DETAILS[expenseFor]?.firstName || 'نامشخص';
   };
 
-  const registeredByName = users.find(u => u.id === check.registeredByUserId)?.firstName || 'نامشخص';
+  const registeredByName = users.find(u => u.id === check.registeredByUserId)?.firstName || 'سیستم';
   const bankAccount = getBankAccount(check.bankAccountId);
   const { name: ownerName } = getOwnerDetails(bankAccount);
   const expenseForName = getExpenseForName(check.expenseFor);

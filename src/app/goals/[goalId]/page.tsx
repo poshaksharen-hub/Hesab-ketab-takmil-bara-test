@@ -65,7 +65,7 @@ export default function GoalDetailPage() {
             const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
             const ownerId = bankAccount?.ownerId;
             const ownerName = ownerId === 'shared_account' ? 'حساب مشترک' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName}` : 'ناشناس');
-            const registeredByName = users.find(u => u.id === c.registeredByUserId)?.firstName || 'نامشخص';
+            const registeredByName = users.find(u => u.id === c.registeredByUserId)?.firstName || 'سیستم';
             return {
                 ...c,
                 bankName: bankAccount?.bankName || 'نامشخص',
@@ -118,7 +118,7 @@ export default function GoalDetailPage() {
       }
   }
   
-  const registeredByName = users.find(u => u.id === goal.registeredByUserId)?.firstName || 'نامشخص';
+  const registeredByName = users.find(u => u.id === goal.registeredByUserId)?.firstName || 'سیستم';
   const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(goal.ownerId);
   const progress = (goal.targetAmount > 0) ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
 

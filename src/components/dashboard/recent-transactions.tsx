@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { type Income, type Expense, type UserProfile, type Category, BankAccount, ExpenseFor } from '@/lib/types';
@@ -34,13 +33,6 @@ export function RecentTransactions({ transactions, categories, bankAccounts, use
     if (id === 'درآمد') return 'درآمد';
     return categories?.find(c => c.id === id)?.name || 'متفرقه';
   }
-
-  const getUserName = (userId: string) => {
-    if (!userId) return 'نامشخص';
-    const user = users.find(u => u.id === userId);
-    return user ? user.firstName : 'سیستم';
-  };
-
 
   const formatDate = (date: any) => {
     try {
@@ -85,7 +77,7 @@ export function RecentTransactions({ transactions, categories, bankAccounts, use
         const isIncome = 'source' in transaction;
         const categoryId = 'categoryId' in transaction ? transaction.categoryId : 'درآمد';
         const categoryName = getCategoryName(categoryId);
-        const registeredById = transaction.registeredByUserId;
+        const registeredByName = users.find(u => u.id === transaction.registeredByUserId)?.firstName || 'سیستم';
         const transactionDate = 'createdAt' in transaction && transaction.createdAt ? transaction.createdAt : transaction.date;
         
         return (
@@ -101,7 +93,7 @@ export function RecentTransactions({ transactions, categories, bankAccounts, use
                 {getAccountOwnerBadge(transaction)}
                 {!isIncome && getExpenseForBadge(transaction as Expense)}
               </div>
-              <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {getUserName(registeredById)}) - <span className="font-mono text-xs">{formatDate(transactionDate)}</span></p>
+              <p className="text-sm text-muted-foreground">{categoryName} (ثبت: {registeredByName}) - <span className="font-mono text-xs">{formatDate(transactionDate)}</span></p>
             </div>
             <div
               className={`mr-auto font-medium ${

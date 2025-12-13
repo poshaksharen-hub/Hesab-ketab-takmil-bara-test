@@ -63,19 +63,13 @@ const DetailItem = ({
     );
   };
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم';
-};
-
 export function ExpenseList({
   expenses,
   bankAccounts,
   categories,
   payees,
   onDelete,
+  users,
 }: ExpenseListProps) {
   const getBankAccount = (id: string) => {
     return bankAccounts.find((acc) => acc.id === id);
@@ -138,6 +132,7 @@ export function ExpenseList({
             )
             .map((expense) => {
                 const bankAccount = getBankAccount(expense.bankAccountId);
+                const registeredByName = users.find(u => u.id === expense.registeredByUserId)?.firstName || 'سیستم';
 
                 return (
                 <Card key={expense.id} className="flex flex-col">
@@ -185,7 +180,7 @@ export function ExpenseList({
                             <DetailItem
                                 icon={PenSquare}
                                 label="ثبت توسط"
-                                value={getUserName(expense.registeredByUserId)}
+                                value={registeredByName}
                             />
                         </div>
                     </CardContent>

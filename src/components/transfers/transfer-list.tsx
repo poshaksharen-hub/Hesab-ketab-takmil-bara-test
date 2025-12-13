@@ -3,7 +3,7 @@
 
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Transfer, BankAccount } from '@/lib/types';
+import type { Transfer, BankAccount, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { ArrowDown, ArrowUp, ArrowRight, Banknote, Trash2, PenSquare } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
@@ -16,6 +16,7 @@ interface TransferListProps {
   transfers: Transfer[];
   bankAccounts: BankAccount[];
   onDelete: (transferId: string) => void;
+  users: UserProfile[];
 }
 
 const BalanceChange = ({ label, amount, type }: { label: string, amount: number, type: 'before' | 'after' }) => (
@@ -26,7 +27,7 @@ const BalanceChange = ({ label, amount, type }: { label: string, amount: number,
 );
 
 
-export function TransferList({ transfers, bankAccounts, onDelete }: TransferListProps) {
+export function TransferList({ transfers, bankAccounts, onDelete, users }: TransferListProps) {
   
   const getAccountDisplayName = (id: string) => {
     const account = bankAccounts.find(acc => acc.id === id);
@@ -35,15 +36,6 @@ export function TransferList({ transfers, bankAccounts, onDelete }: TransferList
     return { name: account.bankName, owner: ownerName };
   };
 
-  const getUserName = useMemo(() => {
-    return (userId: string): string => {
-        if (!userId) return 'نامشخص';
-        if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-        if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-        return 'سیستم';
-    }
-  }, []);
-  
   if (transfers.length === 0) {
     return (
         <Card>
@@ -69,6 +61,8 @@ export function TransferList({ transfers, bankAccounts, onDelete }: TransferList
       {transfers.sort((a,b) => new Date(b.transferDate).getTime() - new Date(a.transferDate).getTime()).map((transfer) => {
         const fromAccount = getAccountDisplayName(transfer.fromBankAccountId);
         const toAccount = getAccountDisplayName(transfer.toBankAccountId);
+        const registeredByName = users.find(u => u.id === transfer.registeredByUserId)?.firstName || 'سیستم';
+
 
         return (
             <Card key={transfer.id}>
@@ -125,9 +119,9 @@ export function TransferList({ transfers, bankAccounts, onDelete }: TransferList
                     </div>
                 </CardContent>
                  <CardFooter className="p-2 bg-muted/50 flex justify-between items-center">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground" title={`ثبت توسط: ${getUserName(transfer.registeredByUserId)}`}>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground" title={`ثبت توسط: ${registeredByName}`}>
                         <PenSquare className="h-3 w-3" />
-                        <span>{getUserName(transfer.registeredByUserId)}</span>
+                        <span>{registeredByName}</span>
                     </div>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>

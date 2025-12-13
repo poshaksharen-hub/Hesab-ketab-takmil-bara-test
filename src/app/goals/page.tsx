@@ -154,6 +154,7 @@ export default function GoalsPage() {
         setContributingGoal(null);
 
         const bankAccount = bankAccounts.find(b => b.id === bankAccountId);
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const notificationDetails: TransactionDetails = {
             type: 'goal',
             title: `افزایش پس انداز برای هدف: ${goal.name}`,
@@ -161,6 +162,7 @@ export default function GoalsPage() {
             date: new Date().toISOString(),
             icon: 'PlusCircle',
             color: 'rgb(34 197 94)',
+            registeredBy: currentUserFirstName,
             properties: [
                 { label: 'از حساب', value: bankAccount?.bankName },
             ]
@@ -170,11 +172,11 @@ export default function GoalsPage() {
      } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در افزودن پس‌انداز', description: error.message || "مشکلی در عملیات پیش آمد." });
      }
-  }, [user, firestore, toast, categories, bankAccounts]);
+  }, [user, firestore, toast, categories, bankAccounts, users]);
 
 
    const handleAchieveGoal = useCallback(async ({ goal, actualCost, paymentCardId }: { goal: FinancialGoal; actualCost: number; paymentCardId?: string; }) => {
-    if (!user || !firestore || !categories) return;
+    if (!user || !firestore || !categories || !users) return;
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -273,7 +275,8 @@ export default function GoalsPage() {
 
         toast({ title: "تبریک!", description: `هدف "${goal.name}" با موفقیت محقق شد.` });
         setAchievingGoal(null);
-
+        
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const notificationDetails: TransactionDetails = {
             type: 'goal',
             title: `هدف محقق شد: ${goal.name}`,
@@ -281,6 +284,7 @@ export default function GoalsPage() {
             date: new Date().toISOString(),
             icon: 'Target',
             color: 'rgb(161 98 7)',
+            registeredBy: currentUserFirstName,
             properties: [
                 { label: 'هزینه نهایی', value: formatCurrency(actualCost, 'IRT') },
             ]
@@ -303,7 +307,7 @@ export default function GoalsPage() {
             });
         }
     }
-  }, [user, firestore, categories, toast]);
+  }, [user, firestore, categories, users, toast]);
 
 
    const handleRevertGoal = useCallback(async (goal: FinancialGoal) => {

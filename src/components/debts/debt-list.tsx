@@ -30,13 +30,6 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
   
-  const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    const user = users.find(u => u.id === userId);
-    return user?.firstName || 'سیستم';
-  };
-
-
   if (debts.length === 0) {
     return (
         <Card>
@@ -63,7 +56,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
             const progress = 100 - (debt.remainingAmount / debt.amount) * 100;
             const isCompleted = debt.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(debt.ownerId);
-            const registeredByName = getUserName(debt.registeredByUserId);
+            const registeredByName = users.find(u => u.id === debt.registeredByUserId)?.firstName || 'سیستم';
 
             return (
              <div key={debt.id} className="relative group">

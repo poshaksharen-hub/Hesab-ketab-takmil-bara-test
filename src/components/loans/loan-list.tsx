@@ -49,12 +49,6 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
     return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
   };
 
-  const getUserName = (userId: string) => {
-      const user = users.find(u => u.id === userId);
-      return user ? user.firstName : 'سیستم';
-  };
-
-
   if (loans.length === 0) {
     return (
         <Card className="mt-4">
@@ -88,8 +82,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
 
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetailKey = ownerId as 'ali' | 'fatemeh';
-    const userDetail = users.find(u => u.email.startsWith(userDetailKey));
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };
@@ -101,7 +94,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
             const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
             const isCompleted = loan.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(loan.ownerId);
-            const registeredByName = getUserName(loan.registeredByUserId);
+            const registeredByName = users.find(u => u.id === loan.registeredByUserId)?.firstName || 'سیستم';
 
             return (
              <div key={loan.id} className="relative group">

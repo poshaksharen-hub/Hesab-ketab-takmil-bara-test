@@ -57,17 +57,11 @@ const DetailItem = ({
     );
   };
 
-const getUserName = (userId: string): string => {
-    if (!userId) return 'نامشخص';
-    if (userId === USER_DETAILS.ali.id) return USER_DETAILS.ali.firstName;
-    if (userId === USER_DETAILS.fatemeh.id) return USER_DETAILS.fatemeh.firstName;
-    return 'سیستم';
-};
-
 export function IncomeList({
   incomes,
   bankAccounts,
   onDelete,
+  users,
 }: IncomeListProps) {
   const getBankAccount = (id: string) => {
     return bankAccounts.find((acc) => acc.id === id);
@@ -122,6 +116,7 @@ export function IncomeList({
           )
           .map((income) => {
             const bankAccount = getBankAccount(income.bankAccountId);
+            const registeredByName = users.find(u => u.id === income.registeredByUserId)?.firstName || 'سیستم';
 
             return (
               <Card key={income.id} className="flex flex-col">
@@ -164,7 +159,7 @@ export function IncomeList({
                     <DetailItem
                       icon={PenSquare}
                       label="ثبت توسط"
-                      value={getUserName(income.registeredByUserId)}
+                      value={registeredByName}
                     />
                      <DetailItem
                       icon={Wallet}
