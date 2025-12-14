@@ -29,21 +29,23 @@ const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
  * preventing redundant reads and potential infinite loops.
  */
 export function useDashboardData() {
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const incomesQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'incomes') : null), [firestore]);
-  const expensesQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'expenses') : null), [firestore]);
-  const bankAccountsQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts') : null), [firestore]);
-  const categoriesQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'categories') : null), [firestore]);
-  const checksQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'checks') : null), [firestore]);
-  const loansQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'loans') : null), [firestore]);
-  const payeesQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'payees') : null), [firestore]);
-  const goalsQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'financialGoals') : null), [firestore]);
-  const transfersQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'transfers') : null), [firestore]);
-  const loanPaymentsQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'loanPayments') : null), [firestore]);
-  const previousDebtsQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'previousDebts') : null), [firestore]);
-  const debtPaymentsQuery = useMemo(() => (firestore ? collection(firestore, FAMILY_DATA_DOC_PATH, 'debtPayments') : null), [firestore]);
+  const baseDocRef = useMemo(() => (firestore ? doc(firestore, FAMILY_DATA_DOC_PATH) : null), [firestore]);
+
+  const incomesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]);
+  const expensesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]);
+  const bankAccountsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]);
+  const categoriesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'categories') : null), [baseDocRef]);
+  const checksQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'checks') : null), [baseDocRef]);
+  const loansQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'loans') : null), [baseDocRef]);
+  const payeesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'payees') : null), [baseDocRef]);
+  const goalsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'financialGoals') : null), [baseDocRef]);
+  const transfersQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'transfers') : null), [baseDocRef]);
+  const loanPaymentsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'loanPayments') : null), [baseDocRef]);
+  const previousDebtsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]);
+  const debtPaymentsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]);
   const usersQuery = useMemo(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
 
 
@@ -61,25 +63,10 @@ export function useDashboardData() {
   const { data: debtPayments, isLoading: ilDP } = useCollection<DebtPayment>(debtPaymentsQuery);
   const { data: users, isLoading: ilU } = useCollection<UserProfile>(usersQuery);
 
-  const isLoading = isUserLoading || ilI || ilE || ilBA || ilC || ilCH || ilL || ilP || ilG || ilT || ilLP || ilPD || ilDP || ilU;
-
-  const allUsers = useMemo(() => {
-      const firestoreUsers = users || [];
-      // Ensure static details are available as a fallback or for enrichment
-      const staticUsers: UserProfile[] = Object.values(USER_DETAILS).map(u => ({...u, id: ''})); // ID will be overwritten by firestore data
-      
-      const combined = [...firestoreUsers];
-      staticUsers.forEach(su => {
-          if (!combined.some(fu => fu.email === su.email)) {
-              combined.push(su);
-          }
-      });
-      return combined;
-  }, [users]);
-
+  const isLoading = isUserLoading || ilU || ilI || ilE || ilBA || ilC || ilCH || ilL || ilP || ilG || ilT || ilLP || ilPD || ilDP;
 
   const allData = useMemo(() => ({
-    firestore, // Pass firestore instance for transaction operations
+    firestore,
     incomes: incomes || [],
     expenses: expenses || [],
     bankAccounts: bankAccounts || [],
@@ -92,8 +79,8 @@ export function useDashboardData() {
     loanPayments: loanPayments || [],
     previousDebts: previousDebts || [],
     debtPayments: debtPayments || [],
-    users: allUsers,
-  }), [firestore, incomes, expenses, bankAccounts, categories, checks, loans, payees, goals, transfers, loanPayments, previousDebts, debtPayments, allUsers]);
+    users: users || [],
+  }), [firestore, incomes, expenses, bankAccounts, categories, checks, loans, payees, goals, transfers, loanPayments, previousDebts, debtPayments, users]);
 
   return { isLoading, allData };
 }
