@@ -5,7 +5,7 @@ import { collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firesto
 import type { Firestore } from 'firebase/firestore';
 import type { TransactionDetails } from './types';
 
-const FAMILY_DATA_DOC = 'shared-data';
+const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export async function sendSystemNotification(
     firestore: Firestore,
@@ -21,7 +21,7 @@ export async function sendSystemNotification(
             registeredBy, // Use the provided parameter
         };
         
-        const chatMessagesRef = collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`);
+        const chatMessagesRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages');
         
         const notificationText = `${registeredBy} یک تراکنش جدید ثبت کرد: ${details.title}`;
 

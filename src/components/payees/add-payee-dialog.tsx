@@ -43,7 +43,7 @@ interface AddPayeeDialogProps {
   onPayeeAdded: (newPayee: Payee) => void;
 }
 
-const FAMILY_DATA_DOC = 'shared-data';
+const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export function AddPayeeDialog({
   isOpen,
@@ -66,7 +66,7 @@ export function AddPayeeDialog({
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-        const payeesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'payees');
+        const payeesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'payees');
         const newDocRef = await addDoc(payeesColRef, data);
         const newPayee = { ...data, id: newDocRef.id };
         await updateDoc(newDocRef, { id: newDocRef.id });

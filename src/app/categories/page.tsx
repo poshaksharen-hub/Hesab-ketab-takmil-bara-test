@@ -4,7 +4,7 @@
 import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { CategoryList } from '@/components/categories/category-list';
 import { CategoryForm } from '@/components/categories/category-form';
@@ -14,31 +14,24 @@ import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
-const FAMILY_DATA_DOC = 'shared-data';
+const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export default function CategoriesPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
 
-  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
-  
-  const categoriesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'categories') : null), [baseDocRef]);
-  const expensesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]);
-  const checksQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'checks') : null), [baseDocRef]);
-  
-  const { data: categories, isLoading: ilC } = useCollection<Category>(categoriesQuery);
-  const { data: expenses, isLoading: ilE } = useCollection<Expense>(expensesQuery);
-  const { data: checks, isLoading: ilCh } = useCollection<Check>(checksQuery);
+  const { firestore, categories, expenses, checks } = allData;
 
   const handleFormSubmit = React.useCallback(async (values: Omit<Category, 'id'>) => {
     if (!user || !firestore) return;
 
-    const categoriesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'categories');
+    const categoriesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'categories');
 
     if (editingCategory) {
         const categoryRef = doc(categoriesColRef, editingCategory.id);
@@ -49,7 +42,8 @@ export default function CategoriesPage() {
                 errorEmitter.emit('permission-error', permissionError);
             });
     } else {
-        addDoc(categoriesColRef, { ...values, id: '' })
+        const newCategoryData = { ...values, id: '' };
+        addDoc(categoriesColRef, newCategoryData)
             .then((docRef) => {
                 if (docRef) {
                   updateDoc(docRef, { id: docRef.id });
@@ -57,7 +51,7 @@ export default function CategoriesPage() {
                 }
             })
             .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({ path: categoriesColRef.path, operation: 'create', requestResourceData: values });
+                const permissionError = new FirestorePermissionError({ path: categoriesColRef.path, operation: 'create', requestResourceData: newCategoryData });
                 errorEmitter.emit('permission-error', permissionError);
             });
     }
@@ -67,7 +61,7 @@ export default function CategoriesPage() {
 
   const handleDelete = React.useCallback(async (categoryId: string) => {
     if (!user || !firestore) return;
-    const categoryRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'categories', categoryId);
+    const categoryRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'categories', categoryId);
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -117,7 +111,7 @@ export default function CategoriesPage() {
   }, []);
 
 
-  const isLoading = isUserLoading || ilC || ilE || ilCh;
+  const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">

@@ -27,7 +27,11 @@ export function addDocumentNonBlocking<T extends WithFieldValue<DocumentData>>(
   data: T,
   onSuccess?: (id: string) => void
 ): void {
-  addDoc(collectionRef, data)
+  // Use a temporary object for the addDoc call to satisfy types,
+  // even though Firestore will add the server-generated fields.
+  const dataForAdd = { ...data };
+
+  addDoc(collectionRef, dataForAdd)
     .then(docRef => {
       if (onSuccess) {
         onSuccess(docRef.id);

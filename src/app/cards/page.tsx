@@ -19,7 +19,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 
-const FAMILY_DATA_DOC = 'shared-data';
+const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export default function CardsPage() {
   const { user, isUserLoading } = useUser();
@@ -37,7 +37,7 @@ export default function CardsPage() {
   const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId'>) => {
     if (!user || !firestore) return;
     
-    const collectionRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts');
+    const collectionRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts');
   
     if (editingCard) {
       // --- Edit ---
@@ -52,13 +52,14 @@ export default function CardsPage() {
 
     } else {
         // --- Create ---
-        const newCard = { 
+        const newCardData: Omit<BankAccount, 'id'> = { 
             ...values,
             registeredByUserId: user.uid,
             balance: values.initialBalance,
+            blockedBalance: 0,
         };
         
-        addDocumentNonBlocking(collectionRef, newCard, (id) => {
+        addDocumentNonBlocking(collectionRef, newCardData, (id) => {
             updateDoc(doc(collectionRef, id), { id });
             toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
         });
@@ -76,7 +77,7 @@ export default function CardsPage() {
         return;
     }
 
-    const cardToDeleteRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', cardId);
+    const cardToDeleteRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', cardId);
 
     try {
         await runTransaction(firestore, async (transaction) => {

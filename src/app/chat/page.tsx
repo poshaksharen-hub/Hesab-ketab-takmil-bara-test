@@ -8,6 +8,7 @@ import { ChatInterface } from '@/components/chat/chat-interface';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { collection, doc } from 'firebase/firestore';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 function ChatPageSkeleton() {
     return (
@@ -31,17 +32,13 @@ function ChatPageSkeleton() {
     )
 }
 
-const FAMILY_DATA_DOC = 'shared-data';
-
 export default function ChatPage() {
     const { user, isUserLoading } = useUser();
-    const firestore = useFirestore();
-
-    const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
-    const chatMessagesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'chatMessages') : null), [baseDocRef]);
-    const { isLoading: isLoadingMessages } = useCollection(chatMessagesQuery);
+    const { isLoading: isDataLoading } = useDashboardData();
     
-    if (isUserLoading || isLoadingMessages || !user) {
+    const isLoading = isUserLoading || isDataLoading;
+
+    if (isLoading || !user) {
         return <ChatPageSkeleton />;
     }
 

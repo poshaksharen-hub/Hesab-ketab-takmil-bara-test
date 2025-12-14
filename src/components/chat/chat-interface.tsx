@@ -19,35 +19,24 @@ import { MessageInput } from './message-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
-const FAMILY_DATA_DOC = 'shared-data';
+const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export function ChatInterface({ currentUser }: { currentUser: User }) {
-  const firestore = useFirestore();
+  const { isLoading: isDataLoading, allData } = useDashboardData();
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
 
-  const messagesCollectionRef = useMemo(
-    () => (firestore ? collection(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`) : null),
+  const { firestore, users: allUsers } = allData;
+  const messagesQuery = useMemo(
+    () => (firestore ? query(collection(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages'), orderBy('timestamp', 'asc')) : null),
     [firestore]
   );
-
-  const messagesQuery = useMemo(
-    () => (messagesCollectionRef ? query(messagesCollectionRef, orderBy('timestamp', 'asc')) : null),
-    [messagesCollectionRef]
-  );
-  
-  const usersQuery = useMemo(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
-
   const { data: messages, isLoading: isLoadingMessages } = useCollection<ChatMessage>(messagesQuery);
-  const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
-  const allUsers = users ? users : [USER_DETAILS.ali, USER_DETAILS.fatemeh];
-
+  const isLoading = isDataLoading || isLoadingMessages;
 
   useEffect(() => {
     if (!firestore || !messages || messages.length === 0 || isLoadingMessages || !currentUser) return;
-
-    const otherUser = allUsers.find(u => u.id !== currentUser.uid);
-    if (!otherUser) return;
 
     const unreadMessages = messages.filter(
       (msg) => msg.senderId !== currentUser.uid && (!msg.readBy || !msg.readBy.includes(currentUser.uid))
@@ -57,7 +46,7 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
       const batch = writeBatch(firestore);
       unreadMessages.forEach((message) => {
         if (message.id) { // Ensure message has an ID before trying to update
-          const messageRef = doc(firestore, `family-data/${FAMILY_DATA_DOC}/chatMessages`, message.id);
+          const messageRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages', message.id);
           const currentReadBy = message.readBy || [];
           batch.update(messageRef, {
             readBy: [...currentReadBy, currentUser.uid],
@@ -67,10 +56,12 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
 
       batch.commit().catch(console.error);
     }
-  }, [messages, firestore, currentUser, isLoadingMessages, allUsers]);
+  }, [messages, firestore, currentUser, isLoadingMessages]);
 
   const handleSendMessage = async (text: string) => {
-    if (!messagesCollectionRef || text.trim() === '') return;
+    if (!firestore || text.trim() === '') return;
+    
+    const messagesCollectionRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages');
 
     const senderKey = currentUser.email?.startsWith('ali') ? 'ali' : 'fatemeh';
     const senderName = USER_DETAILS[senderKey].firstName;
@@ -94,7 +85,7 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
     const dataToSend = {
       ...newMessage,
       timestamp: serverTimestamp(),
-    }
+    };
 
     addDocumentNonBlocking(messagesCollectionRef, dataToSend, (id) => {
         updateDoc(doc(messagesCollectionRef, id), { id });
@@ -105,7 +96,7 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="flex-grow overflow-y-auto p-4">
-        {(isLoadingMessages || isLoadingUsers) ? (
+        {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-12 w-3/4 self-start rounded-lg" />
             <Skeleton className="h-16 w-1/2 self-end rounded-lg" />

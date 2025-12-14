@@ -43,7 +43,7 @@ interface AddCategoryDialogProps {
   onCategoryAdded: (newCategory: Category) => void;
 }
 
-const FAMILY_DATA_DOC = 'shared-data';
+const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export function AddCategoryDialog({
   isOpen,
@@ -66,7 +66,7 @@ export function AddCategoryDialog({
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-        const categoriesColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'categories');
+        const categoriesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'categories');
         const newDocRef = await addDoc(categoriesColRef, data);
         const newCategory = { ...data, id: newDocRef.id };
         await updateDoc(newDocRef, { id: newDocRef.id });

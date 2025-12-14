@@ -3,8 +3,7 @@
 
 import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useFirestore, useCollection } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,25 +43,13 @@ function GoalDetailSkeleton() {
   );
 }
 
-const FAMILY_DATA_DOC = 'shared-data';
 
 export default function GoalDetailPage() {
   const router = useRouter();
   const params = useParams();
   const goalId = params.goalId as string;
-  const firestore = useFirestore();
-
-  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
-  
-  const goalsQuery = useMemo(() => baseDocRef ? collection(baseDocRef, 'financialGoals') : null, [baseDocRef]);
-  const bankAccountsQuery = useMemo(() => baseDocRef ? collection(baseDocRef, 'bankAccounts') : null, [baseDocRef]);
-
-  const { data: goals, isLoading: ilG } = useCollection<FinancialGoal>(goalsQuery);
-  const { data: bankAccounts, isLoading: ilB } = useCollection<BankAccount>(bankAccountsQuery);
-  const users = useMemo<UserProfile[]>(() => [USER_DETAILS.ali, USER_DETAILS.fatemeh], []);
-
-  const isLoading = ilG || ilB;
-
+  const { isLoading, allData } = useDashboardData();
+  const { goals, bankAccounts, users } = allData;
 
   const { goal, contributionsWithDetails } = useMemo(() => {
     if (isLoading || !goalId || !goals || !bankAccounts) {

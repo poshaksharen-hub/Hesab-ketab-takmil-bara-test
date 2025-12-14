@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useCallback, useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { useUser } from '@/firebase';
+import { collection, doc, runTransaction, serverTimestamp, addDoc, updateDoc } from 'firebase/firestore';
 import type { BankAccount, Transfer, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -16,24 +16,18 @@ import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
 import { ArrowRight, PlusCircle, Plus } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
-const FAMILY_DATA_DOC = 'shared-data';
+const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export default function TransfersPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
-  
-  const bankAccountsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]);
-  const transfersQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'transfers') : null), [baseDocRef]);
-  
-  const { data: allBankAccounts, isLoading: ilB } = useCollection<BankAccount>(bankAccountsQuery);
-  const { data: transfers, isLoading: ilT } = useCollection<Transfer>(transfersQuery);
-  const users = useMemo<UserProfile[]>(() => [USER_DETAILS.ali, USER_DETAILS.fatemeh], []);
+  const { firestore, bankAccounts: allBankAccounts, transfers, users } = allData;
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
@@ -49,9 +43,8 @@ export default function TransfersPage() {
     
     runTransaction(firestore, async (transaction) => {
       
-      const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-      const fromCardRef = doc(familyDataRef, 'bankAccounts', values.fromBankAccountId);
-      const toCardRef = doc(familyDataRef, 'bankAccounts', values.toBankAccountId);
+      const fromCardRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', values.fromBankAccountId);
+      const toCardRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', values.toBankAccountId);
 
       const fromCardDoc = await transaction.get(fromCardRef);
       const toCardDoc = await transaction.get(toCardRef);
@@ -76,7 +69,7 @@ export default function TransfersPage() {
       transaction.update(fromCardRef, { balance: fromBalanceAfter });
       transaction.update(toCardRef, { balance: toBalanceAfter });
       
-      const newTransferRef = doc(collection(familyDataRef, 'transfers'));
+      const newTransferRef = doc(collection(firestore, FAMILY_DATA_DOC_PATH, 'transfers'));
       
       const newTransferData: Omit<Transfer, 'id'> = {
           ...values,
@@ -143,12 +136,11 @@ export default function TransfersPage() {
       return;
     }
     
-    const transferRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'transfers', transferId);
+    const transferRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'transfers', transferId);
 
     runTransaction(firestore, async (transaction) => {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        const fromAccountRef = doc(familyDataRef, 'bankAccounts', transferToDelete.fromBankAccountId);
-        const toAccountRef = doc(familyDataRef, 'bankAccounts', transferToDelete.toBankAccountId);
+        const fromAccountRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', transferToDelete.fromBankAccountId);
+        const toAccountRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', transferToDelete.toBankAccountId);
 
         const fromAccountDoc = await transaction.get(fromAccountRef);
         const toAccountDoc = await transaction.get(toAccountRef);
@@ -192,7 +184,7 @@ export default function TransfersPage() {
     setIsFormOpen(false);
   }, []);
 
-  const isLoading = isUserLoading || ilB || ilT;
+  const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
