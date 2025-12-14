@@ -15,8 +15,12 @@ service cloud.firestore {
     // Rules for User Profiles
     // These rules are more restrictive to protect individual user profile data.
     match /users/{userId} {
-      // A user can only read their OWN profile data.
-      allow get, list: if request.auth != null && request.auth.uid == userId; 
+      // Allow any authenticated user to list the collection to get names.
+      // This is safe as user profiles only contain non-sensitive info like name/email.
+      allow list: if request.auth != null;
+      
+      // A user can only get their OWN profile data directly.
+      allow get: if request.auth != null && request.auth.uid == userId; 
       
       // A user can only update or delete their OWN profile.
       allow update, delete: if request.auth != null && request.auth.uid == userId;
