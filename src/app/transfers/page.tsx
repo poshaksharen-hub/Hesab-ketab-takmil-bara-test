@@ -215,6 +215,8 @@ export default function TransfersPage() {
             onSubmit={handleTransferSubmit}
             user={user}
             onCancel={handleCancelForm}
+            isOpen={isFormOpen}
+            setIsOpen={setIsFormOpen}
         />
       )}
 
