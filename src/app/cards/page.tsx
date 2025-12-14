@@ -17,6 +17,7 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/no
 import Link from 'next/link';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { Input } from '@/components/ui/input';
 
 
 const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
