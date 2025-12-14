@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LoginPage from '@/app/login/page';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 // Mock useRouter
 const mockPush = jest.fn();
@@ -10,10 +11,16 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock Firebase services
+// Mock Firebase services more comprehensively
 jest.mock('@/firebase', () => ({
-  useAuth: () => ({}),
+  useAuth: () => ({}), // Returns a mock auth object
   useFirestore: () => ({}),
+}));
+
+// Mock the entire 'firebase/auth' module to control its functions
+jest.mock('firebase/auth', () => ({
+  ...jest.requireActual('firebase/auth'), // Keep original functions not mocked
+  signInWithEmailAndPassword: jest.fn(),
 }));
 
 // Mock useToast
@@ -26,6 +33,15 @@ jest.mock('@/hooks/use-toast', () => ({
 
 
 describe('LoginPage', () => {
+
+    beforeEach(() => {
+        // Clear all mock implementations and call history before each test
+        mockPush.mockClear();
+        mockToast.mockClear();
+        (signInWithEmailAndPassword as jest.Mock).mockClear();
+    });
+
+
   it('renders the login form', () => {
     render(<LoginPage />);
     expect(screen.getByLabelText(/ایمیل/i)).toBeInTheDocument();
@@ -67,5 +83,32 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(screen.getByText('رمز عبور باید حداقل ۶ کاراکتر باشد.')).toBeInTheDocument();
     });
+  });
+
+  it('redirects to dashboard on successful login', async () => {
+    // Arrange: Mock a successful login response
+    (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
+      user: { uid: '123', email: 'ali@khanevadati.app' },
+    });
+
+    render(<LoginPage />);
+
+    // Act: Fill in the form with valid credentials and submit
+    fireEvent.input(screen.getByLabelText(/ایمیل/i), {
+      target: { value: 'ali@khanevadati.app' },
+    });
+    fireEvent.input(screen.getByLabelText(/رمز عبور/i), {
+      target: { value: 'password123' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: /ورود/i }));
+
+    // Assert: Wait for the router.push to be called to the dashboard
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/');
+    });
+    // Optional: Assert that a success toast was shown
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'ورود موفق',
+    }));
   });
 });
