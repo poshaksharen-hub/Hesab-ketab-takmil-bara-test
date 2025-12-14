@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -43,7 +42,7 @@ import {
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
-import { useUser, useAuth, FirebaseClientProvider } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
@@ -180,7 +179,7 @@ const MobileMenuContent = ({ user, theme, toggleTheme, handleSignOut, onLinkClic
     );
 };
 
-const AppContent = ({ children }: { children: React.ReactNode }) => {
+export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useSimpleTheme();
@@ -340,12 +339,4 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
       </div>
     </SidebarProvider>
   );
-}
-
-export function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <FirebaseClientProvider>
-      <AppContent>{children}</AppContent>
-    </FirebaseClientProvider>
-  )
 }

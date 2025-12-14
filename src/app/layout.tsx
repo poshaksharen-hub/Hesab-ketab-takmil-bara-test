@@ -50,7 +50,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-secondary">
+        <FirebaseClientProvider>
           <AppLayout>{children}</AppLayout>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
