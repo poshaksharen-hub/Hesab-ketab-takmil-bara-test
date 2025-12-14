@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "User": {
@@ -205,7 +206,8 @@
             "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "The exact date of the first installment payment."},
             "numberOfInstallments": { "type": "number" },
             "paidInstallments": { "type": "number" },
-            "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." }
+            "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." },
+            "paymentDay": { "type": "number", "description": "The day of the month for installment payment reminders (1-30)." }
         },
         "required": ["id", "registeredByUserId", "ownerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "numberOfInstallments", "paidInstallments", "firstInstallmentDate"]
     },
