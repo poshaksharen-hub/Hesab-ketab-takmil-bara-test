@@ -236,14 +236,15 @@ export default function LoansPage() {
         return;
     }
     
-    const loanRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'loans', loanId);
+    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+    const loanRef = doc(familyDataRef, 'loans', loanId);
 
     try {
         const batch = writeBatch(firestore);
 
         // If the loan amount was initially deposited, reverse the transaction
         if (loanToDelete.depositToAccountId) {
-            const depositAccountRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', loanToDelete.depositToAccountId);
+            const depositAccountRef = doc(familyDataRef, 'bankAccounts', loanToDelete.depositToAccountId);
             // We need to get the account's current data first. Since batches can't read, we do a getDoc first.
             const depositAccountDoc = await getDoc(depositAccountRef);
             if (depositAccountDoc.exists()) {
