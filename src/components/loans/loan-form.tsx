@@ -23,14 +23,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Loan, BankAccount, Payee, OwnerId } from '@/lib/types';
+import type { Loan, BankAccount, Payee, OwnerId, UserProfile } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
-import { useToast } from '@/hooks/use-toast';
-import type { User as AuthUser } from 'firebase/auth';
 
 const baseSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
@@ -66,11 +64,10 @@ interface LoanFormProps {
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
-  user: AuthUser | null;
+  users: UserProfile[];
 }
 
-export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, user }: LoanFormProps) {
-    const { toast } = useToast();
+export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, users }: LoanFormProps) {
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
     
     const form = useForm<LoanFormValues>({
@@ -99,7 +96,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     const watchLoanOwnerId = form.watch('ownerId');
     
     useEffect(() => {
-        const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+        const loggedInUserOwnerId = users.find(u => u.email.startsWith('ali')) ? 'ali' : 'fatemeh';
         if (initialData) {
             form.reset({
                 ...initialData,
@@ -125,7 +122,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 depositToAccountId: '',
             });
         }
-    }, [initialData, form, user]);
+    }, [initialData, form, users]);
 
     const availableDepositAccounts = useMemo(() => {
         if (watchLoanOwnerId === 'shared') {
@@ -142,24 +139,14 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     }, [availableDepositAccounts, form]);
 
 
-    const handleFormSubmit = (data: LoanFormValues) => {
-        if (!user) {
-            toast({
-                title: 'خطا در ثبت',
-                description: 'برای ثبت وام باید ابتدا وارد شوید.',
-                variant: 'destructive',
-            });
-            return;
-        }
-
+    const handleFormSubmit = useCallback((data: LoanFormValues) => {
         const submissionData = {
             ...data,
             startDate: data.startDate.toISOString(),
             firstInstallmentDate: data.firstInstallmentDate.toISOString(),
-            registeredByUserId: user.uid,
         };
         onSubmit(submissionData);
-    };
+    }, [onSubmit]);
 
     const handlePayeeSelection = (value: string) => {
         if (value === 'add_new') {
@@ -380,5 +367,4 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </>
     );
 }
-
     

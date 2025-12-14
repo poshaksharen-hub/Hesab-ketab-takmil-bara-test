@@ -14,7 +14,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Loader2, TriangleAlert } from 'lucide-react';
-import { USER_DETAILS } from '@/lib/constants';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+
 
 const FAMILY_DATA_DOC = 'shared-data';
 const COLLECTIONS_TO_MIGRATE = [
@@ -24,18 +25,20 @@ const COLLECTIONS_TO_MIGRATE = [
 
 export default function DataMigrationPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
+  const { allData } = useDashboardData();
+  const { firestore, users } = allData;
+
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationDone, setMigrationDone] = useState(false);
   const [migrationLog, setMigrationLog] = useState<string[]>([]);
 
   const handleMigration = useCallback(async () => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !users) {
       toast({
         variant: 'destructive',
         title: 'خطا',
-        description: 'ابتدا باید وارد شوید.',
+        description: 'ابتدا باید وارد شوید و داده‌ها بارگذاری شوند.',
       });
       return;
     }
@@ -47,11 +50,15 @@ export default function DataMigrationPage() {
 
     try {
       const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-      const defaultUserId = USER_DETAILS.ali.uid; // Assume Ali is the default user
+      const defaultUser = users.find(u => u.email.startsWith('ali'));
+      
+      if (!defaultUser) {
+        throw new Error("کاربر پیش فرض (علی) برای اصلاح داده ها یافت نشد.");
+      }
+      const defaultUserId = defaultUser.id;
 
       for (const collectionName of COLLECTIONS_TO_MIGRATE) {
         const collRef = collection(familyDataRef, collectionName);
-        // Fetch all documents instead of querying for null
         const snapshot = await getDocs(query(collRef));
 
         if (snapshot.empty) {
@@ -64,7 +71,6 @@ export default function DataMigrationPage() {
 
         snapshot.docs.forEach((docSnapshot) => {
           const data = docSnapshot.data();
-          // Update document only if registeredByUserId field is missing
           if (!data.registeredByUserId) {
             batch.update(docSnapshot.ref, { registeredByUserId: defaultUserId });
             docsToUpdate++;
@@ -98,7 +104,7 @@ export default function DataMigrationPage() {
     } finally {
       setIsMigrating(false);
     }
-  }, [user, firestore, toast]);
+  }, [user, firestore, toast, users]);
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 flex items-center justify-center">

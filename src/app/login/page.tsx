@@ -37,6 +37,8 @@ import { ALLOWED_USERS, USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FirestorePermissionError } from '@/firebase/errors';
+import type { UserProfile } from '@/lib/types';
+
 
 const formSchema = z.object({
   email: z
@@ -84,9 +86,9 @@ export default function LoginPage() {
         const userDetailKey = user.email!.split('@')[0] as 'ali' | 'fatemeh';
         const userDetail = USER_DETAILS[userDetailKey];
         if (userDetail) {
-             const profileData = {
+             const profileData: UserProfile = {
               id: user.uid,
-              email: user.email,
+              email: user.email!,
               firstName: userDetail.firstName,
               lastName: userDetail.lastName,
             };

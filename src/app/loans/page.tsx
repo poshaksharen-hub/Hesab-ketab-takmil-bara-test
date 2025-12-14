@@ -13,9 +13,10 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
-  writeBatch
+  writeBatch,
+  addDoc
 } from 'firebase/firestore';
-import type { Loan, BankAccount, Category, TransactionDetails, LoanPayment, Expense } from '@/lib/types';
+import type { Loan, BankAccount, Category, TransactionDetails, LoanPayment, Expense, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { LoanList } from '@/components/loans/loan-list';
@@ -28,15 +29,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { sendSystemNotification } from '@/lib/notifications';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { USER_DETAILS } from '@/lib/constants';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
 const FAMILY_DATA_DOC = 'shared-data';
 
 export default function LoansPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
@@ -46,6 +44,7 @@ export default function LoansPage() {
   const [payingLoan, setPayingLoan] = useState<Loan | null>(null);
 
   const { 
+    firestore,
     loans,
     bankAccounts,
     categories,
@@ -54,15 +53,10 @@ export default function LoansPage() {
   } = allData;
 
  const handleFormSubmit = useCallback(async (loanValues: any) => {
-    if (!user || !firestore || !users || !bankAccounts || !payees) {
-        toast({
-            title: 'خطای سیستمی',
-            description: 'سرویس‌های مورد نیاز بارگذاری نشده‌اند. لطفا صفحه را رفرش کنید.',
-            variant: 'destructive',
-        });
+    if (!user || !firestore) {
+        toast({ title: 'خطا', description: 'برای ثبت وام باید ابتدا وارد شوید.', variant: 'destructive' });
         return;
     }
-
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
 
 
@@ -113,25 +107,26 @@ export default function LoansPage() {
     } else {
         // --- CREATE LOGIC ---
         const loanCollectionRef = collection(familyDataRef, 'loans');
-        const loanData = {
+        const finalLoanData = {
             ...loanValues,
+            registeredByUserId: user.uid,
             paidInstallments: 0,
             remainingAmount: loanValues.amount,
         };
 
-        addDocumentNonBlocking(loanCollectionRef, loanData, async (newId) => {
-            const newLoanRef = doc(loanCollectionRef, newId);
-            updateDocumentNonBlocking(newLoanRef, { id: newId });
+        addDoc(loanCollectionRef, {}).then(async docRef => {
+            await updateDoc(docRef, { ...finalLoanData, id: docRef.id });
 
-            if (loanData.depositOnCreate && loanData.depositToAccountId) {
-                const bankAccountRef = doc(familyDataRef, 'bankAccounts', loanData.depositToAccountId);
+            if (finalLoanData.depositOnCreate && finalLoanData.depositToAccountId) {
+                const bankAccountRef = doc(familyDataRef, 'bankAccounts', finalLoanData.depositToAccountId);
                 try {
-                    const bankAccountDoc = await getDoc(bankAccountRef);
-                    if (bankAccountDoc.exists()) {
+                    await runTransaction(firestore, async transaction => {
+                        const bankAccountDoc = await transaction.get(bankAccountRef);
+                        if (!bankAccountDoc.exists()) throw new Error("Account not found");
                         const bankAccountData = bankAccountDoc.data() as BankAccount;
-                        const balanceAfter = bankAccountData.balance + loanData.amount;
-                        updateDocumentNonBlocking(bankAccountRef, { balance: balanceAfter });
-                    }
+                        const balanceAfter = bankAccountData.balance + finalLoanData.amount;
+                        transaction.update(bankAccountRef, { balance: balanceAfter });
+                    });
                 } catch (e) {
                     console.error("Failed to update account balance after loan creation", e);
                 }
@@ -147,6 +142,17 @@ export default function LoansPage() {
             
             const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
             await sendSystemNotification(firestore, user.uid, notificationDetails);
+        }).catch(error => {
+             if (error.name === 'FirebaseError') {
+                 const permissionError = new FirestorePermissionError({
+                    path: loanCollectionRef.path,
+                    operation: 'create',
+                    requestResourceData: finalLoanData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } else {
+                toast({ variant: 'destructive', title: `خطا در ثبت وام`, description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.' });
+            }
         });
     }
   }, [user, firestore, editingLoan, bankAccounts, payees, users, toast]);
@@ -202,7 +208,7 @@ export default function LoansPage() {
         
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
-        const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUserFirstName, payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
+        const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUserFirstName, payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.name }] };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
@@ -310,7 +316,7 @@ export default function LoansPage() {
                 initialData={editingLoan}
                 bankAccounts={bankAccounts || []}
                 payees={payees || []}
-                user={user}
+                users={users || []}
             />
       ) : (
         <>
@@ -349,5 +355,3 @@ export default function LoansPage() {
     </div>
   );
 }
-
-    

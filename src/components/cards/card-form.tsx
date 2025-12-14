@@ -28,7 +28,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import type { BankAccount, UserProfile, BankTheme, OwnerId } from '@/lib/types';
-import type { User } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';
 import { BANK_DATA, type BankInfo } from '@/lib/bank-data';
 import { Check, ChevronsUpDown } from 'lucide-react';
@@ -57,12 +56,11 @@ interface CardFormProps {
   setIsOpen: (isOpen: boolean) => void;
   onSubmit: (data: Omit<CardFormValues, 'isShared' | 'owner'> & { ownerId: 'ali' | 'fatemeh' | 'shared_account' }) => void;
   initialData: BankAccount | null;
-  user: User | null;
   users: UserProfile[];
   hasSharedAccount: boolean;
 }
 
-const CardFormContent = ({ form, initialData, user, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen }: any) => {
+const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen }: any) => {
     const selectedBankName = form.watch('bankName');
     const selectedBankInfo = BANK_DATA.find(b => b.name === selectedBankName);
 
@@ -274,7 +272,7 @@ const CardFormContent = ({ form, initialData, user, users, hasSharedAccount, onS
     )
 }
 
-export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users, hasSharedAccount }: CardFormProps) {
+export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount }: CardFormProps) {
   const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
   const isMobile = useIsMobile();
   
@@ -293,7 +291,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
     },
   });
   
-  const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+  const loggedInUserOwnerId = users.find(u => u.email.startsWith('ali')) ? 'ali' : 'fatemeh';
 
   React.useEffect(() => {
     if (initialData) {
@@ -317,7 +315,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, user, users
     }
   }, [initialData, form, loggedInUserOwnerId, isOpen]); // Rerun effect when isOpen changes
 
-  const commonProps = { form, initialData, user, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen };
+  const commonProps = { form, initialData, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen };
 
   if (isMobile) {
     return (

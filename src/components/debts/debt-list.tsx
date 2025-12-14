@@ -45,7 +45,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
 
   const getOwnerDetails = (ownerId: OwnerId) => {
     if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
+    const userDetail = Object.values(USER_DETAILS).find(u => u.email.startsWith(ownerId));
     if (!userDetail) return { name: "ناشناس", Icon: User };
     return { name: userDetail.firstName, Icon: User };
   };
@@ -56,7 +56,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
             const progress = 100 - (debt.remainingAmount / debt.amount) * 100;
             const isCompleted = debt.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(debt.ownerId);
-            const registeredByName = users.find(u => u.id === debt.registeredByUserId)?.firstName || 'سیستم';
+            const registeredByName = users.find(u => u.id === debt.registeredByUserId)?.firstName || 'نامشخص';
 
             return (
              <div key={debt.id} className="relative group">
