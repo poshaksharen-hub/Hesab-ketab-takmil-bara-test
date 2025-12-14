@@ -32,7 +32,18 @@ export function useDashboardData() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const baseDocRef = useMemo(() => (firestore ? doc(firestore, FAMILY_DATA_DOC_PATH) : null), [firestore]);
+  // CRITICAL FIX: Do not create any refs or queries until authentication is complete.
+  // If we are still loading the user, all queries must be null.
+  const baseDocRef = useMemo(() => {
+    if (isUserLoading || !firestore) return null;
+    return doc(firestore, FAMILY_DATA_DOC_PATH);
+  }, [firestore, isUserLoading]);
+  
+  const usersQuery = useMemo(() => {
+    if (isUserLoading || !firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore, isUserLoading]);
+
 
   const incomesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]);
   const expensesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]);
@@ -46,7 +57,6 @@ export function useDashboardData() {
   const loanPaymentsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'loanPayments') : null), [baseDocRef]);
   const previousDebtsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]);
   const debtPaymentsQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'debtPayments') : null), [baseDocRef]);
-  const usersQuery = useMemo(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
 
 
   const { data: incomes, isLoading: ilI } = useCollection<Income>(incomesQuery);
