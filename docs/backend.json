@@ -159,9 +159,10 @@
       "properties": {
         "bankAccountId": { "type": "string" },
         "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" }
+        "date": { "type": "string", "format": "date-time" },
+        "registeredByUserId": { "type": "string", "description": "The user who registered this contribution." }
       },
-      "required": ["bankAccountId", "amount", "date"]
+      "required": ["bankAccountId", "amount", "date", "registeredByUserId"]
     },
     "FinancialGoal": {
         "$schema": "http://json-schema.org/draft-07/schema#",
