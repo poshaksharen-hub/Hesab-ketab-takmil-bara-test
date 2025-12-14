@@ -316,7 +316,7 @@ export default function LoansPage() {
                 initialData={editingLoan}
                 bankAccounts={bankAccounts || []}
                 payees={payees || []}
-                users={users || []}
+                user={user}
             />
       ) : (
         <>

@@ -23,12 +23,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { Loan, BankAccount, Payee, OwnerId, UserProfile } from '@/lib/types';
+import type { Loan, BankAccount, Payee, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
+import type { User as AuthUser } from 'firebase/auth';
 
 const baseSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
@@ -64,10 +65,10 @@ interface LoanFormProps {
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
-  users: UserProfile[];
+  user: AuthUser | null;
 }
 
-export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, users }: LoanFormProps) {
+export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, user }: LoanFormProps) {
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
     
     const form = useForm<LoanFormValues>({
@@ -96,7 +97,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     const watchLoanOwnerId = form.watch('ownerId');
     
     useEffect(() => {
-        const loggedInUserOwnerId = users.find(u => u.email.startsWith('ali')) ? 'ali' : 'fatemeh';
+        const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
         if (initialData) {
             form.reset({
                 ...initialData,
@@ -122,7 +123,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 depositToAccountId: '',
             });
         }
-    }, [initialData, form, users]);
+    }, [initialData, form, user]);
 
     const availableDepositAccounts = useMemo(() => {
         if (watchLoanOwnerId === 'shared') {
@@ -367,4 +368,3 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </>
     );
 }
-    

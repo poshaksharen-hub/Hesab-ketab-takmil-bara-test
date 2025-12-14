@@ -32,8 +32,6 @@ export function useDashboardData() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  // CRITICAL FIX: Do not create any refs or queries until authentication is complete.
-  // If we are still loading the user, all queries must be null.
   const baseDocRef = useMemo(() => {
     if (isUserLoading || !firestore) return null;
     return doc(firestore, FAMILY_DATA_DOC_PATH);

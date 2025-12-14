@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import type { BankAccount, UserProfile, OwnerId } from '@/lib/types';
+import type { BankAccount, OwnerId } from '@/lib/types';
 import { ArrowDown, ArrowRightLeft } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
 import { formatCurrency } from '@/lib/utils';
@@ -185,7 +185,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, onCancel }: Transfe
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-                <Button type="submit" className="w-full">تایید و انتقال</Button>
+                <Button type="submit">تایید و انتقال</Button>
             </CardFooter>
           </form>
         </Form>
