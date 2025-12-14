@@ -106,33 +106,32 @@ export default function LoansPage() {
         });
     } else {
         // --- CREATE LOGIC ---
-        const loanCollectionRef = collection(familyDataRef, 'loans');
-        const finalLoanData = {
-            ...loanValues,
-            registeredByUserId: user.uid,
-            paidInstallments: 0,
-            remainingAmount: loanValues.amount,
-        };
+        runTransaction(firestore, async (transaction) => {
+            const newLoanRef = doc(collection(familyDataRef, 'loans'));
+            const finalLoanData = {
+                ...loanValues,
+                id: newLoanRef.id,
+                registeredByUserId: user.uid,
+                paidInstallments: 0,
+                remainingAmount: loanValues.amount,
+            };
 
-        addDoc(loanCollectionRef, {}).then(async docRef => {
-            await updateDoc(docRef, { ...finalLoanData, id: docRef.id });
-
+            // If depositing, get and update the bank account within the same transaction
             if (finalLoanData.depositOnCreate && finalLoanData.depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', finalLoanData.depositToAccountId);
-                try {
-                    await runTransaction(firestore, async transaction => {
-                        const bankAccountDoc = await transaction.get(bankAccountRef);
-                        if (!bankAccountDoc.exists()) throw new Error("Account not found");
-                        const bankAccountData = bankAccountDoc.data() as BankAccount;
-                        const balanceAfter = bankAccountData.balance + finalLoanData.amount;
-                        transaction.update(bankAccountRef, { balance: balanceAfter });
-                    });
-                } catch (e) {
-                    console.error("Failed to update account balance after loan creation", e);
+                const bankAccountDoc = await transaction.get(bankAccountRef);
+                if (!bankAccountDoc.exists()) {
+                    throw new Error("حساب بانکی برای واریز یافت نشد.");
                 }
+                const bankAccountData = bankAccountDoc.data() as BankAccount;
+                const balanceAfter = bankAccountData.balance + finalLoanData.amount;
+                transaction.update(bankAccountRef, { balance: balanceAfter });
             }
 
-            toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
+            // Set the new loan document
+            transaction.set(newLoanRef, finalLoanData);
+        }).then(async () => {
+             toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
             setIsFormOpen(false);
             setEditingLoan(null);
 
@@ -145,9 +144,9 @@ export default function LoansPage() {
         }).catch(error => {
              if (error.name === 'FirebaseError') {
                  const permissionError = new FirestorePermissionError({
-                    path: loanCollectionRef.path,
+                    path: `family-data/${FAMILY_DATA_DOC}/loans`,
                     operation: 'create',
-                    requestResourceData: finalLoanData,
+                    requestResourceData: loanValues,
                 });
                 errorEmitter.emit('permission-error', permissionError);
             } else {
@@ -236,23 +235,32 @@ export default function LoansPage() {
         toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌ها را به صورت دستی برگردانید و سپس وام را حذف کنید.' });
         return;
     }
+    
     const loanRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'loans', loanId);
 
     try {
         const batch = writeBatch(firestore);
 
+        // If the loan amount was initially deposited, reverse the transaction
         if (loanToDelete.depositToAccountId) {
             const depositAccountRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'bankAccounts', loanToDelete.depositToAccountId);
+            // We need to get the account's current data first. Since batches can't read, we do a getDoc first.
             const depositAccountDoc = await getDoc(depositAccountRef);
             if (depositAccountDoc.exists()) {
                 const accountData = depositAccountDoc.data() as BankAccount;
                 batch.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
             } else {
+                // If account doesn't exist, we can't reverse. Log a warning and proceed with deletion.
                 console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found. The deletion will proceed without reversing the initial deposit.`);
             }
         }
+        
+        // Delete the loan document
         batch.delete(loanRef);
+        
+        // Commit all operations in the batch
         await batch.commit();
+        
         toast({ title: "موفقیت", description: "وام با موفقیت حذف شد." });
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
