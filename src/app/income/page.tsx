@@ -81,7 +81,7 @@ export default function IncomePage() {
               icon: 'TrendingUp',
               color: 'rgb(34 197 94)',
               registeredBy: currentUserFirstName,
-              payee: values.source,
+              payee: values.source, // Using 'source' as the payee for notification
               category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
               bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
           };
@@ -206,7 +206,7 @@ export default function IncomePage() {
       )}
 
       {!isFormOpen && (
-          <div className="md:hidden fixed bottom-20 right-4 z-50">
+          <div className="md-hidden fixed bottom-20 right-4 z-50">
               <Button
                 onClick={handleAddNew}
                 size="icon"
