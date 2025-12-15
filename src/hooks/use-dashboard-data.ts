@@ -37,10 +37,11 @@ export function useDashboardData() {
     return doc(firestore, FAMILY_DATA_DOC_PATH);
   }, [firestore, isUserLoading]);
   
-  const usersQuery = useMemo(() => {
-    if (isUserLoading || !firestore) return null;
-    return collection(firestore, 'users');
-  }, [firestore, isUserLoading]);
+  // Directly use static user data instead of fetching from Firestore
+  const users: UserProfile[] = useMemo(() => [
+      { id: 'ali_placeholder_id', ...USER_DETAILS.ali },
+      { id: 'fatemeh_placeholder_id', ...USER_DETAILS.fatemeh }
+  ], []);
 
 
   const incomesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]);
@@ -69,9 +70,9 @@ export function useDashboardData() {
   const { data: loanPayments, isLoading: ilLP } = useCollection<LoanPayment>(loanPaymentsQuery);
   const { data: previousDebts, isLoading: ilPD } = useCollection<PreviousDebt>(previousDebtsQuery);
   const { data: debtPayments, isLoading: ilDP } = useCollection<DebtPayment>(debtPaymentsQuery);
-  const { data: users, isLoading: ilU } = useCollection<UserProfile>(usersQuery);
-
-  const isLoading = isUserLoading || ilU || ilI || ilE || ilBA || ilC || ilCH || ilL || ilP || ilG || ilT || ilLP || ilPD || ilDP;
+  
+  // We are no longer loading users from Firestore, so ilU is removed.
+  const isLoading = isUserLoading || ilI || ilE || ilBA || ilC || ilCH || ilL || ilP || ilG || ilT || ilLP || ilPD || ilDP;
 
   const allData = useMemo(() => ({
     firestore,
@@ -87,7 +88,7 @@ export function useDashboardData() {
     loanPayments: loanPayments || [],
     previousDebts: previousDebts || [],
     debtPayments: debtPayments || [],
-    users: users || [],
+    users: users, // Use the static user data
   }), [firestore, incomes, expenses, bankAccounts, categories, checks, loans, payees, goals, transfers, loanPayments, previousDebts, debtPayments, users]);
 
   return { isLoading, allData };
