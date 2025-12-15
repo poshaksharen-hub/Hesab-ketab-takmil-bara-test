@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { sendSystemNotification } from '@/lib/notifications';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { USER_DETAILS } from '@/lib/constants';
 
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -53,17 +54,20 @@ export default function LoansPage() {
   } = allData;
 
  const handleFormSubmit = useCallback(async (loanValues: any) => {
-    if (!user || !firestore) {
-        toast({ title: 'خطا', description: 'برای ثبت وام باید ابتدا وارد شوید.', variant: 'destructive' });
+    if (!user || !firestore || !users || !bankAccounts || !payees) {
+        toast({
+            title: 'خطای سیستمی',
+            description: 'سرویس‌های مورد نیاز بارگذاری نشده‌اند. لطفا صفحه را رفرش کنید.',
+            variant: 'destructive',
+        });
         return;
     }
-    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-
 
     if (editingLoan) {
         // --- EDIT LOGIC ---
-        const loanRef = doc(familyDataRef, 'loans', editingLoan.id);
+        const loanRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'loans', editingLoan.id);
         runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const loanDoc = await transaction.get(loanRef);
             if (!loanDoc.exists()) throw new Error('این وام برای ویرایش یافت نشد.');
 
@@ -85,6 +89,7 @@ export default function LoansPage() {
             
             const updateData = { 
                 ...loanValues,
+                ownerId: oldLoanData.ownerId, // Preserve original owner
                 remainingAmount: newRemainingAmount,
             };
             transaction.update(loanRef, updateData);
@@ -107,16 +112,16 @@ export default function LoansPage() {
     } else {
         // --- CREATE LOGIC ---
         runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const newLoanRef = doc(collection(familyDataRef, 'loans'));
-            const finalLoanData = {
-                ...loanValues,
+            const finalLoanData: Loan = {
                 id: newLoanRef.id,
+                ...loanValues,
                 registeredByUserId: user.uid,
                 paidInstallments: 0,
                 remainingAmount: loanValues.amount,
             };
 
-            // If depositing, get and update the bank account within the same transaction
             if (finalLoanData.depositOnCreate && finalLoanData.depositToAccountId) {
                 const bankAccountRef = doc(familyDataRef, 'bankAccounts', finalLoanData.depositToAccountId);
                 const bankAccountDoc = await transaction.get(bankAccountRef);
@@ -128,19 +133,18 @@ export default function LoansPage() {
                 transaction.update(bankAccountRef, { balance: balanceAfter });
             }
 
-            // Set the new loan document
             transaction.set(newLoanRef, finalLoanData);
         }).then(async () => {
              toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
             setIsFormOpen(false);
             setEditingLoan(null);
 
-            const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
-            const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
-            const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
-            
-            const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
-            await sendSystemNotification(firestore, user.uid, notificationDetails);
+             const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
+             const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
+             const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+             
+             const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
+             await sendSystemNotification(firestore, user.uid, notificationDetails);
         }).catch(error => {
              if (error.name === 'FirebaseError') {
                  const permissionError = new FirestorePermissionError({
