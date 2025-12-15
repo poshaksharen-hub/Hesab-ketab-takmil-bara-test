@@ -77,7 +77,7 @@ export default function IncomePage() {
               type: 'income',
               title: `ثبت درآمد جدید: ${values.description}`,
               amount: values.amount,
-              date: (values.date as any),
+              date: (values.date as any).toISOString(),
               icon: 'TrendingUp',
               color: 'rgb(34 197 94)',
               registeredBy: currentUserFirstName,
@@ -206,7 +206,7 @@ export default function IncomePage() {
       )}
 
       {!isFormOpen && (
-          <div className="md-hidden fixed bottom-20 right-4 z-50">
+          <div className="md:hidden fixed bottom-20 right-4 z-50">
               <Button
                 onClick={handleAddNew}
                 size="icon"
