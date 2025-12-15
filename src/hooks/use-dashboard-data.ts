@@ -37,21 +37,9 @@ export function useDashboardData() {
     return doc(firestore, FAMILY_DATA_DOC_PATH);
   }, [firestore, isUserLoading]);
   
-  // Static user data is now augmented with the current user's UID when available.
-  const users: UserProfile[] = useMemo(() => {
-      const aliData = { ...USER_DETAILS.ali, id: '' };
-      const fatemehData = { ...USER_DETAILS.fatemeh, id: '' };
-      
-      if(user) {
-        if(user.email === aliData.email) {
-            aliData.id = user.uid;
-        } else if (user.email === fatemehData.email) {
-            fatemehData.id = user.uid;
-        }
-      }
-      return [aliData, fatemehData];
-  }, [user]);
-
+  // Fetch all users from the 'users' collection at the root.
+  const usersQuery = useMemo(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
+  const { data: users, isLoading: areUsersLoading } = useCollection<UserProfile>(usersQuery);
 
   const incomesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]);
   const expensesQuery = useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]);
@@ -80,7 +68,7 @@ export function useDashboardData() {
   const { data: previousDebts, isLoading: ilPD } = useCollection<PreviousDebt>(previousDebtsQuery);
   const { data: debtPayments, isLoading: ilDP } = useCollection<DebtPayment>(debtPaymentsQuery);
   
-  const isLoading = isUserLoading || ilI || ilE || ilBA || ilC || ilCH || ilL || ilP || ilG || ilT || ilLP || ilPD || ilDP;
+  const isLoading = isUserLoading || areUsersLoading || ilI || ilE || ilBA || ilC || ilCH || ilL || ilP || ilG || ilT || ilLP || ilPD || ilDP;
 
   const allData = useMemo(() => ({
     firestore,
@@ -96,7 +84,7 @@ export function useDashboardData() {
     loanPayments: loanPayments || [],
     previousDebts: previousDebts || [],
     debtPayments: debtPayments || [],
-    users: users,
+    users: users || [],
   }), [firestore, incomes, expenses, bankAccounts, categories, checks, loans, payees, goals, transfers, loanPayments, previousDebts, debtPayments, users]);
 
   return { isLoading, allData };

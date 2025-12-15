@@ -1,12 +1,21 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // WARNING: This rule grants open read and write access to the entire database.
-    // Any user, authenticated or not, can read, write, and delete all data.
-    // This change was made at the user's explicit request to remove all permission-related errors.
-    match /{document=**} {
+    // Allow any authenticated user to read the list of all users.
+    // This is necessary for displaying user names correctly across the app.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      // Only the user themselves can create or update their own profile.
+      allow write: if request.auth.uid == userId;
+    }
+
+    // WARNING: This rule grants open read and write access to all shared family data.
+    // This was implemented at the user's request to eliminate all permission errors during development.
+    // This is NOT secure and should be replaced with granular rules before production.
+    match /family-data/{docId}/{document=**} {
       allow read, write: if true;
     }
   }
