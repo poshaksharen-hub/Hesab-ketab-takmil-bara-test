@@ -141,10 +141,10 @@ export default function LoansPage() {
 
              const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
              const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
-             const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+             const currentUserFirstName = user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
              
-             const notificationDetails: TransactionDetails = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', registeredBy: currentUserFirstName, payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
-             await sendSystemNotification(firestore, user.uid, notificationDetails);
+             const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
+             await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
         }).catch(error => {
              if (error.name === 'FirebaseError') {
                  const permissionError = new FirestorePermissionError({
@@ -211,8 +211,8 @@ export default function LoansPage() {
         
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
-        const notificationDetails: TransactionDetails = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', registeredBy: currentUserFirstName, payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.name }] };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
+        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
