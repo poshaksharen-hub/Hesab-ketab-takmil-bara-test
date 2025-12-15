@@ -91,10 +91,7 @@ const quickAccessItems = [
 function QuickAccess() {
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className='font-headline text-lg'>دسترسی سریع</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 pt-0">
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 pt-6">
                 {quickAccessItems.map(item => (
                     <Link key={item.href} href={item.href} className="group">
                         <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent hover:shadow-sm transition-all duration-200 h-full">
