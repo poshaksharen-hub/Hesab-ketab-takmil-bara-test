@@ -51,15 +51,21 @@ export default function DebtsPage() {
         toast({ title: "خطا", description: "برای ثبت بدهی باید ابتدا وارد شوید.", variant: "destructive" });
         return;
     };
+    
+    // Ensure dates are Date objects before calling toISOString
+    const startDate = values.startDate instanceof Date ? values.startDate : new Date(values.startDate);
+    const firstInstallmentDate = values.firstInstallmentDate instanceof Date ? values.firstInstallmentDate : (values.firstInstallmentDate ? new Date(values.firstInstallmentDate) : undefined);
+    const dueDate = values.dueDate instanceof Date ? values.dueDate : (values.dueDate ? new Date(values.dueDate) : undefined);
+
 
     const debtData: Omit<PreviousDebt, 'id'> = {
         ...values,
         registeredByUserId: user.uid, // Set registrar here
         remainingAmount: values.amount,
         paidInstallments: 0,
-        startDate: values.startDate.toISOString(),
-        firstInstallmentDate: values.isInstallment && values.firstInstallmentDate ? values.firstInstallmentDate.toISOString() : undefined,
-        dueDate: !values.isInstallment && values.dueDate ? values.dueDate.toISOString() : undefined,
+        startDate: startDate.toISOString(),
+        firstInstallmentDate: values.isInstallment && firstInstallmentDate ? firstInstallmentDate.toISOString() : undefined,
+        dueDate: !values.isInstallment && dueDate ? dueDate.toISOString() : undefined,
     };
     
     try {

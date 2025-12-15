@@ -92,20 +92,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
   });
 
   function handleFormSubmit(data: DebtFormValues) {
-    const submissionData: any = {
-      ...data,
-      startDate: data.startDate.toISOString(),
-    };
-
-    if (data.isInstallment) {
-        submissionData.firstInstallmentDate = data.firstInstallmentDate?.toISOString();
-        delete submissionData.dueDate;
-    } else {
-        submissionData.dueDate = data.dueDate?.toISOString();
-        delete submissionData.firstInstallmentDate;
-    }
-    
-    onSubmit(submissionData);
+    onSubmit(data);
   }
 
 
