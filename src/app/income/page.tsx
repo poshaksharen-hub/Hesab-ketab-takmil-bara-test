@@ -181,15 +181,14 @@ export default function IncomePage() {
         )}
       </div>
 
-       {isFormOpen && (
-        <IncomeForm
-            onSubmit={handleFormSubmit}
-            initialData={null}
-            bankAccounts={allBankAccounts || []}
-            user={user}
-            onCancel={handleCancelForm}
+       <IncomeForm
+          isOpen={isFormOpen}
+          setIsOpen={setIsFormOpen}
+          onSubmit={handleFormSubmit}
+          initialData={null}
+          bankAccounts={allBankAccounts || []}
+          user={user}
         />
-       )}
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
@@ -197,7 +196,7 @@ export default function IncomePage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
           </div>
-      ) : !isFormOpen && (
+      ) : (
         <IncomeList
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}
