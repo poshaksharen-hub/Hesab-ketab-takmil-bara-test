@@ -138,13 +138,26 @@ export default function LoansPage() {
              toast({ title: 'موفقیت', description: `وام با موفقیت ثبت شد.` });
             setIsFormOpen(false);
             setEditingLoan(null);
-
+            
+             const currentUser = allData.users.find(u => u.id === user.uid);
              const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
              const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
-             const currentUserFirstName = user.email?.startsWith('ali') ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+             const currentUserFirstName = currentUser?.firstName || 'کاربر';
              
-             const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = { type: 'loan', title: `ثبت وام جدید: ${loanValues.title}`, amount: loanValues.amount, date: loanValues.startDate, icon: 'Landmark', color: 'rgb(139 92 246)', payee: payeeName, properties: [{ label: 'واریز به', value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' }] };
-             await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+             const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = { 
+                type: 'loan', 
+                title: `ثبت وام جدید: ${loanValues.title}`, 
+                amount: loanValues.amount, 
+                date: loanValues.startDate, 
+                icon: 'Landmark', 
+                color: 'rgb(139 92 246)', 
+                payee: payeeName, 
+                properties: [{ 
+                    label: 'واریز به', 
+                    value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' 
+                }] 
+            };
+            await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
         }).catch(error => {
              if (error.name === 'FirebaseError') {
                  const permissionError = new FirestorePermissionError({
@@ -158,7 +171,7 @@ export default function LoansPage() {
             }
         });
     }
-  }, [user, firestore, editingLoan, bankAccounts, payees, users, toast]);
+  }, [user, firestore, editingLoan, bankAccounts, payees, users, toast, allData.users]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number }) => {
@@ -209,7 +222,8 @@ export default function LoansPage() {
         toast({ title: "موفقیت", description: "قسط با موفقیت پرداخت و به عنوان هزینه ثبت شد." });
         setPayingLoan(null);
         
-        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+        const currentUser = allData.users.find(u => u.id === user.uid);
+        const currentUserFirstName = currentUser?.firstName || 'کاربر';
         const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
         const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
         await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
@@ -224,7 +238,7 @@ export default function LoansPage() {
              toast({ variant: "destructive", title: "خطا در پرداخت قسط", description: error.message });
         }
     });
-  }, [user, firestore, bankAccounts, categories, payees, users, toast]);
+  }, [user, firestore, bankAccounts, categories, payees, users, toast, allData.users]);
 
   const handleDelete = useCallback(async (loanId: string) => {
     if (!user || !firestore || !loans) return;
