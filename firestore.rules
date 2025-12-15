@@ -3,17 +3,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow authenticated users to read the users collection (list and get)
-    // Allow users to write to their own document only
-    match /users/{userId} {
-      allow list, get: if request.auth != null;
-      allow write: if request.auth.uid == userId;
-    }
-
     // WARNING: This rule grants open read and write access to the entire database.
     // Any user, authenticated or not, can read, write, and delete all data.
     // This change was made at the user's explicit request to remove all permission-related errors.
-    match /family-data/{docId=**} {
+    match /{document=**} {
       allow read, write: if true;
     }
   }
