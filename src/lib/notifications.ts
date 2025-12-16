@@ -11,14 +11,13 @@ export async function sendSystemNotification(
     firestore: Firestore,
     actorUserId: string,
     details: TransactionDetails,
-    actorFirstName?: string
 ) {
     if (!firestore) return;
 
     try {
         const chatMessagesRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages');
         
-        const notificationText = `${actorFirstName || 'کاربر'} یک تراکنش جدید ثبت کرد: ${details.title}`;
+        const notificationText = `${details.registeredBy || 'کاربر'} یک تراکنش جدید ثبت کرد: ${details.title}`;
 
         // Create a new document reference with an auto-generated ID
         const newDocRef = doc(chatMessagesRef);
@@ -31,7 +30,7 @@ export async function sendSystemNotification(
             type: 'system' as const,
             transactionDetails: details,
             readBy: [actorUserId],
-            timestamp: new Date().toISOString(), // Use a simple ISO string
+            timestamp: new Date().toISOString(), // Use a simple ISO string for timestamp
         };
         
         // Use setDoc with the new reference

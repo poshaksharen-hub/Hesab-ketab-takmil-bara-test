@@ -72,7 +72,15 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   });
 
   useEffect(() => {
-    if (!isOpen) {
+    // This effect now only runs when the dialog opens or initialData changes.
+    // It will not run on close, preventing the reset loop.
+    if (isOpen) {
+      if (initialData) {
+        form.reset({ 
+            ...initialData, 
+            date: new Date(initialData.date),
+        });
+      } else {
         form.reset({
             description: '',
             amount: 0,
@@ -81,11 +89,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
             bankAccountId: '',
             source: ''
         });
-    } else if (initialData) {
-        form.reset({ 
-            ...initialData, 
-            date: new Date(initialData.date),
-        });
+      }
     }
   }, [initialData, user, loggedInUserOwnerId, isOpen]);
 

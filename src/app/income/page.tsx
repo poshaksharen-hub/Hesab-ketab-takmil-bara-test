@@ -68,7 +68,7 @@ export default function IncomePage() {
           transaction.set(newIncomeRef, {...newIncomeData, id: newIncomeRef.id});
         });
 
-        setIsFormOpen(false);
+        setIsFormOpen(false); // Close the form on success
         toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
     
         try {
@@ -80,7 +80,7 @@ export default function IncomePage() {
                 type: 'income',
                 title: `ثبت درآمد جدید: ${values.description}`,
                 amount: values.amount,
-                date: isoDate, // Use the ISO string
+                date: isoDate,
                 icon: 'TrendingUp',
                 color: 'rgb(34 197 94)',
                 registeredBy: currentUserFirstName,
@@ -88,14 +88,10 @@ export default function IncomePage() {
                 category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
                 bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
             };
-            await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+            await sendSystemNotification(firestore, user.uid, notificationDetails);
         } catch (notificationError) {
              console.error("Failed to send notification:", notificationError);
-             toast({
-                variant: "destructive",
-                title: "خطا در ارسال اعلان",
-                description: "درآمد با موفقیت ثبت شد اما در ارسال اعلان آن مشکلی پیش آمد.",
-             });
+             // Do not show a user-facing error for notification failure, as the main transaction succeeded.
         }
     } catch (error: any) {
         if (error.name === 'FirebaseError') {

@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn, toEnglishDigits } from "@/lib/utils"
+import { cn, toEnglishDigits, toPersianDigits } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
@@ -27,37 +27,39 @@ interface CurrencyInputProps extends Omit<React.ComponentProps<"input">, 'onChan
 
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ className, value, onChange, onBlur, ...props }, ref) => {
-    const [inputValue, setInputValue] = React.useState('');
+    
+    const [displayValue, setDisplayValue] = React.useState('');
 
-     React.useEffect(() => {
-        // This effect synchronizes the internal display value with the external numeric value.
-        // It only updates the display if the numeric equivalent is different.
-        const currentNumericDisplay = parseInt(toEnglishDigits(inputValue).replace(/[^\d]/g, ''), 10) || 0;
-        const numericValue = isNaN(value) ? 0 : value;
+    React.useEffect(() => {
+        // This effect synchronizes the display value when the external `value` prop changes.
+        const numericPropValue = isNaN(value) ? 0 : value;
+        const currentDisplayNumericValue = parseInt(toEnglishDigits(displayValue).replace(/[^\d]/g, ''), 10) || 0;
 
-        if (numericValue !== currentNumericDisplay) {
-            const formatted = numericValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericValue);
-            setInputValue(formatted);
+        if (numericPropValue !== currentDisplayNumericValue) {
+            const formatted = numericPropValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericPropValue);
+            setDisplayValue(formatted);
         }
-    }, [value]); // Only depend on the external value.
+    }, [value]);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const englishValue = toEnglishDigits(e.target.value);
       const rawValue = englishValue.replace(/[^\d]/g, '');
+      const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
       
       // Update the local state for immediate feedback
-      const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(parseInt(rawValue, 10));
-      setInputValue(formatted);
+      const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue);
+      setDisplayValue(formatted);
 
-      // Propagate the numeric change to the parent component
-      const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
-      if (onChange && !isNaN(numValue)) {
+      // Propagate the numeric change to the parent component only if it's different.
+      // This is the key to breaking the infinite loop.
+      if (onChange && !isNaN(numValue) && numValue !== value) {
         onChange(numValue);
       }
     };
 
     const handleBlurEvent = (e: React.FocusEvent<HTMLInputElement>) => {
+        // If the input is empty on blur, ensure the parent's state is updated to 0.
         if (e.target.value === '' && value !== 0) {
             if (onChange) {
                 onChange(0);
@@ -74,7 +76,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         inputMode="numeric"
         dir="ltr"
         className={cn("font-mono", className)}
-        value={inputValue}
+        value={displayValue}
         onChange={handleChange}
         onBlur={handleBlurEvent}
         ref={ref}
