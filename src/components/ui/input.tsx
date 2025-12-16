@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import { cn, toEnglishDigits } from "@/lib/utils"
@@ -28,35 +29,35 @@ interface CurrencyInputProps extends Omit<React.ComponentProps<"input">, 'onChan
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ className, value, onChange, onBlur, ...props }, ref) => {
     
-    // Create the display value directly from the `value` prop.
-    // This avoids using a separate state and prevents infinite loops.
-    const displayValue = React.useMemo(() => {
-        const numericValue = (typeof value !== 'number' || isNaN(value)) ? 0 : value;
-        // Don't format the number if it's 0, just show an empty string
-        // so the user can start typing easily.
-        if (numericValue === 0) return '';
-        return new Intl.NumberFormat('fa-IR').format(numericValue);
+    const [displayValue, setDisplayValue] = React.useState('');
+
+    React.useEffect(() => {
+        const numericValue = isNaN(value) ? 0 : value;
+        const currentNumericDisplay = parseInt(toEnglishDigits(displayValue).replace(/[^\d]/g, ''), 10) || 0;
+
+        if (numericValue !== currentNumericDisplay) {
+            const formatted = numericValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericValue);
+            setDisplayValue(formatted);
+        }
     }, [value]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const englishValue = toEnglishDigits(e.target.value);
-      // Remove all non-digit characters, including commas.
       const rawValue = englishValue.replace(/[^\d]/g, '');
       const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
 
-      // Only call onChange if the numeric value has actually changed.
-      // This is a crucial check to prevent unnecessary re-renders.
+      const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue);
+      setDisplayValue(formatted);
+      
       if (!isNaN(numValue) && numValue !== value) {
         onChange(numValue);
       }
     };
 
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        // If the input is empty on blur, ensure the value is set to 0.
         if (e.target.value === '' && value !== 0) {
             onChange(0);
         }
-        // Call any external onBlur handler as well.
         if (onBlur) {
             onBlur(e);
         }
