@@ -1,4 +1,3 @@
-
 import * as React from "react"
 
 import { cn, toEnglishDigits } from "@/lib/utils"
@@ -33,16 +32,20 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     // This avoids using a separate state and prevents infinite loops.
     const displayValue = React.useMemo(() => {
         const numericValue = (typeof value !== 'number' || isNaN(value)) ? 0 : value;
+        // Don't format the number if it's 0, just show an empty string
+        // so the user can start typing easily.
         if (numericValue === 0) return '';
         return new Intl.NumberFormat('fa-IR').format(numericValue);
     }, [value]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const englishValue = toEnglishDigits(e.target.value);
-      const rawValue = englishValue.replace(/,/g, '').replace(/[^\d]/g, '');
+      // Remove all non-digit characters, including commas.
+      const rawValue = englishValue.replace(/[^\d]/g, '');
       const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
 
       // Only call onChange if the numeric value has actually changed.
+      // This is a crucial check to prevent unnecessary re-renders.
       if (!isNaN(numValue) && numValue !== value) {
         onChange(numValue);
       }
