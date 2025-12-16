@@ -87,7 +87,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
             date: new Date(initialData.date),
         });
     }
-  }, [initialData, form, user, loggedInUserOwnerId, isOpen]);
+  }, [initialData, user, loggedInUserOwnerId, isOpen]);
 
   const selectedOwnerId = form.watch('ownerId');
   
