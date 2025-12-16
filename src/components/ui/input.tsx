@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import { cn, toEnglishDigits } from "@/lib/utils"
@@ -26,38 +27,35 @@ interface CurrencyInputProps extends Omit<React.ComponentProps<"input">, 'onChan
 }
 
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
-  ({ className, value, onChange, ...props }, ref) => {
-    const [displayValue, setDisplayValue] = React.useState(value ? new Intl.NumberFormat('fa-IR').format(value) : '');
-
-     React.useEffect(() => {
-        const numericValue = Number.isNaN(value) ? 0 : value;
-        const formatted = new Intl.NumberFormat('fa-IR').format(numericValue);
-        // Only update if the formatted value is different, to avoid overriding user input.
-        // We convert both to a "raw" number string for comparison.
-        const rawDisplay = toEnglishDigits(displayValue).replace(/,/g, '');
-        if (numericValue.toString() !== rawDisplay) {
-            setDisplayValue(numericValue === 0 ? '' : formatted);
-        }
+  ({ className, value, onChange, onBlur, ...props }, ref) => {
+    
+    // Create the display value directly from the `value` prop.
+    // This avoids using a separate state and prevents infinite loops.
+    const displayValue = React.useMemo(() => {
+        const numericValue = (typeof value !== 'number' || isNaN(value)) ? 0 : value;
+        if (numericValue === 0) return '';
+        return new Intl.NumberFormat('fa-IR').format(numericValue);
     }, [value]);
-
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const englishValue = toEnglishDigits(e.target.value);
       const rawValue = englishValue.replace(/,/g, '').replace(/[^\d]/g, '');
       const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
 
-      if (!isNaN(numValue)) {
-          setDisplayValue(rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue));
-          onChange(numValue);
-      } else if (rawValue === '') {
-          setDisplayValue('');
-          onChange(0);
+      // Only call onChange if the numeric value has actually changed.
+      if (!isNaN(numValue) && numValue !== value) {
+        onChange(numValue);
       }
     };
-    
+
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        if (e.target.value === '') {
+        // If the input is empty on blur, ensure the value is set to 0.
+        if (e.target.value === '' && value !== 0) {
             onChange(0);
+        }
+        // Call any external onBlur handler as well.
+        if (onBlur) {
+            onBlur(e);
         }
     }
 
