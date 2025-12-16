@@ -30,15 +30,12 @@ export async function sendSystemNotification(
             timestamp: serverTimestamp(),
         };
         
-        // Step 1: Create the document with addDoc to get a new ID
-        const newDocRef = await addDoc(chatMessagesRef, dataToSend);
+        const newDocRef = doc(chatMessagesRef);
         
-        // Step 2: Update the newly created document with its own ID
-        await updateDoc(newDocRef, { id: newDocRef.id });
+        await updateDoc(newDocRef, { ...dataToSend, id: newDocRef.id });
 
     } catch (error) {
         console.error("Error sending system notification:", error);
-        // We throw the error here to make it visible in server logs if something goes wrong.
         throw new Error(`Failed to send system notification. Reason: ${error instanceof Error ? error.message : String(error)}`);
     }
 }

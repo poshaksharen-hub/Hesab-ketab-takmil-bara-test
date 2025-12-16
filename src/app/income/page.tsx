@@ -33,7 +33,7 @@ export default function IncomePage() {
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
     
-    const isoDate = (values.date as any).toISOString();
+    const isoDate = (values.date as Date).toISOString();
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -88,7 +88,7 @@ export default function IncomePage() {
                 category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
                 bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
             };
-            await sendSystemNotification(firestore, user.uid, notificationDetails);
+            await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
         } catch (notificationError) {
              console.error("Failed to send notification:", notificationError);
              toast({
