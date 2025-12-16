@@ -33,9 +33,6 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         const numericValue = isNaN(value) ? 0 : value;
         const currentNumericDisplay = parseInt(toEnglishDigits(inputValue).replace(/[^\d]/g, ''), 10) || 0;
 
-        // This is the key condition to prevent infinite loops.
-        // Only update the display string if the underlying numeric value it represents
-        // is different from the new `value` prop.
         if (numericValue !== currentNumericDisplay) {
             const formatted = numericValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericValue);
             setInputValue(formatted);
@@ -48,25 +45,20 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       const rawValue = englishValue.replace(/[^\d]/g, '');
       const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
 
-      // Update the visual input value immediately for a responsive UI.
       const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue);
       setInputValue(formatted);
       
-      // Propagate the numeric change to the parent component (e.g., react-hook-form)
-      // This is safe because the useEffect above will prevent a loop.
-      if (onChange && !isNaN(numValue)) {
+      if (onChange && !isNaN(numValue) && numValue !== value) {
         onChange(numValue);
       }
     };
 
     const handleBlurEvent = (e: React.FocusEvent<HTMLInputElement>) => {
-        // If the user leaves the input blank, ensure the parent state is set to 0.
         if (e.target.value === '' && value !== 0) {
             if (onChange) {
                 onChange(0);
             }
         }
-        // Forward the onBlur event if it exists.
         if (onBlur) {
             onBlur(e);
         }
