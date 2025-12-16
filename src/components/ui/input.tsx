@@ -30,25 +30,29 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     const [inputValue, setInputValue] = React.useState('');
 
      React.useEffect(() => {
-        const numericValue = isNaN(value) ? 0 : value;
+        // This effect synchronizes the internal display value with the external numeric value.
+        // It only updates the display if the numeric equivalent is different.
         const currentNumericDisplay = parseInt(toEnglishDigits(inputValue).replace(/[^\d]/g, ''), 10) || 0;
+        const numericValue = isNaN(value) ? 0 : value;
 
         if (numericValue !== currentNumericDisplay) {
             const formatted = numericValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericValue);
             setInputValue(formatted);
         }
-    }, [value]);
+    }, [value]); // Only depend on the external value.
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const englishValue = toEnglishDigits(e.target.value);
       const rawValue = englishValue.replace(/[^\d]/g, '');
-      const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
-
-      const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue);
-      setInputValue(formatted);
       
-      if (onChange && !isNaN(numValue) && numValue !== value) {
+      // Update the local state for immediate feedback
+      const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(parseInt(rawValue, 10));
+      setInputValue(formatted);
+
+      // Propagate the numeric change to the parent component
+      const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
+      if (onChange && !isNaN(numValue)) {
         onChange(numValue);
       }
     };
