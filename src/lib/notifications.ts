@@ -11,7 +11,7 @@ export async function sendSystemNotification(
     firestore: Firestore,
     actorUserId: string,
     details: TransactionDetails,
-    actorFirstName?: string,
+    actorFirstName?: string
 ) {
     if (!firestore) return;
 
