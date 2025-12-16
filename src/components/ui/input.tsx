@@ -39,7 +39,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
             const formatted = numericValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericValue);
             setInputValue(formatted);
         }
-    }, [value]); // CRITICAL FIX: Only depend on the external `value`.
+    }, [value]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const englishValue = toEnglishDigits(e.target.value);
