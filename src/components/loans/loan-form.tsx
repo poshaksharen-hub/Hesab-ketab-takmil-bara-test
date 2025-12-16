@@ -123,7 +123,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 depositToAccountId: '',
             });
         }
-    }, [initialData, form, user]);
+    }, [initialData, user]);
 
     const availableDepositAccounts = useMemo(() => {
         if (watchLoanOwnerId === 'shared') {

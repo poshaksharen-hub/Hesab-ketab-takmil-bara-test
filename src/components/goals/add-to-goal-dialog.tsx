@@ -80,7 +80,7 @@ export function AddToGoalDialog({
       bankAccountId: bankAccounts[0]?.id || '',
       amount: 0,
     })
-  }, [goal, bankAccounts, form]);
+  }, [goal, bankAccounts]);
 
 
   const getOwnerName = (account: BankAccount) => {
