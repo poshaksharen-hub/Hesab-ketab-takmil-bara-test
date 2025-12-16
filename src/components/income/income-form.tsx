@@ -50,7 +50,7 @@ type IncomeFormValues = z.infer<typeof formSchema>;
 interface IncomeFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' >) => void;
+  onSubmit: (data: IncomeFormValues) => void;
   initialData: Income | null;
   bankAccounts: BankAccount[];
   user: AuthUser | null;
@@ -124,12 +124,9 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
 
   function handleFormSubmit(data: IncomeFormValues) {
     if (!user) return;
-
+    
     const submissionData = {
         ...data,
-        date: data.date.toISOString(),
-        type: 'income' as 'income',
-        category: 'درآمد',
         source: data.source || data.description, 
     };
     onSubmit(submissionData);
