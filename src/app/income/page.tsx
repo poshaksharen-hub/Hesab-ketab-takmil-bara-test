@@ -80,7 +80,7 @@ export default function IncomePage() {
                 type: 'income',
                 title: `ثبت درآمد جدید: ${values.description}`,
                 amount: values.amount,
-                date: isoDate,
+                date: isoDate, // Use the ISO string
                 icon: 'TrendingUp',
                 color: 'rgb(34 197 94)',
                 registeredBy: currentUserFirstName,

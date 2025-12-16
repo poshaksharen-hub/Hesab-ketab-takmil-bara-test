@@ -1,7 +1,7 @@
 
 'use server';
 
-import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 import type { TransactionDetails } from './types';
 
@@ -20,22 +20,27 @@ export async function sendSystemNotification(
         
         const notificationText = `${actorFirstName || 'کاربر'} یک تراکنش جدید ثبت کرد: ${details.title}`;
 
+        // Create a new document reference with an auto-generated ID
+        const newDocRef = doc(chatMessagesRef);
+
         const dataToSend = {
+            id: newDocRef.id, // Explicitly set the ID
             senderId: 'system',
             senderName: 'دستیار هوشمند',
             text: notificationText,
             type: 'system' as const,
             transactionDetails: details,
             readBy: [actorUserId],
-            timestamp: serverTimestamp(),
+            timestamp: new Date().toISOString(), // Use a simple ISO string
         };
         
-        const newDocRef = doc(chatMessagesRef);
-        
-        await updateDoc(newDocRef, { ...dataToSend, id: newDocRef.id });
+        // Use setDoc with the new reference
+        await setDoc(newDocRef, dataToSend);
 
     } catch (error) {
         console.error("Error sending system notification:", error);
-        throw new Error(`Failed to send system notification. Reason: ${error instanceof Error ? error.message : String(error)}`);
+        // Avoid throwing an error here to not block the main flow, 
+        // as the primary transaction has already succeeded.
+        // Instead, we could log this to a more persistent monitoring service in a real app.
     }
 }
