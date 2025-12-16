@@ -30,15 +30,12 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ className, value, onChange, onBlur, ...props }, ref) => {
     const [inputValue, setInputValue] = React.useState('');
 
-    // This effect synchronizes the internal display value with the external `value` prop.
-    // It's the primary way the component updates when the parent's state changes.
-    // The crucial part is the condition that prevents an infinite loop.
     React.useEffect(() => {
         const numericValue = isNaN(value) ? 0 : value;
         const currentNumericDisplay = parseInt(toEnglishDigits(inputValue).replace(/[^\d]/g, ''), 10) || 0;
 
         // ONLY update the display if the underlying numeric value is different.
-        // This is the key to breaking the infinite loop.
+        // This is the key to preventing loops on re-renders where the value hasn't changed.
         if (numericValue !== currentNumericDisplay) {
             const formatted = numericValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericValue);
             setInputValue(formatted);
@@ -54,8 +51,9 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue);
       setInputValue(formatted);
       
-      // Propagate the numeric change to the parent component.
-      if (onChange && !isNaN(numValue)) {
+      // Propagate the numeric change to the parent component ONLY IF IT'S DIFFERENT.
+      // THIS IS THE KEY TO BREAKING THE INFINITE LOOP.
+      if (onChange && !isNaN(numValue) && numValue !== value) {
         onChange(numValue);
       }
     };
@@ -63,7 +61,9 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     const handleBlurEvent = (e: React.FocusEvent<HTMLInputElement>) => {
         // If the user leaves the input blank, ensure the parent state is set to 0.
         if (e.target.value === '' && value !== 0) {
-            onChange(0);
+            if (onChange) {
+                onChange(0);
+            }
         }
         // Forward the onBlur event if it exists.
         if (onBlur) {
