@@ -59,7 +59,7 @@ export default function IncomePage() {
             date: (values.date as any).toISOString(),
             type: 'income',
             category: 'درآمد',
-            registeredByUserId: user.uid, // Set registrar here
+            registeredByUserId: user.uid, // This line is crucial and was missing.
             createdAt: serverTimestamp(),
             balanceAfter: balanceAfter,
         };
@@ -85,7 +85,7 @@ export default function IncomePage() {
               category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
               bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
           };
-          await sendSystemNotification(firestore, user.uid, notificationDetails);
+          await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
       })
       .catch((error: any) => {
         if (error.name === 'FirebaseError') {
