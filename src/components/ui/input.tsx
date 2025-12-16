@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import { cn, toEnglishDigits, toPersianDigits } from "@/lib/utils"
@@ -28,32 +29,22 @@ interface CurrencyInputProps extends Omit<React.ComponentProps<"input">, 'onChan
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ className, value, onChange, onBlur, ...props }, ref) => {
     
-    const [displayValue, setDisplayValue] = React.useState('');
-
-    React.useEffect(() => {
-        // This effect synchronizes the display value when the external `value` prop changes.
-        const numericPropValue = isNaN(value) ? 0 : value;
-        const currentDisplayNumericValue = parseInt(toEnglishDigits(displayValue).replace(/[^\d]/g, ''), 10) || 0;
-
-        if (numericPropValue !== currentDisplayNumericValue) {
-            const formatted = numericPropValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericPropValue);
-            setDisplayValue(formatted);
-        }
+    // The value from the form is the single source of truth for the numeric value.
+    // We format it for display.
+    const displayValue = React.useMemo(() => {
+        const numericValue = (typeof value !== 'number' || isNaN(value)) ? 0 : value;
+        if (numericValue === 0) return '';
+        return new Intl.NumberFormat('fa-IR').format(numericValue);
     }, [value]);
-
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const englishValue = toEnglishDigits(e.target.value);
       const rawValue = englishValue.replace(/[^\d]/g, '');
       const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
       
-      // Update the local state for immediate feedback
-      const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue);
-      setDisplayValue(formatted);
-
-      // Propagate the numeric change to the parent component only if it's different.
-      // This is the key to breaking the infinite loop.
-      if (onChange && !isNaN(numValue) && numValue !== value) {
+      // We only call onChange if the numeric value is different from the prop value.
+      // This is the crucial step to prevent infinite loops with react-hook-form.
+      if (onChange && numValue !== value) {
         onChange(numValue);
       }
     };
@@ -65,6 +56,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
                 onChange(0);
             }
         }
+        // Forward the original onBlur event if it exists
         if (onBlur) {
             onBlur(e);
         }
@@ -86,6 +78,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   }
 );
 CurrencyInput.displayName = "CurrencyInput";
+
 
 const NumericInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
     ({ className, onChange, ...props }, ref) => {

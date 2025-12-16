@@ -72,8 +72,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   });
 
   useEffect(() => {
-    // This effect now only runs when the dialog opens or initialData changes.
-    // It will not run on close, preventing the reset loop.
+    // This effect runs when the dialog opens or initialData changes.
     if (isOpen) {
       if (initialData) {
         form.reset({ 
@@ -91,7 +90,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         });
       }
     }
-  }, [initialData, user, loggedInUserOwnerId, isOpen]);
+  }, [initialData, loggedInUserOwnerId, isOpen, form]);
 
   const selectedOwnerId = form.watch('ownerId');
   

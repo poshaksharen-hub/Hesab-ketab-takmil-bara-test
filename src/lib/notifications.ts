@@ -28,7 +28,10 @@ export async function sendSystemNotification(
             senderName: 'دستیار هوشمند',
             text: notificationText,
             type: 'system' as const,
-            transactionDetails: details,
+            transactionDetails: {
+                ...details,
+                date: new Date(details.date).toISOString(), // Ensure date is always a string
+            },
             readBy: [actorUserId],
             timestamp: new Date().toISOString(), // Use a simple ISO string for timestamp
         };

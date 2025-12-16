@@ -17,6 +17,8 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { formatJalaliDate } from '@/lib/utils';
+
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -76,7 +78,7 @@ export default function IncomePage() {
             const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
             const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
             
-            const notificationDetails: TransactionDetails = {
+             const notificationDetails: TransactionDetails = {
                 type: 'income',
                 title: `ثبت درآمد جدید: ${values.description}`,
                 amount: values.amount,
