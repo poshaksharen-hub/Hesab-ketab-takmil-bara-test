@@ -1,4 +1,3 @@
-
 import * as React from "react"
 
 import { cn, toEnglishDigits } from "@/lib/utils"
@@ -34,13 +33,13 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         const numericValue = isNaN(value) ? 0 : value;
         const currentNumericDisplay = parseInt(toEnglishDigits(inputValue).replace(/[^\d]/g, ''), 10) || 0;
 
-        // ONLY update the display if the underlying numeric value is different.
-        // This is the key to preventing loops on re-renders where the value hasn't changed.
+        // This condition is the key: only update the display string if the underlying
+        // numeric value it represents is different from the new `value` prop.
         if (numericValue !== currentNumericDisplay) {
             const formatted = numericValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericValue);
             setInputValue(formatted);
         }
-    }, [value]); // This effect ONLY runs when the external 'value' prop changes.
+    }, [value]); // CRITICAL FIX: Only depend on the external `value`.
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const englishValue = toEnglishDigits(e.target.value);
@@ -51,9 +50,10 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue);
       setInputValue(formatted);
       
-      // Propagate the numeric change to the parent component ONLY IF IT'S DIFFERENT.
-      // THIS IS THE KEY TO BREAKING THE INFINITE LOOP.
-      if (onChange && !isNaN(numValue) && numValue !== value) {
+      // Propagate the numeric change to the parent component.
+      // The useEffect hook will handle any discrepancies later if needed,
+      // but this ensures immediate feedback to the form library.
+      if (onChange && !isNaN(numValue)) {
         onChange(numValue);
       }
     };
