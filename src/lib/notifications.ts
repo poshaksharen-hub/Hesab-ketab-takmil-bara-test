@@ -18,8 +18,7 @@ export async function sendSystemNotification(
     try {
         const chatMessagesRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages');
         
-        const registeredBy = actorFirstName || details.registeredBy;
-        const notificationText = `${registeredBy} یک تراکنش جدید ثبت کرد: ${details.title}`;
+        const notificationText = `${actorFirstName || 'کاربر'} یک تراکنش جدید ثبت کرد: ${details.title}`;
 
         const newDocRef = await addDoc(chatMessagesRef, {
             senderId: 'system',
