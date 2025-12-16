@@ -1,7 +1,7 @@
 
 'use server';
 
-import { collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 import type { TransactionDetails } from './types';
 
@@ -20,19 +20,25 @@ export async function sendSystemNotification(
         
         const notificationText = `${actorFirstName || 'کاربر'} یک تراکنش جدید ثبت کرد: ${details.title}`;
 
-        const newDocRef = await addDoc(chatMessagesRef, {
+        const dataToSend = {
             senderId: 'system',
             senderName: 'دستیار هوشمند',
             text: notificationText,
-            type: 'system',
-            transactionDetails: details, // Ensure the full details object is saved
-            readBy: [actorUserId], // The actor has "read" it by creating it
+            type: 'system' as const,
+            transactionDetails: details,
+            readBy: [actorUserId],
             timestamp: serverTimestamp(),
-        });
+        };
         
+        // Step 1: Create the document with addDoc to get a new ID
+        const newDocRef = await addDoc(chatMessagesRef, dataToSend);
+        
+        // Step 2: Update the newly created document with its own ID
         await updateDoc(newDocRef, { id: newDocRef.id });
 
     } catch (error) {
         console.error("Error sending system notification:", error);
+        // We throw the error here to make it visible in server logs if something goes wrong.
+        throw new Error(`Failed to send system notification. Reason: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
