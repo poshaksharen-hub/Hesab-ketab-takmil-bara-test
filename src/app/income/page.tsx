@@ -5,7 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { IncomeList } from '@/components/income/income-list';
 import { IncomeForm } from '@/components/income/income-form';
 import type { Income, BankAccount, UserProfile, TransactionDetails } from '@/lib/types';
@@ -33,6 +33,8 @@ export default function IncomePage() {
   const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category' >) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
     
+    const isoDate = (values.date as any).toISOString();
+
     runTransaction(firestore, async (transaction) => {
         const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
         
@@ -56,7 +58,7 @@ export default function IncomePage() {
         
         const newIncomeData: Omit<Income, 'id'> = {
             ...values,
-            date: (values.date as any).toISOString(),
+            date: isoDate,
             type: 'income',
             category: 'درآمد',
             registeredByUserId: user.uid,
@@ -77,11 +79,11 @@ export default function IncomePage() {
               type: 'income',
               title: `ثبت درآمد جدید: ${values.description}`,
               amount: values.amount,
-              date: (values.date as any).toISOString(), // Ensure date is string for notification
+              date: isoDate,
               icon: 'TrendingUp',
               color: 'rgb(34 197 94)',
               registeredBy: currentUserFirstName,
-              payee: values.source, // Using 'source' as the payee for notification
+              payee: values.source,
               category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
               bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
           };
