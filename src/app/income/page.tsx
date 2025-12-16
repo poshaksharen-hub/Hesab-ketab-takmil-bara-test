@@ -59,7 +59,7 @@ export default function IncomePage() {
             date: (values.date as any).toISOString(),
             type: 'income',
             category: 'درآمد',
-            registeredByUserId: user.uid, // This line is crucial and was missing.
+            registeredByUserId: user.uid,
             createdAt: serverTimestamp(),
             balanceAfter: balanceAfter,
         };
@@ -77,7 +77,7 @@ export default function IncomePage() {
               type: 'income',
               title: `ثبت درآمد جدید: ${values.description}`,
               amount: values.amount,
-              date: (values.date as any).toISOString(),
+              date: (values.date as any).toISOString(), // Ensure date is string for notification
               icon: 'TrendingUp',
               color: 'rgb(34 197 94)',
               registeredBy: currentUserFirstName,
@@ -85,7 +85,7 @@ export default function IncomePage() {
               category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
               bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
           };
-          await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+          await sendSystemNotification(firestore, user.uid, notificationDetails);
       })
       .catch((error: any) => {
         if (error.name === 'FirebaseError') {

@@ -10,27 +10,21 @@ const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 export async function sendSystemNotification(
     firestore: Firestore,
     actorUserId: string,
-    details: Omit<TransactionDetails, 'registeredBy'>, // Remove registeredBy from here
-    registeredBy: string // Add it as a separate parameter
+    details: TransactionDetails
 ) {
     if (!firestore) return;
 
     try {
-        const notificationDetails: TransactionDetails = {
-            ...details,
-            registeredBy, // Use the provided parameter
-        };
-        
         const chatMessagesRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages');
         
-        const notificationText = `${registeredBy} یک تراکنش جدید ثبت کرد: ${details.title}`;
+        const notificationText = `${details.registeredBy} یک تراکنش جدید ثبت کرد: ${details.title}`;
 
         const newDocRef = await addDoc(chatMessagesRef, {
             senderId: 'system',
             senderName: 'دستیار هوشمند مشترکانه',
             text: notificationText,
             type: 'system',
-            transactionDetails: notificationDetails,
+            transactionDetails: details,
             readBy: [actorUserId], // The actor has "read" it by creating it
             timestamp: serverTimestamp(),
         });
