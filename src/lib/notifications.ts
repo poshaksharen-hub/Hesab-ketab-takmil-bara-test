@@ -10,6 +10,7 @@ const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 export async function sendSystemNotification(
     firestore: Firestore,
     actorUserId: string,
+    participantIds: string[],
     details: TransactionDetails,
 ) {
     if (!firestore) return;
@@ -19,30 +20,26 @@ export async function sendSystemNotification(
         
         const notificationText = `${details.registeredBy || 'کاربر'} یک تراکنش جدید ثبت کرد: ${details.title}`;
 
-        // Create a new document reference with an auto-generated ID
         const newDocRef = doc(chatMessagesRef);
 
         const dataToSend = {
-            id: newDocRef.id, // Explicitly set the ID
+            id: newDocRef.id,
             senderId: 'system',
             senderName: 'دستیار هوشمند',
             text: notificationText,
             type: 'system' as const,
             transactionDetails: {
                 ...details,
-                date: new Date(details.date).toISOString(), // Ensure date is always a string
+                date: new Date(details.date).toISOString(),
             },
-            readBy: [actorUserId],
-            timestamp: new Date().toISOString(), // Use a simple ISO string for timestamp
+            participants: participantIds, // All users who should see the message
+            readBy: [actorUserId],      // Only the user who initiated the action
+            timestamp: new Date().toISOString(),
         };
         
-        // Use setDoc with the new reference
         await setDoc(newDocRef, dataToSend);
 
     } catch (error) {
         console.error("Error sending system notification:", error);
-        // Avoid throwing an error here to not block the main flow, 
-        // as the primary transaction has already succeeded.
-        // Instead, we could log this to a more persistent monitoring service in a real app.
     }
 }

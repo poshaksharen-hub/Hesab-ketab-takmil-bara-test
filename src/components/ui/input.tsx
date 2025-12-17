@@ -28,35 +28,18 @@ interface CurrencyInputProps extends Omit<React.ComponentProps<"input">, 'onChan
 
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ className, value, onChange, onBlur, ...props }, ref) => {
-    const [inputValue, setInputValue] = React.useState('');
-
-    React.useEffect(() => {
-        const numericValue = (typeof value !== 'number' || isNaN(value)) ? 0 : value;
-        const formattedValue = numericValue === 0 ? '' : new Intl.NumberFormat('fa-IR').format(numericValue);
-        
-        // This is the important check to prevent loops.
-        // Only update the internal state if the formatted prop value is different from the current input value.
-        if (formattedValue !== inputValue) {
-            setInputValue(formattedValue);
-        }
-    }, [value]); // Only depend on the external value.
-
+    
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const userInput = e.target.value;
         const englishValue = toEnglishDigits(userInput);
         const rawValue = englishValue.replace(/[^\d]/g, '');
         const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
-        
-        // Update the visual state immediately for responsiveness
-        const formatted = rawValue === '' ? '' : new Intl.NumberFormat('fa-IR').format(numValue);
-        setInputValue(formatted);
       
-        // Propagate the numeric change to the parent component
-        if (onChange && !isNaN(numValue)) {
+        if (onChange) {
           onChange(numValue);
         }
     };
-
+    
     const handleBlurEvent = (e: React.FocusEvent<HTMLInputElement>) => {
         if (e.target.value === '' && value !== 0) {
             if (onChange) {
@@ -68,13 +51,17 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         }
     }
 
+    const formattedValue = (typeof value !== 'number' || isNaN(value) || value === 0) 
+        ? '' 
+        : new Intl.NumberFormat('fa-IR').format(value);
+
     return (
       <Input
         type="text"
         inputMode="numeric"
         dir="ltr"
         className={cn("font-mono", className)}
-        value={inputValue}
+        value={formattedValue}
         onChange={handleChange}
         onBlur={handleBlurEvent}
         ref={ref}

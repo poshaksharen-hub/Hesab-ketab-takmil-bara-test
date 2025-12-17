@@ -100,13 +100,15 @@ export default function ExpensesPage() {
             bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
             expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
+        
+        const participantIds = users.map(u => u.id);
+        await sendSystemNotification(firestore, user.uid, participantIds, notificationDetails);
+
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
           const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/expenses',
                 operation: 'create',
-                requestResourceData: values,
             });
           errorEmitter.emit('permission-error', permissionError);
         } else {

@@ -8,15 +8,13 @@
 export class FirestorePermissionError extends Error {
   public path: string;
   public operation: string;
-  public requestResourceData?: any;
 
-  constructor(context: { path: string; operation: string; requestResourceData?: any }) {
+  constructor(context: { path: string; operation: string; }) {
     const message = `Firestore Permission Denied: Operation '${context.operation}' on path '${context.path}' failed.`;
     super(message);
     this.name = 'FirestorePermissionError';
     this.path = context.path;
     this.operation = context.operation;
-    this.requestResourceData = context.requestResourceData;
     
     // Ensure the stack trace is captured correctly
     if (Error.captureStackTrace) {
