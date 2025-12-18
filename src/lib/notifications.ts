@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -15,13 +14,11 @@ const CHAT_MESSAGES_COLLECTION_PATH = 'family-data/shared-data/chatMessages';
  * @param firestore - The Firestore database instance.
  * @param actorUserId - The ID of the user who initiated the event.
  * @param details - An object containing the specific details of the transaction to be displayed.
- * @param registeredBy - The first name of the user who registered the transaction.
  */
 export async function sendSystemNotification(
     firestore: Firestore,
     actorUserId: string,
-    details: Omit<TransactionDetails, 'registeredBy'>,
-    registeredBy: string,
+    details: TransactionDetails,
 ) {
     if (!firestore) {
         console.error("Firestore instance is not available for sendSystemNotification.");
@@ -32,13 +29,8 @@ export async function sendSystemNotification(
         const chatMessagesRef = collection(firestore, CHAT_MESSAGES_COLLECTION_PATH);
         const newDocRef = doc(chatMessagesRef); 
 
-        const finalDetails: TransactionDetails = {
-            ...details,
-            registeredBy: registeredBy,
-        }
-
         // Sanitize the details object to remove any undefined or null fields before sending to Firestore
-        const sanitizedDetails = { ...finalDetails };
+        const sanitizedDetails = { ...details };
         Object.keys(sanitizedDetails).forEach(key => {
             const K = key as keyof TransactionDetails;
             if (sanitizedDetails[K] === undefined || sanitizedDetails[K] === null) {
@@ -56,7 +48,7 @@ export async function sendSystemNotification(
             id: newDocRef.id,
             senderId: 'system', 
             senderName: 'دستیار هوشمند مالی',
-            text: finalDetails.title,
+            text: sanitizedDetails.title,
             type: 'system' as const,
             transactionDetails: sanitizedDetails,
             readBy: [actorUserId], 

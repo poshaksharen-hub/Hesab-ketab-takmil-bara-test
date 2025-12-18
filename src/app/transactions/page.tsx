@@ -88,20 +88,21 @@ export default function ExpensesPage() {
             const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
             const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
 
-            const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = {
+            const notificationDetails: TransactionDetails = {
                 type: 'expense',
                 title: values.description,
                 amount: values.amount,
                 date: (values.date as any).toISOString(),
                 icon: 'TrendingDown',
                 color: 'rgb(220 38 38)',
+                registeredBy: currentUserFirstName,
                 category: category?.name,
                 payee: payee?.name,
                 bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
                 expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             };
             
-            await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+            await sendSystemNotification(firestore, user.uid, notificationDetails);
         } catch (notificationError: any) {
             console.error("Failed to send notification:", notificationError.message);
             toast({
@@ -128,7 +129,7 @@ export default function ExpensesPage() {
     });
   }, [user, firestore, allBankAccounts, allCategories, allPayees, users, toast]);
 
-   const handleDelete = React.useCallback(async (expenseId: string) => {
+   const handleDelete = useCallback(async (expenseId: string) => {
     if (!firestore || !allExpenses) return;
     
     const expenseToDelete = allExpenses.find(exp => exp.id === expenseId);

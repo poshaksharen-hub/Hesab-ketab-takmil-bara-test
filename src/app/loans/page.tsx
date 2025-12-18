@@ -23,7 +23,7 @@ import { LoanList } from '@/components/loans/loan-list';
 import { LoanForm } from '@/components/loans/loan-form';
 import { LoanPaymentDialog } from '@/components/loans/loan-payment-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -142,22 +142,25 @@ export default function LoansPage() {
              const currentUser = allData.users.find(u => u.id === user.uid);
              const payeeName = payees.find(p => p.id === loanValues.payeeId)?.name;
              const bankAccount = bankAccounts.find(b => b.id === loanValues.depositToAccountId);
-             const currentUserFirstName = currentUser?.firstName || 'کاربر';
+             const accountOwner = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
              
-             const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = { 
+             const notificationDetails: TransactionDetails = { 
                 type: 'loan', 
                 title: `ثبت وام جدید: ${loanValues.title}`, 
                 amount: loanValues.amount, 
                 date: loanValues.startDate, 
                 icon: 'Landmark', 
                 color: 'rgb(139 92 246)', 
-                payee: payeeName, 
-                properties: [{ 
-                    label: 'واریز به', 
-                    value: loanValues.depositOnCreate && bankAccount ? bankAccount.bankName : 'ثبت بدون واریز' 
-                }] 
+                registeredBy: currentUser?.firstName || 'کاربر',
+                expenseFor: USER_DETAILS[loanValues.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
+                payee: payeeName,
+                properties: [
+                    { label: 'تعداد اقساط', value: loanValues.numberOfInstallments ? `${loanValues.numberOfInstallments} ماه` : 'نامشخص' },
+                    { label: 'مبلغ هر قسط', value: loanValues.installmentAmount ? formatCurrency(loanValues.installmentAmount, 'IRT') : 'نامشخص' },
+                ],
+                bankAccount: loanValues.depositOnCreate && bankAccount ? { name: bankAccount.bankName, owner: accountOwner || 'نامشخص' } : undefined
             };
-            await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+            await sendSystemNotification(firestore, user.uid, notificationDetails);
         }).catch(error => {
              if (error.name === 'FirebaseError') {
                  const permissionError = new FirestorePermissionError({
@@ -223,10 +226,26 @@ export default function LoansPage() {
         setPayingLoan(null);
         
         const currentUser = allData.users.find(u => u.id === user.uid);
-        const currentUserFirstName = currentUser?.firstName || 'کاربر';
         const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
-        const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = { type: 'payment', title: `پرداخت قسط وام: ${loan.title}`, amount: installmentAmount, date: new Date().toISOString(), icon: 'CheckCircle', color: 'rgb(22 163 74)', payee: payees.find(p => p.id === loan.payeeId)?.name, properties: [{ label: 'از حساب', value: bankAccount?.bankName }] };
-        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+        const accountOwner = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+        
+        const notificationDetails: TransactionDetails = { 
+            type: 'payment', 
+            title: `پرداخت قسط وام: ${loan.title}`, 
+            amount: installmentAmount, 
+            date: new Date().toISOString(), 
+            icon: 'CheckCircle', 
+            color: 'rgb(22 163 74)', 
+            registeredBy: currentUser?.firstName || 'کاربر',
+            payee: payees.find(p => p.id === loan.payeeId)?.name,
+            expenseFor: USER_DETAILS[loan.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
+            bankAccount: { name: bankAccount?.bankName || 'نامشخص', owner: accountOwner || 'نامشخص' },
+            properties: [
+                { label: 'اقساط پرداخت شده', value: `${loan.paidInstallments + 1} از ${loan.numberOfInstallments}` },
+                { label: 'مبلغ باقی‌مانده', value: formatCurrency(loan.remainingAmount - installmentAmount, 'IRT') },
+            ]
+        };
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({

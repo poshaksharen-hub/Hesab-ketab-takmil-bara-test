@@ -17,7 +17,7 @@ import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { DebtList } from '@/components/debts/debt-list';
 import { DebtForm } from '@/components/debts/debt-form';
 import { PayDebtDialog } from '@/components/debts/pay-debt-dialog';
@@ -91,12 +91,19 @@ export default function DebtsPage() {
             color: 'rgb(99 102 241)',
             registeredBy: currentUserFirstName,
             payee: payeeName,
+            expenseFor: USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
             properties: [
                 { label: 'شرح', value: values.description },
-                { label: 'نوع', value: values.isInstallment ? 'قسطی' : 'یکجا' },
+                { label: 'نوع پرداخت', value: values.isInstallment ? 'قسطی' : 'یکجا' },
+                ...(values.isInstallment ? [
+                    { label: 'تعداد اقساط', value: values.numberOfInstallments ? `${values.numberOfInstallments} ماه` : 'نامشخص' },
+                    { label: 'مبلغ هر قسط', value: values.installmentAmount ? formatCurrency(values.installmentAmount, 'IRT') : 'نامشخص' },
+                ] : [
+                    { label: 'تاریخ سررسید', value: values.dueDate ? formatJalaliDate(new Date(values.dueDate)) : 'نامشخص' },
+                ])
             ]
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
 
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
@@ -198,7 +205,8 @@ export default function DebtsPage() {
        const payeeName = payees.find(p => p.id === debt.payeeId)?.name;
        const bankAccount = bankAccounts.find(b => b.id === paymentBankAccountId);
        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
-       
+       const accountOwner = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+
        const notificationDetails: TransactionDetails = {
             type: 'payment',
             title: `پرداخت بدهی به ${payeeName}`,
@@ -208,12 +216,14 @@ export default function DebtsPage() {
             color: 'rgb(22 163 74)',
             registeredBy: currentUserFirstName,
             payee: payeeName,
+            expenseFor: USER_DETAILS[debt.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
+            bankAccount: { name: bankAccount?.bankName || 'نامشخص', owner: accountOwner || 'نامشخص' },
             properties: [
                 { label: 'شرح', value: debt.description },
-                { label: 'از حساب', value: bankAccount?.bankName },
+                { label: 'مبلغ باقی‌مانده', value: formatCurrency(debt.remainingAmount - amount, 'IRT') },
             ]
         };
-        await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+        await sendSystemNotification(firestore, user.uid, notificationDetails);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({

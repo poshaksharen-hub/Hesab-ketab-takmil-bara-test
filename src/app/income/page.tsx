@@ -76,19 +76,20 @@ export default function IncomePage() {
             const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
             const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
             
-             const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = {
+             const notificationDetails: TransactionDetails = {
                 type: 'income',
-                title: `ثبت درآمد جدید: ${values.description}`,
+                title: `ثبت درآمد: ${values.description}`,
                 amount: values.amount,
                 date: isoDate,
                 icon: 'TrendingUp',
                 color: 'rgb(34 197 94)',
+                registeredBy: currentUserFirstName,
                 payee: values.source,
                 category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
                 bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
             };
 
-            await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
+            await sendSystemNotification(firestore, user.uid, notificationDetails);
 
         } catch (notificationError: any) {
              console.error("Failed to send notification:", notificationError.message);
