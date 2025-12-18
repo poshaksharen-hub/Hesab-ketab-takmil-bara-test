@@ -26,7 +26,7 @@ import { AchieveGoalDialog } from '@/components/goals/achieve-goal-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { AddToGoalDialog } from '@/components/goals/add-to-goal-dialog';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -107,8 +107,8 @@ export default function GoalsPage() {
       const priorityMap = { 'low': 'پایین', 'medium': 'متوسط', 'high': 'بالا' };
       
       const contributionAccount = bankAccounts.find(b => b.id === initialContributionBankAccountId);
-      const contributionAccountOwnerId = contributionAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
-      const contributionAccountOwnerName = contributionAccountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[contributionAccountOwnerId]?.firstName;
+      const accountOwnerId = contributionAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
+      const contributionAccountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[accountOwnerId]?.firstName;
 
       const notificationDetails: TransactionDetails = {
           type: 'goal',
@@ -118,8 +118,8 @@ export default function GoalsPage() {
           icon: 'Target',
           color: 'rgb(161 98 7)',
           registeredBy: currentUserFirstName,
+          expenseFor: ownerName,
           properties: [
-              { label: 'هدف برای', value: ownerName },
               { label: 'تاریخ هدف', value: formatJalaliDate(values.targetDate) },
               { label: 'اولویت', value: priorityMap[values.priority as keyof typeof priorityMap] },
               ...(initialContributionAmount > 0 && contributionAccount ? [
@@ -310,8 +310,8 @@ export default function GoalsPage() {
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         
         const paymentAccount = bankAccounts.find(b => b.id === paymentCardId);
-        const paymentAccountOwnerId = paymentAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
-        const paymentAccountOwnerName = paymentAccountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[paymentAccountOwnerId]?.firstName;
+        const accountOwnerId = paymentAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
+        const paymentAccountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[accountOwnerId]?.firstName;
 
         const notificationDetails: TransactionDetails = {
             type: 'payment',
@@ -321,6 +321,7 @@ export default function GoalsPage() {
             icon: 'PartyPopper',
             color: 'rgb(217 119 6)',
             registeredBy: currentUserFirstName,
+            expenseFor: goal.ownerId === 'shared' ? 'مشترک' : USER_DETAILS[goal.ownerId as 'ali' | 'fatemeh'].firstName,
             properties: [
                 { label: 'هزینه نهایی', value: formatCurrency(actualCost, 'IRT') },
                 ...(cashPaymentNeeded > 0 && paymentAccount ? [
