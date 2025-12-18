@@ -57,37 +57,42 @@ export default function DebtsPage() {
     };
     setIsSubmitting(true);
     
-    const debtsColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts');
-
     try {
-        const startDate = values.startDate instanceof Date ? values.startDate.toISOString() : values.startDate;
-        const firstInstallmentDate = values.firstInstallmentDate instanceof Date ? values.firstInstallmentDate.toISOString() : values.firstInstallmentDate;
-        const dueDate = values.dueDate instanceof Date ? values.dueDate.toISOString() : values.dueDate;
+        await runTransaction(firestore, async (transaction) => {
+            const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+            const newDebtRef = doc(collection(familyDataRef, 'previousDebts'));
+            
+            const startDate = values.startDate instanceof Date ? values.startDate.toISOString() : values.startDate;
+            const firstInstallmentDate = values.firstInstallmentDate instanceof Date ? values.firstInstallmentDate.toISOString() : values.firstInstallmentDate;
+            const dueDate = values.dueDate instanceof Date ? values.dueDate.toISOString() : values.dueDate;
 
-        const debtData: Omit<PreviousDebt, 'id'> = {
-            ...values,
-            registeredByUserId: user.uid,
-            remainingAmount: values.amount,
-            paidInstallments: 0,
-            startDate: startDate,
-            firstInstallmentDate: values.isInstallment ? firstInstallmentDate : undefined,
-            dueDate: !values.isInstallment ? dueDate : undefined,
-        };
-
-        const newDocRef = await addDoc(debtsColRef, {});
-        await updateDoc(newDocRef, { ...debtData, id: newDocRef.id });
+            const debtData: PreviousDebt = {
+                ...values,
+                id: newDebtRef.id,
+                registeredByUserId: user.uid,
+                remainingAmount: values.amount,
+                paidInstallments: 0,
+                startDate: startDate,
+                firstInstallmentDate: values.isInstallment ? firstInstallmentDate : undefined,
+                dueDate: !values.isInstallment ? dueDate : undefined,
+            };
+            
+            transaction.set(newDebtRef, debtData);
+        });
         
         toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
         setIsFormOpen(false);
 
         const payeeName = payees.find(p => p.id === values.payeeId)?.name;
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+        const startDate = values.startDate instanceof Date ? values.startDate.toISOString() : values.startDate;
+        const dueDate = values.dueDate instanceof Date ? values.dueDate.toISOString() : values.dueDate;
         
         const notificationDetails: TransactionDetails = {
             type: 'debt',
             title: `ثبت بدهی جدید به ${payeeName}`,
             amount: values.amount,
-            date: debtData.startDate!,
+            date: startDate,
             icon: 'Handshake',
             color: 'rgb(99 102 241)',
             registeredBy: currentUserFirstName,
@@ -107,8 +112,9 @@ export default function DebtsPage() {
         await sendSystemNotification(firestore, user.uid, notificationDetails);
 
     } catch (error: any) {
+        console.error("Error in handleFormSubmit:", error);
         errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: debtsColRef.path,
+            path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
             operation: 'create',
         }));
         toast({
@@ -258,6 +264,7 @@ export default function DebtsPage() {
             
             // Check for related payments
             const paymentsQuery = query(collection(familyDocRef, 'debtPayments'), where('debtId', '==', debtId));
+            // This is a read operation within a transaction, which is allowed.
             const paymentsSnapshot = await getDocs(paymentsQuery);
 
             if (!paymentsSnapshot.empty) {
@@ -346,3 +353,5 @@ export default function DebtsPage() {
     </main>
   );
 }
+
+    
