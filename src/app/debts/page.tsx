@@ -73,7 +73,7 @@ export default function DebtsPage() {
                 ...(!values.isInstallment && values.dueDate ? { dueDate: (values.dueDate as Date).toISOString() } : {}),
             };
 
-            // Remove undefined date fields to prevent Firestore errors
+            // Clean up undefined date fields to prevent Firestore errors
             if (values.isInstallment) {
                 delete (debtData as any).dueDate;
             } else {
@@ -227,7 +227,7 @@ export default function DebtsPage() {
             registeredBy: currentUserFirstName,
             payee: payeeName,
             expenseFor: USER_DETAILS[debt.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
-            bankAccount: { name: bankAccount?.bankName || 'نامشخص', owner: accountOwner || 'نامشخص' },
+            bankAccount: { name: bankAccount?.name || 'نامشخص', owner: accountOwner || 'نامشخص' },
             properties: [
                 { label: 'شرح', value: debt.description },
                 { label: 'مبلغ باقی‌مانده', value: formatCurrency(debt.remainingAmount - amount, 'IRT') },
