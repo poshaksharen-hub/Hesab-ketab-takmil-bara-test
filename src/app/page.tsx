@@ -31,6 +31,7 @@ import type { DashboardFilter } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { collection, doc } from 'firebase/firestore';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 import type { Income, Expense, BankAccount, Category, Check, FinancialGoal, Loan, Payee, Transfer, LoanPayment, PreviousDebt, DebtPayment, UserProfile } from '@/lib/types';
 
 const FAMILY_DATA_DOC = 'shared-data';
@@ -110,10 +111,22 @@ function QuickAccess() {
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const [ownerFilter, setOwnerFilter] = useState<DashboardFilter>('all');
   const [date, setDate] = useState<DateRange | undefined>(() => getDateRange('thisMonth').range);
   const [activePreset, setActivePreset] = useState<ReturnType<typeof getDateRange>['preset']>('thisMonth');
+  
+  const { allData, isLoading: isDashboardLoading } = useDashboardData();
+  const { 
+    incomes, 
+    expenses, 
+    bankAccounts, 
+    categories, 
+    checks, 
+    loans, 
+    payees, 
+    previousDebts, 
+    users 
+  } = allData;
 
   const { toast } = useToast();
   
@@ -124,21 +137,7 @@ export default function DashboardPage() {
     }
   }, [user, isUserLoading]);
 
-  // --- Data Fetching ---
-  const baseDocRef = useMemo(() => (firestore ? doc(firestore, 'family-data', FAMILY_DATA_DOC) : null), [firestore]);
-
-  const { data: incomes, isLoading: ilI } = useCollection<Income>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'incomes') : null), [baseDocRef]));
-  const { data: expenses, isLoading: ilE } = useCollection<Expense>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'expenses') : null), [baseDocRef]));
-  const { data: bankAccounts, isLoading: ilBA } = useCollection<BankAccount>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'bankAccounts') : null), [baseDocRef]));
-  const { data: categories, isLoading: ilC } = useCollection<Category>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'categories') : null), [baseDocRef]));
-  const { data: checks, isLoading: ilCH } = useCollection<Check>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'checks') : null), [baseDocRef]));
-  const { data: loans, isLoading: ilL } = useCollection<Loan>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'loans') : null), [baseDocRef]));
-  const { data: payees, isLoading: ilP } = useCollection<Payee>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'payees') : null), [baseDocRef]));
-  const { data: previousDebts, isLoading: ilPD } = useCollection<PreviousDebt>(useMemo(() => (baseDocRef ? collection(baseDocRef, 'previousDebts') : null), [baseDocRef]));
-  const users = useMemo<UserProfile[]>(() => [USER_DETAILS.ali, USER_DETAILS.fatemeh], []);
-
-  const isLoading = isUserLoading || ilI || ilE || ilBA || ilC || ilCH || ilL || ilP || ilPD;
-  // --- End Data Fetching ---
+  const isLoading = isUserLoading || isDashboardLoading;
 
 
   const { summary, details, globalSummary } = useMemo(() => {
