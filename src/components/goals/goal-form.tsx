@@ -60,7 +60,6 @@ interface GoalFormProps {
 
 export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel, isSubmitting }: GoalFormProps) {
   const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
-  const [isMounted, setIsMounted] = useState(false);
 
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(formSchema),
@@ -74,32 +73,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel, 
       initialContributionBankAccountId: '',
     },
   });
-
-  useEffect(() => {
-    setIsMounted(true);
-    form.reset({
-      name: '',
-      targetAmount: 0,
-      targetDate: new Date(),
-      priority: 'medium',
-      ownerId: loggedInUserOwnerId,
-      initialContributionAmount: 0,
-      initialContributionBankAccountId: '',
-    });
-  }, [user, loggedInUserOwnerId, form]);
-
-  if (!isMounted) return null;
-
-  const getOwnerName = (account: BankAccount) => {
-    if (account.ownerId === 'shared_account') return "(مشترک)";
-    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
-    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
-  };
-
-  const selectedBankAccountId = form.watch('initialContributionBankAccountId');
-  const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
-  const availableBalance = selectedBankAccount ? (selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0)) : 0;
-
+  
   const sortedBankAccounts = useMemo(() => {
     return [...bankAccounts].sort((a,b) => {
       const getGroup = (ownerId: string) => {
@@ -115,6 +89,30 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel, 
       return b.balance - a.balance;
     });
   }, [bankAccounts, loggedInUserOwnerId]);
+
+
+  useEffect(() => {
+    form.reset({
+      name: '',
+      targetAmount: 0,
+      targetDate: new Date(),
+      priority: 'medium',
+      ownerId: loggedInUserOwnerId,
+      initialContributionAmount: 0,
+      initialContributionBankAccountId: '',
+    });
+  }, [user, loggedInUserOwnerId, form]);
+
+
+  const getOwnerName = (account: BankAccount) => {
+    if (account.ownerId === 'shared_account') return "(مشترک)";
+    const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
+    return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+  };
+
+  const selectedBankAccountId = form.watch('initialContributionBankAccountId');
+  const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
+  const availableBalance = selectedBankAccount ? (selectedBankAccount.balance - (selectedBankAccount.blockedBalance || 0)) : 0;
 
   return (
     <Dialog open onOpenChange={onCancel}>
@@ -186,7 +184,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel, 
                       render={({ field }) => (
                       <FormItem className="flex flex-col">
                           <FormLabel>تاریخ هدف</FormLabel>
-                          <JalaliDatePicker title="تاریخ هدف" value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
+                          <JalaliDatePicker title="تاریخ هدف" value={field.value} onChange={field.onChange} />
                           <FormMessage />
                       </FormItem>
                       )}
