@@ -36,18 +36,24 @@ export async function sendSystemNotification(
         finalParticipantIds = participantIds as string[];
     } else { // Old signature: (firestore, actorId, details, registeredBy)
         finalDetails = participantIds as TransactionDetails;
-        // In the old signature, we assume all users are participants.
-        // This part needs a way to get all user IDs. We'll pass an empty array for now.
-        // A better approach would be to refactor all calls to use the new signature.
         finalParticipantIds = []; 
     }
-
 
     try {
         const chatMessagesRef = collection(firestore, CHAT_MESSAGES_COLLECTION_PATH);
         const newDocRef = doc(chatMessagesRef); 
 
         const notificationText = finalDetails.title || `تراکنش جدید توسط ${finalDetails.registeredBy || 'کاربر'} ثبت شد.`;
+        
+        // Sanitize the details object to remove any undefined fields before sending to Firestore
+        const sanitizedDetails = { ...finalDetails };
+        Object.keys(sanitizedDetails).forEach(key => {
+            const K = key as keyof TransactionDetails;
+            if (sanitizedDetails[K] === undefined) {
+                delete sanitizedDetails[K];
+            }
+        });
+
 
         const dataToSend = {
             id: newDocRef.id,
@@ -56,7 +62,7 @@ export async function sendSystemNotification(
             text: notificationText,
             type: 'system' as const,
             transactionDetails: {
-                ...finalDetails,
+                ...sanitizedDetails,
                 date: new Date(finalDetails.date).toISOString(),
             },
             participants: finalParticipantIds,
