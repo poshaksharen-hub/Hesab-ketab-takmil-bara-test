@@ -40,10 +40,10 @@ function DebtDetailSkeleton() {
 const DetailItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string | null }) => {
     if (!value) return null;
     return (
-        <div className="flex items-center gap-2 text-sm">
-            <Icon className="h-4 w-4 text-muted-foreground" />
-            <div>
-                <span className="text-muted-foreground">{label}: </span>
+        <div className="flex items-start gap-3 text-sm">
+            <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+            <div className="flex flex-col">
+                <span className="text-muted-foreground">{label}</span>
                 <span className="font-semibold">{value}</span>
             </div>
         </div>
@@ -171,7 +171,7 @@ export default function DebtDetailPage() {
                     </div>
                 </div>
                  <Separator className="my-4" />
-                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                 <div className="grid grid-cols-2 gap-x-4 gap-y-5">
                     <DetailItem icon={debt.ownerId === 'shared' ? Users : User} label="بدهی برای" value={getOwnerName(debt.ownerId)} />
                     <DetailItem icon={Calendar} label="تاریخ ایجاد" value={formatJalaliDate(new Date(debt.startDate))} />
                     <DetailItem icon={Clock} label="موعد پرداخت" value={dueDateText} />
