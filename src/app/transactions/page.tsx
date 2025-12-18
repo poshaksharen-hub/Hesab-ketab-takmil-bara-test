@@ -88,22 +88,20 @@ export default function ExpensesPage() {
             const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
             const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
 
-            const notificationDetails: TransactionDetails = {
+            const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = {
                 type: 'expense',
                 title: values.description,
                 amount: values.amount,
                 date: (values.date as any).toISOString(),
                 icon: 'TrendingDown',
                 color: 'rgb(220 38 38)',
-                registeredBy: currentUserFirstName,
                 category: category?.name,
                 payee: payee?.name,
                 bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
                 expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             };
             
-            const participantIds = users.map(u => u.id);
-            await sendSystemNotification(firestore, user.uid, participantIds, notificationDetails);
+            await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
         } catch (notificationError: any) {
             console.error("Failed to send notification:", notificationError.message);
             toast({
@@ -174,10 +172,6 @@ export default function ExpensesPage() {
   const handleAddNew = React.useCallback(() => {
     setIsFormOpen(true);
   }, []);
-
-  const handleCancelForm = React.useCallback(() => {
-    setIsFormOpen(false);
-  }, []);
   
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -221,7 +215,7 @@ export default function ExpensesPage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
           </div>
-      ) : !isFormOpen && (
+      ) : (
         <ExpenseList
           expenses={allExpenses || []}
           bankAccounts={allBankAccounts || []}

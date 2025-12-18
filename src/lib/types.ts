@@ -63,6 +63,7 @@ export type BankAccount = {
     initialBalance: number;
     blockedBalance: number;
     theme: BankTheme;
+    registeredByUserId: string;
 }
 
 export type Category = {

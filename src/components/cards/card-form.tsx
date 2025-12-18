@@ -315,7 +315,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
         });
       }
     }
-  }, [initialData, loggedInUserOwnerId, isOpen]); 
+  }, [initialData, loggedInUserOwnerId, isOpen, form]); 
 
   const commonProps = { form, initialData, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen };
 
@@ -328,7 +328,9 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
               {initialData ? 'ویرایش کارت بانکی' : 'افزودن کارت جدید'}
             </DialogTitle>
           </DialogHeader>
-          <CardFormContent {...commonProps} />
+          <div className="max-h-[80vh] overflow-y-auto p-1">
+            <CardFormContent {...commonProps} />
+          </div>
         </DialogContent>
       </Dialog>
     );

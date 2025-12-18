@@ -96,18 +96,17 @@ export default function TransfersPage() {
         const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : (fromAccount?.ownerId && USER_DETAILS[fromAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
         const toAccountOwner = toAccount?.ownerId === 'shared_account' ? 'مشترک' : (toAccount?.ownerId && USER_DETAILS[toAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
         
-        const notificationDetails: TransactionDetails = {
+        const notificationDetails: Omit<TransactionDetails, 'registeredBy'> = {
               type: 'transfer',
               title: `انتقال داخلی`,
               amount: values.amount,
               date: new Date().toISOString(),
               icon: 'ArrowRightLeft',
               color: 'rgb(59 130 246)',
-              registeredBy: currentUserFirstName,
               bankAccount: fromAccount ? { name: fromAccount.bankName, owner: fromAccountOwner || 'نامشخص' } : undefined,
               toBankAccount: toAccount ? { name: toAccount.bankName, owner: toAccountOwner || 'نامشخص' } : undefined,
           };
-          await sendSystemNotification(firestore, user.uid, notificationDetails);
+          await sendSystemNotification(firestore, user.uid, notificationDetails, currentUserFirstName);
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({

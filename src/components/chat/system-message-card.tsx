@@ -64,6 +64,12 @@ export function SystemMessageCard({ message }: SystemMessageCardProps) {
                 {details.toBankAccount && <DetailItem label="به حساب" value={`${details.toBankAccount.name} (${details.toBankAccount.owner})`} />}
             </div>
 
+            {details.checkDetails && <Separator />}
+            <div className='space-y-2'>
+                {details.checkDetails && <DetailItem label="شناسه صیاد" value={details.checkDetails.sayadId} />}
+                {details.checkDetails && <DetailItem label="تاریخ سررسید" value={details.checkDetails.dueDate} />}
+            </div>
+
             {details.properties && details.properties.length > 0 && <Separator />}
             <div className='space-y-2'>
                 {details.properties?.map(prop => (

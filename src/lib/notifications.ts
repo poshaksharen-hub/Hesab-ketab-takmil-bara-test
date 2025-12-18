@@ -32,7 +32,7 @@ export async function sendSystemNotification(
         const chatMessagesRef = collection(firestore, CHAT_MESSAGES_COLLECTION_PATH);
         const newDocRef = doc(chatMessagesRef); 
 
-        const finalDetails = {
+        const finalDetails: TransactionDetails = {
             ...details,
             registeredBy: registeredBy,
         }

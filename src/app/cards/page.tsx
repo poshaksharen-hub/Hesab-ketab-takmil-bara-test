@@ -35,7 +35,7 @@ export default function CardsPage() {
 
   const hasSharedAccount = useMemo(() => (allBankAccounts || []).some(acc => acc.ownerId === 'shared_account'), [allBankAccounts]);
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId'>) => {
+  const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId' | 'blockedBalance'>) => {
     if (!user || !firestore) return;
     
     const collectionRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts');
@@ -181,8 +181,7 @@ export default function CardsPage() {
         />
       </div>
       
-      <div className="md:hidden">
-        {isFormOpen && (
+       {isFormOpen && (
            <CardForm
               isOpen={isFormOpen}
               setIsOpen={setIsFormOpen}
@@ -192,19 +191,6 @@ export default function CardsPage() {
               hasSharedAccount={hasSharedAccount}
             />
         )}
-      </div>
-      <div className="hidden md:block">
-         {isFormOpen && (
-           <CardForm
-              isOpen={isFormOpen}
-              setIsOpen={setIsFormOpen}
-              onSubmit={handleFormSubmit}
-              initialData={editingCard}
-              users={users}
-              hasSharedAccount={hasSharedAccount}
-            />
-        )}
-      </div>
 
       {isLoading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
