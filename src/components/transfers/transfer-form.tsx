@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import type { BankAccount, OwnerId } from '@/lib/types';
-import { ArrowDown, ArrowRightLeft } from 'lucide-react';
+import { ArrowDown, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
 import { formatCurrency } from '@/lib/utils';
 import type { User } from 'firebase/auth';
@@ -46,9 +46,10 @@ interface TransferFormProps {
   onCancel: () => void;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  isSubmitting: boolean;
 }
 
-export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, setIsOpen }: TransferFormProps) {
+export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, setIsOpen, isSubmitting }: TransferFormProps) {
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,7 +74,6 @@ export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, s
 
   function handleFormSubmit(data: TransferFormValues) {
     onSubmit(data);
-    form.reset();
   }
 
   const fromAccountId = form.watch('fromBankAccountId');
@@ -92,7 +92,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, s
     if (toAccountId && !availableToAccounts.some(acc => acc.id === toAccountId)) {
       form.setValue('toBankAccountId', '');
     }
-  }, [fromAccountId, availableToAccounts]);
+  }, [fromAccountId, availableToAccounts, form]);
 
 
   return (
@@ -112,7 +112,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, s
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>از حساب</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="یک حساب بانکی به عنوان مبدا انتخاب کنید" />
@@ -141,7 +141,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, s
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>به حساب</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!fromAccountId}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!fromAccountId || isSubmitting}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder={!fromAccountId ? "ابتدا حساب مبدا را انتخاب کنید" : "یک حساب بانکی به عنوان مقصد انتخاب کنید"} />
@@ -166,7 +166,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, s
                     <FormItem>
                         <FormLabel>مبلغ انتقال (تومان)</FormLabel>
                         <FormControl>
-                        <CurrencyInput value={field.value} onChange={field.onChange} />
+                        <CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                         </FormControl>
                         {fromAccount && (
                             <p className="text-xs text-muted-foreground pt-1">
@@ -184,15 +184,18 @@ export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, s
                     <FormItem>
                         <FormLabel>توضیحات (اختیاری)</FormLabel>
                         <FormControl>
-                        <Textarea placeholder="شرح مختصری از این انتقال..." {...field} />
+                        <Textarea placeholder="شرح مختصری از این انتقال..." {...field} disabled={isSubmitting}/>
                         </FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
                 <DialogFooter className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-                    <Button type="submit">تایید و انتقال</Button>
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>لغو</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                        تایید و انتقال
+                    </Button>
                 </DialogFooter>
             </form>
             </Form>

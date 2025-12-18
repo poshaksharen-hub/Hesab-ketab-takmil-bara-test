@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History, Edit, PenSquare, User, Users } from 'lucide-react';
@@ -43,6 +43,7 @@ interface LoanListProps {
 }
 
 export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: LoanListProps) {
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -64,6 +65,15 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
         </Card>
     )
   }
+
+  const handleDeleteClick = async (loanId: string) => {
+      setIsDeleting(loanId);
+      try {
+          await onDelete(loanId);
+      } finally {
+          setIsDeleting(null);
+      }
+  };
 
   const getLoanStatus = (loan: Loan) => {
     if (loan.remainingAmount <= 0) {
@@ -95,6 +105,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
             const isCompleted = loan.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(loan.ownerId);
             const registeredByName = users.find(u => u.id === loan.registeredByUserId)?.firstName || 'سیستم';
+            const isDeleteDisabled = (loan.paidInstallments > 0) || isDeleting === loan.id;
 
             return (
              <div key={loan.id} className="relative group">
@@ -131,7 +142,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
                                         <DropdownMenuSeparator />
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
                                                     <Trash2 className="ml-2 h-4 w-4" />
                                                     حذف وام
                                                 </div>
@@ -147,9 +158,9 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
                                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
                                                 <AlertDialogAction
                                                     className="bg-destructive hover:bg-destructive/90"
-                                                    disabled={loan.paidInstallments > 0}
-                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(loan.id); }}>
-                                                    بله، حذف کن
+                                                    disabled={isDeleteDisabled}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(loan.id); }}>
+                                                    {isDeleting === loan.id ? 'در حال حذف...' : 'بله، حذف کن'}
                                                 </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>

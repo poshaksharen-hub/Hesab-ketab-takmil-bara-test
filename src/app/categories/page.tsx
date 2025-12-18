@@ -3,8 +3,8 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { PlusCircle, ArrowRight, Plus, Loader2 } from 'lucide-react';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { CategoryList } from '@/components/categories/category-list';
 import { CategoryForm } from '@/components/categories/category-form';
@@ -25,21 +25,33 @@ export default function CategoriesPage() {
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const { firestore, categories, expenses, checks } = allData;
 
   const handleFormSubmit = useCallback(async (values: Omit<Category, 'id'>) => {
     if (!user || !firestore) return;
+    setIsSubmitting(true);
 
     const categoriesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'categories');
+    
+    const onComplete = () => {
+        setIsSubmitting(false);
+        setIsFormOpen(false);
+        setEditingCategory(null);
+    };
 
     if (editingCategory) {
         const categoryRef = doc(categoriesColRef, editingCategory.id);
         updateDoc(categoryRef, values)
-            .then(() => toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." }))
+            .then(() => {
+                toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." });
+                onComplete();
+            })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({ path: categoryRef.path, operation: 'update', requestResourceData: values });
                 errorEmitter.emit('permission-error', permissionError);
+                setIsSubmitting(false);
             });
     } else {
         const newCategoryData = { ...values, id: '' };
@@ -48,15 +60,15 @@ export default function CategoriesPage() {
                 if (docRef) {
                   updateDoc(docRef, { id: docRef.id });
                   toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
+                  onComplete();
                 }
             })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({ path: categoriesColRef.path, operation: 'create', requestResourceData: newCategoryData });
                 errorEmitter.emit('permission-error', permissionError);
+                setIsSubmitting(false);
             });
     }
-    setIsFormOpen(false);
-    setEditingCategory(null);
   }, [user, firestore, editingCategory, toast]);
 
   const handleDelete = useCallback(async (categoryId: string) => {
@@ -147,6 +159,7 @@ export default function CategoriesPage() {
           onSubmit={handleFormSubmit}
           initialData={editingCategory}
           onCancel={handleCancelForm}
+          isSubmitting={isSubmitting}
         />
       ) : (
         <CategoryList

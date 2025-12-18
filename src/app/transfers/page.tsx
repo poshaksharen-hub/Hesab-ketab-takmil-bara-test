@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
-import { ArrowRight, PlusCircle, Plus } from 'lucide-react';
+import { ArrowRight, PlusCircle, Plus, Loader2 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
@@ -26,11 +26,13 @@ export default function TransfersPage() {
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { firestore, bankAccounts: allBankAccounts, transfers, users } = allData;
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
+    setIsSubmitting(true);
 
     if (values.fromBankAccountId === values.toBankAccountId) {
       toast({
@@ -38,6 +40,7 @@ export default function TransfersPage() {
         title: "خطا",
         description: "حساب مبدا و مقصد نمی‌توانند یکسان باشند.",
       });
+      setIsSubmitting(false);
       return;
     }
     
@@ -123,6 +126,8 @@ export default function TransfersPage() {
                 description: error.message || "مشکلی در انجام عملیات پیش آمد. لطفا دوباره تلاش کنید.",
             });
         }
+    }).finally(() => {
+        setIsSubmitting(false);
     });
 
   }, [user, firestore, allBankAccounts, users, toast]);
@@ -217,6 +222,7 @@ export default function TransfersPage() {
             onCancel={handleCancelForm}
             isOpen={isFormOpen}
             setIsOpen={setIsFormOpen}
+            isSubmitting={isSubmitting}
         />
       )}
 

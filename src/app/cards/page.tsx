@@ -3,7 +3,7 @@
 
 import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, ArrowRight, Plus } from 'lucide-react';
+import { PlusCircle, Search, ArrowRight, Plus, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
@@ -30,6 +30,7 @@ export default function CardsPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const { firestore, bankAccounts: allBankAccounts, incomes, expenses, transfers, checks, loanPayments, debtPayments, users } = allData;
 
@@ -37,9 +38,16 @@ export default function CardsPage() {
 
   const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId' | 'blockedBalance'>) => {
     if (!user || !firestore) return;
+    setIsSubmitting(true);
     
     const collectionRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts');
   
+    const onComplete = () => {
+        setIsSubmitting(false);
+        setIsFormOpen(false);
+        setEditingCard(null);
+    }
+
     if (editingCard) {
       // --- Edit ---
       const { initialBalance, ...updateData } = values as any;
@@ -49,6 +57,9 @@ export default function CardsPage() {
       };
       updateDocumentNonBlocking(doc(collectionRef, editingCard.id), dataToSend, () => {
         toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
+        onComplete();
+      }, () => {
+        setIsSubmitting(false); // Only re-enable form on error
       });
 
     } else {
@@ -63,10 +74,11 @@ export default function CardsPage() {
         addDocumentNonBlocking(collectionRef, newCardData, (id) => {
             updateDoc(doc(collectionRef, id), { id });
             toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
+            onComplete();
+        }, () => {
+            setIsSubmitting(false);
         });
     }
-    setIsFormOpen(false);
-    setEditingCard(null);
   }, [user, firestore, editingCard, toast]);
 
   const handleDelete = React.useCallback(async (cardId: string) => {
@@ -189,6 +201,7 @@ export default function CardsPage() {
               initialData={editingCard}
               users={users}
               hasSharedAccount={hasSharedAccount}
+              isSubmitting={isSubmitting}
             />
         )}
 

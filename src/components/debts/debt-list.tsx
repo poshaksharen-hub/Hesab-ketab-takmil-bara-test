@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, History, PenSquare } from 'lucide-react';
@@ -24,6 +24,7 @@ interface DebtListProps {
 }
 
 export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProps) {
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -50,6 +51,15 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
     return { name: userDetail.firstName, Icon: User };
   };
 
+  const handleDeleteClick = async (debtId: string) => {
+      setIsDeleting(debtId);
+      try {
+          await onDelete(debtId);
+      } finally {
+          setIsDeleting(null);
+      }
+  };
+
   return (
     <div className='grid grid-cols-1 gap-6'>
         {debts.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((debt) => {
@@ -57,6 +67,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
             const isCompleted = debt.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(debt.ownerId);
             const registeredByName = users.find(u => u.id === debt.registeredByUserId)?.firstName || 'نامشخص';
+            const isDeleteDisabled = (debt.paidInstallments > 0) || isDeleting === debt.id;
 
             return (
              <div key={debt.id} className="relative group">
@@ -89,7 +100,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
                                         <DropdownMenuSeparator />
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
                                                     <Trash2 className="ml-2 h-4 w-4" />
                                                     حذف بدهی
                                                 </div>
@@ -105,9 +116,9 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
                                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
                                                 <AlertDialogAction
                                                     className="bg-destructive hover:bg-destructive/90"
-                                                    disabled={debt.remainingAmount > 0 && debt.remainingAmount < debt.amount}
-                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(debt.id); }}>
-                                                    بله، حذف کن
+                                                    disabled={isDeleteDisabled}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(debt.id); }}>
+                                                    {isDeleting === debt.id ? 'در حال حذف...' : 'بله، حذف کن'}
                                                 </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>

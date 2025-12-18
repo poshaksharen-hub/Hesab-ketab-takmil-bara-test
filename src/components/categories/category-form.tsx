@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Category } from '@/lib/types';
 import { Textarea } from '../ui/textarea';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'نام دسته‌بندی باید حداقل ۲ حرف داشته باشد.' }),
@@ -30,9 +31,10 @@ interface CategoryFormProps {
   onSubmit: (data: CategoryFormValues) => void;
   initialData: Category | null;
   onCancel: () => void;
+  isSubmitting: boolean;
 }
 
-export function CategoryForm({ onSubmit, initialData, onCancel }: CategoryFormProps) {
+export function CategoryForm({ onSubmit, initialData, onCancel, isSubmitting }: CategoryFormProps) {
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -75,7 +77,7 @@ export function CategoryForm({ onSubmit, initialData, onCancel }: CategoryFormPr
                   <FormItem>
                     <FormLabel>نام دسته‌بندی</FormLabel>
                     <FormControl>
-                      <Input placeholder="مثال: خوراک و پوشاک" {...field} />
+                      <Input placeholder="مثال: خوراک و پوشاک" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -88,7 +90,7 @@ export function CategoryForm({ onSubmit, initialData, onCancel }: CategoryFormPr
                   <FormItem>
                     <FormLabel>توضیحات (اختیاری)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="توضیح مختصری در مورد این دسته‌بندی" {...field} />
+                      <Textarea placeholder="توضیح مختصری در مورد این دسته‌بندی" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -96,8 +98,11 @@ export function CategoryForm({ onSubmit, initialData, onCancel }: CategoryFormPr
               />
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-                <Button type="submit">ذخیره</Button>
+                <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>لغو</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                    ذخیره
+                </Button>
             </CardFooter>
           </form>
         </Form>

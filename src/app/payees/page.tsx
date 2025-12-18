@@ -3,7 +3,7 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
+import { PlusCircle, ArrowRight, Plus, Loader2 } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { PayeeList } from '@/components/payees/payee-list';
@@ -25,21 +25,33 @@ export default function PayeesPage() {
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingPayee, setEditingPayee] = React.useState<Payee | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const { firestore, payees, checks, expenses, loans, previousDebts } = allData;
 
   const handleFormSubmit = useCallback(async (values: Omit<Payee, 'id'>) => {
     if (!user || !firestore) return;
+    setIsSubmitting(true);
     
     const payeesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'payees');
+    
+    const onComplete = () => {
+        setIsSubmitting(false);
+        setIsFormOpen(false);
+        setEditingPayee(null);
+    };
 
     if (editingPayee) {
         const payeeRef = doc(payeesColRef, editingPayee.id);
         updateDoc(payeeRef, values)
-            .then(() => toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." }))
+            .then(() => {
+                toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
+                onComplete();
+            })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({ path: payeeRef.path, operation: 'update', requestResourceData: values });
                 errorEmitter.emit('permission-error', permissionError);
+                setIsSubmitting(false);
             });
 
     } else {
@@ -48,15 +60,15 @@ export default function PayeesPage() {
                 if(docRef) {
                   updateDoc(docRef, { id: docRef.id });
                   toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
+                  onComplete();
                 }
             })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({ path: payeesColRef.path, operation: 'create', requestResourceData: values });
                 errorEmitter.emit('permission-error', permissionError);
+                setIsSubmitting(false);
             });
     }
-    setIsFormOpen(false);
-    setEditingPayee(null);
   }, [user, firestore, editingPayee, toast]);
 
   const handleDelete = useCallback(async (payeeId: string) => {
@@ -136,12 +148,15 @@ export default function PayeesPage() {
         </div>
       </div>
 
-      <PayeeForm
-        isOpen={isFormOpen}
-        setIsOpen={setIsFormOpen}
-        onSubmit={handleFormSubmit}
-        initialData={editingPayee}
-      />
+      { isFormOpen && (
+        <PayeeForm
+            isOpen={isFormOpen}
+            setIsOpen={setIsFormOpen}
+            onSubmit={handleFormSubmit}
+            initialData={editingPayee}
+            isSubmitting={isSubmitting}
+        />
+      )}
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
@@ -149,7 +164,7 @@ export default function PayeesPage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
           </div>
-      ) : (
+      ) : !isFormOpen && (
         <PayeeList
           payees={payees || []}
           onEdit={handleEdit}

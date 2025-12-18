@@ -30,7 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import type { BankAccount, UserProfile, BankTheme, OwnerId } from '@/lib/types';
 import { USER_DETAILS } from '@/lib/constants';
 import { BANK_DATA, type BankInfo } from '@/lib/bank-data';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -58,9 +58,10 @@ interface CardFormProps {
   initialData: BankAccount | null;
   users: UserProfile[];
   hasSharedAccount: boolean;
+  isSubmitting: boolean;
 }
 
-const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen }: any) => {
+const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen, isSubmitting }: any) => {
     const selectedBankName = form.watch('bankName');
     const selectedBankInfo = BANK_DATA.find(b => b.name === selectedBankName);
 
@@ -80,7 +81,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>صاحب حساب</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData || isSubmitting}>
                             <FormControl>
                                 <SelectTrigger>
                                 <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
@@ -111,6 +112,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                                     <Button
                                     variant="outline"
                                     role="combobox"
+                                    disabled={isSubmitting}
                                     className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                                     >
                                     {field.value ? BANK_DATA.find(b => b.name === field.value)?.name : "یک بانک را انتخاب کنید"}
@@ -154,7 +156,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>طرح کارت</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="یک طرح برای کارت انتخاب کنید" />
@@ -180,7 +182,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                     <FormItem>
                         <FormLabel>شماره حساب</FormLabel>
                         <FormControl>
-                        <NumericInput dir="ltr" placeholder="شماره حساب بانکی" {...field} />
+                        <NumericInput dir="ltr" placeholder="شماره حساب بانکی" {...field} disabled={isSubmitting}/>
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -193,7 +195,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                     <FormItem>
                         <FormLabel>شماره کارت</FormLabel>
                         <FormControl>
-                        <NumericInput dir="ltr" maxLength={16} placeholder="---- ---- ---- ----" {...field} />
+                        <NumericInput dir="ltr" maxLength={16} placeholder="---- ---- ---- ----" {...field} disabled={isSubmitting}/>
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -207,7 +209,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                         <FormItem>
                             <FormLabel>تاریخ انقضا</FormLabel>
                             <FormControl>
-                            <ExpiryDateInput dir="ltr" placeholder="MM/YY" {...field} />
+                            <ExpiryDateInput dir="ltr" placeholder="MM/YY" {...field} disabled={isSubmitting}/>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -220,7 +222,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                         <FormItem>
                             <FormLabel>CVV2</FormLabel>
                             <FormControl>
-                            <NumericInput dir="ltr" maxLength={4} placeholder="---" {...field} />
+                            <NumericInput dir="ltr" maxLength={4} placeholder="---" {...field} disabled={isSubmitting}/>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -234,7 +236,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                     <FormItem>
                         <FormLabel>موجودی اولیه (تومان)</FormLabel>
                         <FormControl>
-                        <CurrencyInput value={field.value} onChange={field.onChange} disabled={!!initialData} />
+                        <CurrencyInput value={field.value} onChange={field.onChange} disabled={!!initialData || isSubmitting} />
                         </FormControl>
                         {!initialData && <FormDescription>این مبلغ فقط یکبار در زمان ایجاد کارت ثبت می‌شود.</FormDescription>}
                         <FormMessage />
@@ -247,7 +249,7 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>نوع حساب</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="نوع حساب را انتخاب کنید" />
@@ -264,15 +266,18 @@ const CardFormContent = ({ form, initialData, users, hasSharedAccount, onSubmit,
                 />
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>لغو</Button>
-                    <Button type="submit">ذخیره</Button>
+                    <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>لغو</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                        ذخیره
+                    </Button>
                 </CardFooter>
             </form>
         </Form>
     )
 }
 
-export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount }: CardFormProps) {
+export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount, isSubmitting }: CardFormProps) {
   const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
   const isMobile = useIsMobile();
   
@@ -317,7 +322,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
     }
   }, [initialData, loggedInUserOwnerId, isOpen, form]); 
 
-  const commonProps = { form, initialData, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen };
+  const commonProps = { form, initialData, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen, isSubmitting };
 
   if (isMobile) {
     return (
