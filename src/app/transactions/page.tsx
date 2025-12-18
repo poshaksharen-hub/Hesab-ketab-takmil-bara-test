@@ -81,28 +81,37 @@ export default function ExpensesPage() {
         setIsFormOpen(false);
         toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
         
-        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
-        const category = allCategories.find(c => c.id === values.categoryId);
-        const payee = allPayees.find(p => p.id === values.payeeId);
-        const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-        const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+        try {
+            const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+            const category = allCategories.find(c => c.id === values.categoryId);
+            const payee = allPayees.find(p => p.id === values.payeeId);
+            const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
+            const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
 
-        const notificationDetails: TransactionDetails = {
-            type: 'expense',
-            title: values.description,
-            amount: values.amount,
-            date: (values.date as any),
-            icon: 'TrendingDown',
-            color: 'rgb(220 38 38)',
-            registeredBy: currentUserFirstName,
-            category: category?.name,
-            payee: payee?.name,
-            bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
-            expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
-        };
-        
-        const participantIds = users.map(u => u.id);
-        await sendSystemNotification(firestore, user.uid, participantIds, notificationDetails);
+            const notificationDetails: TransactionDetails = {
+                type: 'expense',
+                title: values.description,
+                amount: values.amount,
+                date: (values.date as any),
+                icon: 'TrendingDown',
+                color: 'rgb(220 38 38)',
+                registeredBy: currentUserFirstName,
+                category: category?.name,
+                payee: payee?.name,
+                bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
+                expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
+            };
+            
+            const participantIds = users.map(u => u.id);
+            await sendSystemNotification(firestore, user.uid, participantIds, notificationDetails);
+        } catch (notificationError: any) {
+            console.error("Failed to send notification:", notificationError.message);
+            toast({
+                variant: "destructive",
+                title: "خطا در ارسال نوتیفیکیشن",
+                description: "هزینه ثبت شد اما در ارسال پیام آن به گفتگو مشکلی پیش آمد.",
+            });
+        }
 
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
@@ -110,7 +119,7 @@ export default function ExpensesPage() {
                 path: 'family-data/shared-data/expenses',
                 operation: 'create',
             });
-          errorEmitter.emit('permission-error', permissionError);
+          errorEmitter.emit("permission-error", permissionError);
         } else {
           toast({
             variant: "destructive",
@@ -150,7 +159,7 @@ export default function ExpensesPage() {
                 path: expenseRef.path,
                 operation: 'delete',
             });
-            errorEmitter.emit('permission-error', permissionError);
+            errorEmitter.emit("permission-error", permissionError);
         } else {
           toast({
             variant: "destructive",

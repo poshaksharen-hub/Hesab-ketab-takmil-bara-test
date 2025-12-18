@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input, CurrencyInput } from '@/components/ui/input';
@@ -142,6 +143,9 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
           <DialogTitle className="font-headline">
             {initialData ? 'ویرایش درآمد' : 'ثبت درآمد جدید'}
           </DialogTitle>
+          <DialogDescription>
+            اطلاعات درآمد جدید یا ویرایشی را در این فرم وارد کنید.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">

@@ -9,10 +9,11 @@ import { errorEmitter } from '@/firebase/error-emitter';
  */
 export function FirebaseErrorListener() {
   useEffect(() => {
-    const handleError = (error: any) => {
-      // Re-throw the error to let the Next.js error boundary handle it.
-      // This will display the error overlay in development.
-      throw error;
+    const handleError = (error: Error) => {
+      // Create a new, plain error object to break any potential circular references
+      // in the original error object that might be causing issues with Next.js's dev overlay.
+      // This preserves the useful message while ensuring the overlay doesn't crash.
+      throw new Error(error.message);
     };
 
     errorEmitter.on('permission-error', handleError);

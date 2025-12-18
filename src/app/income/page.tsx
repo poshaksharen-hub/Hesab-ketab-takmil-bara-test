@@ -17,8 +17,6 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { formatJalaliDate } from '@/lib/utils';
-
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -70,7 +68,7 @@ export default function IncomePage() {
           transaction.set(newIncomeRef, {...newIncomeData, id: newIncomeRef.id});
         });
 
-        setIsFormOpen(false); // Close the form on success
+        setIsFormOpen(false);
         toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
     
         try {
@@ -90,17 +88,18 @@ export default function IncomePage() {
                 category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
                 bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
             };
-            await sendSystemNotification(firestore, user.uid, notificationDetails);
-        } catch (notificationError) {
-             console.error("Failed to send notification:", notificationError);
-             // Do not show a user-facing error for notification failure, as the main transaction succeeded.
+
+            const participantIds = users.map(u => u.id);
+            await sendSystemNotification(firestore, user.uid, participantIds, notificationDetails);
+
+        } catch (notificationError: any) {
+             console.error("Failed to send notification:", notificationError.message);
         }
     } catch (error: any) {
         if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/incomes',
                 operation: 'write',
-                requestResourceData: values,
             });
             errorEmitter.emit('permission-error', permissionError);
         } else {

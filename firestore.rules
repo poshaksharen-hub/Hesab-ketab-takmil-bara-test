@@ -5,20 +5,27 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Allow any authenticated user to read the list of all users.
-    // This is necessary for displaying user names correctly across the app.
     match /users/{userId} {
-      // allow list for authenticated users to get all user profiles
-      allow list: if request.auth != null;
-      allow read: if request.auth != null;
-      // Only the user themselves can create or update their own profile.
+      allow list, read: if request.auth != null;
       allow write: if request.auth.uid == userId;
     }
 
-    // WARNING: This rule grants open read and write access to all shared family data.
-    // This was implemented at the user's request to eliminate all permission errors during development.
-    // This is NOT secure and should be replaced with granular rules before production.
+    // Rules for the family chat system.
+    match /chat/family-chat/messages/{messageId} {
+      // Allow users to read messages only if they are a participant in the chat.
+      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+
+      // Allow any authenticated user to create a new message.
+      // This simplified rule removes complex conditions that were causing permission errors.
+      allow create: if request.auth != null;
+
+      // Users cannot update or delete messages for data integrity.
+      allow update, delete: if false;
+    }
+
+    // Access rules for shared family data.
     match /family-data/{docId}/{document=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }

@@ -27,6 +27,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { Expense, BankAccount, Category, Payee, ExpenseFor } from '@/lib/types';
@@ -153,6 +154,9 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
             <DialogTitle className="font-headline">
                 {initialData ? 'ویرایش هزینه' : 'ثبت هزینه جدید'}
             </DialogTitle>
+            <DialogDescription>
+              اطلاعات هزینه جدید یا ویرایشی را در این فرم وارد کنید.
+            </DialogDescription>
             </DialogHeader>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">

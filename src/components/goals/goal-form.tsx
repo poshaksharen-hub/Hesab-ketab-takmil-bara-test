@@ -27,6 +27,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { FinancialGoal, BankAccount, OwnerId } from '@/lib/types';
@@ -116,6 +117,9 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
           <DialogTitle className="font-headline">
             {initialData ? 'ویرایش هدف مالی' : 'افزودن هدف مالی جدید'}
           </DialogTitle>
+          <DialogDescription>
+            یک هدف مالی جدید برای پس‌انداز تعریف کنید.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
