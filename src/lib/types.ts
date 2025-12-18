@@ -140,6 +140,7 @@ export type Loan = {
     paidInstallments: number;
     depositOnCreate: boolean;
     depositToAccountId?: string;
+    paymentDay?: number;
 }
 
 export type LoanPayment = {
@@ -232,3 +233,5 @@ export type ChatMessage = {
         senderName: string;
     }
 }
+
+export type DashboardFilter = 'all' | 'ali' | 'fatemeh' | 'shared' | 'daramad_moshtarak';

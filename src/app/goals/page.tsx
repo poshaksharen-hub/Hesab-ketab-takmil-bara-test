@@ -17,7 +17,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore';
-import type { FinancialGoal, BankAccount, Category, TransactionDetails, Expense, UserProfile } from '@/lib/types';
+import type { FinancialGoal, BankAccount, Category, TransactionDetails, Expense, UserProfile, OwnerId } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { GoalList } from '@/components/goals/goal-list';
@@ -30,6 +30,7 @@ import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { USER_DETAILS } from '@/lib/constants';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
@@ -47,7 +48,7 @@ export default function GoalsPage() {
   const { goals, bankAccounts, categories, users } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !users || !bankAccounts) return;
     const { initialContributionAmount = 0, initialContributionBankAccountId, ...goalData } = values;
 
     try {
@@ -100,6 +101,35 @@ export default function GoalsPage() {
       });
       setIsFormOpen(false);
 
+      const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+      const ownerId = values.ownerId as OwnerId;
+      const ownerName = ownerId === 'shared' ? 'مشترک' : USER_DETAILS[ownerId]?.firstName || 'نامشخص';
+      const priorityMap = { 'low': 'پایین', 'medium': 'متوسط', 'high': 'بالا' };
+      
+      const contributionAccount = bankAccounts.find(b => b.id === initialContributionBankAccountId);
+      const contributionAccountOwnerId = contributionAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
+      const contributionAccountOwnerName = contributionAccountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[contributionAccountOwnerId]?.firstName;
+
+      const notificationDetails: TransactionDetails = {
+          type: 'goal',
+          title: `هدف جدید: ${values.name}`,
+          amount: values.targetAmount,
+          date: new Date().toISOString(),
+          icon: 'Target',
+          color: 'rgb(161 98 7)',
+          registeredBy: currentUserFirstName,
+          properties: [
+              { label: 'هدف برای', value: ownerName },
+              { label: 'تاریخ هدف', value: formatJalaliDate(values.targetDate) },
+              { label: 'اولویت', value: priorityMap[values.priority as keyof typeof priorityMap] },
+              ...(initialContributionAmount > 0 && contributionAccount ? [
+                  { label: 'پس‌انداز اولیه', value: formatCurrency(initialContributionAmount, 'IRT') },
+                  { label: 'از کارت', value: `${contributionAccount.bankName} (${contributionAccountOwnerName})` },
+              ] : [])
+          ]
+      };
+      await sendSystemNotification(firestore, user.uid, notificationDetails);
+
     } catch (error: any) {
       if (error.name === 'FirebaseError') {
         const permissionError = new FirestorePermissionError({
@@ -116,7 +146,7 @@ export default function GoalsPage() {
         });
       }
     }
-  }, [user, firestore, toast, categories]);
+  }, [user, firestore, toast, bankAccounts, users]);
 
   const handleAddToGoal = useCallback(async ({ goal, amount, bankAccountId }: { goal: FinancialGoal, amount: number, bankAccountId: string }) => {
      if (!user || !firestore || !users) return;
@@ -153,16 +183,21 @@ export default function GoalsPage() {
 
         const bankAccount = bankAccounts.find(b => b.id === bankAccountId);
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+        
+        const accountOwnerId = bankAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
+        const accountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[accountOwnerId]?.firstName;
+
         const notificationDetails: TransactionDetails = {
             type: 'goal',
-            title: `افزایش پس انداز برای هدف: ${goal.name}`,
+            title: `افزایش پس انداز برای: ${goal.name}`,
             amount: amount,
             date: new Date().toISOString(),
             icon: 'PlusCircle',
             color: 'rgb(34 197 94)',
             registeredBy: currentUserFirstName,
             properties: [
-                { label: 'از حساب', value: bankAccount?.bankName },
+                { label: 'از حساب', value: `${bankAccount?.bankName} (${accountOwnerName})` },
+                { label: 'مبلغ جدید پس‌انداز', value: formatCurrency(goal.currentAmount + amount, 'IRT') },
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
@@ -170,7 +205,7 @@ export default function GoalsPage() {
      } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در افزودن پس‌انداز', description: error.message || "مشکلی در عملیات پیش آمد." });
      }
-  }, [user, firestore, toast, categories, bankAccounts, users]);
+  }, [user, firestore, toast, bankAccounts, users]);
 
 
    const handleAchieveGoal = useCallback(async ({ goal, actualCost, paymentCardId }: { goal: FinancialGoal; actualCost: number; paymentCardId?: string; }) => {
@@ -273,16 +308,26 @@ export default function GoalsPage() {
         setAchievingGoal(null);
         
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+        
+        const paymentAccount = bankAccounts.find(b => b.id === paymentCardId);
+        const paymentAccountOwnerId = paymentAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
+        const paymentAccountOwnerName = paymentAccountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[paymentAccountOwnerId]?.firstName;
+
         const notificationDetails: TransactionDetails = {
-            type: 'goal',
+            type: 'payment',
             title: `هدف محقق شد: ${goal.name}`,
             amount: actualCost,
             date: new Date().toISOString(),
-            icon: 'Target',
-            color: 'rgb(161 98 7)',
+            icon: 'PartyPopper',
+            color: 'rgb(217 119 6)',
             registeredBy: currentUserFirstName,
             properties: [
                 { label: 'هزینه نهایی', value: formatCurrency(actualCost, 'IRT') },
+                ...(cashPaymentNeeded > 0 && paymentAccount ? [
+                    { label: 'پرداخت نقدی از', value: `${paymentAccount.bankName} (${paymentAccountOwnerName})` },
+                    { label: 'مبلغ نقدی', value: formatCurrency(cashPaymentNeeded, 'IRT') },
+                ] : []),
+                 { label: 'از محل پس‌انداز', value: formatCurrency(goal.currentAmount, 'IRT') },
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
@@ -302,7 +347,7 @@ export default function GoalsPage() {
             });
         }
     }
-  }, [user, firestore, categories, users, toast]);
+  }, [user, firestore, categories, users, toast, bankAccounts]);
 
 
    const handleRevertGoal = useCallback(async (goal: FinancialGoal) => {
