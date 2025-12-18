@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { ChatMessage, TransactionDetails } from '@/lib/types';
 import { formatCurrency, formatJalaliDate } from '@/lib/utils';
@@ -24,10 +25,7 @@ export function SystemMessageCard({ message }: SystemMessageCardProps) {
   const details = message.transactionDetails;
   if (!details) return null;
 
-  // @ts-ignore
   const Icon = LucideIcons[details.icon] || LucideIcons.Info;
-
-  const isCredit = ['income', 'loan', 'goal'].includes(details.type) || (details.type === 'transfer');
   const amountColor = details.color;
 
   return (
@@ -46,33 +44,31 @@ export function SystemMessageCard({ message }: SystemMessageCardProps) {
         </CardHeader>
         <Separator />
         <CardContent className="p-4 space-y-3">
-            {/* Main Info */}
             <div className="flex justify-between items-baseline">
                 <span className="text-sm text-muted-foreground">مبلغ</span>
                  <span className="text-xl font-bold" style={{ color: amountColor }}>
                     {details.type === 'income' || details.type === 'loan' ? '+' : '-'}{formatCurrency(details.amount, 'IRT')}
                 </span>
             </div>
-            <Separator />
-             {/* Transaction Specifics */}
+            
+            {(details.category || details.payee || details.expenseFor) && <Separator />}
             <div className='space-y-2'>
                 <DetailItem label="دسته‌بندی" value={details.category} />
                 <DetailItem label="طرف حساب" value={details.payee} />
                 <DetailItem label="برای" value={details.expenseFor} />
             </div>
 
-            {/* Bank Account Info */}
             {(details.bankAccount || details.toBankAccount) && <Separator />}
              <div className='space-y-2'>
                 {details.bankAccount && <DetailItem label={details.type === 'transfer' ? 'از حساب' : 'حساب'} value={`${details.bankAccount.name} (${details.bankAccount.owner})`} />}
                 {details.toBankAccount && <DetailItem label="به حساب" value={`${details.toBankAccount.name} (${details.toBankAccount.owner})`} />}
             </div>
 
-            {/* Extra details for Check/Loan */}
-            {(details.checkDetails || details.loanDetails) && <Separator />}
+            {details.properties && details.properties.length > 0 && <Separator />}
             <div className='space-y-2'>
-                 <DetailItem label="شناسه صیاد" value={details.checkDetails?.sayadId} />
-                 <DetailItem label="سررسید چک" value={details.checkDetails?.dueDate ? formatJalaliDate(new Date(details.checkDetails.dueDate)) : null} />
+                {details.properties?.map(prop => (
+                    <DetailItem key={prop.label} label={prop.label} value={prop.value} />
+                ))}
             </div>
 
         </CardContent>

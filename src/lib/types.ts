@@ -195,9 +195,8 @@ export type TransactionDetails = {
     title: string;
     amount: number;
     date: string;
-    icon: string;
+    icon: keyof typeof import('lucide-react');
     color: string;
-    // New detailed fields
     payee?: string;
     category?: string;
     bankAccount?: {
@@ -210,19 +209,10 @@ export type TransactionDetails = {
     };
     expenseFor?: string;
     registeredBy: string;
-    // Specific fields for different types
+    properties?: { label: string; value?: string | null }[];
     checkDetails?: {
       sayadId: string;
       dueDate: string;
-    };
-    loanDetails?: {
-      payee: string;
-      totalAmount: number;
-    };
-    goalDetails?: {
-      name: string;
-      newCurrentAmount?: number;
-      targetAmount: number;
     };
 };
 

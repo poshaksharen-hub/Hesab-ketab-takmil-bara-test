@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -13,59 +14,51 @@ const CHAT_MESSAGES_COLLECTION_PATH = 'family-data/shared-data/chatMessages';
  *
  * @param firestore - The Firestore database instance.
  * @param actorUserId - The ID of the user who initiated the event.
- * @param participantIds - An array of all user IDs who should be part of the message's participants list.
  * @param details - An object containing the specific details of the transaction to be displayed.
+ * @param registeredBy - The first name of the user who registered the transaction.
  */
 export async function sendSystemNotification(
     firestore: Firestore,
     actorUserId: string,
-    participantIds: string[] | TransactionDetails, // Can be old signature or new one
-    details?: TransactionDetails
+    details: Omit<TransactionDetails, 'registeredBy'>,
+    registeredBy: string,
 ) {
     if (!firestore) {
         console.error("Firestore instance is not available for sendSystemNotification.");
         return;
     }
 
-    // Handle overloaded function signature for backward compatibility
-    let finalDetails: TransactionDetails;
-    let finalParticipantIds: string[];
-
-    if (details) { // New signature: (firestore, actorId, participantIds, details)
-        finalDetails = details;
-        finalParticipantIds = participantIds as string[];
-    } else { // Old signature: (firestore, actorId, details, registeredBy)
-        finalDetails = participantIds as TransactionDetails;
-        finalParticipantIds = []; 
-    }
-
     try {
         const chatMessagesRef = collection(firestore, CHAT_MESSAGES_COLLECTION_PATH);
         const newDocRef = doc(chatMessagesRef); 
 
-        const notificationText = finalDetails.title || `تراکنش جدید توسط ${finalDetails.registeredBy || 'کاربر'} ثبت شد.`;
-        
-        // Sanitize the details object to remove any undefined fields before sending to Firestore
+        const finalDetails = {
+            ...details,
+            registeredBy: registeredBy,
+        }
+
+        // Sanitize the details object to remove any undefined or null fields before sending to Firestore
         const sanitizedDetails = { ...finalDetails };
         Object.keys(sanitizedDetails).forEach(key => {
             const K = key as keyof TransactionDetails;
-            if (sanitizedDetails[K] === undefined) {
+            if (sanitizedDetails[K] === undefined || sanitizedDetails[K] === null) {
                 delete sanitizedDetails[K];
             }
+             if (K === 'properties' && Array.isArray(sanitizedDetails.properties)) {
+                sanitizedDetails.properties = sanitizedDetails.properties.filter(p => p.value !== undefined && p.value !== null);
+                if (sanitizedDetails.properties.length === 0) {
+                    delete sanitizedDetails.properties;
+                }
+            }
         });
-
 
         const dataToSend = {
             id: newDocRef.id,
             senderId: 'system', 
             senderName: 'دستیار هوشمند مالی',
-            text: notificationText,
+            text: finalDetails.title,
             type: 'system' as const,
-            transactionDetails: {
-                ...sanitizedDetails,
-                date: new Date(finalDetails.date).toISOString(),
-            },
-            participants: finalParticipantIds,
+            transactionDetails: sanitizedDetails,
             readBy: [actorUserId], 
             timestamp: serverTimestamp(),
         };
