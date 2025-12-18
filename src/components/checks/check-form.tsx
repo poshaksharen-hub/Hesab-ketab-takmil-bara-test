@@ -103,7 +103,7 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
           checkSerialNumber: '',
       });
     }
-  }, [initialData, form]);
+  }, [initialData]);
   
   const handlePayeeSelection = (value: string) => {
     if (value === 'add_new') {

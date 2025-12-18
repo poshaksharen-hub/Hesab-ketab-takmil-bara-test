@@ -63,7 +63,7 @@ export function TransferForm({ onSubmit, bankAccounts, user, onCancel, isOpen, s
     if (!isOpen) {
       form.reset();
     }
-  }, [isOpen]);
+  }, [isOpen, form]);
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";

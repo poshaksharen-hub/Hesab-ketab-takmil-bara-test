@@ -79,7 +79,7 @@ export function LoanPaymentDialog({
         paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
         installmentAmount: Math.min(loan.installmentAmount > 0 ? loan.installmentAmount : loan.remainingAmount, loan.remainingAmount),
     });
-  }, [loan, bankAccounts, form]);
+  }, [loan, bankAccounts]);
   
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";

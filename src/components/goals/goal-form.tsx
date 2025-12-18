@@ -81,7 +81,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
       initialContributionAmount: 0,
       initialContributionBankAccountId: '',
     });
-  }, [form, user, loggedInUserOwnerId]);
+  }, [user, loggedInUserOwnerId]);
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";

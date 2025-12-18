@@ -294,26 +294,28 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
   const loggedInUserOwnerId = users.find(u => u.email.startsWith('ali')) ? 'ali' : 'fatemeh';
 
   React.useEffect(() => {
-    if (initialData) {
-      form.reset({
-         ...initialData,
-         ownerId: initialData.ownerId, 
-         theme: initialData.theme || (BANK_DATA.find(b => b.name === initialData.bankName)?.themes[0]?.id || 'blue'),
-        } as CardFormValues);
-    } else {
-      form.reset({
-        bankName: '',
-        accountNumber: '',
-        cardNumber: '',
-        expiryDate: '',
-        cvv2: '',
-        accountType: 'savings',
-        initialBalance: 0,
-        ownerId: loggedInUserOwnerId as 'ali' | 'fatemeh',
-        theme: '',
-      });
+    if (isOpen) { // Only reset when opening
+      if (initialData) {
+        form.reset({
+           ...initialData,
+           ownerId: initialData.ownerId, 
+           theme: initialData.theme || (BANK_DATA.find(b => b.name === initialData.bankName)?.themes[0]?.id || 'blue'),
+          } as CardFormValues);
+      } else {
+        form.reset({
+          bankName: '',
+          accountNumber: '',
+          cardNumber: '',
+          expiryDate: '',
+          cvv2: '',
+          accountType: 'savings',
+          initialBalance: 0,
+          ownerId: loggedInUserOwnerId as 'ali' | 'fatemeh',
+          theme: '',
+        });
+      }
     }
-  }, [initialData, form, loggedInUserOwnerId, isOpen]); // Rerun effect when isOpen changes
+  }, [initialData, loggedInUserOwnerId, isOpen]); 
 
   const commonProps = { form, initialData, users, hasSharedAccount, onSubmit, setIsOpen, bankPopoverOpen, setBankPopoverOpen };
 

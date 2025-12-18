@@ -103,7 +103,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
     } else if (initialData) {
       form.reset({ ...initialData, date: new Date(initialData.date), expenseFor: initialData.expenseFor || 'shared' });
     }
-  }, [isOpen, initialData, form]);
+  }, [isOpen, initialData]);
 
   function handleFormSubmit(data: ExpenseFormValues) {
     if (!user) {

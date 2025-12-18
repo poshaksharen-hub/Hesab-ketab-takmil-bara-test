@@ -77,7 +77,7 @@ export function PayDebtDialog({
         paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
         amount: debt.isInstallment && debt.installmentAmount ? Math.min(debt.installmentAmount, debt.remainingAmount) : debt.remainingAmount,
     });
-  }, [debt, bankAccounts, form]);
+  }, [debt, bankAccounts]);
   
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";

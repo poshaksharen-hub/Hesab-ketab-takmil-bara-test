@@ -51,7 +51,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         }
     }
 
-    const formattedValue = (typeof value !== 'number' || isNaN(value) || value === 0) 
+    const formattedValue = (typeof value !== 'number' || isNaN(value)) 
         ? '' 
         : new Intl.NumberFormat('fa-IR').format(value);
 
