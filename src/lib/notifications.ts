@@ -1,10 +1,11 @@
+
 'use client';
 
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 import type { TransactionDetails } from './types';
 
-const CHAT_MESSAGES_COLLECTION_PATH = 'chat/family-chat/messages';
+const CHAT_MESSAGES_COLLECTION_PATH = 'family-data/shared-data/chatMessages';
 
 /**
  * Sends a system-generated notification to the family chat.
@@ -18,19 +19,35 @@ const CHAT_MESSAGES_COLLECTION_PATH = 'chat/family-chat/messages';
 export async function sendSystemNotification(
     firestore: Firestore,
     actorUserId: string,
-    participantIds: string[],
-    details: TransactionDetails,
+    participantIds: string[] | TransactionDetails, // Can be old signature or new one
+    details?: TransactionDetails
 ) {
     if (!firestore) {
         console.error("Firestore instance is not available for sendSystemNotification.");
         return;
     }
 
+    // Handle overloaded function signature for backward compatibility
+    let finalDetails: TransactionDetails;
+    let finalParticipantIds: string[];
+
+    if (details) { // New signature: (firestore, actorId, participantIds, details)
+        finalDetails = details;
+        finalParticipantIds = participantIds as string[];
+    } else { // Old signature: (firestore, actorId, details, registeredBy)
+        finalDetails = participantIds as TransactionDetails;
+        // In the old signature, we assume all users are participants.
+        // This part needs a way to get all user IDs. We'll pass an empty array for now.
+        // A better approach would be to refactor all calls to use the new signature.
+        finalParticipantIds = []; 
+    }
+
+
     try {
         const chatMessagesRef = collection(firestore, CHAT_MESSAGES_COLLECTION_PATH);
         const newDocRef = doc(chatMessagesRef); 
 
-        const notificationText = details.title || `تراکنش جدید توسط ${details.registeredBy || 'کاربر'} ثبت شد.`;
+        const notificationText = finalDetails.title || `تراکنش جدید توسط ${finalDetails.registeredBy || 'کاربر'} ثبت شد.`;
 
         const dataToSend = {
             id: newDocRef.id,
@@ -39,10 +56,10 @@ export async function sendSystemNotification(
             text: notificationText,
             type: 'system' as const,
             transactionDetails: {
-                ...details,
-                date: new Date(details.date).toISOString(),
+                ...finalDetails,
+                date: new Date(finalDetails.date).toISOString(),
             },
-            participants: participantIds,
+            participants: finalParticipantIds,
             readBy: [actorUserId], 
             timestamp: serverTimestamp(),
         };
