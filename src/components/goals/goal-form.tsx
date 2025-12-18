@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,6 +35,7 @@ import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import type { User } from 'firebase/auth';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'نام هدف باید حداقل ۲ حرف داشته باشد.' }),
@@ -54,10 +55,12 @@ interface GoalFormProps {
   bankAccounts: BankAccount[];
   user: User | null;
   onCancel: () => void;
+  isSubmitting: boolean;
 }
 
-export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }: GoalFormProps) {
+export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel, isSubmitting }: GoalFormProps) {
   const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+  const [isMounted, setIsMounted] = useState(false);
 
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(formSchema),
@@ -73,6 +76,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
   });
 
   useEffect(() => {
+    setIsMounted(true);
     form.reset({
       name: '',
       targetAmount: 0,
@@ -82,7 +86,9 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
       initialContributionAmount: 0,
       initialContributionBankAccountId: '',
     });
-  }, [user, loggedInUserOwnerId]);
+  }, [user, loggedInUserOwnerId, form]);
+
+  if (!isMounted) return null;
 
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";
@@ -130,7 +136,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                   <FormItem>
                     <FormLabel>نام هدف</FormLabel>
                     <FormControl>
-                      <Input placeholder="مثال: سفر به شمال" {...field} />
+                      <Input placeholder="مثال: سفر به شمال" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -143,7 +149,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                       render={({ field }) => (
                       <FormItem>
                           <FormLabel>این هدف برای کیست؟</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                           <FormControl>
                               <SelectTrigger>
                               <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
@@ -166,7 +172,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                       <FormItem>
                           <FormLabel>مبلغ کل هدف (تومان)</FormLabel>
                           <FormControl>
-                            <CurrencyInput value={field.value} onChange={field.onChange} />
+                            <CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                           </FormControl>
                           <FormMessage />
                       </FormItem>
@@ -180,7 +186,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                       render={({ field }) => (
                       <FormItem className="flex flex-col">
                           <FormLabel>تاریخ هدف</FormLabel>
-                          <JalaliDatePicker title="تاریخ هدف" value={field.value} onChange={field.onChange} />
+                          <JalaliDatePicker title="تاریخ هدف" value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                           <FormMessage />
                       </FormItem>
                       )}
@@ -191,7 +197,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                       render={({ field }) => (
                       <FormItem>
                           <FormLabel>اولویت</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                           <FormControl>
                               <SelectTrigger>
                               <SelectValue placeholder="اولویت را انتخاب کنید" />
@@ -220,7 +226,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                           render={({ field }) => (
                           <FormItem>
                               <FormLabel>از کارت</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                               <FormControl>
                                   <SelectTrigger>
                                   <SelectValue placeholder="یک کارت انتخاب کنید" />
@@ -230,7 +236,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                                   {sortedBankAccounts.map((account) => {
                                     const currentAvailableBalance = account.balance - (account.blockedBalance || 0);
                                     return (
-                                      <SelectItem key={account.id} value={account.id}>
+                                      <SelectItem key={account.id} value={account.id} disabled={isSubmitting}>
                                           {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(currentAvailableBalance, 'IRT')})`}
                                       </SelectItem>
                                     )
@@ -248,7 +254,7 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                           <FormItem>
                               <FormLabel>مبلغ پس‌انداز (تومان)</FormLabel>
                               <FormControl>
-                                <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={!selectedBankAccountId} />
+                                <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={!selectedBankAccountId || isSubmitting} />
                               </FormControl>
                               {selectedBankAccount && (
                                   <FormDescription className={cn(availableBalance < (field.value || 0) && "text-destructive")}>
@@ -261,9 +267,12 @@ export function GoalForm({ onSubmit, initialData, bankAccounts, user, onCancel }
                       />
                   </div>
               </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-              <Button type="submit" disabled={!!initialData}>ذخیره</Button>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>لغو</Button>
+              <Button type="submit" disabled={!!initialData || isSubmitting}>
+                 {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                 {initialData ? 'ذخیره تغییرات' : 'افزودن هدف'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

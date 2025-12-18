@@ -44,11 +44,14 @@ export default function GoalsPage() {
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
   const [achievingGoal, setAchievingGoal] = useState<FinancialGoal | null>(null);
   const [contributingGoal, setContributingGoal] = useState<FinancialGoal | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const { goals, bankAccounts, categories, users } = allData;
 
   const handleFormSubmit = useCallback(async (values: any) => {
     if (!user || !firestore || !users || !bankAccounts) return;
+    setIsSubmitting(true);
     const { initialContributionAmount = 0, initialContributionBankAccountId, ...goalData } = values;
 
     try {
@@ -80,7 +83,9 @@ export default function GoalsPage() {
             };
              
             if (accountData && initialAccountDoc && initialContributionAmount > 0) {
+                const newContributionRef = doc(collection(familyDataRef, 'expenses')); // It's an expense, so we prepare its ref.
                 newGoalData.contributions.push({
+                    id: newContributionRef.id, // Store a reference to the expense doc
                     bankAccountId: initialContributionBankAccountId,
                     amount: initialContributionAmount,
                     date: new Date().toISOString(),
@@ -100,7 +105,7 @@ export default function GoalsPage() {
         description: `هدف مالی جدید با موفقیت ذخیره شد.`,
       });
       setIsFormOpen(false);
-
+      
       const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
       const ownerId = values.ownerId as OwnerId;
       const ownerName = ownerId === 'shared' ? 'مشترک' : USER_DETAILS[ownerId]?.firstName || 'نامشخص';
@@ -108,7 +113,7 @@ export default function GoalsPage() {
       
       const contributionAccount = bankAccounts.find(b => b.id === initialContributionBankAccountId);
       const accountOwnerId = contributionAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
-      const contributionAccountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[accountOwnerId]?.firstName;
+      const contributionAccountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : (USER_DETAILS[accountOwnerId as 'ali' | 'fatemeh']?.firstName || 'نامشخص');
 
       const notificationDetails: TransactionDetails = {
           type: 'goal',
@@ -145,35 +150,73 @@ export default function GoalsPage() {
             description: error.message || 'مشکلی در ثبت اطلاعات پیش آمد.',
         });
       }
+    } finally {
+        setIsSubmitting(false);
     }
   }, [user, firestore, toast, bankAccounts, users]);
 
   const handleAddToGoal = useCallback(async ({ goal, amount, bankAccountId }: { goal: FinancialGoal, amount: number, bankAccountId: string }) => {
-     if (!user || !firestore || !users) return;
+     if (!user || !firestore || !users || !categories) return;
+     setIsSubmitting(true);
 
      try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const goalRef = doc(familyDataRef, 'financialGoals', goal.id);
             const accountRef = doc(familyDataRef, 'bankAccounts', bankAccountId);
-
+            const expenseColRef = collection(familyDataRef, 'expenses');
+            
             const accountDoc = await transaction.get(accountRef);
             if (!accountDoc.exists()) throw new Error("حساب بانکی انتخاب شده یافت نشد.");
-
+            
             const accountData = accountDoc.data()!;
             const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
             if (availableBalance < amount) throw new Error("موجودی قابل استفاده حساب کافی نیست.");
-
+            
             const goalDoc = await transaction.get(goalRef);
             if (!goalDoc.exists()) throw new Error("هدف مالی مورد نظر یافت نشد.");
             const goalData = goalDoc.data()!;
 
-            const newContributions = [...(goalData.contributions || []), { amount, bankAccountId, date: new Date().toISOString(), registeredByUserId: user.uid }];
+            let expenseCategoryId = categories.find(c => c.name.includes('پس‌انداز') || c.name.includes('اهداف'))?.id;
+            if (!expenseCategoryId) {
+                const tempCatRef = doc(collection(familyDataRef, 'categories'));
+                expenseCategoryId = tempCatRef.id;
+                transaction.set(tempCatRef, { id: expenseCategoryId, name: 'پس‌انداز و اهداف', description: 'مبالغ کنار گذاشته شده برای اهداف مالی' });
+            }
+
+            // Create a new expense document for this contribution
+            const newExpenseRef = doc(expenseColRef);
+            const contributionDate = new Date().toISOString();
+            
+            transaction.set(newExpenseRef, {
+                id: newExpenseRef.id,
+                ownerId: accountData.ownerId,
+                registeredByUserId: user.uid,
+                amount,
+                bankAccountId,
+                categoryId: expenseCategoryId,
+                date: contributionDate,
+                description: `پس انداز برای هدف: ${goal.name}`,
+                type: 'expense' as const,
+                subType: 'goal_contribution' as const,
+                goalId: goal.id,
+                expenseFor: goal.ownerId,
+                createdAt: serverTimestamp(),
+            });
+
+            const newContribution = { 
+                id: newExpenseRef.id, // Link to the new expense doc
+                amount, 
+                bankAccountId, 
+                date: contributionDate, 
+                registeredByUserId: user.uid 
+            };
+            
+            const newContributions = [...(goalData.contributions || []), newContribution];
             const newCurrentAmount = goalData.currentAmount + amount;
             const newBlockedBalance = (accountData.blockedBalance || 0) + amount;
             
             transaction.update(accountRef, { blockedBalance: newBlockedBalance });
-            
             transaction.update(goalRef, { contributions: newContributions, currentAmount: newCurrentAmount });
 
         });
@@ -185,7 +228,7 @@ export default function GoalsPage() {
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         
         const accountOwnerId = bankAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
-        const accountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[accountOwnerId]?.firstName;
+        const accountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : (USER_DETAILS[accountOwnerId as 'ali' | 'fatemeh']?.firstName || 'نامشخص');
 
         const notificationDetails: TransactionDetails = {
             type: 'goal',
@@ -195,6 +238,7 @@ export default function GoalsPage() {
             icon: 'PlusCircle',
             color: 'rgb(34 197 94)',
             registeredBy: currentUserFirstName,
+            expenseFor: USER_DETAILS[goal.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
             properties: [
                 { label: 'از حساب', value: `${bankAccount?.bankName} (${accountOwnerName})` },
                 { label: 'مبلغ جدید پس‌انداز', value: formatCurrency(goal.currentAmount + amount, 'IRT') },
@@ -204,13 +248,15 @@ export default function GoalsPage() {
 
      } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در افزودن پس‌انداز', description: error.message || "مشکلی در عملیات پیش آمد." });
+     } finally {
+        setIsSubmitting(false);
      }
-  }, [user, firestore, toast, bankAccounts, users]);
+  }, [user, firestore, toast, bankAccounts, users, categories]);
 
 
    const handleAchieveGoal = useCallback(async ({ goal, actualCost, paymentCardId }: { goal: FinancialGoal; actualCost: number; paymentCardId?: string; }) => {
     if (!user || !firestore || !categories || !users) return;
-
+    setIsSubmitting(true);
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
@@ -311,7 +357,7 @@ export default function GoalsPage() {
         
         const paymentAccount = bankAccounts.find(b => b.id === paymentCardId);
         const accountOwnerId = paymentAccount?.ownerId as 'ali' | 'fatemeh' | 'shared_account';
-        const paymentAccountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : USER_DETAILS[accountOwnerId]?.firstName;
+        const paymentAccountOwnerName = accountOwnerId === 'shared_account' ? 'مشترک' : (USER_DETAILS[accountOwnerId as 'ali' | 'fatemeh']?.firstName || 'نامشخص');
 
         const notificationDetails: TransactionDetails = {
             type: 'payment',
@@ -347,12 +393,15 @@ export default function GoalsPage() {
                 description: error.message,
             });
         }
+    } finally {
+        setIsSubmitting(false);
     }
   }, [user, firestore, categories, users, toast, bankAccounts]);
 
 
    const handleRevertGoal = useCallback(async (goal: FinancialGoal) => {
     if (!user || !firestore) return;
+    setIsSubmitting(true);
     try {
       await runTransaction(firestore, async (transaction) => {
         const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
@@ -406,12 +455,14 @@ export default function GoalsPage() {
        } else {
          toast({ variant: 'destructive', title: 'خطا', description: error.message });
        }
+    } finally {
+        setIsSubmitting(false);
     }
   }, [user, firestore, toast]);
 
   const handleDeleteGoal = useCallback(async (goalId: string) => {
     if (!user || !firestore) return;
-    
+    setIsSubmitting(true);
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
@@ -455,6 +506,8 @@ export default function GoalsPage() {
             description: error.message || "مشکلی در حذف هدف پیش آمد.",
           });
         }
+    } finally {
+        setIsSubmitting(false);
     }
   }, [user, firestore, toast]);
 
@@ -502,6 +555,7 @@ export default function GoalsPage() {
           bankAccounts={bankAccounts || []}
           user={user}
           onCancel={() => { setIsFormOpen(false); setEditingGoal(null); }}
+          isSubmitting={isSubmitting}
         />
       )}
 
@@ -519,6 +573,7 @@ export default function GoalsPage() {
             onAchieve={handleOpenAchieveDialog}
             onRevert={handleRevertGoal}
             onDelete={handleDeleteGoal}
+            isSubmitting={isSubmitting}
           />
           {achievingGoal && (
             <AchieveGoalDialog
@@ -527,6 +582,7 @@ export default function GoalsPage() {
               isOpen={!!achievingGoal}
               onOpenChange={() => setAchievingGoal(null)}
               onSubmit={handleAchieveGoal}
+              isSubmitting={isSubmitting}
             />
           )}
           {contributingGoal && (
@@ -536,6 +592,7 @@ export default function GoalsPage() {
                 isOpen={!!contributingGoal}
                 onOpenChange={() => setContributingGoal(null)}
                 onSubmit={handleAddToGoal}
+                isSubmitting={isSubmitting}
              />
           )}
         </>
