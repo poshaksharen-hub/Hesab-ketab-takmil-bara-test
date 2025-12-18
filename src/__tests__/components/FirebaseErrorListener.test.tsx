@@ -1,4 +1,6 @@
 
+"use client";
+
 import { render, act } from '@testing-library/react';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -14,24 +16,31 @@ jest.mock('@/firebase/error-emitter', () => ({
 
 describe('FirebaseErrorListener', () => {
   it('should throw an error when a permission-error is emitted', () => {
-    const mockError = new FirestorePermissionError('Test error');
+    const mockError = new FirestorePermissionError({
+        path: '/test/path',
+        operation: 'read',
+    });
     
-    // Use a try-catch block to assert that an error is thrown
-    try {
-      render(<FirebaseErrorListener />);
-      
-      // Simulate the emission of the 'permission-error' event
-      act(() => {
-        // Find the registered callback and invoke it
-        const callback = (errorEmitter.on as jest.Mock).mock.calls.find(
+    // We expect an error to be thrown, so we wrap the render and emit in a function
+    const renderAndEmit = () => {
+        render(<FirebaseErrorListener />);
+        
+        // Find the callback registered with the emitter
+        const onCallback = (errorEmitter.on as jest.Mock).mock.calls.find(
           (call) => call[0] === 'permission-error'
-        )[1];
-        callback(mockError);
-      });
-      
-    } catch (error) {
-      expect(error).toBe(mockError);
-    }
+        )?.[1];
+
+        // If the callback exists, invoke it to simulate the error event
+        if (onCallback) {
+            act(() => {
+                onCallback(mockError);
+            });
+        }
+    };
+    
+    // Assert that calling the function throws the expected error message
+    // This confirms that the listener correctly catches and re-throws the error
+    expect(renderAndEmit).toThrow(mockError.message);
   });
 
   it('should unsubscribe from the event on unmount', () => {
@@ -39,6 +48,7 @@ describe('FirebaseErrorListener', () => {
     
     unmount();
     
+    // Assert that the 'off' method was called, ensuring no memory leaks
     expect(errorEmitter.off).toHaveBeenCalledWith(
       'permission-error',
       expect.any(Function)
