@@ -8,25 +8,15 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Allow any authenticated user to read the list of all users.
+    // Each user can only write to their own document.
     match /users/{userId} {
       allow list, read: if request.auth != null;
       allow write: if request.auth.uid == userId;
     }
 
-    // Rules for the family chat system.
-    match /chat/family-chat/messages/{messageId} {
-      // Allow any authenticated user to read messages in the family chat.
-      allow read: if request.auth != null;
-
-      // Allow any authenticated user to create a new message.
-      allow create: if request.auth != null;
-
-      // Users cannot update or delete messages for data integrity.
-      allow update, delete: if false;
-    }
-
-    // Explicitly allow access to all subcollections within the shared-data document.
-    // This is the main rule for all financial data.
+    // This is the main rule for all shared financial and chat data.
+    // It allows any authenticated user full access to all subcollections
+    // within the 'shared-data' document.
     match /family-data/shared-data/{collection}/{docId} {
       allow read, write, create, update, delete: if request.auth != null;
     }
