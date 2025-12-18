@@ -1,6 +1,9 @@
 
 rules_version = '2';
 
+// Hesab Ketab Firestore Security Rules
+// Allows authenticated users to manage their family's financial data.
+
 service cloud.firestore {
   match /databases/{database}/documents {
     
