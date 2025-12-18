@@ -20,7 +20,7 @@ describe("Login Flow", () => {
     cy.visit("/login");
     cy.get('input[name="email"]').type("ali@khanevadati.app");
     cy.get('input[name="password"]').type("wrongpassword");
-    cyget('button[type="submit"]').click();
+    cy.get('button[type="submit"]').click();
     // We expect a toast message for this
     cy.contains("ایمیل یا رمز عبور اشتباه است.").should("be.visible");
   });
