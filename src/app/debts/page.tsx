@@ -62,20 +62,23 @@ export default function DebtsPage() {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
             const newDebtRef = doc(collection(familyDataRef, 'previousDebts'));
             
-            const startDate = values.startDate instanceof Date ? values.startDate.toISOString() : values.startDate;
-            const firstInstallmentDate = values.firstInstallmentDate instanceof Date ? values.firstInstallmentDate.toISOString() : values.firstInstallmentDate;
-            const dueDate = values.dueDate instanceof Date ? values.dueDate.toISOString() : values.dueDate;
-
-            const debtData: PreviousDebt = {
+            const debtData: Omit<PreviousDebt, 'id'> = {
                 ...values,
                 id: newDebtRef.id,
                 registeredByUserId: user.uid,
                 remainingAmount: values.amount,
                 paidInstallments: 0,
-                startDate: startDate,
-                firstInstallmentDate: values.isInstallment ? firstInstallmentDate : undefined,
-                dueDate: !values.isInstallment ? dueDate : undefined,
+                startDate: (values.startDate as Date).toISOString(),
+                ...(values.isInstallment && values.firstInstallmentDate ? { firstInstallmentDate: (values.firstInstallmentDate as Date).toISOString() } : {}),
+                ...(!values.isInstallment && values.dueDate ? { dueDate: (values.dueDate as Date).toISOString() } : {}),
             };
+
+            // Remove undefined date fields to prevent Firestore errors
+            if (values.isInstallment) {
+                delete (debtData as any).dueDate;
+            } else {
+                delete (debtData as any).firstInstallmentDate;
+            }
             
             transaction.set(newDebtRef, debtData);
         });
@@ -353,5 +356,3 @@ export default function DebtsPage() {
     </main>
   );
 }
-
-    
