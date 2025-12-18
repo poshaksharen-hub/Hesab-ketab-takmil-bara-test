@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
+  DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
@@ -104,6 +105,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
         </Button>
       </DialogTrigger>
       <DialogContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+         <DialogTitle className="sr-only">{title}</DialogTitle>
          <div className="bg-background rounded-lg">
             <Calendar
                 value={selectedDay}
