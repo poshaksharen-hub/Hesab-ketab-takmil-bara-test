@@ -92,7 +92,7 @@ export default function ExpensesPage() {
                 type: 'expense',
                 title: values.description,
                 amount: values.amount,
-                date: (values.date as any),
+                date: (values.date as any).toISOString(),
                 icon: 'TrendingDown',
                 color: 'rgb(220 38 38)',
                 registeredBy: currentUserFirstName,
@@ -204,17 +204,16 @@ export default function ExpensesPage() {
         )}
       </div>
 
-       {isFormOpen && (
-            <ExpenseForm
-                onSubmit={handleFormSubmit}
-                initialData={null}
-                bankAccounts={allBankAccounts || []}
-                categories={allCategories || []}
-                payees={allPayees || []}
-                user={user}
-                onCancel={handleCancelForm}
-            />
-       )}
+       <ExpenseForm
+            isOpen={isFormOpen}
+            setIsOpen={setIsFormOpen}
+            onSubmit={handleFormSubmit}
+            initialData={null}
+            bankAccounts={allBankAccounts || []}
+            categories={allCategories || []}
+            payees={allPayees || []}
+            user={user}
+        />
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
