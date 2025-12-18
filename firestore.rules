@@ -12,11 +12,10 @@ service cloud.firestore {
 
     // Rules for the family chat system.
     match /chat/family-chat/messages/{messageId} {
-      // Allow users to read messages only if they are a participant in the chat.
-      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+      // Allow any authenticated user to read messages in the family chat.
+      allow read: if request.auth != null;
 
       // Allow any authenticated user to create a new message.
-      // This simplified rule removes complex conditions that were causing permission errors.
       allow create: if request.auth != null;
 
       // Users cannot update or delete messages for data integrity.
