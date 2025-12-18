@@ -7,10 +7,10 @@ import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
 import 'react-day-picker/dist/style.css';
 
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -37,7 +37,11 @@ interface JalaliDatePickerProps {
 const toDateObject = (date: Date | null): Day | null => {
     if (!date) return null;
     try {
-        const jalaliDate = format(date, 'yyyy/MM/dd').split('/');
+        // Ensure date is a valid Date object before formatting
+        const d = date instanceof Date ? date : new Date(date);
+        if (isNaN(d.getTime())) return null;
+        
+        const jalaliDate = format(d, 'yyyy/MM/dd').split('/');
         return {
             year: parseInt(jalaliDate[0], 10),
             month: parseInt(jalaliDate[1], 10),
@@ -52,7 +56,7 @@ const fromDateObject = (day: Day | null): Date | null => {
     if (!day) return null;
     try {
         const dateStr = `${day.year}/${String(day.month).padStart(2, '0')}/${String(day.day).padStart(2, '0')}`;
-        // The third argument (new Date()) is crucial as a reference for parsing non-complete dates, though here it's less critical.
+        // The third argument (new Date()) is crucial as a reference for parsing non-complete dates.
         return parse(dateStr, 'yyyy/MM/dd', new Date());
     } catch {
         return null;
@@ -76,7 +80,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
         setSelectedDay(null);
         onChange(null);
       }
-      setIsOpen(false); // Close the popover on selection
+      setIsOpen(false); // Close the dialog on selection
   }
 
   const formatInputValue = () => {
@@ -85,8 +89,8 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
         <Button
           variant={"outline"}
           className={cn(
@@ -98,8 +102,8 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           <CalendarIcon className="ml-2 h-4 w-4" />
           {value ? formatInputValue() : <span>{placeholder}</span>}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center" title={title}>
+      </DialogTrigger>
+      <DialogContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center">
          <div className="bg-background rounded-lg">
             <Calendar
                 value={selectedDay}
@@ -109,7 +113,7 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
                 calendarClassName="responsive-calendar" // for custom styling
             />
          </div>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   )
 }
