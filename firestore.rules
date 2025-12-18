@@ -25,9 +25,10 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Access rules for shared family data.
-    match /family-data/{docId}/{document=**} {
-      allow read, write: if request.auth != null;
+    // Explicitly allow access to all subcollections within the shared-data document.
+    // This is the main rule for all financial data.
+    match /family-data/shared-data/{collection}/{docId} {
+      allow read, write, create, update, delete: if request.auth != null;
     }
   }
 }
