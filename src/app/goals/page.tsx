@@ -57,44 +57,65 @@ export default function GoalsPage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-            
-            let initialAccountDoc = null;
-            let accountData: BankAccount | null = null;
-            if (initialContributionBankAccountId && initialContributionAmount > 0) {
-                const accountRef = doc(familyDataRef, 'bankAccounts', initialContributionBankAccountId);
-                initialAccountDoc = await transaction.get(accountRef);
-                if (!initialAccountDoc.exists()) throw new Error("حساب بانکی انتخاب شده برای پس‌انداز یافت نشد.");
-                
-                accountData = initialAccountDoc.data() as BankAccount;
-                const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
-                if (availableBalance < initialContributionAmount) {
-                    throw new Error("موجودی قابل استفاده حساب برای این مبلغ کافی نیست.");
-                }
-            }
-
             const newGoalRef = doc(collection(familyDataRef, 'financialGoals'));
+
             const newGoalData: Omit<FinancialGoal, 'id'> = {
                 ...goalData,
                 targetDate: goalData.targetDate.toISOString(),
-                registeredByUserId: user.uid, // Set registrar here
+                registeredByUserId: user.uid,
                 isAchieved: false,
                 currentAmount: 0,
                 contributions: [],
             };
-             
-            if (accountData && initialAccountDoc && initialContributionAmount > 0) {
-                const newContributionRef = doc(collection(familyDataRef, 'expenses')); // It's an expense, so we prepare its ref.
+            
+            if (initialContributionBankAccountId && initialContributionAmount > 0) {
+                const accountRef = doc(familyDataRef, 'bankAccounts', initialContributionBankAccountId);
+                const initialAccountDoc = await transaction.get(accountRef);
+                if (!initialAccountDoc.exists()) throw new Error("حساب بانکی انتخاب شده برای پس‌انداز یافت نشد.");
+                
+                const accountData = initialAccountDoc.data() as BankAccount;
+                const availableBalance = accountData.balance - (accountData.blockedBalance || 0);
+                if (availableBalance < initialContributionAmount) {
+                    throw new Error("موجودی قابل استفاده حساب برای این مبلغ کافی نیست.");
+                }
+                
+                const contributionDate = new Date().toISOString();
+                const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
+                const balanceBefore = accountData.balance;
+                const balanceAfter = balanceBefore - initialContributionAmount;
+
+                // Create the expense for the initial contribution
+                 transaction.set(newExpenseRef, {
+                    id: newExpenseRef.id,
+                    ownerId: accountData.ownerId,
+                    registeredByUserId: user.uid,
+                    amount: initialContributionAmount,
+                    bankAccountId: initialContributionBankAccountId,
+                    categoryId: categories.find(c => c.name.includes('پس‌انداز'))?.id || 'goal_savings',
+                    date: contributionDate,
+                    description: `پس انداز اولیه برای هدف: ${goalData.name}`,
+                    type: 'expense' as const,
+                    subType: 'goal_contribution' as const,
+                    goalId: newGoalRef.id,
+                    expenseFor: goalData.ownerId,
+                    createdAt: serverTimestamp(),
+                    balanceBefore: balanceBefore,
+                    balanceAfter: balanceAfter, // Note: total balance decreases
+                });
+                
+                // Add contribution record to the goal
                 newGoalData.contributions.push({
-                    id: newContributionRef.id, // Store a reference to the expense doc
+                    id: newExpenseRef.id,
                     bankAccountId: initialContributionBankAccountId,
                     amount: initialContributionAmount,
-                    date: new Date().toISOString(),
+                    date: contributionDate,
                     registeredByUserId: user.uid,
                 });
                 newGoalData.currentAmount = initialContributionAmount;
-
-                 const newBlockedBalance = (accountData.blockedBalance || 0) + initialContributionAmount;
-                 transaction.update(initialAccountDoc.ref, { blockedBalance: newBlockedBalance });
+                
+                // Update account balances
+                const newBlockedBalance = (accountData.blockedBalance || 0) + initialContributionAmount;
+                transaction.update(accountRef, { balance: balanceAfter, blockedBalance: newBlockedBalance });
             }
             
             transaction.set(newGoalRef, { ...newGoalData, id: newGoalRef.id });
@@ -153,7 +174,7 @@ export default function GoalsPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, firestore, toast, bankAccounts, users]);
+  }, [user, firestore, toast, bankAccounts, users, categories]);
 
   const handleAddToGoal = useCallback(async ({ goal, amount, bankAccountId }: { goal: FinancialGoal, amount: number, bankAccountId: string }) => {
      if (!user || !firestore || !users || !categories) return;
@@ -184,9 +205,10 @@ export default function GoalsPage() {
                 transaction.set(tempCatRef, { id: expenseCategoryId, name: 'پس‌انداز و اهداف', description: 'مبالغ کنار گذاشته شده برای اهداف مالی' });
             }
 
-            // Create a new expense document for this contribution
-            const newExpenseRef = doc(expenseColRef);
             const contributionDate = new Date().toISOString();
+            const newExpenseRef = doc(expenseColRef);
+            const balanceBefore = accountData.balance;
+            const balanceAfter = balanceBefore - amount;
             
             transaction.set(newExpenseRef, {
                 id: newExpenseRef.id,
@@ -202,10 +224,12 @@ export default function GoalsPage() {
                 goalId: goal.id,
                 expenseFor: goal.ownerId,
                 createdAt: serverTimestamp(),
+                balanceBefore: balanceBefore,
+                balanceAfter: balanceAfter,
             });
 
             const newContribution = { 
-                id: newExpenseRef.id, // Link to the new expense doc
+                id: newExpenseRef.id,
                 amount, 
                 bankAccountId, 
                 date: contributionDate, 
@@ -216,12 +240,12 @@ export default function GoalsPage() {
             const newCurrentAmount = goalData.currentAmount + amount;
             const newBlockedBalance = (accountData.blockedBalance || 0) + amount;
             
-            transaction.update(accountRef, { blockedBalance: newBlockedBalance });
+            transaction.update(accountRef, { balance: balanceAfter, blockedBalance: newBlockedBalance });
             transaction.update(goalRef, { contributions: newContributions, currentAmount: newCurrentAmount });
 
         });
 
-        toast({ title: 'موفقیت', description: `مبلغ با موفقیت به پس‌انداز هدف "${goal.name}" اضافه و در حساب شما مسدود شد.` });
+        toast({ title: 'موفقیت', description: `مبلغ با موفقیت به پس‌انداز هدف "${goal.name}" اضافه شد.` });
         setContributingGoal(null);
 
         const bankAccount = bankAccounts.find(b => b.id === bankAccountId);
@@ -278,34 +302,15 @@ export default function GoalsPage() {
             const savedPortion = goal.currentAmount;
             const cashPaymentNeeded = Math.max(0, actualCost - savedPortion);
             
-            // Release blocked money and create expense for the saved portion
+            // Release blocked money by reversing the 'goal_contribution' expenses.
+            // These expenses already decreased the balance, so we just unblock the amount.
             for(const contribution of goal.contributions) {
                 const contributionAccountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
                 const contributionAccountDoc = await transaction.get(contributionAccountRef);
                 if(contributionAccountDoc.exists()){
                     const accountData = contributionAccountDoc.data()!;
                     const newBlocked = (accountData.blockedBalance || 0) - contribution.amount;
-                    const newBalance = accountData.balance - contribution.amount;
-                    transaction.update(contributionAccountRef, { balance: newBalance, blockedBalance: newBlocked });
-
-                    const expenseRef = doc(expensesRef);
-                    transaction.set(expenseRef, {
-                        id: expenseRef.id,
-                        ownerId: accountData.ownerId,
-                        registeredByUserId: user.uid,
-                        amount: contribution.amount,
-                        bankAccountId: contribution.bankAccountId,
-                        categoryId: goalsCategoryId,
-                        date: new Date().toISOString(),
-                        description: `تحقق هدف (بخش پس‌انداز): ${goal.name}`,
-                        type: 'expense' as const,
-                        subType: 'goal_saved_portion' as const,
-                        goalId: goal.id,
-                        expenseFor: goal.ownerId,
-                        balanceBefore: accountData.balance,
-                        balanceAfter: newBalance,
-                        createdAt: serverTimestamp(),
-                    });
+                    transaction.update(contributionAccountRef, { blockedBalance: newBlocked });
                 }
             }
 
@@ -345,8 +350,8 @@ export default function GoalsPage() {
             transaction.update(goalRef, { 
                 isAchieved: true, 
                 actualCost: actualCost,
-                currentAmount: 0,
-                contributions: [],
+                currentAmount: 0, // Reset current amount as it's now 'spent'
+                // We keep contributions history for records, but they are now considered spent.
             });
         });
 
@@ -410,41 +415,54 @@ export default function GoalsPage() {
         const expensesQuery = query(collection(familyDataRef, 'expenses'), where('goalId', '==', goal.id));
         const expensesSnapshot = await getDocs(expensesQuery);
         
-        const accountRestorations: { [accountId: string]: { balance: number, blocked: number } } = {};
-
+        const accountRestorations: { [accountId: string]: number } = {};
+        
+        // Delete all related expenses and calculate balance restorations
         expensesSnapshot.forEach(doc => {
             const expense = doc.data() as Expense;
             if (!accountRestorations[expense.bankAccountId]) {
-                accountRestorations[expense.bankAccountId] = { balance: 0, blocked: 0 };
+                accountRestorations[expense.bankAccountId] = 0;
             }
-            accountRestorations[expense.bankAccountId].balance += expense.amount;
-            
-            if (expense.subType === 'goal_saved_portion') {
-                accountRestorations[expense.bankAccountId].blocked += expense.amount;
-            }
+            accountRestorations[expense.bankAccountId] += expense.amount;
             transaction.delete(doc.ref);
         });
         
-        transaction.update(goalRef, { 
-            isAchieved: false, 
-            actualCost: 0,
-            currentAmount: goal.actualCost, // Restore currentAmount to what was spent
-        });
-
+        // Restore balances and blocked amounts
         for (const accountId in accountRestorations) {
             const accountRef = doc(familyDataRef, 'bankAccounts', accountId);
             const accountDoc = await transaction.get(accountRef);
              if (accountDoc.exists()) {
                const accountData = accountDoc.data()!;
                transaction.update(accountRef, { 
-                   'balance': accountData.balance + accountRestorations[accountId].balance,
-                   'blockedBalance': (accountData.blockedBalance || 0) + accountRestorations[accountId].blocked
+                   'balance': accountData.balance + accountRestorations[accountId],
                 });
              }
         }
+
+        // Restore goal state, but keep contributions as they are now considered saved money again
+        // We calculate the new blocked balance from the existing contributions.
+        let totalBlockedToRestore = 0;
+        for (const contribution of goal.contributions) {
+            const accountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
+            const accountDoc = await transaction.get(accountRef);
+            if (accountDoc.exists()) {
+                const accountData = accountDoc.data() as BankAccount;
+                transaction.update(accountRef, {
+                    blockedBalance: (accountData.blockedBalance || 0) + contribution.amount
+                });
+                totalBlockedToRestore += contribution.amount;
+            }
+        }
+        
+        transaction.update(goalRef, { 
+            isAchieved: false, 
+            actualCost: 0,
+            currentAmount: totalBlockedToRestore,
+        });
+
       });
 
-      toast({ title: 'موفقیت', description: 'هدف با موفقیت بازگردانی و هزینه‌های آن حذف شد.' });
+      toast({ title: 'موفقیت', description: 'هدف با موفقیت بازگردانی و هزینه‌های آن حذف شد. مبالغ به حساب‌ها و پس‌انداز بازگشت.' });
     } catch (error: any) {
        if (error.name === 'FirebaseError') {
             const permissionError = new FirestorePermissionError({
@@ -477,21 +495,28 @@ export default function GoalsPage() {
             }
             
             if (goalData.contributions && goalData.contributions.length > 0) {
+                 // Unblock money and delete associated expenses
                  for(const contribution of goalData.contributions) {
                     const accountRef = doc(familyDataRef, 'bankAccounts', contribution.bankAccountId);
                     const accountDoc = await transaction.get(accountRef);
                     if(accountDoc.exists()) {
                         const accountData = accountDoc.data()!;
                         const newBlockedBalance = (accountData.blockedBalance || 0) - contribution.amount;
-                        transaction.update(accountRef, { blockedBalance: newBlockedBalance });
+                        // Return the money to the main balance
+                        const newBalance = accountData.balance + contribution.amount;
+                        transaction.update(accountRef, { balance: newBalance, blockedBalance: newBlockedBalance });
                     }
+                    
+                    // Delete the 'goal_contribution' expense
+                    const expenseRef = doc(familyDataRef, 'expenses', contribution.id);
+                    transaction.delete(expenseRef);
                 }
             }
 
             transaction.delete(goalRef);
         });
 
-        toast({ title: "موفقیت", description: "هدف مالی و مبالغ مسدود شده مرتبط با آن با موفقیت حذف شد." });
+        toast({ title: "موفقیت", description: "هدف مالی، هزینه‌ها و مبالغ مسدود شده مرتبط با آن با موفقیت حذف شد." });
     } catch (error: any) {
          if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
@@ -613,3 +638,4 @@ export default function GoalsPage() {
     </div>
   );
 }
+

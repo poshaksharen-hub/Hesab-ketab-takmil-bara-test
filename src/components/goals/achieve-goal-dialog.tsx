@@ -34,7 +34,7 @@ import { Input, CurrencyInput } from '@/components/ui/input';
 import type { FinancialGoal, BankAccount, Category } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({
@@ -50,6 +50,7 @@ interface AchieveGoalDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: { goal: FinancialGoal, actualCost: number; paymentCardId?: string; }) => void;
+  isSubmitting: boolean;
 }
 
 export function AchieveGoalDialog({
@@ -58,6 +59,7 @@ export function AchieveGoalDialog({
   isOpen,
   onOpenChange,
   onSubmit,
+  isSubmitting,
 }: AchieveGoalDialogProps) {
   
   const form = useForm<AchieveGoalFormValues>({
@@ -110,7 +112,7 @@ export function AchieveGoalDialog({
                   <FormItem>
                     <FormLabel>مبلغ واقعی هزینه شده (تومان)</FormLabel>
                     <FormControl>
-                      <CurrencyInput value={field.value} onChange={field.onChange} />
+                      <CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -133,7 +135,7 @@ export function AchieveGoalDialog({
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>پرداخت مابقی از کارت</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
@@ -156,10 +158,13 @@ export function AchieveGoalDialog({
               پس از تایید، هزینه(ها) در سیستم ثبت و موجودی حساب(های) شما به روز خواهد شد.
             </p>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 انصراف
               </Button>
-              <Button type="submit">تایید و تحقق هدف</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                تایید و تحقق هدف
+              </Button>
             </DialogFooter>
           </form>
         </Form>
