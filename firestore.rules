@@ -15,9 +15,9 @@ service cloud.firestore {
     }
 
     // This is the main rule for all shared financial and chat data.
-    // It allows any authenticated user full access to all subcollections
-    // within the 'shared-data' document.
-    match /family-data/shared-data/{collection}/{docId} {
+    // It allows any authenticated user full access to the shared-data document
+    // and ALL of its subcollections recursively.
+    match /family-data/shared-data/{document=**} {
       allow read, write, create, update, delete: if request.auth != null;
     }
   }
