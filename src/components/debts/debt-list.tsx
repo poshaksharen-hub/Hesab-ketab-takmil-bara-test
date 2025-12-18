@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, History, PenSquare } from 'lucide-react';
+import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, History, PenSquare, Loader2 } from 'lucide-react';
 import type { PreviousDebt, Payee, OwnerId, UserProfile } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -21,10 +21,10 @@ interface DebtListProps {
   onPay: (debt: PreviousDebt) => void;
   onDelete: (debtId: string) => void;
   users: UserProfile[];
+  isSubmitting: boolean;
 }
 
-export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProps) {
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+export function DebtList({ debts, payees, onPay, onDelete, users, isSubmitting }: DebtListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -52,12 +52,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
   };
 
   const handleDeleteClick = async (debtId: string) => {
-      setIsDeleting(debtId);
-      try {
-          await onDelete(debtId);
-      } finally {
-          setIsDeleting(null);
-      }
+      onDelete(debtId);
   };
 
   return (
@@ -67,7 +62,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
             const isCompleted = debt.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(debt.ownerId);
             const registeredByName = users.find(u => u.id === debt.registeredByUserId)?.firstName || 'نامشخص';
-            const isDeleteDisabled = (debt.paidInstallments > 0) || isDeleting === debt.id;
+            const isDeleteDisabled = (debt.paidInstallments > 0) || isSubmitting;
 
             return (
              <div key={debt.id} className="relative group">
@@ -88,7 +83,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
                             <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions" disabled={isSubmitting}>
                                             <MoreVertical className="h-5 w-5" />
                                         </Button>
                                     </DropdownMenuTrigger>
@@ -100,7 +95,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
                                         <DropdownMenuSeparator />
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
+                                                <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
                                                     <Trash2 className="ml-2 h-4 w-4" />
                                                     حذف بدهی
                                                 </div>
@@ -118,7 +113,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
                                                     className="bg-destructive hover:bg-destructive/90"
                                                     disabled={isDeleteDisabled}
                                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(debt.id); }}>
-                                                    {isDeleting === debt.id ? 'در حال حذف...' : 'بله، حذف کن'}
+                                                    {isSubmitting ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : 'بله، حذف کن'}
                                                 </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
@@ -152,7 +147,7 @@ export function DebtList({ debts, payees, onPay, onDelete, users }: DebtListProp
                                 </div>
                             ) : (
                                 <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(debt);}} className="w-full">
-                                    <Button className="w-full">
+                                    <Button className="w-full" disabled={isSubmitting}>
                                         <Handshake className="ml-2 h-4 w-4" />
                                         پرداخت بدهی
                                     </Button>

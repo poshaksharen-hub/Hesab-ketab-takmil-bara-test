@@ -37,6 +37,7 @@ export default function DebtsPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [payingDebt, setPayingDebt] = useState<PreviousDebt | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { 
     previousDebts,
@@ -51,6 +52,7 @@ export default function DebtsPage() {
         toast({ title: "خطا", description: "برای ثبت بدهی باید ابتدا وارد شوید.", variant: "destructive" });
         return;
     };
+    setIsSubmitting(true);
     
     // Ensure dates are Date objects before calling toISOString
     const startDate = values.startDate instanceof Date ? values.startDate : new Date(values.startDate);
@@ -120,6 +122,8 @@ export default function DebtsPage() {
                 description: error.message,
             });
         }
+    } finally {
+        setIsSubmitting(false);
     }
   }, [user, firestore, toast, payees, users]);
 
@@ -131,10 +135,11 @@ export default function DebtsPage() {
         toast({ variant: "destructive", title: "خطا", description: "مبلغ پرداختی باید بیشتر از صفر باشد."});
         return;
     }
-    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-    const debtRef = doc(familyDataRef, 'previousDebts', debt.id);
-
+    setIsSubmitting(true);
+    
     runTransaction(firestore, async (transaction) => {
+        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+        const debtRef = doc(familyDataRef, 'previousDebts', debt.id);
         const accountToPayFromRef = doc(familyDataRef, 'bankAccounts', paymentBankAccountId);
         
         const debtDoc = await transaction.get(debtRef);
@@ -227,7 +232,7 @@ export default function DebtsPage() {
     }).catch((error: any) => {
         if (error.name === 'FirebaseError') {
              const permissionError = new FirestorePermissionError({
-                path: debtRef.path,
+                path: `family-data/${FAMILY_DATA_DOC}/previousDebts/${debt.id}`,
                 operation: 'write'
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -238,12 +243,15 @@ export default function DebtsPage() {
                 description: error.message,
             });
         }
+    }).finally(() => {
+        setIsSubmitting(false);
     });
   }, [user, firestore, categories, bankAccounts, toast, payees, users]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
     if (!user || !firestore || !previousDebts) return;
     
+    setIsSubmitting(true);
     const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
     
     try {
@@ -267,6 +275,8 @@ export default function DebtsPage() {
         } else {
             toast({ variant: "destructive", title: "خطا در حذف", description: error.message || "مشکلی در حذف بدهی پیش آمد." });
         }
+    } finally {
+        setIsSubmitting(false);
     }
   }, [user, firestore, previousDebts, toast]);
 
@@ -299,6 +309,7 @@ export default function DebtsPage() {
             onCancel={handleCancel}
             onSubmit={handleFormSubmit}
             payees={payees || []}
+            isSubmitting={isSubmitting}
         />
       ) : (
         <>
@@ -308,6 +319,7 @@ export default function DebtsPage() {
                 onPay={setPayingDebt}
                 onDelete={handleDeleteDebt}
                 users={users || []}
+                isSubmitting={isSubmitting}
             />
             {payingDebt && (
                 <PayDebtDialog
@@ -316,6 +328,7 @@ export default function DebtsPage() {
                     isOpen={!!payingDebt}
                     onOpenChange={() => setPayingDebt(null)}
                     onSubmit={handlePayDebt}
+                    isSubmitting={isSubmitting}
                 />
             )}
         </>

@@ -35,6 +35,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
 import { Switch } from '../ui/switch';
+import { Loader2 } from 'lucide-react';
 
 
 const formSchema = z.object({
@@ -73,9 +74,10 @@ interface DebtFormProps {
   onCancel: () => void;
   onSubmit: (data: any) => void;
   payees: Payee[];
+  isSubmitting: boolean;
 }
 
-export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
+export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormProps) {
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   
   const form = useForm<DebtFormValues>({
@@ -124,7 +126,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                       <FormItem>
                       <FormLabel>شرح بدهی</FormLabel>
                       <FormControl>
-                          <Textarea placeholder="مثال: قرض از دوست برای خرید..." {...field} />
+                          <Textarea placeholder="مثال: قرض از دوست برای خرید..." {...field} disabled={isSubmitting}/>
                       </FormControl>
                       <FormMessage />
                       </FormItem>
@@ -137,7 +139,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                           render={({ field }) => (
                           <FormItem>
                               <FormLabel>بدهی به (طرف حساب)</FormLabel>
-                              <Select onValueChange={handlePayeeSelection} value={field.value}>
+                              <Select onValueChange={handlePayeeSelection} value={field.value} disabled={isSubmitting}>
                               <FormControl>
                                   <SelectTrigger>
                                   <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
@@ -161,7 +163,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                           <FormItem>
                               <FormLabel>مبلغ کل بدهی (تومان)</FormLabel>
                               <FormControl>
-                              <CurrencyInput value={field.value} onChange={field.onChange} />
+                              <CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                               </FormControl>
                               <FormMessage />
                           </FormItem>
@@ -175,7 +177,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                           render={({ field }) => (
                           <FormItem>
                               <FormLabel>این بدهی برای کیست؟</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                               <FormControl>
                                   <SelectTrigger>
                                   <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
@@ -219,6 +221,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                               <Switch
                                   checked={field.value}
                                   onCheckedChange={field.onChange}
+                                  disabled={isSubmitting}
                               />
                           </FormItem>
                           )}
@@ -232,7 +235,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                                   <FormItem>
                                       <FormLabel>مبلغ پیشنهادی قسط</FormLabel>
                                       <FormControl>
-                                          <CurrencyInput value={field.value || 0} onChange={field.onChange} />
+                                          <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={isSubmitting}/>
                                       </FormControl>
                                       <FormMessage />
                                   </FormItem>
@@ -245,7 +248,7 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                                   <FormItem>
                                       <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
                                       <FormControl>
-                                          <NumericInput {...field} value={field.value || ''} />
+                                          <NumericInput {...field} value={field.value || ''} disabled={isSubmitting}/>
                                       </FormControl>
                                       <FormMessage />
                                   </FormItem>
@@ -281,8 +284,11 @@ export function DebtForm({ onCancel, onSubmit, payees }: DebtFormProps) {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-                    <Button type="submit">ذخیره</Button>
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>لغو</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                        ذخیره
+                    </Button>
                 </CardFooter>
               </form>
           </Form>

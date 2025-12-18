@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React from 'react';
@@ -33,7 +32,7 @@ import {
 import type { PreviousDebt, BankAccount } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { CurrencyInput } from '../ui/input';
 import { USER_DETAILS } from '@/lib/constants';
 
@@ -51,6 +50,7 @@ interface PayDebtDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: { debt: PreviousDebt; paymentBankAccountId: string; amount: number }) => void;
+  isSubmitting: boolean;
 }
 
 export function PayDebtDialog({
@@ -59,6 +59,7 @@ export function PayDebtDialog({
   isOpen,
   onOpenChange,
   onSubmit,
+  isSubmitting,
 }: PayDebtDialogProps) {
   
   const formSchema = createFormSchema(debt.remainingAmount);
@@ -77,7 +78,7 @@ export function PayDebtDialog({
         paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
         amount: debt.isInstallment && debt.installmentAmount ? Math.min(debt.installmentAmount, debt.remainingAmount) : debt.remainingAmount,
     });
-  }, [debt, bankAccounts]);
+  }, [debt, bankAccounts, form]);
   
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";
@@ -121,7 +122,7 @@ export function PayDebtDialog({
                 <FormItem>
                   <FormLabel>مبلغ پرداخت (تومان)</FormLabel>
                   <FormControl>
-                    <CurrencyInput value={field.value} onChange={field.onChange} />
+                    <CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -134,7 +135,7 @@ export function PayDebtDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>پرداخت از کارت</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
@@ -157,10 +158,13 @@ export function PayDebtDialog({
                 پس از تایید، یک هزینه به مبلغ پرداختی در سیستم ثبت خواهد شد و موجودی شما به‌روز می‌شود.
             </p>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 انصراف
               </Button>
-              <Button type="submit">پرداخت و ثبت هزینه</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin"/>}
+                پرداخت و ثبت هزینه
+              </Button>
             </DialogFooter>
           </form>
         </Form>
