@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useCallback, useState, useMemo } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, runTransaction, serverTimestamp, addDoc, updateDoc } from 'firebase/firestore';
 import type { BankAccount, Transfer, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';

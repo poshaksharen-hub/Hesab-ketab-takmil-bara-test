@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser } from '@/firebase';
@@ -28,7 +28,7 @@ export default function CategoriesPage() {
 
   const { firestore, categories, expenses, checks } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Category, 'id'>) => {
+  const handleFormSubmit = useCallback(async (values: Omit<Category, 'id'>) => {
     if (!user || !firestore) return;
 
     const categoriesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'categories');
@@ -59,7 +59,7 @@ export default function CategoriesPage() {
     setEditingCategory(null);
   }, [user, firestore, editingCategory, toast]);
 
-  const handleDelete = React.useCallback(async (categoryId: string) => {
+  const handleDelete = useCallback(async (categoryId: string) => {
     if (!user || !firestore) return;
     const categoryRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'categories', categoryId);
 
@@ -95,17 +95,17 @@ export default function CategoriesPage() {
     }
   }, [user, firestore, toast, expenses, checks]);
 
-  const handleEdit = React.useCallback((category: Category) => {
+  const handleEdit = useCallback((category: Category) => {
     setEditingCategory(category);
     setIsFormOpen(true);
   }, []);
   
-  const handleAddNew = React.useCallback(() => {
+  const handleAddNew = useCallback(() => {
     setEditingCategory(null);
     setIsFormOpen(true);
   }, []);
   
-  const handleCancelForm = React.useCallback(() => {
+  const handleCancelForm = useCallback(() => {
     setIsFormOpen(false);
     setEditingCategory(null);
   }, []);

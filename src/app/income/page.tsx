@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
@@ -30,7 +30,7 @@ export default function IncomePage() {
 
   const { incomes: allIncomes, bankAccounts: allBankAccounts, users } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category'>) => {
+  const handleFormSubmit = useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
     
     const isoDate = (values.date as Date).toISOString();
@@ -111,7 +111,7 @@ export default function IncomePage() {
       }
   }, [user, firestore, allBankAccounts, users, toast]);
 
-  const handleDelete = React.useCallback(async (incomeId: string) => {
+  const handleDelete = useCallback(async (incomeId: string) => {
     if (!firestore || !allIncomes) return;
     
     const incomeToDelete = allIncomes.find(inc => inc.id === incomeId);
@@ -154,11 +154,11 @@ export default function IncomePage() {
     });
   }, [firestore, allIncomes, toast]);
 
-  const handleAddNew = React.useCallback(() => {
+  const handleAddNew = useCallback(() => {
     setIsFormOpen(true);
   }, []);
   
-  const handleCancelForm = React.useCallback(() => {
+  const handleCancelForm = useCallback(() => {
     setIsFormOpen(false);
   }, []);
 

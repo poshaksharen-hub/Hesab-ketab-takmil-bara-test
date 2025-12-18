@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
@@ -28,7 +28,7 @@ export default function PayeesPage() {
 
   const { firestore, payees, checks, expenses, loans, previousDebts } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Payee, 'id'>) => {
+  const handleFormSubmit = useCallback(async (values: Omit<Payee, 'id'>) => {
     if (!user || !firestore) return;
     
     const payeesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'payees');
@@ -59,7 +59,7 @@ export default function PayeesPage() {
     setEditingPayee(null);
   }, [user, firestore, editingPayee, toast]);
 
-  const handleDelete = React.useCallback(async (payeeId: string) => {
+  const handleDelete = useCallback(async (payeeId: string) => {
     if (!user || !firestore) return;
     const payeeRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'payees', payeeId);
 
@@ -103,12 +103,12 @@ export default function PayeesPage() {
     }
   }, [user, firestore, toast, checks, expenses, loans, previousDebts]);
 
-  const handleEdit = React.useCallback((payee: Payee) => {
+  const handleEdit = useCallback((payee: Payee) => {
     setEditingPayee(payee);
     setIsFormOpen(true);
   }, []);
   
-  const handleAddNew = React.useCallback(() => {
+  const handleAddNew = useCallback(() => {
     setEditingPayee(null);
     setIsFormOpen(true);
   }, []);

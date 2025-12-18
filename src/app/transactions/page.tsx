@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
@@ -36,8 +36,8 @@ export default function ExpensesPage() {
     users,
   } = allData;
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'>) => {
-    if (!user || !firestore || !allBankAccounts || !users) return;
+  const handleFormSubmit = useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'>) => {
+    if (!user || !firestore || !allBankAccounts || !users || !allCategories || !allPayees) return;
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     
     runTransaction(firestore, async (transaction) => {
@@ -170,7 +170,7 @@ export default function ExpensesPage() {
   }, [firestore, allExpenses, toast]);
 
   
-  const handleAddNew = React.useCallback(() => {
+  const handleAddNew = useCallback(() => {
     setIsFormOpen(true);
   }, []);
   
