@@ -57,26 +57,25 @@ export default function DebtsPage() {
     };
     setIsSubmitting(true);
     
-    const startDate = values.startDate instanceof Date ? values.startDate : new Date(values.startDate);
-    const firstInstallmentDate = values.firstInstallmentDate instanceof Date ? values.firstInstallmentDate : (values.firstInstallmentDate ? new Date(values.firstInstallmentDate) : undefined);
-    const dueDate = values.dueDate instanceof Date ? values.dueDate : (values.dueDate ? new Date(values.dueDate) : undefined);
-
-
-    const debtData: Omit<PreviousDebt, 'id'> = {
-        ...values,
-        registeredByUserId: user.uid,
-        remainingAmount: values.amount,
-        paidInstallments: 0,
-        startDate: startDate.toISOString(),
-        firstInstallmentDate: values.isInstallment && firstInstallmentDate ? firstInstallmentDate.toISOString() : undefined,
-        dueDate: !values.isInstallment && dueDate ? dueDate.toISOString() : undefined,
-    };
-    
     const debtsColRef = collection(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts');
 
     try {
-        const newDocRef = await addDoc(debtsColRef, debtData);
-        await updateDoc(newDocRef, { id: newDocRef.id });
+        const startDate = values.startDate instanceof Date ? values.startDate.toISOString() : values.startDate;
+        const firstInstallmentDate = values.firstInstallmentDate instanceof Date ? values.firstInstallmentDate.toISOString() : values.firstInstallmentDate;
+        const dueDate = values.dueDate instanceof Date ? values.dueDate.toISOString() : values.dueDate;
+
+        const debtData: Omit<PreviousDebt, 'id'> = {
+            ...values,
+            registeredByUserId: user.uid,
+            remainingAmount: values.amount,
+            paidInstallments: 0,
+            startDate: startDate,
+            firstInstallmentDate: values.isInstallment ? firstInstallmentDate : undefined,
+            dueDate: !values.isInstallment ? dueDate : undefined,
+        };
+
+        const newDocRef = await addDoc(debtsColRef, {});
+        await updateDoc(newDocRef, { ...debtData, id: newDocRef.id });
         
         toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
         setIsFormOpen(false);
@@ -101,22 +100,21 @@ export default function DebtsPage() {
                     { label: 'تعداد اقساط', value: values.numberOfInstallments ? `${values.numberOfInstallments} ماه` : 'نامشخص' },
                     { label: 'مبلغ هر قسط', value: values.installmentAmount ? formatCurrency(values.installmentAmount, 'IRT') : 'نامشخص' },
                 ] : [
-                    { label: 'تاریخ سررسید', value: values.dueDate ? formatJalaliDate(new Date(values.dueDate)) : 'نامشخص' },
+                    { label: 'تاریخ سررسید', value: dueDate ? formatJalaliDate(new Date(dueDate)) : 'نامشخص' },
                 ])
             ]
         };
         await sendSystemNotification(firestore, user.uid, notificationDetails);
 
     } catch (error: any) {
-        const permissionError = new FirestorePermissionError({
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: debtsColRef.path,
             operation: 'create',
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        }));
         toast({
             variant: 'destructive',
             title: 'خطا در ثبت بدهی',
-            description: error.message,
+            description: error.message || 'یک خطای ناشناخته در هنگام ثبت بدهی رخ داد.',
         });
     } finally {
         setIsSubmitting(false);
@@ -229,11 +227,10 @@ export default function DebtsPage() {
         await sendSystemNotification(firestore, user.uid, notificationDetails);
     
     } catch (error: any) {
-        const permissionError = new FirestorePermissionError({
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: `family-data/${FAMILY_DATA_DOC}/previousDebts/${debt.id}`,
             operation: 'write'
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        }));
         toast({
             variant: 'destructive',
             title: 'خطا در پرداخت بدهی',
@@ -267,15 +264,16 @@ export default function DebtsPage() {
                 throw new Error('این بدهی دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌های مرتبط را به صورت دستی برگردانید.');
             }
             
-            const debtRef = doc(familyDocRef, 'previousDebts', debtId);
+            const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
             transaction.delete(debtRef);
         });
 
         toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
     } catch (error: any) {
-         const debtRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'previousDebts', debtId);
-         const permissionError = new FirestorePermissionError({ path: debtRef.path, operation: 'delete'});
-         errorEmitter.emit('permission-error', permissionError);
+         errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `family-data/${FAMILY_DATA_DOC}/previousDebts/${debtId}`,
+            operation: 'delete'
+         }));
          toast({ variant: "destructive", title: "خطا در حذف", description: error.message || "مشکلی در حذف بدهی پیش آمد." });
     } finally {
         setIsSubmitting(false);
