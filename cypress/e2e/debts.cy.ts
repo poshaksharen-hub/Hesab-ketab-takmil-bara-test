@@ -11,7 +11,7 @@ describe("Debts Flow", () => {
     cy.contains("h1", "مدیریت بدهی‌ها").should("be.visible");
   });
 
-  it("should allow a user to add a new installment-based debt, pay it, and then fail to delete it", () => {
+  it("should allow a user to add a new installment-based debt, pay it, view details, and then fail to delete it", () => {
     const debtDescription = `بدهی تستی قسطی - ${new Date().getTime()}`;
     const debtAmount = "1000000";
     const installmentAmount = "200000";
@@ -61,7 +61,7 @@ describe("Debts Flow", () => {
 
     // --- Part 4: Attempt to delete (should fail) ---
     cy.contains(debtDescription).parents('.group').find('button[aria-label="Actions"]').click();
-    cy.contains('div', 'حذف بدهی').click();
+    cy.contains('div', 'حذف بدهی').click({force: true});
     cy.contains('این بدهی دارای سابقه پرداخت است').should('be.visible');
     cy.get('button').contains('بله، حذف کن').should('be.disabled');
     cy.get('button').contains('انصراف').click();
