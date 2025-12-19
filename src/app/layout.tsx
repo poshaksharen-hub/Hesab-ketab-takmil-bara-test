@@ -1,3 +1,4 @@
+
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import { AppLayout } from '@/components/layout/app-layout';
@@ -49,7 +50,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased bg-secondary">
+      <body className="font-body antialiased bg-background">
         <FirebaseClientProvider>
           <AppLayout>{children}</AppLayout>
         </FirebaseClientProvider>

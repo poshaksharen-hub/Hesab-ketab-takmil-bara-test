@@ -78,7 +78,6 @@ export function MessageList({ messages, currentUserId, onReply, allUsers }: Mess
           <div
             key={message.id}
             className={cn('group flex items-end gap-3', isCurrentUser ? 'flex-row-reverse' : 'flex-row')}
-            onClick={() => onReply(message)}
           >
             <Avatar className="h-8 w-8">
               <AvatarImage src={avatar?.imageUrl} data-ai-hint={avatar?.imageHint} />
@@ -86,11 +85,12 @@ export function MessageList({ messages, currentUserId, onReply, allUsers }: Mess
             </Avatar>
             <div
               className={cn(
-                'max-w-xs rounded-lg p-3 lg:max-w-md cursor-pointer',
+                'max-w-xs rounded-lg p-3 lg:max-w-md cursor-pointer transition-transform duration-150 group-hover:scale-[1.02]',
                 isCurrentUser
                   ? 'rounded-br-none bg-primary text-primary-foreground'
                   : 'rounded-bl-none bg-muted'
               )}
+              onClick={() => onReply(message)}
             >
               {message.replyTo && (
                   <div className={cn(

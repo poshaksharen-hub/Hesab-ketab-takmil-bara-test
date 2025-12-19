@@ -40,7 +40,7 @@ export default {
         body: ['Vazirmatn', 'sans-serif'],
         headline: ['Vazirmatn', 'serif'],
         code: ['monospace'],
-        handwriting: ['Dastnevis', 'cursive'],
+        handwriting: ['Alegreya', 'cursive'],
       },
       colors: {
         background: 'hsl(var(--background))',

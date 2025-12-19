@@ -40,9 +40,10 @@ interface GoalListProps {
   onRevert: (goal: FinancialGoal) => void;
   onDelete: (goalId: string) => void;
   users: UserProfile[];
+  isSubmitting: boolean;
 }
 
-export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, users }: GoalListProps) {
+export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, users, isSubmitting }: GoalListProps) {
   
   if (goals.length === 0) {
     return (
@@ -101,7 +102,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, u
                                 <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions" disabled={isSubmitting}>
                                             <MoreVertical className="h-5 w-5" />
                                         </Button>
                                     </DropdownMenuTrigger>
@@ -125,7 +126,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, u
                                         <DropdownMenuSeparator />
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                                <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
                                                     <Trash2 className="ml-2 h-4 w-4" />
                                                     حذف هدف
                                                 </div>
@@ -141,7 +142,7 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, u
                                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
                                                 <AlertDialogAction
                                                     className="bg-destructive hover:bg-destructive/90"
-                                                    disabled={goal.isAchieved}
+                                                    disabled={isAchieved || isSubmitting}
                                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(goal.id); }}>
                                                     بله، حذف کن
                                                 </AlertDialogAction>
@@ -178,11 +179,11 @@ export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, u
                                 </div>
                             ) : (
                                 <>
-                                    <Button className="w-full" variant="outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onContribute(goal); }}>
+                                    <Button className="w-full" variant="outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onContribute(goal); }} disabled={isSubmitting}>
                                         <PlusCircle className="ml-2 h-4 w-4" />
                                         افزودن به پس‌انداز
                                     </Button>
-                                    <Button className="w-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAchieve(goal); }}>
+                                    <Button className="w-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAchieve(goal); }} disabled={isSubmitting}>
                                         <Target className="ml-2 h-4 w-4" />
                                         رسیدم به هدف!
                                     </Button>
