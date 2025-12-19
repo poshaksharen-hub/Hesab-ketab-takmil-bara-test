@@ -255,57 +255,57 @@ export default function DashboardPage() {
           <TabsTrigger value="quick_access">دسترسی سریع</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
-                <Card className="xl:col-span-3">
-                    <CardHeader>
-                        <CardTitle className="font-headline">درآمد در مقابل هزینه</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <IncomeExpenseChart income={summary.totalIncome} expense={summary.totalExpense} />
-                    </CardContent>
-                </Card>
-                <Card className="xl:col-span-4">
-                    <CardHeader>
-                    <CardTitle className="font-headline">هزینه‌ها بر اساس دسته‌بندی</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                    <CategorySpending expenses={details.expenses} categories={categories || []}/>
-                    </CardContent>
-                </Card>
-            </div>
-             <div className="grid grid-cols-1 gap-4">
-                 <Card className="xl:col-span-3">
-                    <CardHeader>
-                    <CardTitle className="font-headline">موعدهای پیش رو</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                    <UpcomingDeadlines 
-                        checks={checks || []} 
-                        loans={loans || []}
-                        payees={payees || []}
-                        previousDebts={previousDebts || []}
-                    />
-                    </CardContent>
-                </Card>
-            </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
+            <Card className="xl:col-span-3">
+              <CardHeader>
+                <CardTitle className="font-headline">درآمد در مقابل هزینه</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <IncomeExpenseChart income={summary.totalIncome} expense={summary.totalExpense} />
+              </CardContent>
+            </Card>
+            <Card className="xl:col-span-4">
+              <CardHeader>
+                <CardTitle className="font-headline">هزینه‌ها بر اساس دسته‌بندی</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CategorySpending expenses={details.expenses} categories={categories || []} />
+              </CardContent>
+            </Card>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            <Card className="xl:col-span-3">
+              <CardHeader>
+                <CardTitle className="font-headline">موعدهای پیش رو</CardTitle>
+              </CardHeader>
+              <CardContent className="pl-2">
+                <UpcomingDeadlines
+                  checks={checks || []}
+                  loans={loans || []}
+                  payees={payees || []}
+                  previousDebts={previousDebts || []}
+                />
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
         <TabsContent value="transactions" className="space-y-4">
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">تراکنش‌های اخیر</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <RecentTransactions 
-                        transactions={details.transactions} 
-                        categories={categories || []} 
-                        bankAccounts={bankAccounts || []}
-                        users={users || []}
-                    />
-                </CardContent>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline">تراکنش‌های اخیر</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RecentTransactions
+                transactions={details.transactions}
+                categories={categories || []}
+                bankAccounts={bankAccounts || []}
+                users={users || []}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="quick_access" className="space-y-4">
-            <QuickAccess />
+          <QuickAccess />
         </TabsContent>
       </Tabs>
     </main>
