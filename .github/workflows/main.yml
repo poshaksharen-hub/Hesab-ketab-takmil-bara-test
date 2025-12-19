@@ -22,5 +22,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Start Next.js server
+        run: npm run dev &
+        env:
+          PORT: 3000
+
+      - name: Wait for server to be ready
+        run: npx wait-on http://localhost:3000
+
       - name: Run Cypress tests
         run: npx cypress run
