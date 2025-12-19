@@ -78,19 +78,15 @@ export function MessageList({ messages, currentUserId, onReply, allUsers }: Mess
           <div
             key={message.id}
             className={cn('group flex items-end gap-3', isCurrentUser ? 'flex-row-reverse' : 'flex-row')}
+            onClick={() => onReply(message)}
           >
-            {!isCurrentUser && (
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => onReply(message)}>
-                    <CornerDownLeft className="h-4 w-4"/>
-                </Button>
-            )}
             <Avatar className="h-8 w-8">
               <AvatarImage src={avatar?.imageUrl} data-ai-hint={avatar?.imageHint} />
               <AvatarFallback>{message.senderName?.charAt(0)}</AvatarFallback>
             </Avatar>
             <div
               className={cn(
-                'max-w-xs rounded-lg p-3 lg:max-w-md',
+                'max-w-xs rounded-lg p-3 lg:max-w-md cursor-pointer',
                 isCurrentUser
                   ? 'rounded-br-none bg-primary text-primary-foreground'
                   : 'rounded-bl-none bg-muted'
@@ -101,7 +97,7 @@ export function MessageList({ messages, currentUserId, onReply, allUsers }: Mess
                       "mb-2 border-l-2 pl-2 text-xs",
                       isCurrentUser ? "border-primary-foreground/50" : "border-primary"
                   )}>
-                      <p className={cn("font-bold", isCurrentUser ? "text-white" : "text-primary")}>{message.replyTo.senderName}</p>
+                      <p className={cn("font-bold", isCurrentUser ? "text-white" : "text-primary")}>در پاسخ به: {message.replyTo.senderName}</p>
                       <p className="truncate opacity-80">{message.replyTo.text}</p>
                   </div>
               )}
@@ -114,11 +110,6 @@ export function MessageList({ messages, currentUserId, onReply, allUsers }: Mess
                 {isCurrentUser && getReadStatusIcon(message)}
               </div>
             </div>
-             {isCurrentUser && (
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => onReply(message)}>
-                    <CornerDownLeft className="h-4 w-4"/>
-                </Button>
-            )}
           </div>
         );
       })}

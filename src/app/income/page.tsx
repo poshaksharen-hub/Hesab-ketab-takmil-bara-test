@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
@@ -22,13 +22,11 @@ const FAMILY_DATA_DOC = 'shared-data';
 
 export default function IncomePage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-
-  const { incomes: allIncomes, bankAccounts: allBankAccounts, users } = allData;
+  const { firestore, incomes: allIncomes, bankAccounts: allBankAccounts, users } = allData;
 
   const handleFormSubmit = useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category'>) => {
     if (!user || !firestore || !allBankAccounts || !users) return;
@@ -158,10 +156,6 @@ export default function IncomePage() {
     setIsFormOpen(true);
   }, []);
   
-  const handleCancelForm = useCallback(() => {
-    setIsFormOpen(false);
-  }, []);
-
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
@@ -177,14 +171,12 @@ export default function IncomePage() {
             مدیریت درآمدها
           </h1>
         </div>
-        {!isFormOpen && (
-            <div className="hidden md:block">
-                <Button onClick={handleAddNew}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    ثبت درآمد جدید
-                </Button>
-            </div>
-        )}
+        <div className="hidden md:block">
+            <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                ثبت درآمد جدید
+            </Button>
+        </div>
       </div>
 
        <IncomeForm
@@ -198,9 +190,9 @@ export default function IncomePage() {
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
           </div>
       ) : (
         <IncomeList
@@ -211,18 +203,16 @@ export default function IncomePage() {
         />
       )}
 
-      {!isFormOpen && (
-          <div className="md:hidden fixed bottom-20 right-4 z-50">
-              <Button
-                onClick={handleAddNew}
-                size="icon"
-                className="h-14 w-14 rounded-full shadow-lg"
-                aria-label="ثبت درآمد جدید"
-              >
-                <Plus className="h-6 w-6" />
-              </Button>
-          </div>
-      )}
+      <div className="md:hidden fixed bottom-20 right-4 z-50">
+          <Button
+            onClick={handleAddNew}
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-lg"
+            aria-label="ثبت درآمد جدید"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+      </div>
     </div>
   );
 }

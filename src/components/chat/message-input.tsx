@@ -38,7 +38,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
             <div className="flex items-center gap-2 overflow-hidden">
                 <CornerDownLeft className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="overflow-hidden">
-                    <p className="font-bold truncate">{replyingTo.senderName}</p>
+                    <p className="font-bold truncate">در پاسخ به: {replyingTo.senderName}</p>
                     <p className="truncate text-muted-foreground">{replyingTo.text}</p>
                 </div>
             </div>
@@ -58,8 +58,8 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
           autoComplete="off"
         />
         <Button type="submit">
-          <Send className="h-4 w-4" />
-          <span className="sr-only">ارسال</span>
+          <Send className="h-4 w-4 ml-2" />
+          ارسال
         </Button>
       </form>
     </div>

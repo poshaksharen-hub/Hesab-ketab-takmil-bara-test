@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import type { BankAccount, Transfer, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -76,7 +76,7 @@ export default function TransfersPage() {
       
       const newTransferData: Omit<Transfer, 'id'> = {
           ...values,
-          registeredByUserId: user.uid, // Set registrar here
+          registeredByUserId: user.uid,
           transferDate: new Date().toISOString(),
           fromAccountBalanceBefore: fromBalanceBefore,
           fromAccountBalanceAfter: fromBalanceAfter,
@@ -116,7 +116,6 @@ export default function TransfersPage() {
             const permissionError = new FirestorePermissionError({
                 path: 'family-data/shared-data/transfers',
                 operation: 'write',
-                requestResourceData: values,
             });
             errorEmitter.emit('permission-error', permissionError);
         } else {
@@ -204,27 +203,23 @@ export default function TransfersPage() {
             انتقال داخلی
             </h1>
         </div>
-        {!isFormOpen && (
-            <div className="hidden md:block">
-                <Button onClick={handleAddNew}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    ثبت انتقال جدید
-                </Button>
-            </div>
-        )}
+        <div className="hidden md:block">
+            <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                ثبت انتقال جدید
+            </Button>
+        </div>
       </div>
 
-      {isFormOpen && (
-          <TransferForm
-            bankAccounts={allBankAccounts || []}
-            onSubmit={handleTransferSubmit}
-            user={user}
-            onCancel={handleCancelForm}
-            isOpen={isFormOpen}
-            setIsOpen={setIsFormOpen}
-            isSubmitting={isSubmitting}
-        />
-      )}
+      <TransferForm
+          bankAccounts={allBankAccounts || []}
+          onSubmit={handleTransferSubmit}
+          user={user}
+          onCancel={handleCancelForm}
+          isOpen={isFormOpen}
+          setIsOpen={setIsFormOpen}
+          isSubmitting={isSubmitting}
+      />
 
       <p className="text-muted-foreground text-sm">
           از این بخش برای جابجایی پول بین حساب‌های خود استفاده کنید. این عملیات به عنوان درآمد یا هزینه در گزارش‌ها ثبت نمی‌شود.
@@ -236,7 +231,7 @@ export default function TransfersPage() {
               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-24 w-full" />
           </div>
-      ) : !isFormOpen && (
+      ) : (
           <TransferList 
               transfers={transfers || []}
               bankAccounts={allBankAccounts || []}
@@ -245,18 +240,16 @@ export default function TransfersPage() {
           />
       )}
       
-      {!isFormOpen && (
-        <div className="md:hidden fixed bottom-20 right-4 z-50">
-            <Button
-              onClick={handleAddNew}
-              size="icon"
-              className="h-14 w-14 rounded-full shadow-lg"
-              aria-label="ثبت انتقال جدید"
-            >
-              <Plus className="h-6 w-6" />
-            </Button>
-        </div>
-      )}
+      <div className="md:hidden fixed bottom-20 right-4 z-50">
+          <Button
+            onClick={handleAddNew}
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-lg"
+            aria-label="ثبت انتقال جدید"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+      </div>
     </div>
   );
 }
