@@ -37,27 +37,31 @@ describe("Loans Flow", () => {
     // --- Part 2: Pay an installment ---
     cy.contains(loanTitle).parents('.group').contains("button", "پرداخت قسط").click();
     
-    cy.get('button[role="combobox"]').last().click();
-    cy.get('div[role="option"]').first().click();
+    // In the payment dialog
+    cy.get('button[role="combobox"]').last().click(); // Open bank account dropdown
+    cy.get('div[role="option"]').first().click(); // Select the first bank
     cy.contains("button", "پرداخت و ثبت هزینه").click();
 
-    // Assert the remaining amount is updated
+    // Assert the remaining amount is updated on the list view
     cy.contains(loanTitle).parents('.group').contains("۴۸٬۰۰۰٬۰۰۰ تومان").should("be.visible");
     cy.contains(loanTitle).parents('.group').contains("۱ از ۲۵ قسط").should("be.visible");
 
-    // --- Part 3: View Details ---
+    // --- Part 3: View Details and verify ---
     cy.contains(loanTitle).parents('.group').click();
     cy.url().should('include', '/loans/');
-    cy.contains('h1', loanTitle).should('be.visible');
+    cy.contains('h1', loanTitle).should('bevisible');
     cy.contains('مبلغ باقی‌مانده: ۴۸٬۰۰۰٬۰۰۰ تومان').should('be.visible');
     cy.contains('td', '۲٬۰۰۰٬۰۰۰ تومان').should('be.visible'); // Check for payment in history table
     cy.go('back'); // Go back to the list
 
-    // --- Part 4: Attempt to delete (should fail) ---
+    // --- Part 4: Attempt to delete (should fail due to payment history) ---
     cy.contains(loanTitle).parents('.group').find('button[aria-label="Actions"]').click();
     cy.contains('div', 'حذف وام').click();
+    // The dialog should show an error message because there's a payment history
     cy.contains('این وام دارای سابقه پرداخت است').should('be.visible');
+    // The confirmation button should be disabled
     cy.get('button').contains('بله، حذف کن').should('be.disabled');
+    // Close the dialog
     cy.get('button').contains('انصراف').click();
   });
 });

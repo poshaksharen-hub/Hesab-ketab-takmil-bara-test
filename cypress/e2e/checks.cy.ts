@@ -25,7 +25,7 @@ describe("Checks Flow", () => {
     
     cy.get('input[name="amount"]').type(checkAmount);
     cy.get('input[name="sayadId"]').type(sayadId);
-    cy.get('input[name="checkSerialNumber"]').type("987654");
+    cyget('input[name="checkSerialNumber"]').type("987654");
 
     cy.get('button[role="combobox"]').eq(1).click(); // Bank Account
     cy.get('div[role="option"]').first().click();
@@ -95,7 +95,7 @@ describe("Checks Flow", () => {
     cy.get('div[role="option"]').contains("مشترک").click();
     cy.contains("button", "ذخیره").click();
 
-    // Attempt to clear the check
+    // Attempt to clear the check from the list view
     cy.contains(sayadId).parents('.group').find('button[aria-label="Actions"]').click();
     cy.contains('div[role="menuitem"]', 'پاس کردن چک').click();
     cy.get('button').contains('تایید و پاس کردن').click();
