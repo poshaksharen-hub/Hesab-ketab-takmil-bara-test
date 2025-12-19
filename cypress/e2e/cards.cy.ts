@@ -1,3 +1,4 @@
+
 describe("Bank Cards Flow", () => {
   beforeEach(() => {
     // Log in before each test
@@ -12,9 +13,10 @@ describe("Bank Cards Flow", () => {
     cy.contains("h1", "مدیریت کارت‌های بانکی").should("be.visible");
   });
 
-  it("should allow a user to add a new bank card", () => {
+  it("should allow a user to add a new bank card and view its details", () => {
     const cardNumber = `60379910${Math.floor(10000000 + Math.random() * 90000000)}`;
 
+    // --- Part 1: Add Card ---
     // 1. Click the "Add New Card" button
     cy.contains("button", "افزودن کارت جدید").click();
 
@@ -25,7 +27,7 @@ describe("Bank Cards Flow", () => {
     cy.get('input[name="accountNumber"]').type(`1234567${Math.floor(Math.random() * 1000)}`);
     cy.get('input[name="cardNumber"]').type(cardNumber);
     cy.get('input[name="expiryDate"]').type("12/07");
-    cy.get('input[name="cvv2"]').type("123");
+    cyget('input[name="cvv2"]').type("123");
     cy.get('input[name="initialBalance"]').type("500000");
 
     cy.get('button[role="combobox"]').eq(1).click(); // Open account type
@@ -37,5 +39,14 @@ describe("Bank Cards Flow", () => {
     // 4. Assert the new card is visible in the list
     cy.contains(cardNumber.replace(/(\d{4})/g, '$1 ')).should("be.visible");
     cy.contains("۵۰۰٬۰۰۰ تومان").should("be.visible");
+
+    // --- Part 2: View Details ---
+    // 5. Find the new card and click its history button
+    cy.contains(cardNumber.replace(/(\d{4})/g, '$1 ')).parents('.group').contains('button', 'تاریخچه').click();
+
+    // 6. Assert navigation to the detail page
+    cy.url().should("include", "/cards/");
+    cy.contains("h1", "تاریخچه تراکنش‌های بانک ملی ایران").should("be.visible");
+    cy.contains("آخرین موجودی: ۵۰۰٬۰۰۰ تومان").should("be.visible");
   });
 });

@@ -1,3 +1,4 @@
+
 describe("Loans Flow", () => {
   beforeEach(() => {
     // Log in and navigate to the loans page
@@ -10,7 +11,7 @@ describe("Loans Flow", () => {
     cy.contains("h1", "مدیریت وام‌ها").should("be.visible");
   });
 
-  it("should allow a user to add a new loan and pay an installment", () => {
+  it("should allow a user to add a new loan, pay an installment, and view details", () => {
     const loanTitle = `وام خرید خودرو - ${Math.floor(Math.random() * 1000)}`;
     const loanAmount = "50000000";
     const installmentAmount = "2000000";
@@ -49,5 +50,13 @@ describe("Loans Flow", () => {
     // 7. Assert the remaining amount is updated
     cy.contains(loanTitle).parents('.group').contains("۴۸٬۰۰۰٬۰۰۰ تومان").should("be.visible");
     cy.contains(loanTitle).parents('.group').contains("۱ از ۲۵ قسط").should("be.visible");
+
+    // --- Part 3: View Details ---
+    // 8. Click on the loan to view its details
+    cy.contains(loanTitle).parents('.group').click();
+    cy.url().should('include', '/loans/');
+    cy.contains('h1', loanTitle).should('be.visible');
+    cy.contains('مبلغ باقی‌مانده: ۴۸٬۰۰۰٬۰۰۰ تومان').should('be.visible');
+    cy.contains('td', '۲٬۰۰۰٬۰۰۰ تومان').should('be.visible'); // Check for payment in history table
   });
 });

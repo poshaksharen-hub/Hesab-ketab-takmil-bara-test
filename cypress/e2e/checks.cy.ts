@@ -1,3 +1,4 @@
+
 describe("Checks Flow", () => {
   beforeEach(() => {
     // Log in and navigate to the checks page
@@ -10,7 +11,7 @@ describe("Checks Flow", () => {
     cy.contains("h1", "مدیریت چک‌ها").should("be.visible");
   });
 
-  it("should allow a user to add a new check and then clear it", () => {
+  it("should allow a user to add a new check, view details, and then clear it", () => {
     const payeeName = "فروشگاه لوازم خانگی سعادت";
     const checkAmount = "2500000";
     const sayadId = `123456${Math.floor(1000000000 + Math.random() * 9000000000)}`;
@@ -44,19 +45,24 @@ describe("Checks Flow", () => {
     cy.contains(sayadId).should("be.visible");
     cy.contains("۲٬۵۰۰٬۰۰۰ تومان").should("be.visible");
 
-    // --- Part 2: Clear the check ---
+    // --- Part 2: View Details ---
+    // 4. Click on the check to go to its detail page
+    cy.contains(sayadId).parents('.group').click();
+    cy.url().should('include', '/checks/');
+    cy.contains('h1', 'جزئیات چک').should('be.visible');
+    cy.contains(sayadId).should('be.visible');
+    cy.contains('در انتظار پاس').should('be.visible');
 
-    // 4. Find the newly created check and open its action menu
-    cy.contains(sayadId).parents('.group').find('button[aria-label="Actions"]').click();
-
-    // 5. Click the "Clear Check" option
-    cy.contains("div", "پاس کردن چک").click();
+    // --- Part 3: Clear the check from the detail page ---
+    // 5. Click the "Clear Check" button
+    cy.contains('button', 'پاس کردن چک').click();
 
     // 6. Confirm the action in the dialog
     cy.get('button').contains("تایید و پاس کردن").click();
 
     // 7. Assert the check is now marked as "Cleared"
-    cy.contains(sayadId).parents('.group').find('.opacity-60').should('exist');
-    cy.contains(sayadId).parents('.group').contains("پاس شد").should('be.visible');
+    cy.contains('پاس شده').should('be.visible');
+    cy.contains('موجودی حساب برای پاس کردن این چک کافی نیست').should('not.exist');
+    cy.contains('پاس کردن چک').should('not.exist'); // Button should disappear
   });
 });

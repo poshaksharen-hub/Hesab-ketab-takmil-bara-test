@@ -1,3 +1,4 @@
+
 describe("Categories Flow", () => {
   beforeEach(() => {
     // Log in before each test
@@ -12,7 +13,7 @@ describe("Categories Flow", () => {
     cy.contains("h1", "مدیریت دسته‌بندی‌ها").should("be.visible");
   });
 
-  it("should allow a user to add a new category", () => {
+  it("should allow a user to add a new category and view its details", () => {
     const categoryName = `تست دسته‌بندی - ${new Date().getTime()}`;
 
     // 1. Click the "Add New Category" button
@@ -27,5 +28,13 @@ describe("Categories Flow", () => {
 
     // 4. Assert the new category is visible in the list
     cy.contains("td", categoryName).should("be.visible");
+
+    // 5. Click on the new category to go to details page
+    cy.contains("td", categoryName).click();
+
+    // 6. Assert navigation and details
+    cy.url().should("include", "/categories/");
+    cy.contains("h1", categoryName).should("be.visible");
+    cy.contains("این یک توضیحات تستی است.").should("be.visible");
   });
 });

@@ -1,3 +1,4 @@
+
 describe("Financial Goals Flow", () => {
   beforeEach(() => {
     // Log in and navigate to the goals page
@@ -10,7 +11,7 @@ describe("Financial Goals Flow", () => {
     cy.contains("h1", "اهداف مالی").should("be.visible");
   });
 
-  it("should allow a user to create a new goal and add funds to it", () => {
+  it("should allow a user to create a new goal, add funds, and view details", () => {
     const goalName = `سفر به کیش - ${new Date().getTime()}`;
     const targetAmount = "15000000";
     const initialAmount = "1000000";
@@ -50,5 +51,14 @@ describe("Financial Goals Flow", () => {
     
     // 8. Assert the new total is updated
     cy.contains(goalName).parents('.group').contains("۱٬۵۰۰٬۰۰۰ تومان").should("be.visible");
+
+    // --- Part 3: View Details ---
+    // 9. Click on the goal to go to details page
+    cy.contains(goalName).parents('.group').click();
+    cy.url().should('include', '/goals/');
+    cy.contains('h1', goalName).should('be.visible');
+    cy.contains('۱٬۵۰۰٬۰۰۰ تومان').should('be.visible'); // Current amount on detail page
+    cy.contains('۱٬۰۰۰٬۰۰۰ تومان').should('be.visible'); // Initial contribution in history
+    cy.contains('۵۰۰٬۰۰۰ تومان').should('be.visible'); // Second contribution in history
   });
 });
