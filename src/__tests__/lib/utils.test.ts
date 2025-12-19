@@ -1,3 +1,4 @@
+
 import { formatCurrency } from '@/lib/utils';
 
 describe('formatCurrency', () => {
