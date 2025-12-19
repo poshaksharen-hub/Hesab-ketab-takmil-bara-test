@@ -96,9 +96,7 @@ function QuickAccess() {
                 {quickAccessItems.map(item => (
                     <Link key={item.href} href={item.href} className="group">
                         <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg hover:bg-muted hover:shadow-sm transition-all duration-200 h-full text-center border">
-                           <div className={cn("flex items-center justify-center h-12 w-12 rounded-full bg-opacity-10", item.color.replace('text-', 'bg-'))}>
-                             <item.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", item.color)} />
-                           </div>
+                           <item.icon className={cn("h-8 w-8 transition-transform group-hover:scale-110", item.color)} />
                            <span className="text-sm font-semibold">{item.label}</span>
                         </div>
                     </Link>
@@ -214,7 +212,7 @@ export default function DashboardPage() {
         <h1 className="font-headline text-3xl font-bold tracking-tight">داشبورد</h1>
       </div>
 
-      <div className="space-y-4">
+       <div className="space-y-4">
         <QuickAccess />
       </div>
       
