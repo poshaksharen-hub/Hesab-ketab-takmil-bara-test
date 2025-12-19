@@ -299,6 +299,11 @@ export default function DebtsPage() {
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8 md:pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
+            <Link href="/" passHref>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                    <ArrowRight className="h-5 w-5" />
+                </Button>
+            </Link>
             <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت بدهی‌ها</h1>
         </div>
         {!isFormOpen && (

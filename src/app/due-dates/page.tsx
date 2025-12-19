@@ -11,6 +11,7 @@ import type { Check, Loan, PreviousDebt, OwnerId } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { startOfToday, endOfDay, addDays, isPast } from 'date-fns';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 export default function DueDatesPage() {
   const { isLoading, allData } = useDashboardData();
@@ -162,9 +163,16 @@ export default function DueDatesPage() {
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
        <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-            <div className='space-y-1'>
-                <h1 className="font-headline text-3xl font-bold tracking-tight">سررسیدهای نزدیک</h1>
-                <p className="text-muted-foreground">تعهدات مالی شما که موعد آن‌ها گذشته یا طی ۱۵ روز آینده است.</p>
+            <div className='flex items-center gap-2'>
+               <Link href="/" passHref>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                      <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <div className="space-y-1">
+                    <h1 className="font-headline text-3xl font-bold tracking-tight">سررسیدهای نزدیک</h1>
+                    <p className="text-muted-foreground">تعهدات مالی شما که موعد آن‌ها گذشته یا طی ۱۵ روز آینده است.</p>
+                </div>
             </div>
         </div>
         <DueDatesList deadlines={filteredDeadlines} onAction={handleAction} />

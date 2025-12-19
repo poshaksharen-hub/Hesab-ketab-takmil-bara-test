@@ -19,6 +19,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useFirestore } from '@/firebase/provider';
 import { collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import Link from 'next/link';
 
 function InsightsPageSkeleton() {
   return (
@@ -162,10 +163,17 @@ export default function InsightsPage() {
   return (
     <main className="flex h-[calc(100vh_-_5rem)] flex-col">
       <div className="flex items-center justify-between p-4 border-b">
-        <h1 className="font-headline text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          تحلیلگر هوشمند مالی
-        </h1>
+        <div className="flex items-center gap-2">
+            <Link href="/" passHref>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                    <ArrowRight className="h-5 w-5" />
+                </Button>
+            </Link>
+            <h1 className="font-headline text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            تحلیلگر هوشمند مالی
+            </h1>
+        </div>
       </div>
        <div className="flex-grow overflow-y-auto p-4">
             <MessageList messages={chatHistory} currentUserId={user?.uid || ''} onReply={() => {}} />

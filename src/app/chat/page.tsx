@@ -44,7 +44,12 @@ export default function ChatPage() {
   return (
     <main className="flex h-[calc(100vh_-_5rem)] flex-col">
        <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+                <Link href="/" passHref>
+                    <Button variant="ghost" size="icon" className="md:hidden">
+                        <ArrowRight className="h-5 w-5" />
+                    </Button>
+                </Link>
                 <h1 className="font-headline text-2xl font-bold tracking-tight flex items-center gap-2">
                     <MessageSquare className="h-6 w-6"/>
                     گفتگوی مشترک
