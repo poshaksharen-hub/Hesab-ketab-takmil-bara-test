@@ -49,9 +49,9 @@ describe("Payees Flow", () => {
   });
 
   it("should prevent deleting a payee that has associated transactions", () => {
-    const payeeName = "فروشگاه زنجیره‌ای امید"; // A payee we know has transactions
+    const payeeName = "فروشگاه زنجیره‌ای امید"; // A payee we know might have transactions
 
-    // Create a transaction linked to this payee
+    // Create a transaction linked to this payee to be sure
     cy.visit('/transactions');
     cy.contains('button', 'ثبت هزینه جدید').click();
     cy.get('textarea[name="description"]').type(`هزینه تستی برای ${payeeName}`);
@@ -61,7 +61,7 @@ describe("Payees Flow", () => {
     cy.get('button[role="combobox"]').eq(1).click(); // Category
     cy.get('div[role="option"]').first().click();
     cy.get('button[role="combobox"]').eq(2).click(); // Payee
-    cy.get('div[role="option"]').contains(payeeName).click();
+    cy.get('div[role="option"]').contains(payeeName).click({force: true});
     cy.contains('button', 'ذخیره').click();
     
     // Go back to payees page
@@ -76,6 +76,6 @@ describe("Payees Flow", () => {
     cy.get('button').contains('بله، حذف کن').click();
 
     // Assert that a toast error message is shown
-    cy.contains("امکان حذف وجود ندارد. این طرف حساب در یک یا چند هزینه استفاده شده است.").should("be.visible");
+    cy.contains("امکان حذف وجود ندارد. این طرف حساب در یک یا چند تراکنش استفاده شده است.").should("be.visible");
   });
 });

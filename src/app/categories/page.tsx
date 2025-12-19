@@ -77,16 +77,16 @@ export default function CategoriesPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            // Check for usage in expenses
-            const isUsedInExpenses = (expenses || []).some(e => e.categoryId === categoryId);
-            if (isUsedInExpenses) {
-                throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند هزینه استفاده شده است.");
+            const usedIn = [];
+            if ((expenses || []).some(e => e.categoryId === categoryId)) {
+                usedIn.push('هزینه');
+            }
+            if ((checks || []).some(c => c.categoryId === categoryId)) {
+                usedIn.push('چک');
             }
             
-            // Check for usage in checks
-            const isUsedInChecks = (checks || []).some(c => c.categoryId === categoryId);
-            if (isUsedInChecks) {
-                throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند چک استفاده شده است.");
+            if (usedIn.length > 0) {
+                throw new Error(`امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند ${usedIn.join(' یا ')} استفاده شده است.`);
             }
             
             transaction.delete(categoryRef);

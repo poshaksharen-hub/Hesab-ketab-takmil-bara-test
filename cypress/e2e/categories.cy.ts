@@ -46,4 +46,33 @@ describe("Categories Flow", () => {
     // Assert the category is no longer visible
     cy.contains("td", categoryName).should("not.exist");
   });
+
+  it("should prevent deleting a category that has associated transactions", () => {
+    const categoryName = "کافه و رستوران"; // A category we know will have transactions
+
+    // Create a transaction linked to this category
+    cy.visit('/transactions');
+    cy.contains('button', 'ثبت هزینه جدید').click();
+    cy.get('textarea[name="description"]').type(`هزینه تستی برای ${categoryName}`);
+    cy.get('input[name="amount"]').type('1000');
+    cy.get('button[role="combobox"]').first().click(); // Bank account
+    cy.get('div[role="option"]').first().click();
+    cy.get('button[role="combobox"]').eq(1).click(); // Category
+    cy.get('div[role="option"]').contains(categoryName).click();
+    cy.contains('button', 'ذخیره').click();
+    
+    // Go back to categories page
+    cy.visit('/categories');
+
+    // Find the category and try to delete it
+    cy.contains("td", categoryName)
+      .parents("tr")
+      .find('button[aria-label="Delete"]')
+      .click();
+    
+    cy.get('button').contains('بله، حذف کن').click();
+
+    // Assert that a toast error message is shown
+    cy.contains("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند هزینه یا چک استفاده شده است.").should("be.visible");
+  });
 });

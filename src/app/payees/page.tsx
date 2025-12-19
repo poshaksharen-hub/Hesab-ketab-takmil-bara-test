@@ -77,21 +77,22 @@ export default function PayeesPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const isUsedInChecks = (checks || []).some(c => c.payeeId === payeeId);
-            if (isUsedInChecks) {
-                throw new Error("امکان حذف وجود ندارد. این طرف حساب در یک یا چند چک استفاده شده است.");
+            const usedIn = [];
+            if ((checks || []).some(c => c.payeeId === payeeId)) {
+                usedIn.push('چک');
             }
-            const isUsedInExpenses = (expenses || []).some(e => e.payeeId === payeeId);
-            if (isUsedInExpenses) {
-                throw new Error("امکان حذف وجود ندارد. این طرف حساب در یک یا چند هزینه استفاده شده است.");
+            if ((expenses || []).some(e => e.payeeId === payeeId)) {
+                usedIn.push('هزینه');
             }
-            const isUsedInLoans = (loans || []).some(l => l.payeeId === payeeId);
-             if (isUsedInLoans) {
-                throw new Error("امکان حذف وجود ندارد. این طرف حساب در یک یا چند وام استفاده شده است.");
+            if ((loans || []).some(l => l.payeeId === payeeId)) {
+                usedIn.push('وام');
             }
-            const isUsedInDebts = (previousDebts || []).some(d => d.payeeId === payeeId);
-            if (isUsedInDebts) {
-                throw new Error("امکان حذف وجود ندارد. این طرف حساب در یک یا چند بدهی متفرقه استفاده شده است.");
+            if ((previousDebts || []).some(d => d.payeeId === payeeId)) {
+                usedIn.push('بدهی');
+            }
+            
+            if (usedIn.length > 0) {
+                 throw new Error(`امکان حذف وجود ندارد. این طرف حساب در یک یا چند تراکنش (${usedIn.join(', ')}) استفاده شده است.`);
             }
             
             transaction.delete(payeeRef);
