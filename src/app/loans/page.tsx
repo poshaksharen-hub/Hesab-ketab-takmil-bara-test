@@ -260,55 +260,52 @@ export default function LoansPage() {
   }, [user, firestore, bankAccounts, categories, payees, users, toast, allData.users]);
 
   const handleDelete = useCallback(async (loanId: string) => {
-    if (!user || !firestore || !loans) return;
-
-    const loanToDelete = loans.find(l => l.id === loanId);
-    if (!loanToDelete) {
-        toast({ variant: 'destructive', title: 'خطا', description: 'وام مورد نظر یافت نشد.' });
-        return;
-    }
-    
-    if (loanToDelete.paidInstallments > 0) {
-        toast({ variant: 'destructive', title: 'امکان حذف وجود ندارد', description: 'این وام دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌ها را به صورت دستی برگردانید و سپس وام را حذف کنید.' });
-        return;
-    }
-    
+    if (!user || !firestore) return;
+  
     const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
     const loanRef = doc(familyDataRef, 'loans', loanId);
-
+  
     try {
-        const batch = writeBatch(firestore);
-
-        // If the loan amount was initially deposited, reverse the transaction
+      await runTransaction(firestore, async (transaction) => {
+        const loanDoc = await transaction.get(loanRef);
+        if (!loanDoc.exists()) {
+          throw new Error('وام مورد نظر برای حذف یافت نشد.');
+        }
+  
+        const loanToDelete = loanDoc.data() as Loan;
+  
+        if (loanToDelete.paidInstallments > 0) {
+          throw new Error('این وام دارای سابقه پرداخت است. برای حذف، ابتدا باید تمام پرداخت‌ها را به صورت دستی برگردانید و سپس وام را حذف کنید.');
+        }
+  
+        // If the loan amount was initially deposited, reverse the transaction.
         if (loanToDelete.depositToAccountId) {
-            const depositAccountRef = doc(familyDataRef, 'bankAccounts', loanToDelete.depositToAccountId);
-            // We need to get the account's current data first. Since batches can't read, we do a getDoc first.
-            const depositAccountDoc = await getDoc(depositAccountRef);
-            if (depositAccountDoc.exists()) {
-                const accountData = depositAccountDoc.data() as BankAccount;
-                batch.update(depositAccountRef, { balance: accountData.balance - loanToDelete.amount });
-            } else {
-                // If account doesn't exist, we can't reverse. Log a warning and proceed with deletion.
-                console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found. The deletion will proceed without reversing the initial deposit.`);
-            }
+          const accountRef = doc(familyDataRef, 'bankAccounts', loanToDelete.depositToAccountId);
+          const accountDoc = await transaction.get(accountRef);
+          
+          if (accountDoc.exists()) {
+            const accountData = accountDoc.data() as BankAccount;
+            transaction.update(accountRef, { balance: accountData.balance - loanToDelete.amount });
+          } else {
+            console.warn(`Cannot reverse loan deposit: Account ${loanToDelete.depositToAccountId} not found.`);
+          }
         }
-        
-        // Delete the loan document
-        batch.delete(loanRef);
-        
-        // Commit all operations in the batch
-        await batch.commit();
-        
-        toast({ title: "موفقیت", description: "وام با موفقیت حذف شد." });
+  
+        // Delete the loan document itself.
+        transaction.delete(loanRef);
+      });
+  
+      toast({ title: "موفقیت", description: "وام با موفقیت حذف شد و مبلغ واریزی اولیه (در صورت وجود) به حساب بازگردانده شد." });
+  
     } catch (error: any) {
-        if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({ path: loanRef.path, operation: 'delete' });
-             errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({ variant: "destructive", title: "خطا در حذف وام", description: error.message || "مشکلی در حذف وام پیش آمد." });
-        }
+      if (error.name === 'FirebaseError') {
+        const permissionError = new FirestorePermissionError({ path: loanRef.path, operation: 'delete' });
+        errorEmitter.emit('permission-error', permissionError);
+      } else {
+        toast({ variant: "destructive", title: "خطا در حذف وام", description: error.message || "مشکلی در حذف وام پیش آمد." });
+      }
     }
-  }, [user, firestore, loans, toast]);
+  }, [user, firestore, toast]);
 
   const handleAddNew = () => {
     setEditingLoan(null);

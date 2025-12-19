@@ -64,7 +64,6 @@ export default function DebtsPage() {
             
             const debtData: Omit<PreviousDebt, 'id'> = {
                 ...values,
-                id: newDebtRef.id,
                 registeredByUserId: user.uid,
                 remainingAmount: values.amount,
                 paidInstallments: 0,
@@ -80,7 +79,7 @@ export default function DebtsPage() {
                 delete (debtData as any).firstInstallmentDate;
             }
             
-            transaction.set(newDebtRef, debtData);
+            transaction.set(newDebtRef, {...debtData, id: newDebtRef.id});
         });
         
         toast({ title: 'موفقیت', description: 'بدهی جدید با موفقیت ثبت شد.' });
@@ -120,11 +119,6 @@ export default function DebtsPage() {
             path: `family-data/${FAMILY_DATA_DOC}/previousDebts`,
             operation: 'create',
         }));
-        toast({
-            variant: 'destructive',
-            title: 'خطا در ثبت بدهی',
-            description: error.message || 'یک خطای ناشناخته در هنگام ثبت بدهی رخ داد.',
-        });
     } finally {
         setIsSubmitting(false);
     }
