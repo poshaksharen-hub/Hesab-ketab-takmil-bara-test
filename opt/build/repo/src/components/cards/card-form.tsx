@@ -1,368 +1,85 @@
-
-"use client";
-
-import React, { useState } from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
-import { Input, CurrencyInput, NumericInput, ExpiryDateInput } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import type { BankAccount, UserProfile, BankTheme, OwnerId } from '@/lib/types';
-import { USER_DETAILS } from '@/lib/constants';
-import { BANK_DATA, type BankInfo } from '@/lib/bank-data';
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
-
-
-const expiryDateRegex = /^(0[1-9]|1[0-2])\/?([0-9]{2})$/;
-
-const formSchema = z.object({
-  bankName: z.string().min(1, { message: 'لطفا یک بانک را انتخاب کنید.' }),
-  accountNumber: z.string().min(5, { message: 'شماره حساب معتبر نیست.' }),
-  cardNumber: z.string().regex(/^\d{16}$/, { message: 'شماره کارت باید ۱۶ رقم باشد.' }),
-  expiryDate: z.string().regex(expiryDateRegex, { message: 'تاریخ انقضا را با فرمت MM/YY وارد کنید.' }),
-  cvv2: z.string().min(3, { message: 'CVV2 حداقل ۳ رقم است.' }).max(4, { message: 'CVV2 حداکثر ۴ رقم است.' }),
-  accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
-  initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
-  ownerId: z.enum(['ali', 'fatemeh', 'shared_account'], { required_error: 'لطفا صاحب حساب را مشخص کنید.' }),
-  theme: z.string().min(1, { message: 'لطفا یک طرح برای کارت انتخاب کنید.' }),
-});
-
-type CardFormValues = z.infer<typeof formSchema>;
-
-interface CardFormProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<CardFormValues, 'isShared' | 'owner'> & { ownerId: 'ali' | 'fatemeh' | 'shared_account' }) => void;
-  initialData: BankAccount | null;
-  users: UserProfile[];
-  hasSharedAccount: boolean;
-  isSubmitting: boolean;
-}
-
-const CardFormContent = ({ form, initialData, hasSharedAccount, isSubmitting }: any) => {
-    const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
-    const selectedBankName = form.watch('bankName');
-    const selectedBankInfo = BANK_DATA.find(b => b.name === selectedBankName);
-
-    return (
-        <div className="space-y-6">
-            <FormField
-                control={form.control}
-                name="ownerId"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>صاحب حساب</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData || isSubmitting}>
-                    <FormControl>
-                        <SelectTrigger>
-                        <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
-                        </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        <SelectItem value="ali">{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>
-                        <SelectItem value="fatemeh">{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>
-                        <SelectItem value="shared_account" disabled={hasSharedAccount && !(initialData && initialData.ownerId === 'shared_account')}>حساب مشترک</SelectItem>
-                    </SelectContent>
-                    </Select>
-                    <FormDescription>
-                    مالکیت حساب را مشخص کنید. امکان ایجاد فقط یک حساب مشترک وجود دارد و مالکیت قابل ویرایش نیست.
-                    </FormDescription>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            <FormField
-            control={form.control}
-            name="bankName"
-            render={({ field }) => (
-            <FormItem className="flex flex-col">
-                <FormLabel>نام بانک</FormLabel>
-                <Popover open={bankPopoverOpen} onOpenChange={setBankPopoverOpen}>
-                    <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button
-                            variant="outline"
-                            role="combobox"
-                            disabled={isSubmitting}
-                            className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
-                            >
-                            {field.value ? BANK_DATA.find(b => b.name === field.value)?.name : "یک بانک را انتخاب کنید"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
-                        <Command>
-                            <CommandInput placeholder="جستجوی بانک..." />
-                            <CommandList>
-                            <CommandEmpty>بانکی یافت نشد.</CommandEmpty>
-                            <CommandGroup>
-                                {BANK_DATA.map((bank) => (
-                                <CommandItem
-                                    value={bank.name}
-                                    key={bank.name}
-                                    onSelect={() => {
-                                    form.setValue("bankName", bank.name);
-                                    form.setValue("theme", bank.themes[0].id); // Set default theme
-                                    setBankPopoverOpen(false);
-                                    }}
-                                >
-                                    <Check className={cn("mr-2 h-4 w-4", bank.name === field.value ? "opacity-100" : "opacity-0")} />
-                                    {bank.name}
-                                </CommandItem>
-                                ))}
-                            </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-        {selectedBankInfo && (
-            <FormField
-            control={form.control}
-            name="theme"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>طرح کارت</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="یک طرح برای کارت انتخاب کنید" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    {selectedBankInfo.themes.map((theme) => (
-                        <SelectItem key={theme.id} value={theme.id}>
-                        {theme.name}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        )}
-        <FormField
-            control={form.control}
-            name="accountNumber"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>شماره حساب</FormLabel>
-                <FormControl>
-                <NumericInput dir="ltr" placeholder="شماره حساب بانکی" {...field} disabled={isSubmitting}/>
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-        <FormField
-            control={form.control}
-            name="cardNumber"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>شماره کارت</FormLabel>
-                <FormControl>
-                <NumericInput dir="ltr" maxLength={16} placeholder="---- ---- ---- ----" {...field} disabled={isSubmitting}/>
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-            <FormField
-                control={form.control}
-                name="expiryDate"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>تاریخ انقضا</FormLabel>
-                    <FormControl>
-                    <ExpiryDateInput dir="ltr" placeholder="MM/YY" {...field} disabled={isSubmitting}/>
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="cvv2"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>CVV2</FormLabel>
-                    <FormControl>
-                    <NumericInput dir="ltr" maxLength={4} placeholder="---" {...field} disabled={isSubmitting}/>
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-        </div>
-        <FormField
-            control={form.control}
-            name="initialBalance"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>موجودی اولیه (تومان)</FormLabel>
-                <FormControl>
-                <CurrencyInput value={field.value} onChange={field.onChange} disabled={!!initialData || isSubmitting} />
-                </FormControl>
-                {!initialData && <FormDescription>این مبلغ فقط یکبار در زمان ایجاد کارت ثبت می‌شود.</FormDescription>}
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-        <FormField
-            control={form.control}
-            name="accountType"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>نوع حساب</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                <FormControl>
-                    <SelectTrigger>
-                    <SelectValue placeholder="نوع حساب را انتخاب کنید" />
-                    </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                    <SelectItem value="savings">پس‌انداز / کوتاه مدت</SelectItem>
-                    <SelectItem value="checking">جاری / دسته‌چک دار</SelectItem>
-                </SelectContent>
-                </Select>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-    </div>
-    )
-}
-
-export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount, isSubmitting }: CardFormProps) {
-  const isMobile = useIsMobile();
-  
-  const form = useForm<CardFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      bankName: '',
-      accountNumber: '',
-      cardNumber: '',
-      expiryDate: '',
-      cvv2: '',
-      accountType: 'savings',
-      initialBalance: 0,
-      ownerId: 'ali',
-      theme: '',
-    },
+describe("Loans Flow", () => {
+  beforeEach(() => {
+    // Log in and navigate to the loans page
+    cy.visit("/login");
+    cy.get('input[name="email"]').type("ali@khanevadati.app");
+    cy.get('input[name="password"]').type("password123");
+    cy.get('button[type="submit"]').click();
+    cy.url().should("eq", "http://localhost:3000/");
+    cy.visit("/loans");
+    cy.contains("h1", "مدیریت وام‌ها").should("be.visible");
   });
-  
-  const loggedInUserOwnerId = users.find(u => u.email.startsWith('ali')) ? 'ali' : 'fatemeh';
 
-  React.useEffect(() => {
-    if (isOpen) { // Only reset when opening
-      if (initialData) {
-        form.reset({
-           ...initialData,
-           ownerId: initialData.ownerId, 
-           theme: initialData.theme || (BANK_DATA.find(b => b.name === initialData.bankName)?.themes[0]?.id || 'blue'),
-          } as CardFormValues);
-      } else {
-        form.reset({
-          bankName: '',
-          accountNumber: '',
-          cardNumber: '',
-          expiryDate: '',
-          cvv2: '',
-          accountType: 'savings',
-          initialBalance: 0,
-          ownerId: loggedInUserOwnerId as 'ali' | 'fatemeh',
-          theme: '',
-        });
-      }
-    }
-  }, [initialData, loggedInUserOwnerId, isOpen, form]); 
+  it("should allow a user to add a new loan, pay an installment, view details, and then attempt deletion", () => {
+    const loanTitle = `وام خرید خودرو - ${Math.floor(Math.random() * 1000)}`;
+    const loanAmount = "50000000";
+    const installmentAmount = "2000000";
 
-  const handleFormSubmit = (data: CardFormValues) => {
-    // Ensure expiryDate has a separator for consistency, but remove it for validation check
-    const expiry = data.expiryDate.replace(/\//g, '');
-    const formattedExpiry = expiry.slice(0, 2) + '/' + expiry.slice(2, 4);
-    onSubmit({ ...data, expiryDate: formattedExpiry });
-  }
+    // --- Part 1: Add a new loan ---
+    cy.contains("button", "ثبت وام جدید").click();
 
-  const commonProps = { form, initialData, hasSharedAccount, isSubmitting };
+    // Fill out the form
+    cy.get('input[name="title"]').type(loanTitle);
+    cy.get('input[name="amount"]').type(loanAmount);
+    cy.get('input[name="installmentAmount"]').type(installmentAmount);
+    cy.get('input[name="numberOfInstallments"]').type("25");
 
-  if (isMobile) {
-    return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-headline">
-              {initialData ? 'ویرایش کارت بانکی' : 'افزودن کارت جدید'}
-            </DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-              <div className="max-h-[80vh] overflow-y-auto p-1">
-                 <CardFormContent {...commonProps} />
-              </div>
-              <DialogFooter className="flex-row justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>لغو</Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                      ذخیره
-                  </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+    cy.get('button[role="combobox"]').eq(1).click(); // Owner
+    cy.get('div[role="option"]').contains("مشترک").click();
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline">
-          {initialData ? 'ویرایش کارت بانکی' : 'افزودن کارت جدید'}
-        </CardTitle>
-      </CardHeader>
-       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-          <CardContent>
-             <CardFormContent {...commonProps} />
-          </CardContent>
-          <CardFooter className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>لغو</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                  ذخیره
-              </Button>
-          </CardFooter>
-        </form>
-       </Form>
-    </Card>
-  );
-}
+    cy.contains("button", "ذخیره").click();
+
+    // Assert the new loan is visible
+    cy.contains(loanTitle).should("be.visible");
+    cy.contains("۵۰٬۰۰۰٬۰۰۰ تومان").should("be.visible");
+
+    // --- Part 2: Pay an installment ---
+    cy.contains(loanTitle).parents('.group').contains("button", "پرداخت قسط").click();
+    
+    // In the payment dialog
+    cy.get('button[role="combobox"]').last().click(); // Open bank account dropdown
+    cy.get('div[role="option"]').first().click(); // Select the first bank
+    cy.contains("button", "پرداخت و ثبت هزینه").click();
+
+    // Assert the remaining amount is updated on the list view
+    cy.contains(loanTitle).parents('.group').contains("۴۸٬۰۰۰٬۰۰۰ تومان").should("be.visible");
+    cy.contains(loanTitle).parents('.group').contains("۱ از ۲۵ قسط").should("be.visible");
+
+    // --- Part 3: View Details and verify ---
+    cy.contains(loanTitle).parents('.group').click();
+    cy.url().should('include', '/loans/');
+    cy.contains('h1', loanTitle).should('be.visible');
+    cy.contains('مبلغ باقی‌مانده: ۴۸٬۰۰۰٬۰۰۰ تومان').should('be.visible');
+    cy.contains('td', '۲٬۰۰۰٬۰۰۰ تومان').should('be.visible'); // Check for payment in history table
+    cy.go('back'); // Go back to the list
+
+    // --- Part 4: Attempt to delete (should fail due to payment history) ---
+    cy.contains(loanTitle).parents('.group').find('button[aria-label="Actions"]').click();
+    cy.contains('div', 'حذف وام').click();
+    // The dialog should show an error message because there's a payment history
+    cy.contains('این وام دارای سابقه پرداخت است').should('be.visible');
+    // The confirmation button should be disabled
+    cy.get('button').contains('بله، حذف کن').should('be.disabled');
+    // Close the dialog
+    cy.get('button').contains('انصراف').click();
+  });
+
+  it('should filter deposit accounts based on the loan owner', () => {
+    cy.contains("button", "ثبت وام جدید").click();
+
+    // Select Fatemeh as the owner
+    cy.get('button[role="combobox"]').eq(1).click();
+    cy.get('div[role="option"]').contains('فاطمه').click();
+
+    // Enable deposit on create
+    cy.get('button[role="switch"]').click();
+
+    // Open the deposit account dropdown
+    cy.get('button[role="combobox"]').last().click();
+    
+    // Assert that only Fatemeh's accounts are visible
+    cy.get('div[role="option"]').should('contain', '(فاطمه)');
+    cy.get('div[role="option"]').should('not.contain', '(علی)');
+    cy.get('div[role="option"]').should('not.contain', '(مشترک)');
+  });
+});

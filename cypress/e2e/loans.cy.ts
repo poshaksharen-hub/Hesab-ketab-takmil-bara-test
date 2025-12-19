@@ -64,4 +64,23 @@ describe("Loans Flow", () => {
     // Close the dialog
     cy.get('button').contains('انصراف').click();
   });
+
+  it('should filter deposit accounts based on the loan owner', () => {
+    cy.contains("button", "ثبت وام جدید").click();
+
+    // Select Fatemeh as the owner
+    cy.get('button[role="combobox"]').eq(1).click();
+    cy.get('div[role="option"]').contains('فاطمه').click();
+
+    // Enable deposit on create
+    cy.get('button[role="switch"]').click();
+
+    // Open the deposit account dropdown
+    cy.get('button[role="combobox"]').last().click();
+    
+    // Assert that only Fatemeh's accounts are visible
+    cy.get('div[role="option"]').should('contain', '(فاطمه)');
+    cy.get('div[role="option"]').should('not.contain', '(علی)');
+    cy.get('div[role="option"]').should('not.contain', '(مشترک)');
+  });
 });
