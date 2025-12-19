@@ -12,30 +12,40 @@ describe("Expenses Flow", () => {
     cy.contains("h1", "مدیریت هزینه‌ها").should("be.visible");
   });
 
-  it("should allow a user to add a new expense", () => {
-    const expenseDescription = `هزینه تستی - ${new Date().getTime()}`;
+  it("should allow a user to add and then delete an expense", () => {
+    const expenseDescription = `هزینه تستی حذف - ${new Date().getTime()}`;
     const expenseAmount = "5000";
 
-    // 1. Click the "Add New Expense" button
+    // --- Part 1: Add Expense ---
     cy.contains("button", "ثبت هزینه جدید").click();
 
-    // 2. Fill out the form
+    // Fill out the form
     cy.get('textarea[name="description"]').type(expenseDescription);
     cy.get('input[name="amount"]').type(expenseAmount);
 
-    // Select from dropdowns
-    cy.get('button[role="combobox"]').first().click(); // Open bank account dropdown
-    cy.get('div[role="option"]').first().click(); // Select the first bank account
+    cy.get('button[role="combobox"]').first().click(); 
+    cy.get('div[role="option"]').first().click(); 
 
-    cy.get('button[role="combobox"]').eq(1).click(); // Open category dropdown
-    cy.get('div[role="option"]').first().click(); // Select the first category
+    cy.get('button[role="combobox"]').eq(1).click(); 
+    cy.get('div[role="option"]').first().click(); 
     
-    // 3. Submit the form
     cy.contains("button", "ذخیره").click();
 
-    // 4. Assert the new expense is visible in the list
+    // Assert the new expense is visible
     cy.contains("p", expenseDescription).should("be.visible");
-    cy.contains("p", "+۵٬۰۰۰ تومان").should("not.exist"); // Make sure it's an expense
+    cy.contains("p", "+۵٬۰۰۰ تومان").should("not.exist");
     cy.contains("p", "-۵٬۰۰۰ تومان").should("be.visible");
+
+    // --- Part 2: Delete Expense ---
+    cy.contains("p", expenseDescription)
+      .parents('.flex.flex-col')
+      .find('button[aria-label="حذف هزینه"]')
+      .click();
+
+    // Confirm deletion in the dialog
+    cy.get('button').contains('بله، حذف کن').click();
+
+    // Assert the expense is no longer visible
+    cy.contains("p", expenseDescription).should("not.exist");
   });
 });
