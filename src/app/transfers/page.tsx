@@ -211,6 +211,10 @@ export default function TransfersPage() {
         </div>
       </div>
 
+       <p className="text-muted-foreground text-sm">
+          از این بخش برای جابجایی پول بین حساب‌های خود استفاده کنید. این عملیات به عنوان درآمد یا هزینه در گزارش‌ها ثبت نمی‌شود.
+      </p>
+      
       <TransferForm
           bankAccounts={allBankAccounts || []}
           onSubmit={handleTransferSubmit}
@@ -220,10 +224,6 @@ export default function TransfersPage() {
           setIsOpen={setIsFormOpen}
           isSubmitting={isSubmitting}
       />
-
-      <p className="text-muted-foreground text-sm">
-          از این بخش برای جابجایی پول بین حساب‌های خود استفاده کنید. این عملیات به عنوان درآمد یا هزینه در گزارش‌ها ثبت نمی‌شود.
-      </p>
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
