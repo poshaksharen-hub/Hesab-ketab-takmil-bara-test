@@ -31,7 +31,7 @@ describe("Checks Flow", () => {
     cy.get('div[role="option"]').first().click();
 
     cy.get('button[role="combobox"]').eq(2).click(); // Category
-    cy.get('div[role="option"]').contains("خرید لوازم منزل").click();
+    cyget('div[role="option"]').contains("خرید لوازم منزل").click();
     
     cy.get('button[role="combobox"]').eq(3).click(); // Expense For
     cy.get('div[role="option"]').contains("مشترک").click();
