@@ -304,7 +304,7 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </TabsContent>
-        <TabsContent value="quick_access">
+        <TabsContent value="quick_access" className="space-y-4">
             <QuickAccess />
         </TabsContent>
       </Tabs>
