@@ -157,11 +157,13 @@
       "type": "object",
       "description": "Represents a single contribution towards a financial goal.",
       "properties": {
+        "id": { "type": "string" },
         "bankAccountId": { "type": "string" },
         "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" }
+        "date": { "type": "string", "format": "date-time" },
+        "registeredByUserId": { "type": "string", "description": "The user who registered this contribution." }
       },
-      "required": ["bankAccountId", "amount", "date"]
+      "required": ["id", "bankAccountId", "amount", "date", "registeredByUserId"]
     },
     "FinancialGoal": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -206,7 +208,8 @@
             "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "The exact date of the first installment payment."},
             "numberOfInstallments": { "type": "number" },
             "paidInstallments": { "type": "number" },
-            "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." }
+            "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." },
+            "paymentDay": { "type": "number", "description": "The day of the month for installment payment reminders (1-30)." }
         },
         "required": ["id", "registeredByUserId", "ownerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "numberOfInstallments", "paidInstallments", "firstInstallmentDate"]
     },
@@ -293,9 +296,20 @@
         "senderId": { "type": "string", "description": "The UID of the user who sent the message." },
         "senderName": { "type": "string", "description": "The first name of the sender." },
         "text": { "type": "string", "description": "The content of the message." },
-        "timestamp": { "type": "string", "format": "date-time", "description": "The server timestamp of when the message was sent." }
+        "timestamp": { "type": "string", "format": "date-time", "description": "The server timestamp of when the message was sent." },
+        "type": { "type": "string", "enum": ["user", "system"] },
+        "readBy": { "type": "array", "items": { "type": "string" } },
+        "replyTo": {
+            "type": "object",
+            "properties": {
+                "messageId": { "type": "string" },
+                "text": { "type": "string" },
+                "senderName": { "type": "string" }
+            }
+        },
+        "transactionDetails": { "type": "object" }
       },
-      "required": ["id", "senderId", "senderName", "text", "timestamp"]
+      "required": ["id", "senderId", "senderName", "text", "timestamp", "type", "readBy"]
     }
   },
   "auth": {
@@ -337,5 +351,3 @@
     ]
   }
 }
-
-    
