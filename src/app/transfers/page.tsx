@@ -240,16 +240,18 @@ export default function TransfersPage() {
           />
       )}
       
-      <div className="md:hidden fixed bottom-20 right-4 z-50">
-          <Button
-            onClick={handleAddNew}
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg"
-            aria-label="ثبت انتقال جدید"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-      </div>
+      {!isFormOpen && (
+        <div className="md:hidden fixed bottom-20 right-4 z-50">
+            <Button
+              onClick={handleAddNew}
+              size="icon"
+              className="h-14 w-14 rounded-full shadow-lg"
+              aria-label="ثبت انتقال جدید"
+            >
+              <Plus className="h-6 w-6" />
+            </Button>
+        </div>
+      )}
     </div>
   );
 }
