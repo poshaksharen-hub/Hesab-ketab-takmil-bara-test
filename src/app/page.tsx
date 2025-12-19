@@ -76,7 +76,9 @@ const quickAccessItems = [
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown, color: 'text-red-500' },
     { href: '/cards', label: 'کارت‌ها', icon: CreditCard, color: 'text-sky-500' },
     { href: '/transfers', label: 'انتقال داخلی', icon: ArrowRightLeft, color: 'text-blue-500' },
+    { href: '/chat', label: 'گفتگو', icon: MessageSquare, color: 'text-lime-500' },
     { href: '/goals', label: 'اهداف', icon: Target, color: 'text-teal-500' },
+    { href: '/due-dates', label: 'سررسیدها', icon: Bell, color: 'text-rose-500' },
     { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser, color: 'text-pink-500' },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy, color: 'text-amber-500' },
     { href: '/loans', label: 'وام‌ها', icon: Landmark, color: 'text-violet-500' },
@@ -90,11 +92,11 @@ function QuickAccess() {
             <CardHeader>
                 <CardTitle className="font-headline">دسترسی سریع</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {quickAccessItems.map(item => (
                     <Link key={item.href} href={item.href} className="group">
-                        <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg hover:bg-muted hover:shadow-sm transition-all duration-200 h-full text-center">
-                           <div className={`flex items-center justify-center h-12 w-12 rounded-full bg-opacity-10 ${item.color.replace('text-', 'bg-')}`}>
+                        <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg hover:bg-muted hover:shadow-sm transition-all duration-200 h-full text-center border">
+                           <div className={cn("flex items-center justify-center h-12 w-12 rounded-full bg-opacity-10", item.color.replace('text-', 'bg-'))}>
                              <item.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", item.color)} />
                            </div>
                            <span className="text-sm font-semibold">{item.label}</span>
