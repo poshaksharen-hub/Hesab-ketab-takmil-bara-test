@@ -1,0 +1,36 @@
+name: Automation Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Create branch
+        run: |
+          git config user.name "automation-bot"
+          git config user.email "bot@example.com"
+          git checkout -b auto/test-connection
+
+      - name: Add test file
+        run: |
+          echo "automation test" > automation-test.txt
+          git add automation-test.txt
+          git commit -m "automation: test connection"
+
+      - name: Push branch
+        env:
+          GH_PAT: ${{ secrets.MY_FULL_TOKEN }}
+        run: |
+          git remote set-url
