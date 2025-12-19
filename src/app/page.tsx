@@ -25,7 +25,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare } from 'lucide-react';
+import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare, Settings } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
 import type { DashboardFilter, Income, Expense } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -125,7 +125,8 @@ export default function DashboardPage() {
     loans, 
     payees, 
     previousDebts, 
-    users 
+    users,
+    goals,
   } = allData;
   
   useEffect(() => {
@@ -173,15 +174,16 @@ export default function DashboardPage() {
     const pendingChecksAmount = (checks || []).filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0);
     const remainingLoanAmount = (loans || []).reduce((sum, l) => sum + l.remainingAmount, 0);
     const remainingDebtsAmount = (previousDebts || []).reduce((sum, d) => sum + d.remainingAmount, 0);
+    const totalSavedForGoals = (goals || []).reduce((sum, g) => sum + g.currentAmount, 0);
     const totalLiabilities = pendingChecksAmount + remainingLoanAmount + remainingDebtsAmount;
     const netWorth = totalAssets - totalLiabilities;
     
     return {
-      summary: { totalIncome, totalExpense, netWorth, totalAssets, totalLiabilities, pendingChecksAmount, remainingLoanAmount, remainingDebtsAmount },
+      summary: { totalIncome, totalExpense, netWorth, totalAssets, totalLiabilities, pendingChecksAmount, remainingLoanAmount, remainingDebtsAmount, totalSavedForGoals },
       details: { expenses: filteredExpenses, transactions: allTransactions },
       globalSummary: { aliBalance, fatemehBalance, sharedBalance },
     };
-  }, [ownerFilter, date, incomes, expenses, bankAccounts, checks, loans, previousDebts]);
+  }, [ownerFilter, date, incomes, expenses, bankAccounts, checks, loans, previousDebts, goals]);
 
   useEffect(() => {
     let matchedPreset: ReturnType<typeof getDateRange>['preset'] | null = null;
@@ -252,7 +254,6 @@ export default function DashboardPage() {
           <TabsTrigger value="transactions">تراکنش‌ها</TabsTrigger>
           <TabsTrigger value="quick_access">دسترسی سریع</TabsTrigger>
         </TabsList>
-
         <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
                 <Card className="xl:col-span-3">
@@ -288,7 +289,6 @@ export default function DashboardPage() {
                 </Card>
             </div>
         </TabsContent>
-
         <TabsContent value="transactions" className="space-y-4">
              <Card>
                 <CardHeader>
