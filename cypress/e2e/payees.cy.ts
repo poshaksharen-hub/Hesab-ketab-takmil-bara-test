@@ -47,4 +47,35 @@ describe("Payees Flow", () => {
     // Assert the payee is no longer visible
     cy.contains("td", payeeName).should("not.exist");
   });
+
+  it("should prevent deleting a payee that has associated transactions", () => {
+    const payeeName = "فروشگاه زنجیره‌ای امید"; // A payee we know has transactions
+
+    // Create a transaction linked to this payee
+    cy.visit('/transactions');
+    cy.contains('button', 'ثبت هزینه جدید').click();
+    cy.get('textarea[name="description"]').type(`هزینه تستی برای ${payeeName}`);
+    cy.get('input[name="amount"]').type('1000');
+    cy.get('button[role="combobox"]').first().click(); // Bank account
+    cy.get('div[role="option"]').first().click();
+    cy.get('button[role="combobox"]').eq(1).click(); // Category
+    cy.get('div[role="option"]').first().click();
+    cy.get('button[role="combobox"]').eq(2).click(); // Payee
+    cy.get('div[role="option"]').contains(payeeName).click();
+    cy.contains('button', 'ذخیره').click();
+    
+    // Go back to payees page
+    cy.visit('/payees');
+
+    // Find the payee and try to delete them
+    cy.contains("td", payeeName)
+      .parents("tr")
+      .find('button[aria-label="Delete"]')
+      .click();
+    
+    cy.get('button').contains('بله، حذف کن').click();
+
+    // Assert that a toast error message is shown
+    cy.contains("امکان حذف وجود ندارد. این طرف حساب در یک یا چند هزینه استفاده شده است.").should("be.visible");
+  });
 });
