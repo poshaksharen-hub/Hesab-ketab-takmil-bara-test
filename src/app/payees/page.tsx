@@ -3,12 +3,12 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowRight, Plus, Loader2 } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
+import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
+import { useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { PayeeList } from '@/components/payees/payee-list';
 import { PayeeForm } from '@/components/payees/payee-form';
-import type { Payee, Check, Expense, Loan, PreviousDebt } from '@/lib/types';
+import type { Payee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -131,11 +131,6 @@ export default function PayeesPage() {
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href="/" passHref>
-            <Button variant="ghost" size="icon" className="md:hidden">
-                <ArrowRight className="h-5 w-5" />
-            </Button>
-          </Link>
           <h1 className="font-headline text-3xl font-bold tracking-tight">
             مدیریت طرف حساب‌ها
           </h1>

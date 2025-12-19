@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser, useAuth, useCollection, useFirestore } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 import { isEqual, startOfDay, endOfDay } from 'date-fns';
@@ -25,16 +25,13 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, ArrowLeft, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare } from 'lucide-react';
+import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
-import type { DashboardFilter } from '@/lib/types';
+import type { DashboardFilter, Income, Expense } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { collection, doc } from 'firebase/firestore';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import type { Income, Expense, BankAccount, Category, Check, FinancialGoal, Loan, Payee, Transfer, LoanPayment, PreviousDebt, DebtPayment, UserProfile } from '@/lib/types';
 
-const FAMILY_DATA_DOC = 'shared-data';
 
 function DashboardSkeleton() {
   const auth = useAuth();
@@ -75,8 +72,6 @@ function DashboardSkeleton() {
 }
 
 const quickAccessItems = [
-    { href: '/chat', label: 'گفتگو', icon: MessageSquare, color: 'text-cyan-500' },
-    { href: '/due-dates', label: 'سررسیدها', icon: Bell, color: 'text-rose-500' },
     { href: '/income', label: 'درآمدها', icon: TrendingUp, color: 'text-emerald-500' },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown, color: 'text-red-500' },
     { href: '/cards', label: 'کارت‌ها', icon: CreditCard, color: 'text-sky-500' },
@@ -92,12 +87,15 @@ const quickAccessItems = [
 function QuickAccess() {
     return (
         <Card>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 pt-6">
+            <CardHeader>
+                <CardTitle className="font-headline">دسترسی سریع</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {quickAccessItems.map(item => (
                     <Link key={item.href} href={item.href} className="group">
-                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent hover:shadow-sm transition-all duration-200 h-full">
-                           <div className={`flex items-center justify-center h-10 w-10 rounded-full bg-opacity-10 bg-gradient-to-br ${item.color.replace('text-', 'from-').replace('-500', '-200')} ${item.color.replace('text-', 'to-').replace('-500', '-300')}`}>
-                             <item.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", item.color)} />
+                        <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg hover:bg-muted hover:shadow-sm transition-all duration-200 h-full text-center">
+                           <div className={`flex items-center justify-center h-12 w-12 rounded-full bg-opacity-10 ${item.color.replace('text-', 'bg-')}`}>
+                             <item.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", item.color)} />
                            </div>
                            <span className="text-sm font-semibold">{item.label}</span>
                         </div>
@@ -127,8 +125,6 @@ export default function DashboardPage() {
     previousDebts, 
     users 
   } = allData;
-
-  const { toast } = useToast();
   
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -210,9 +206,11 @@ export default function DashboardPage() {
   
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-       <QuickAccess />
+      <div className="flex items-center justify-between">
+        <h1 className="font-headline text-3xl font-bold tracking-tight">داشبورد</h1>
+      </div>
 
-      <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row pt-4">
+      <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
           <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} value={ownerFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="نمایش داده‌های..." />
@@ -250,6 +248,7 @@ export default function DashboardPage() {
         <TabsList>
           <TabsTrigger value="overview">نمای کلی</TabsTrigger>
           <TabsTrigger value="transactions">تراکنش‌ها</TabsTrigger>
+          <TabsTrigger value="quick_access">دسترسی سریع</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -302,6 +301,9 @@ export default function DashboardPage() {
                     />
                 </CardContent>
             </Card>
+        </TabsContent>
+        <TabsContent value="quick_access">
+            <QuickAccess />
         </TabsContent>
       </Tabs>
     </main>

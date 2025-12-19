@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Query,
   onSnapshot,
@@ -55,7 +55,6 @@ export function useCollection<T = any>(
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  // A query is loading if it exists but we don't have data or an error yet.
   const [isLoading, setIsLoading] = useState<boolean>(!!targetRefOrQuery);
   const [error, setError] = useState<FirestoreError | null>(null);
 
@@ -81,14 +80,12 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        // Create a contextual error and emit it globally
         const permissionError = new FirestorePermissionError({
             path: (targetRefOrQuery as InternalQuery)._query.path.canonicalString(),
             operation: 'list', // 'list' is for collection queries
         });
         errorEmitter.emit('permission-error', permissionError);
 
-        // Also set local error state for component-level handling if needed
         setError(err);
         setData(null);
         setIsLoading(false);

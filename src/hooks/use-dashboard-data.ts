@@ -19,7 +19,6 @@ import type {
     DebtPayment, 
     UserProfile 
 } from '@/lib/types';
-import { USER_DETAILS } from '@/lib/constants';
 
 const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
@@ -37,7 +36,6 @@ export function useDashboardData() {
     return doc(firestore, FAMILY_DATA_DOC_PATH);
   }, [firestore, isUserLoading]);
   
-  // Fetch all users from the 'users' collection at the root.
   const usersQuery = useMemo(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading: areUsersLoading } = useCollection<UserProfile>(usersQuery);
 

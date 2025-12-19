@@ -3,9 +3,9 @@
 
 import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, ArrowRight, Plus, Loader2 } from 'lucide-react';
+import { PlusCircle, Search, ArrowRight, Plus } from 'lucide-react';
 import { useUser } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
 import { CardForm } from '@/components/cards/card-form';
 import type { BankAccount, UserProfile } from '@/lib/types';
@@ -165,11 +165,6 @@ export default function CardsPage() {
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href="/" passHref>
-            <Button variant="ghost" size="icon" className="md:hidden">
-                <ArrowRight className="h-5 w-5" />
-            </Button>
-          </Link>
           <h1 className="font-headline text-3xl font-bold tracking-tight">
             مدیریت کارت‌های بانکی
           </h1>

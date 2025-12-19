@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -12,7 +13,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarInset,
 } from '@/components/ui/sidebar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,10 +34,8 @@ import {
   Landmark,
   Bell,
   Handshake,
-  Sparkles,
   Menu as MenuIcon,
   MessageSquare,
-  ArrowRight,
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
@@ -70,7 +68,6 @@ function Menu({ onLinkClick, unreadCount }: { onLinkClick?: () => void; unreadCo
   const pathname = usePathname();
   const menuItems = [
     { href: '/', label: 'داشبورد', icon: LayoutDashboard },
-    { href: '/chat', label: 'گفتگو', icon: MessageSquare, badge: unreadCount > 0 },
     { href: '/due-dates', label: 'سررسیدها', icon: Bell },
     { href: '/income', label: 'درآمدها', icon: TrendingUp },
     { href: '/transactions', label: 'هزینه‌ها', icon: TrendingDown },
@@ -220,7 +217,22 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <SidebarProvider>
-      <Sidebar side="right" className="bg-card">
+      <div className="md:hidden">
+        <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetContent side="right" className="w-[18rem] bg-card p-0 text-card-foreground">
+                <MobileMenuContent 
+                  user={user} 
+                  theme={theme} 
+                  toggleTheme={toggleTheme} 
+                  handleSignOut={handleSignOut}
+                  onLinkClick={() => setMobileMenuOpen(false)}
+                  unreadCount={unreadCount}
+                />
+            </SheetContent>
+        </Sheet>
+      </div>
+      
+      <Sidebar side="right" className="hidden md:flex">
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <HesabKetabLogo className="size-8 text-primary" />
@@ -288,8 +300,8 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           )}
         </SidebarFooter>
       </Sidebar>
-      <div className="flex flex-1 flex-col h-full w-0">
-         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm md:hidden">
+      <div className="flex flex-1 flex-col h-screen">
+         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm md:hidden">
             <Link href="/" className="flex items-center gap-2">
                 <HesabKetabLogo className="size-7 text-primary" />
                 <span className="font-headline text-xl font-bold">حساب کتاب</span>
@@ -314,9 +326,9 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 </SheetContent>
             </Sheet>
           </header>
-          <SidebarInset className="flex-grow overflow-y-auto">
+          <main className="flex-1 overflow-y-auto">
              {children}
-          </SidebarInset>
+          </main>
       </div>
        {/* Floating Action Button for Chat */}
       <div className={cn(

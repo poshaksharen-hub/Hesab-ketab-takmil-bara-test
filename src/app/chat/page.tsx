@@ -1,13 +1,12 @@
 
 'use client';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ArrowRight, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ChatInterface } from '@/components/chat/chat-interface';
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, doc } from 'firebase/firestore';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 function ChatPageSkeleton() {
@@ -46,11 +45,6 @@ export default function ChatPage() {
     <main className="flex h-[calc(100vh_-_5rem)] flex-col">
        <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" asChild>
-                    <Link href="/">
-                        <ArrowRight className="h-4 w-4" />
-                    </Link>
-                </Button>
                 <h1 className="font-headline text-2xl font-bold tracking-tight flex items-center gap-2">
                     <MessageSquare className="h-6 w-6"/>
                     گفتگوی مشترک

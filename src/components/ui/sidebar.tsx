@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 const sidebarStyles = tv({
   slots: {
-    base: 'flex flex-col bg-card text-card-foreground data-[collapsed=true]:w-14 w-64 transition-all duration-300 ease-in-out',
+    base: 'flex flex-col bg-card text-card-foreground',
     header: 'p-4 border-b border-border',
     content: 'flex-1 overflow-y-auto',
     menu: 'flex flex-col gap-1 p-2',
@@ -70,7 +70,7 @@ export const Sidebar = ({ className, side, ...props }: SidebarProps) => {
 
   return (
     <div
-      className={cn(base(), 'hidden md:flex', className)}
+      className={cn(base(), className)}
       data-collapsed={isCollapsed}
       {...props}
     />
@@ -128,24 +128,3 @@ export const SidebarFooter = ({ className, ...props }: HTMLAttributes<HTMLDivEle
   const { footer } = sidebarStyles();
   return <div className={cn(footer(), className)} {...props} />;
 };
-
-
-// New component for the main content area
-export const SidebarInset = React.forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => {
-    const { isCollapsed } = useSidebar();
-    return (
-      <main
-        ref={ref}
-        className={cn(
-          'flex-1 transition-all duration-300 ease-in-out',
-          // TODO: Figure out why this is not working with tailwind-variants
-          // isCollapsed ? 'md:ml-14' : 'md:ml-64',
-          className
-        )}
-        {...props}
-      />
-    );
-  }
-);
-SidebarInset.displayName = 'SidebarInset';
