@@ -17,29 +17,33 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Generate random filename
+        id: random
+        run: echo "FILENAME=test-$(date +%s).txt" >> $GITHUB_ENV
+
       - name: Create branch
         run: |
           git config user.name "automation-bot"
           git config user.email "bot@example.com"
-          git checkout -b auto/test-connection
+          git checkout -b auto/test-${{ env.FILENAME }}
 
       - name: Add test file
         run: |
-          echo "automation test" > automation-test.txt
-          git add automation-test.txt
-          git commit -m "automation: test connection"
+          echo "automation test $(date)" > ${{ env.FILENAME }}
+          git add ${{ env.FILENAME }}
+          git commit -m "automation: test connection - ${{ env.FILENAME }}"
 
       - name: Push branch
         env:
           GH_PAT: ${{ secrets.HESABKETABDASTRESIKAMEL }}
         run: |
           git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
-          git push --set-upstream origin auto/test-connection
+          git push --set-upstream origin auto/test-${{ env.FILENAME }}
 
       - name: Create PR
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.HESABKETABDASTRESIKAMEL }}
-          branch: auto/test-connection
-          title: "Automation Test PR"
+          branch: auto/test-${{ env.FILENAME }}
+          title: "Automation Test PR - ${{ env.FILENAME }}"
           body: "This PR was created automatically to verify automation access."
