@@ -13,40 +13,54 @@ describe("Bank Cards Flow", () => {
     cy.contains("h1", "مدیریت کارت‌های بانکی").should("be.visible");
   });
 
-  it("should allow a user to add a new bank card and view its details", () => {
+  it("should allow a user to add, search for, view details of, and then delete a bank card", () => {
     const cardNumber = `60379910${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const bankName = "بانک ملی ایران";
 
     // --- Part 1: Add Card ---
-    // 1. Click the "Add New Card" button
     cy.contains("button", "افزودن کارت جدید").click();
 
-    // 2. Fill out the form
+    // Fill out the form
     cy.get('button[role="combobox"]').first().click(); // Open bank name dropdown
-    cy.get('div[role="option"]').contains("بانک ملی ایران").click();
+    cy.get('div[role="option"]').contains(bankName).click();
 
     cy.get('input[name="accountNumber"]').type(`1234567${Math.floor(Math.random() * 1000)}`);
     cy.get('input[name="cardNumber"]').type(cardNumber);
     cy.get('input[name="expiryDate"]').type("12/07");
-    cyget('input[name="cvv2"]').type("123");
+    cy.get('input[name="cvv2"]').type("123");
     cy.get('input[name="initialBalance"]').type("500000");
 
     cy.get('button[role="combobox"]').eq(1).click(); // Open account type
     cy.get('div[role="option"]').contains("پس‌انداز").click();
     
-    // 3. Submit the form
     cy.contains("button", "ذخیره").click();
 
-    // 4. Assert the new card is visible in the list
+    // Assert the new card is visible in the list
     cy.contains(cardNumber.replace(/(\d{4})/g, '$1 ')).should("be.visible");
     cy.contains("۵۰۰٬۰۰۰ تومان").should("be.visible");
 
-    // --- Part 2: View Details ---
-    // 5. Find the new card and click its history button
+    // --- Part 2: Search for the card ---
+    cy.get('input[type="text"][placeholder*="جستجو"]').type(bankName);
+    cy.contains(cardNumber.replace(/(\d{4})/g, '$1 ')).should('be.visible'); // Card should still be visible
+    cy.get('input[type="text"][placeholder*="جستجو"]').clear().type(cardNumber.slice(0, 8));
+    cy.contains(bankName).should('be.visible'); // Card should still be visible
+    cy.get('input[type="text"][placeholder*="جستجو"]').clear();
+
+
+    // --- Part 3: View Details ---
     cy.contains(cardNumber.replace(/(\d{4})/g, '$1 ')).parents('.group').contains('button', 'تاریخچه').click();
 
-    // 6. Assert navigation to the detail page
     cy.url().should("include", "/cards/");
-    cy.contains("h1", "تاریخچه تراکنش‌های بانک ملی ایران").should("be.visible");
+    cy.contains("h1", `تاریخچه تراکنش‌های ${bankName}`).should("be.visible");
     cy.contains("آخرین موجودی: ۵۰۰٬۰۰۰ تومان").should("be.visible");
+    cy.go('back'); // Go back to the list
+
+    // --- Part 4: Delete the card ---
+    cy.contains(cardNumber.replace(/(\d{4})/g, '$1 ')).parents('.relative.group').find('button[aria-label="Actions"]').click();
+    cy.contains('div', 'حذف کارت').click();
+    cy.get('button').contains('بله، حذف کن').click();
+
+    // Assert the card is no longer in the list
+    cy.contains(cardNumber.replace(/(\d{4})/g, '$1 ')).should("not.exist");
   });
 });

@@ -17,11 +17,9 @@ describe("Checks Flow", () => {
     const sayadId = `123456${Math.floor(1000000000 + Math.random() * 9000000000)}`;
 
     // --- Part 1: Add a new check ---
-
-    // 1. Click "Add New Check"
     cy.contains("button", "ثبت چک جدید").click();
 
-    // 2. Fill out the form
+    // Fill out the form
     cy.get('button[role="combobox"]').eq(0).click(); // Open payee dropdown
     cy.get('div[role="option"]').contains(payeeName).click({ force: true });
     
@@ -38,15 +36,13 @@ describe("Checks Flow", () => {
     cy.get('button[role="combobox"]').eq(3).click(); // Expense For
     cy.get('div[role="option"]').contains("مشترک").click();
 
-    // Submit
     cy.contains("button", "ذخیره").click();
 
-    // 3. Assert the new check is visible
+    // Assert the new check is visible
     cy.contains(sayadId).should("be.visible");
     cy.contains("۲٬۵۰۰٬۰۰۰ تومان").should("be.visible");
 
     // --- Part 2: View Details ---
-    // 4. Click on the check to go to its detail page
     cy.contains(sayadId).parents('.group').click();
     cy.url().should('include', '/checks/');
     cy.contains('h1', 'جزئیات چک').should('be.visible');
@@ -54,15 +50,57 @@ describe("Checks Flow", () => {
     cy.contains('در انتظار پاس').should('be.visible');
 
     // --- Part 3: Clear the check from the detail page ---
-    // 5. Click the "Clear Check" button
     cy.contains('button', 'پاس کردن چک').click();
 
-    // 6. Confirm the action in the dialog
     cy.get('button').contains("تایید و پاس کردن").click();
 
-    // 7. Assert the check is now marked as "Cleared"
+    // Assert the check is now marked as "Cleared"
     cy.contains('پاس شده').should('be.visible');
     cy.contains('موجودی حساب برای پاس کردن این چک کافی نیست').should('not.exist');
     cy.contains('پاس کردن چک').should('not.exist'); // Button should disappear
+    cy.go('back'); // Go back to the list page
+
+    // --- Part 4: Delete the cleared check ---
+    cy.contains(sayadId).parents('.group').find('button[aria-label="Actions"]').click();
+    cy.contains('div', 'حذف چک').click({force: true});
+    cy.get('button').contains('بله، حذف کن').click();
+
+    // Assert check is gone
+    cy.contains(sayadId).should('not.exist');
+
+  });
+
+  it('should show an error when trying to clear a check with insufficient funds', () => {
+    const payeeName = "تست موجودی ناکافی";
+    const checkAmount = "999999999999"; // An impossibly large amount
+    const sayadId = `999999${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+
+    cy.contains("button", "ثبت چک جدید").click();
+
+    // Add a new payee for this test
+    cy.get('button[role="combobox"]').eq(0).click();
+    cy.get('div[role="option"]').contains('افزودن طرف حساب جدید').click();
+    cy.get('input[name="name"]').type(payeeName);
+    cy.get('button').contains('ذخیره').click();
+    
+    // Continue filling the check form
+    cy.get('input[name="amount"]').type(checkAmount);
+    cy.get('input[name="sayadId"]').type(sayadId);
+    cy.get('input[name="checkSerialNumber"]').type("111111");
+    cy.get('button[role="combobox"]').eq(1).click();
+    cy.get('div[role="option"]').first().click();
+    cy.get('button[role="combobox"]').eq(2).click();
+    cy.get('div[role="option"]').first().click();
+    cy.get('button[role="combobox"]').eq(3).click();
+    cy.get('div[role="option"]').contains("مشترک").click();
+    cy.contains("button", "ذخیره").click();
+
+    // Attempt to clear the check
+    cy.contains(sayadId).parents('.group').find('button[aria-label="Actions"]').click();
+    cy.contains('div[role="menuitem"]', 'پاس کردن چک').click();
+    cy.get('button').contains('تایید و پاس کردن').click();
+
+    // Assert that an error toast is shown
+    cy.contains('موجودی قابل استفاده حساب برای پاس کردن چک کافی نیست').should('be.visible');
   });
 });
