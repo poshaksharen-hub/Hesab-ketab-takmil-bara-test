@@ -1,21 +1,46 @@
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
-    with:
-      persist-credentials: true
+name: Automation Test
 
-  - name: Create branch
-    run: |
-      git config user.name "automation-bot"
-      git config user.email "bot@example.com"
-      git checkout -b auto/test-connection
+on:
+  workflow_dispatch:
 
-  - name: Add test file
-    run: |
-      echo "automation test" > automation-test.txt
-      git add automation-test.txt
-      git commit -m "automation: test connection"
+permissions:
+  contents: write
+  pull-requests: write
 
-  - name: Push branch
-    run: |
-      git push -u origin auto/test-connection
+jobs:
+  auto-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Create branch
+        run: |
+          git config user.name "automation-bot"
+          git config user.email "bot@example.com"
+          git checkout -b auto/test-connection
+
+      - name: Add test file
+        run: |
+          echo "automation test" > automation-test.txt
+          git add automation-test.txt
+          git commit -m "automation: test connection"
+
+      - name: Push branch
+        env:
+          GH_PAT: ${{ secrets.HESABKETABDASTRESIKAMEL }}
+        run: |
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+          git push --set-upstream origin auto/test-connection
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.HESABKETABDASTRESIKAMEL }}
+          commit-message: automation: test connection
+          branch: auto/test-connection
+          title: "Automation Test PR"
+          body: "This PR was created automatically to verify automation access."
