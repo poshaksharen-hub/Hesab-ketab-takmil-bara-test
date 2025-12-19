@@ -49,7 +49,7 @@ describe("Loans Flow", () => {
     // --- Part 3: View Details and verify ---
     cy.contains(loanTitle).parents('.group').click();
     cy.url().should('include', '/loans/');
-    cy.contains('h1', loanTitle).should('bevisible');
+    cy.contains('h1', loanTitle).should('be.visible');
     cy.contains('مبلغ باقی‌مانده: ۴۸٬۰۰۰٬۰۰۰ تومان').should('be.visible');
     cy.contains('td', '۲٬۰۰۰٬۰۰۰ تومان').should('be.visible'); // Check for payment in history table
     cy.go('back'); // Go back to the list

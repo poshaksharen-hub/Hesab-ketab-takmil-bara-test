@@ -46,6 +46,9 @@ describe("Financial Goals Flow", () => {
     // 6. Fill the contribution dialog
     cy.get('input[name="amount"]').last().type(contributionAmount);
     
+    cy.get('button[role="combobox"]').last().click();
+    cy.get('div[role="option"]').first().click();
+
     // 7. Submit contribution
     cy.contains("button", "افزودن و مسدود کردن").click();
     
@@ -58,7 +61,7 @@ describe("Financial Goals Flow", () => {
     cy.url().should('include', '/goals/');
     cy.contains('h1', goalName).should('be.visible');
     cy.contains('۱٬۵۰۰٬۰۰۰ تومان').should('be.visible'); // Current amount on detail page
-    cy.contains('۱٬۰۰۰٬۰۰۰ تومان').should('be.visible'); // Initial contribution in history
-    cy.contains('۵۰۰٬۰۰۰ تومان').should('be.visible'); // Second contribution in history
+    cy.contains('td', '۱٬۰۰۰٬۰۰۰ تومان').should('be.visible'); // Initial contribution in history
+    cy.contains('td', '۵۰۰٬۰۰۰ تومان').should('be.visible'); // Second contribution in history
   });
 });

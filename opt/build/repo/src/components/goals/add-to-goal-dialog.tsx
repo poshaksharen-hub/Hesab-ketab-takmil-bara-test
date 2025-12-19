@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -34,7 +35,7 @@ import type { FinancialGoal, BankAccount, OwnerId } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 
 
 const createFormSchema = (maxAmount: number) => z.object({
@@ -42,7 +43,7 @@ const createFormSchema = (maxAmount: number) => z.object({
   amount: z.coerce
     .number()
     .positive({ message: 'مبلغ باید یک عدد مثبت باشد.' })
-    .max(maxAmount, { message: `مبلغ نمی‌تواند از مبلغ باقی‌مانده بیشتر باشد.`}),
+    .max(maxAmount, { message: `مبلغ نمی‌تواند از ${formatCurrency(maxAmount, 'IRT')} (مبلغ باقی‌مانده) بیشتر باشد.`}),
 });
 
 
@@ -52,6 +53,7 @@ interface AddToGoalDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: { goal: FinancialGoal; amount: number; bankAccountId: string; }) => void;
+  isSubmitting: boolean;
 }
 
 export function AddToGoalDialog({
@@ -60,6 +62,7 @@ export function AddToGoalDialog({
   isOpen,
   onOpenChange,
   onSubmit,
+  isSubmitting,
 }: AddToGoalDialogProps) {
     
   const remainingAmount = goal.targetAmount - goal.currentAmount;
@@ -69,17 +72,19 @@ export function AddToGoalDialog({
   const form = useForm<AddToGoalFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      bankAccountId: bankAccounts[0]?.id || '',
+      bankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
       amount: 0,
     },
   });
   
   React.useEffect(() => {
-    form.reset({
-      bankAccountId: bankAccounts[0]?.id || '',
-      amount: 0,
-    })
-  }, [goal, bankAccounts, form]);
+    if (isOpen) {
+        form.reset({
+            bankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
+            amount: 0,
+        });
+    }
+  }, [goal, bankAccounts, isOpen, form]);
 
 
   const getOwnerName = (account: BankAccount) => {
@@ -96,7 +101,7 @@ export function AddToGoalDialog({
   const hasInsufficientFunds = amountToContribute > availableBalance;
 
   function handleFormSubmit(data: AddToGoalFormValues) {
-    if (hasInsufficientFunds) return;
+    if (hasInsufficientFunds || isSubmitting) return;
     onSubmit({
       goal,
       ...data,
@@ -129,7 +134,7 @@ export function AddToGoalDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>برداشت از کارت</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
@@ -155,7 +160,7 @@ export function AddToGoalDialog({
                 <FormItem>
                   <FormLabel>مبلغ (تومان)</FormLabel>
                   <FormControl>
-                    <CurrencyInput value={field.value} onChange={field.onChange} />
+                    <CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                   </FormControl>
                   {selectedBankAccount && (
                     <FormDescription className={cn(hasInsufficientFunds && "text-destructive font-bold")}>
@@ -168,10 +173,13 @@ export function AddToGoalDialog({
             />
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 انصراف
               </Button>
-              <Button type="submit" disabled={hasInsufficientFunds}>افزودن و مسدود کردن</Button>
+              <Button type="submit" disabled={hasInsufficientFunds || isSubmitting}>
+                {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                افزودن و مسدود کردن
+              </Button>
             </DialogFooter>
           </form>
         </Form>

@@ -11,7 +11,7 @@ describe("Checks Flow", () => {
     cy.contains("h1", "مدیریت چک‌ها").should("be.visible");
   });
 
-  it("should allow a user to add a new check, view details, and then clear it", () => {
+  it("should allow a user to add a new check, view details, clear it, and then delete it", () => {
     const payeeName = "فروشگاه لوازم خانگی سعادت";
     const checkAmount = "2500000";
     const sayadId = `123456${Math.floor(1000000000 + Math.random() * 9000000000)}`;
@@ -25,7 +25,7 @@ describe("Checks Flow", () => {
     
     cy.get('input[name="amount"]').type(checkAmount);
     cy.get('input[name="sayadId"]').type(sayadId);
-    cyget('input[name="checkSerialNumber"]').type("987654");
+    cy.get('input[name="checkSerialNumber"]').type("987654");
 
     cy.get('button[role="combobox"]').eq(1).click(); // Bank Account
     cy.get('div[role="option"]').first().click();
