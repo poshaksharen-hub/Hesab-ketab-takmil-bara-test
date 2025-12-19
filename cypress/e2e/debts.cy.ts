@@ -66,4 +66,43 @@ describe("Debts Flow", () => {
     cy.get('button').contains('بله، حذف کن').should('be.disabled');
     cy.get('button').contains('انصراف').click();
   });
+  
+  it("should allow a user to add a single-payment debt and then delete it", () => {
+    const debtDescription = `بدهی تستی حذف شدنی - ${new Date().getTime()}`;
+    const debtAmount = "50000";
+
+    // --- Part 1: Add a new single-payment debt ---
+    cy.contains("button", "ثبت بدهی جدید").click();
+
+    cy.get('textarea[name="description"]').type(debtDescription);
+    cy.get('input[name="amount"]').type(debtAmount);
+
+    cy.get('button[role="combobox"]').eq(0).click(); // Payee
+    cy.get('div[role="option"]').first().click();
+
+    cy.get('button[role="combobox"]').eq(1).click(); // Owner
+    cy.get('div[role="option"]').contains("علی").click();
+    
+    // Keep isInstallment switch off (default)
+
+    cy.contains("button", "ذخیره").click();
+
+    // Assert the new debt is visible
+    cy.contains(debtDescription).should("be.visible");
+    cy.contains("۵۰٬۰۰۰ تومان").should("be.visible");
+    
+    // --- Part 2: Delete the debt (should succeed) ---
+    cy.contains(debtDescription).parents('.group').find('button[aria-label="Actions"]').click();
+    cy.contains('div', 'حذف بدهی').click({force: true});
+
+    // Assert that there's no error message and delete button is enabled
+    cy.contains('این بدهی دارای سابقه پرداخت است').should('not.exist');
+    cy.get('button').contains('بله، حذف کن').should('not.be.disabled');
+    
+    // Confirm deletion
+    cy.get('button').contains('بله، حذف کن').click();
+
+    // Assert the debt is gone
+    cy.contains(debtDescription).should("not.exist");
+  });
 });
