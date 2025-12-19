@@ -10,11 +10,22 @@ describe("Income Flow", () => {
     cy.contains("h1", "مدیریت درآمدها").should("be.visible");
   });
 
-  it("should allow a user to add and then delete an income", () => {
-    const incomeDescription = `حقوق ماهانه تستی (حذف) - ${new Date().toLocaleDateString('fa-IR')}`;
-    const incomeAmount = "20000000";
+  it("should allow a user to add an income, verify balance change, and then delete it, verifying the balance is restored", () => {
+    const incomeDescription = `درآمد تستی با بازگشت موجودی - ${new Date().toLocaleDateString('fa-IR')}`;
+    const incomeAmount = "100000";
+    let initialBalance: number;
 
-    // --- Part 1: Add Income ---
+    // --- Part 1: Get Initial Balance ---
+    cy.visit('/cards');
+    cy.contains('موجودی کل')
+      .first()
+      .invoke('text')
+      .then((text) => {
+        initialBalance = parseFloat(text.replace(/[^\d.-]/g, ''));
+      });
+    cy.visit('/income');
+
+    // --- Part 2: Add Income ---
     cy.contains("button", "ثبت درآمد جدید").click();
 
     cy.get('textarea[name="description"]').type(incomeDescription);
@@ -29,12 +40,23 @@ describe("Income Flow", () => {
     cy.contains("button", "ذخیره").click();
 
     cy.contains(incomeDescription).should("be.visible");
-    cy.contains("+۲۰٬۰۰۰٬۰۰۰ تومان").should("be.visible");
+    cy.contains("+۱۰۰٬۰۰۰ تومان").should("be.visible");
     
-    // --- Part 2: Delete Income ---
+    // --- Part 3: Verify Balance Increase ---
+     cy.visit('/cards');
+    cy.contains('موجودی کل')
+      .first()
+      .invoke('text')
+      .then((text) => {
+        const newBalance = parseFloat(text.replace(/[^\d.-]/g, ''));
+        expect(newBalance).to.eq(initialBalance + parseFloat(incomeAmount));
+      });
+    cy.visit('/income');
+
+    // --- Part 4: Delete Income ---
     cy.contains(incomeDescription)
-      .parents('.flex.flex-col')
-      .find('button[aria-label="حذف درآمد"]')
+      .parents('.flex-col')
+      .find('button[aria-label="حذف تراکنش"]')
       .click();
 
     // Confirm deletion in the dialog
@@ -42,5 +64,15 @@ describe("Income Flow", () => {
 
     // Assert the income is no longer visible
     cy.contains(incomeDescription).should("not.exist");
+
+    // --- Part 5: Verify Balance Restoration ---
+    cy.visit('/cards');
+    cy.contains('موجودی کل')
+      .first()
+      .invoke('text')
+      .then((text) => {
+        const finalBalance = parseFloat(text.replace(/[^\d.-]/g, ''));
+        expect(finalBalance).to.eq(initialBalance);
+      });
   });
 });
