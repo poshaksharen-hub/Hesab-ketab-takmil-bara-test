@@ -322,6 +322,9 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
             <DialogTitle className="font-headline">
               {initialData ? 'ویرایش کارت بانکی' : 'افزودن کارت جدید'}
             </DialogTitle>
+            <DialogDescription>
+              اطلاعات کارت بانکی جدید یا ویرایشی را در این فرم وارد کنید.
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>

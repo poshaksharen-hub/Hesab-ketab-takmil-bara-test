@@ -214,7 +214,11 @@ export default function DashboardPage() {
         <h1 className="font-headline text-3xl font-bold tracking-tight">داشبورد</h1>
       </div>
 
-      <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row">
+      <div className="space-y-4">
+        <QuickAccess />
+      </div>
+      
+      <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row pt-4">
           <Select onValueChange={(value) => setOwnerFilter(value as DashboardFilter)} value={ownerFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="نمایش داده‌های..." />
@@ -252,7 +256,6 @@ export default function DashboardPage() {
         <TabsList>
           <TabsTrigger value="overview">نمای کلی</TabsTrigger>
           <TabsTrigger value="transactions">تراکنش‌ها</TabsTrigger>
-          <TabsTrigger value="quick_access">دسترسی سریع</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
@@ -303,9 +306,6 @@ export default function DashboardPage() {
               />
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="quick_access" className="space-y-4">
-          <QuickAccess />
         </TabsContent>
       </Tabs>
     </main>

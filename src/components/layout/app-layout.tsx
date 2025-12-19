@@ -78,6 +78,7 @@ function Menu({ onLinkClick, unreadCount }: { onLinkClick?: () => void; unreadCo
     { href: '/checks', label: 'چک‌ها', icon: BookCopy },
     { href: '/loans', label: 'وام‌ها', icon: Landmark },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake },
+    { href: '/chat', label: 'گفتگو', icon: MessageSquare, badge: unreadCount > 0 },
     { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban },
   ];
 
