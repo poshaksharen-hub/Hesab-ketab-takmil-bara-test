@@ -212,7 +212,7 @@ export default function DashboardPage() {
         <h1 className="font-headline text-3xl font-bold tracking-tight">داشبورد</h1>
       </div>
 
-       <div className="space-y-4">
+      <div className="space-y-4">
         <QuickAccess />
       </div>
       
@@ -309,3 +309,5 @@ export default function DashboardPage() {
     </main>
   );
 }
+
+    
