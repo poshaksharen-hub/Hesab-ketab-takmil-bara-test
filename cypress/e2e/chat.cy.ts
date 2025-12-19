@@ -31,7 +31,7 @@ describe("Chat Flow", () => {
       .should('be.visible');
 
     // Logout Ali
-    cy.get('div[class*="sidebar-footer"] button[aria-label="خروج"]').click();
+    cy.get('button[aria-label="خروج"]').first().click();
     cy.url().should("eq", "http://localhost:3000/login");
 
     // --- Part 2: Fatemeh logs in and sees the unread message ---
@@ -40,8 +40,9 @@ describe("Chat Flow", () => {
     cy.get('button[type="submit"]').click();
     cy.url().should("eq", "http://localhost:3000/");
 
-    // Check for unread indicator on the chat FAB
-    cy.get('a[href="/chat"]').find('span').contains('1').should('be.visible');
+    // Check for unread indicator on the chat FAB and sidebar
+    cy.get('a[href="/chat"]').find('span').should('contain.text', '1');
+    cy.get('a[href="/chat"] button span').should('not.exist'); // Ensure badge is not on button text
     
     // Navigate to chat
     cy.visit("/chat");
@@ -64,7 +65,8 @@ describe("Chat Flow", () => {
       .should('contain', firstMessageText);
 
     // Logout Fatemeh
-    cy.get('div[class*="sidebar-footer"] button[aria-label="خروج"]').click();
+    cy.get('button[aria-label="خروج"]').first().click();
+    cy.url().should("eq", "http://localhost:3000/login");
 
     // --- Part 4: Ali logs back in and sees the read receipt ---
     cy.get('input[name="email"]').type("ali@khanevadati.app");
