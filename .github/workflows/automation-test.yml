@@ -40,7 +40,6 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.HESABKETABDASTRESIKAMEL }}
-          commit-message: automation: test connection
           branch: auto/test-connection
           title: "Automation Test PR"
           body: "This PR was created automatically to verify automation access."
