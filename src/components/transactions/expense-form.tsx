@@ -206,20 +206,22 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>برداشت از کارت</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="max-h-[250px]">
-                                {sortedBankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                   {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
-                                </SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                            <div data-testid="bank-account-select-wrapper">
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="max-h-[250px]">
+                                    {sortedBankAccounts.map((account) => (
+                                    <SelectItem key={account.id} value={account.id}>
+                                    {`${account.bankName} ${getOwnerName(account)} - (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            </div>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -230,19 +232,21 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>دسته‌بندی هزینه</FormLabel>
-                            <Select onValueChange={handleCategorySelection} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="max-h-[250px]">
-                                <SelectItem value="add_new" className="font-bold text-primary">افزودن دسته‌بندی جدید...</SelectItem>
-                                {categories.map((category) => (
-                                <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                            <div data-testid="category-select-wrapper">
+                                <Select onValueChange={handleCategorySelection} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="max-h-[250px]">
+                                    <SelectItem value="add_new" className="font-bold text-primary">افزودن دسته‌بندی جدید...</SelectItem>
+                                    {categories.map((category) => (
+                                    <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            </div>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -255,20 +259,22 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>طرف حساب (اختیاری)</FormLabel>
-                            <Select onValueChange={handlePayeeSelection} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="max-h-[250px]">
-                                <SelectItem value="none"><em>هیچکدام</em></SelectItem>
-                                <SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>
-                                {payees.map((payee) => (
-                                <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                            <div data-testid="payee-select-wrapper">
+                                <Select onValueChange={handlePayeeSelection} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="یک طرف حساب انتخاب کنید" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="max-h-[250px]">
+                                    <SelectItem value="none"><em>هیچکدام</em></SelectItem>
+                                    <SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>
+                                    {payees.map((payee) => (
+                                    <SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            </div>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -279,18 +285,20 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>این هزینه برای کیست؟</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="شخص یا مورد هزینه را انتخاب کنید" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="shared">مشترک</SelectItem>
-                                <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
-                                <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
-                            </SelectContent>
-                            </Select>
+                            <div data-testid="expense-for-select-wrapper">
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="شخص یا مورد هزینه را انتخاب کنید" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="shared">مشترک</SelectItem>
+                                    <SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem>
+                                    <SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem>
+                                </SelectContent>
+                                </Select>
+                            </div>
                             <FormMessage />
                         </FormItem>
                         )}

@@ -13,6 +13,7 @@ export const USER_DETAILS: Record<'ali' | 'fatemeh', Omit<UserProfile, 'id'>> = 
     email: 'ali@khanevadati.app',
     firstName: 'علی',
     lastName: 'کاکایی',
+    signatureImage: '/images/ali-signature.png',
   },
   fatemeh: {
     email: 'fatemeh@khanevadati.app',

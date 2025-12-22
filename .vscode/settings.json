@@ -1,4 +1,18 @@
 {
     "IDX.aI.showChatInEditorTab": false,
-    "IDX.agenticWorkspace": false
+    "IDX.agenticWorkspace": true,
+    "git.terminalGitEditor": true,
+    "terminal.integrated.suggest.enabled": true,
+    "terminal.integrated.smoothScrolling": true,
+    "terminal.integrated.macOptionClickForcesSelection": true,
+    "terminal.integrated.macOptionIsMeta": true,
+    "terminal.integrated.ignoreBracketedPasteMode": true,
+    "terminal.integrated.fontLigatures.enabled": true,
+    "terminal.integrated.enableVisualBell": true,
+    "terminal.integrated.copyOnSelection": true,
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.allowMnemonics": true,
+    "terminal.integrated.accessibleViewPreserveCursorPosition": true,
+    "terminal.integrated.accessibleViewFocusOnCommandExecution": true,
+    "debug.terminal.clearBeforeReusing": true
 }

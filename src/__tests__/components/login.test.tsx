@@ -5,7 +5,7 @@ import LoginPage from '@/app/login/page';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-// Mock useRouter
+// Mock useRouter from next/navigation
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -15,19 +15,19 @@ jest.mock('next/navigation', () => ({
 
 // Mock Firebase services
 jest.mock('@/firebase', () => ({
-  useAuth: () => ({}),
-  useFirestore: () => ({}), // Firestore instance is used by ensureUserProfile
-  useUser: () => ({ user: null, isUserLoading: false }),
+  useAuth: () => ({}), // We mock the auth functions directly
+  useFirestore: () => ({}), // We mock the firestore functions directly
+  useUser: () => ({ user: null, isUserLoading: false }), // Assume no user is logged in initially
 }));
 
-// Mock 'firebase/auth' module
+// Mock firebase/auth module
 jest.mock('firebase/auth', () => ({
   ...jest.requireActual('firebase/auth'),
   signInWithEmailAndPassword: jest.fn(),
-  onAuthStateChanged: jest.fn(() => () => {}),
+  onAuthStateChanged: jest.fn(() => () => {}), // Returns a mock unsubscribe function
 }));
 
-// Mock 'firebase/firestore' module
+// Mock firebase/firestore module
 jest.mock('firebase/firestore', () => ({
   ...jest.requireActual('firebase/firestore'),
   doc: jest.fn(),
@@ -45,97 +45,100 @@ jest.mock('@/hooks/use-toast', () => ({
 
 describe('LoginPage', () => {
   beforeEach(() => {
-    // Clear all mocks before each test
-    mockPush.mockClear();
-    mockToast.mockClear();
-    (signInWithEmailAndPassword as jest.Mock).mockClear();
-    (doc as jest.Mock).mockClear();
-    (getDoc as jest.Mock).mockClear();
-    (setDoc as jest.Mock).mockClear();
+    // Clear all mocks before each test to ensure isolation
+    jest.clearAllMocks();
   });
 
-  it('renders the login form', () => {
+  it('should render the login form correctly', () => {
     render(<LoginPage />);
     expect(screen.getByLabelText(/ایمیل/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/رمز عبور/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ورود/i })).toBeInTheDocument();
   });
 
-  it('shows validation error for unauthorized email', async () => {
+  it('should show a validation error for unauthorized emails on the client-side', async () => {
     render(<LoginPage />);
-    fireEvent.input(screen.getByLabelText(/ایمیل/i), {
-      target: { value: 'test@wrong.com' },
-    });
+    fireEvent.input(screen.getByLabelText(/ایمیل/i), { target: { value: 'intruder@wrong.com' } });
     fireEvent.submit(screen.getByRole('button', { name: /ورود/i }));
 
     await waitFor(() => {
-      expect(
-        screen.getByText('شما اجازه ورود به این اپلیکیشن را ندارید.')
-      ).toBeInTheDocument();
+      expect(screen.getByText('شما اجازه ورود به این اپلیکیشن را ندارید.')).toBeInTheDocument();
     });
-    // Ensure no toast is shown for client-side validation
+    expect(signInWithEmailAndPassword).not.toHaveBeenCalled();
     expect(mockToast).not.toHaveBeenCalled();
   });
 
-  it('redirects to dashboard on successful login', async () => {
-    // Arrange
-    (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
-      user: { uid: '123', email: 'ali@khanevadati.app' },
-    });
-    // Arrange: Mock Firestore functions for ensureUserProfile
-    (getDoc as jest.Mock).mockResolvedValue({ exists: () => false }); // Simulate profile not existing
-    (setDoc as jest.Mock).mockResolvedValue(undefined); // Simulate successful profile creation
+  // Test suite for authorized users (Ali and Fatemeh)
+  const authorizedUsers = [
+    { email: 'ali@khanevadati.app', uid: 'ali_uid' },
+    { email: 'fatemeh@khanevadati.app', uid: 'fatemeh_uid' },
+  ];
 
-    render(<LoginPage />);
+  describe.each(authorizedUsers)('for user $email', ({ email, uid }) => {
+    it('should redirect to dashboard and create a profile on first successful login', async () => {
+      // Arrange: Mock successful authentication and a non-existent user profile
+      (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({ user: { uid, email } });
+      (getDoc as jest.Mock).mockResolvedValue({ exists: () => false });
+      (setDoc as jest.Mock).mockResolvedValue(undefined);
 
-    // Act
-    fireEvent.input(screen.getByLabelText(/ایمیل/i), {
-      target: { value: 'ali@khanevadati.app' },
-    });
-    fireEvent.input(screen.getByLabelText(/رمز عبور/i), {
-      target: { value: 'password123' },
-    });
-    fireEvent.submit(screen.getByRole('button', { name: /ورود/i }));
+      render(<LoginPage />);
 
-    // Assert: Wait for the redirection to happen
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/');
-    });
+      // Act: Fill and submit the form
+      fireEvent.input(screen.getByLabelText(/ایمیل/i), { target: { value: email } });
+      fireEvent.input(screen.getByLabelText(/رمز عبور/i), { target: { value: 'any-password' } });
+      fireEvent.submit(screen.getByRole('button', { name: /ورود/i }));
 
-    // Assert: Ensure a success toast was shown
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'ورود موفق',
-      })
-    );
-  });
-
-  it('handles wrong password error', async () => {
-    // Arrange
-    (signInWithEmailAndPassword as jest.Mock).mockRejectedValue({
-      code: 'auth/wrong-password',
+      // Assert: Check for redirection and profile creation
+      await waitFor(() => {
+        expect(signInWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), email, 'any-password');
+        expect(setDoc).toHaveBeenCalled(); // Profile creation is called
+        expect(mockPush).toHaveBeenCalledWith('/');
+        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'ورود موفق' }));
+      });
     });
 
-    render(<LoginPage />);
+    it('should redirect to dashboard if the user profile already exists', async () => {
+        // Arrange: Mock successful authentication and an existing user profile
+        (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({ user: { uid, email } });
+        (getDoc as jest.Mock).mockResolvedValue({ exists: () => true }); // Profile already exists
+  
+        render(<LoginPage />);
+  
+        // Act: Fill and submit the form
+        fireEvent.input(screen.getByLabelText(/ایمیل/i), { target: { value: email } });
+        fireEvent.input(screen.getByLabelText(/رمز عبور/i), { target: { value: 'any-password' } });
+        fireEvent.submit(screen.getByRole('button', { name: /ورود/i }));
+  
+        // Assert: Check for redirection WITHOUT profile creation
+        await waitFor(() => {
+          expect(setDoc).not.toHaveBeenCalled(); // Profile creation is NOT called
+          expect(mockPush).toHaveBeenCalledWith('/');
+          expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'ورود موفق' }));
+        });
+      });
 
-    // Act
-    fireEvent.input(screen.getByLabelText(/ایمیل/i), {
-      target: { value: 'ali@khanevadati.app' },
-    });
-    fireEvent.input(screen.getByLabelText(/رمز عبور/i), {
-      target: { value: 'wrongpassword' },
-    });
-    fireEvent.submit(screen.getByRole('button', { name: /ورود/i }));
+    it('should show a toast error for wrong password', async () => {
+      // Arrange: Mock the specific "wrong-password" error from Firebase
+      (signInWithEmailAndPassword as jest.Mock).mockRejectedValue({ code: 'auth/wrong-password' });
 
-    // Assert
-    await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({
-          variant: 'destructive',
-          title: 'خطا در ورود',
-          description: 'ایمیل یا رمز عبور اشتباه است.',
-        })
-      );
+      render(<LoginPage />);
+
+      // Act: Fill and submit the form
+      fireEvent.input(screen.getByLabelText(/ایمیل/i), { target: { value: email } });
+      fireEvent.input(screen.getByLabelText(/رمز عبور/i), { target: { value: 'wrong-password' } });
+      fireEvent.submit(screen.getByRole('button', { name: /ورود/i }));
+
+      // Assert: Check for the specific error toast
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            variant: 'destructive',
+            title: 'خطا در ورود',
+            description: 'ایمیل یا رمز عبور اشتباه است.',
+          })
+        );
+      });
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 });

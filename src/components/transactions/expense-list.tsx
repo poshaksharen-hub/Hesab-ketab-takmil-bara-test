@@ -140,7 +140,7 @@ export function ExpenseList({
                 const registeredByName = getRegisteredByName(expense.registeredByUserId);
 
                 return (
-                <Card key={expense.id} className="flex flex-col">
+                <Card key={expense.id} data-testid={`expense-item-${expense.id}`} className="flex flex-col">
                     <CardHeader>
                     <div className="flex items-start justify-between">
                         <p className="text-lg font-bold whitespace-pre-wrap">{expense.description}</p>

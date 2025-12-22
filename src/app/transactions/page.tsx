@@ -191,7 +191,7 @@ export default function ExpensesPage() {
         </div>
         {!isFormOpen && (
             <div className="hidden md:block">
-                <Button onClick={handleAddNew}>
+                <Button onClick={handleAddNew} data-testid="add-new-expense-desktop">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     ثبت هزینه جدید
                 </Button>
