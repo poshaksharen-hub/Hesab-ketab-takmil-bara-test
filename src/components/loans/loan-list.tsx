@@ -1,0 +1,209 @@
+
+'use client';
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History, Edit, PenSquare, User, Users } from 'lucide-react';
+import type { Loan, LoanPayment, Payee, BankAccount, UserProfile, OwnerId } from '@/lib/types';
+import { formatCurrency, formatJalaliDate } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
+import { cn } from '@/lib/utils';
+import { Badge } from '../ui/badge';
+import { getNextDueDate } from '@/lib/date-utils';
+import Link from 'next/link';
+import { USER_DETAILS } from '@/lib/constants';
+
+interface LoanListProps {
+  loans: Loan[];
+  payees: Payee[];
+  users: UserProfile[];
+  onDelete: (loanId: string) => void;
+  onPay: (loan: Loan) => void;
+  onEdit: (loan: Loan) => void;
+}
+
+export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: LoanListProps) {
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  
+  const getPayeeName = (payeeId?: string) => {
+    if (!payeeId) return 'نامشخص';
+    return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+  };
+
+  if (loans.length === 0) {
+    return (
+        <Card className="mt-4">
+            <CardContent>
+                <div className="text-center py-12">
+                    <Landmark className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-semibold">هنوز وامی ثبت نشده است</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        با کلیک بر روی دکمه "ثبت وام جدید"، اولین وام خود را ثبت کنید.
+                    </p>
+                </div>
+            </CardContent>
+        </Card>
+    )
+  }
+
+  const handleDeleteClick = async (loanId: string) => {
+      setIsDeleting(loanId);
+      try {
+          await onDelete(loanId);
+      } finally {
+          setIsDeleting(null);
+      }
+  };
+
+  const getLoanStatus = (loan: Loan) => {
+    if (loan.remainingAmount <= 0) {
+      return <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">تسویه شده</Badge>;
+    }
+    const nextDueDate = getNextDueDate(loan);
+    if (!nextDueDate) return <Badge variant="secondary">در حال پرداخت</Badge>;
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if(nextDueDate < today) {
+        return <Badge variant="destructive">قسط معوق</Badge>;
+    }
+    return <Badge variant="secondary">در حال پرداخت</Badge>;
+  };
+
+  const getOwnerDetails = (ownerId: OwnerId) => {
+    if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
+    if (!userDetail) return { name: "ناشناس", Icon: User };
+    return { name: userDetail.firstName, Icon: User };
+  };
+
+
+  return (
+    <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-4'>
+        {loans.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((loan) => {
+            const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
+            const isCompleted = loan.remainingAmount <= 0;
+            const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(loan.ownerId);
+            const registeredByName = users.find(u => u.id === loan.registeredByUserId)?.firstName || 'سیستم';
+            const isDeleteDisabled = (loan.paidInstallments > 0) || isDeleting === loan.id;
+
+            return (
+             <div key={loan.id} className="relative group">
+                <Link href={`/loans/${loan.id}`} className="block h-full cursor-pointer" aria-label={`View details for loan ${loan.title}`}>
+                    <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
+                        <CardHeader>
+                            <div className='flex justify-between items-start'>
+                                <div className="space-y-1">
+                                    <CardTitle className={cn("font-headline flex items-center gap-2", isCompleted && "text-muted-foreground line-through")}>
+                                      <OwnerIcon className="h-5 w-5 text-muted-foreground" />
+                                      {loan.title}
+                                    </CardTitle>
+                                    <CardDescription className='flex items-center gap-2'>
+                                        {getLoanStatus(loan)}
+                                        {loan.payeeId && <span className="text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
+                                    </CardDescription>
+                                </div>
+                            <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                               <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                            <MoreVertical className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={(e) => {e.preventDefault(); const router = (e.target as HTMLElement).closest('a')?.href; if(router) window.location.href = router; }}>
+                                            <History className="ml-2 h-4 w-4" />
+                                            مشاهده تاریخچه
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted}>
+                                            <Edit className="ml-2 h-4 w-4" />
+                                            ویرایش وام
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
+                                                    <Trash2 className="ml-2 h-4 w-4" />
+                                                    حذف وام
+                                                </div>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط (مانند واریز اولیه) معکوس و وام حذف خواهد شد.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    className="bg-destructive hover:bg-destructive/90"
+                                                    disabled={isDeleteDisabled}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(loan.id); }}>
+                                                    {isDeleting === loan.id ? 'در حال حذف...' : 'بله، حذف کن'}
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                    <span>{formatCurrency(loan.remainingAmount, 'IRT')}</span>
+                                    <span>{formatCurrency(loan.amount, 'IRT')}</span>
+                                </div>
+                                <Progress value={progress} className="h-2" />
+                                <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
+                                    <span>{`${loan.numberOfInstallments > 0 ? (loan.numberOfInstallments - loan.paidInstallments) + ' قسط باقی‌مانده' : 'پرداخت نشده'}`}</span>
+                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${registeredByName}`}>
+                                      <PenSquare className="h-3 w-3" />
+                                      <span>{registeredByName}</span>
+                                    </div>
+                                    <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments || '؟'} قسط`}</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                        <CardFooter className="grid grid-cols-2 gap-2">
+                            {isCompleted ? (
+                                <div className="col-span-2 w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span>وام تسویه شد!</span>
+                                </div>
+                            ) : (
+                                <Button className="w-full col-span-2" onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}}>
+                                    <CalendarCheck2 className="ml-2 h-4 w-4" />
+                                    پرداخت قسط
+                                </Button>
+                            )}
+                        </CardFooter>
+                    </Card>
+                </Link>
+             </div>
+        )})}
+    </div>
+  );
+}
