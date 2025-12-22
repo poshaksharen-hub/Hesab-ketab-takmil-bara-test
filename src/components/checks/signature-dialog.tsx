@@ -23,18 +23,14 @@ export const SignatureDialog: React.FC<SignatureDialogProps> = ({ open, onOpenCh
 
   const handleConfirm = () => {
     if (sigCanvas.current) {
-      // Check if the canvas is empty
       if (sigCanvas.current.isEmpty()) {
-        // Handle empty signature case if needed, e.g., show an alert
-        // For now, we'll just pass an empty string
         onConfirm('');
       } else {
-        // FIX: Use toDataURL directly to avoid the bug in getTrimmedCanvas.
-        // This will export the entire canvas, not just the trimmed signature.
+        // FIX: Use toDataURL() directly. getTrimmedCanvas().toDataURL() is buggy in some environments.
+        // This ensures a valid data URL is always generated.
         const signatureImage = sigCanvas.current.toDataURL('image/png');
         onConfirm(signatureImage);
       }
-      // Clear the canvas and close the dialog after confirming
       handleClear(); 
       onOpenChange(false);
     }
