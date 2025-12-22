@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { OverallSummary } from '@/components/dashboard/overall-summary';
 import { formatCurrency } from '@/lib/utils';
 
@@ -20,33 +20,24 @@ describe('OverallSummary', () => {
   it('renders all summary cards with correctly formatted values', () => {
     render(<OverallSummary filteredSummary={mockSummary} />);
 
-    // Check for Net Worth
-    expect(screen.getByText('دارایی خالص')).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(mockSummary.netWorth, 'IRT'))).toBeInTheDocument();
+    const checkCard = (title, value) => {
+      const titleElement = screen.getByText(title);
+      const cardElement = titleElement.closest('.rounded-lg');
+      
+      expect(cardElement).not.toBeNull();
+      expect(cardElement).toBeInTheDocument();
 
-    // Check for Total Assets
-    expect(screen.getByText('کل دارایی')).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(mockSummary.totalAssets, 'IRT'))).toBeInTheDocument();
-    
-    // Check for Total Income
-    expect(screen.getByText('کل درآمد')).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(mockSummary.totalIncome, 'IRT'))).toBeInTheDocument();
+      const valueElement = within(cardElement).getByText(formatCurrency(value, 'IRT'));
+      expect(valueElement).toBeInTheDocument();
+    };
 
-    // Check for Total Expense
-    expect(screen.getByText('کل هزینه')).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(mockSummary.totalExpense, 'IRT'))).toBeInTheDocument();
-    
-    // Check for Loan Debts
-    expect(screen.getByText('بدهی وام‌ها')).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(mockSummary.remainingLoanAmount, 'IRT'))).toBeInTheDocument();
-
-    // Check for Check Debts
-    expect(screen.getByText('بدهی چک‌ها')).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(mockSummary.pendingChecksAmount, 'IRT'))).toBeInTheDocument();
-
-    // Check for Miscellaneous Debts
-    expect(screen.getByText('بدهی‌های متفرقه')).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(mockSummary.remainingDebtsAmount, 'IRT'))).toBeInTheDocument();
+    checkCard('دارایی خالص', mockSummary.netWorth);
+    checkCard('کل دارایی', mockSummary.totalAssets);
+    checkCard('کل درآمد', mockSummary.totalIncome);
+    checkCard('کل هزینه', mockSummary.totalExpense);
+    checkCard('بدهی وام‌ها', mockSummary.remainingLoanAmount);
+    checkCard('بدهی چک‌ها', mockSummary.pendingChecksAmount);
+    checkCard('بدهی‌های متفرقه', mockSummary.remainingDebtsAmount);
   });
 
   it('handles zero values correctly', () => {
@@ -63,7 +54,6 @@ describe('OverallSummary', () => {
     };
     render(<OverallSummary filteredSummary={zeroSummary} />);
 
-    // Just check one value to confirm it renders "۰ تومان"
     expect(screen.getAllByText('۰ تومان').length).toBeGreaterThan(0);
   });
 });
