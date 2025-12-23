@@ -11,13 +11,14 @@ import { ArrowRight, User, Users, Calendar, PenSquare, AlertCircle, CheckCircle 
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
-import { SignatureAli, SignatureFatemeh, HesabKetabLogo } from '@/components/icons';
+import { HesabKetabLogo, SignatureAli, SignatureFatemeh } from '@/components/icons';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { runTransaction, doc, collection, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function CheckDetailSkeleton() {
   return (
@@ -261,17 +262,18 @@ export default function CheckDetailPage() {
                     </div>
                     <div className="text-right relative">
                         <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
-                        <p className="font-body text-sm font-semibold">{ownerName}</p>
-                        <div className="absolute -bottom-5 -right-2 w-24 h-12 pointer-events-none opacity-80">
-                            {bankAccount?.ownerId === 'ali' && <SignatureAli className="w-full h-full text-gray-700 dark:text-gray-300" />}
-                            {bankAccount?.ownerId === 'fatemeh' && <SignatureFatemeh className="w-full h-full text-gray-700 dark:text-gray-300" />}
-                            {bankAccount?.ownerId === 'shared_account' && (
-                                <>
-                                    <SignatureAli className="w-20 h-10 absolute -top-2 right-4 text-gray-700 dark:text-gray-300" />
-                                    <SignatureFatemeh className="w-20 h-10 absolute -top-2 left-[-20px] text-gray-700 dark:text-gray-300" />
-                                </>
-                            )}
-                        </div>
+                        <p className="font-body text-sm font-semibold h-6">{ownerName}</p>
+                        {check.signatureDataUrl && (
+                            <div className="absolute -bottom-5 right-0 w-28 h-14 pointer-events-none">
+                                <Image 
+                                    src={check.signatureDataUrl} 
+                                    alt={`امضای ${ownerName}`} 
+                                    width={112} 
+                                    height={56}
+                                    style={{ objectFit: 'contain'}}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
