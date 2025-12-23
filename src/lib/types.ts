@@ -102,7 +102,7 @@ export type Check = {
     description?: string;
     sayadId: string;
     checkSerialNumber: string;
-    signatureUrl?: string;
+    signatureDataUrl?: string; // Changed from signatureUrl
 }
 
 export type FinancialGoalContribution = {

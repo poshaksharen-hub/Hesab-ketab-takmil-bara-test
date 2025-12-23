@@ -21,7 +21,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 
 const FAMILY_DATA_DOC = 'shared-data';
 
-type CheckFormData = Omit<Check, 'id' | 'registeredByUserId' | 'status'> & { signature?: string };
+type CheckFormData = Omit<Check, 'id' | 'registeredByUserId' | 'status'> & { signatureDataUrl?: string };
 
 export default function ChecksPage() {
   const { user, isUserLoading } = useUser();
@@ -50,7 +50,7 @@ export default function ChecksPage() {
 
     if (editingCheck) {
       const checkRef = doc(checksColRef, editingCheck.id);
-      const { signature, ...updatedValues } = values;
+      const { signatureDataUrl, ...updatedValues } = values; // signature is not editable
       const updatedCheck = {
         ...updatedValues,
         issueDate: (values.issueDate as any).toISOString ? (values.issueDate as any).toISOString() : values.issueDate,
@@ -66,61 +66,41 @@ export default function ChecksPage() {
         errorEmitter.emit('permission-error', permissionError);
       }
     } else {
-      const { signature, ...newCheckValues } = values;
-      if (!signature) {
+        // Create new check with signature data
+        const { signatureDataUrl, ...newCheckValues } = values;
+        if (!signatureDataUrl) {
           toast({ variant: 'destructive', title: "خطا", description: "امضا برای ثبت چک الزامی است." });
           setIsSubmitting(false);
           return;
-      }
-      
-      let checkId = '';
-      try {
-        const tempDocRef = await addDoc(checksColRef, { status: 'uploading' });
-        checkId = tempDocRef.id;
-
-        const uploadResponse = await fetch('/api/upload-signature', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ signature, checkId }),
-        });
-
-        if (!uploadResponse.ok) {
-            const errorBody = await uploadResponse.json().catch(() => ({ message: 'خطا در آپلود امضا' }));
-            throw new Error(errorBody.message);
         }
 
-        const { signatureUrl } = await uploadResponse.json();
+        try {
+            const newDocRef = doc(checksColRef);
+            const newCheckData: Omit<Check, 'id'> & { id: string } = {
+                ...newCheckValues,
+                id: newDocRef.id,
+                issueDate: (values.issueDate as any).toISOString(),
+                dueDate: (values.dueDate as any).toISOString(),
+                registeredByUserId: user.uid,
+                status: 'pending',
+                ownerId: bankAccount.ownerId,
+                signatureDataUrl: signatureDataUrl,
+            };
+            
+            await setDoc(newDocRef, newCheckData);
+            toast({ title: "موفقیت", description: "چک جدید با امضا با موفقیت ثبت شد." });
 
-        const newCheckData: Omit<Check, 'id'> = {
-            ...newCheckValues,
-            id: checkId,
-            issueDate: (values.issueDate as any).toISOString(),
-            dueDate: (values.dueDate as any).toISOString(),
-            registeredByUserId: user.uid,
-            status: 'pending',
-            ownerId: bankAccount.ownerId,
-            signatureUrl: signatureUrl,
-        };
-        
-        await updateDoc(tempDocRef, newCheckData);
-        toast({ title: "موفقیت", description: "چک جدید با امضا با موفقیت ثبت شد." });
+            const currentUser = users.find(u => u.id === user.uid);
+            const payee = payees.find(p => p.id === values.payeeId);
+            const category = categories.find(c => c.id === values.categoryId);
+            const bankAccountOwnerName = bankAccount.ownerId === 'shared_account' ? 'مشترک' : (bankAccount.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
 
-        const currentUser = users.find(u => u.id === user.uid);
-        const payee = payees.find(p => p.id === values.payeeId);
-        const category = categories.find(c => c.id === values.categoryId);
-        const bankAccountOwnerName = bankAccount.ownerId === 'shared_account' ? 'مشترک' : (bankAccount.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
-
-        const notificationDetails: TransactionDetails = { type: 'check', title: `ثبت چک برای ${payee?.name}`, amount: values.amount, date: newCheckData.issueDate, icon: 'BookCopy', color: 'rgb(217 119 6)', registeredBy: currentUser?.firstName || 'کاربر', payee: payee?.name, category: category?.name, bankAccount: { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' }, expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک', checkDetails: { sayadId: values.sayadId, dueDate: formatJalaliDate(new Date(newCheckData.dueDate)) } };
-        await sendSystemNotification(firestore, user.uid, notificationDetails);
-        
-      } catch (error: any) {
-        console.error("Error creating check with signature:", error);
-        if (checkId) {
-            const docToDeleteRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'checks', checkId);
-            await deleteDoc(docToDeleteRef).catch(e => console.error("Cleanup failed:", e));
+            const notificationDetails: TransactionDetails = { type: 'check', title: `ثبت چک برای ${payee?.name}`, amount: values.amount, date: newCheckData.issueDate, icon: 'BookCopy', color: 'rgb(217 119 6)', registeredBy: currentUser?.firstName || 'کاربر', payee: payee?.name, category: category?.name, bankAccount: { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' }, expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک', checkDetails: { sayadId: values.sayadId, dueDate: formatJalaliDate(new Date(newCheckData.dueDate)) } };
+            await sendSystemNotification(firestore, user.uid, notificationDetails);
+        } catch (error: any) {
+            console.error("Error creating check with signature:", error);
+            toast({ variant: 'destructive', title: "عملیات ناموفق", description: error.message || "مشکلی در ثبت چک پیش آمد." });
         }
-        toast({ variant: 'destructive', title: "عملیات ناموفق", description: error.message || "مشکلی در ثبت چک پیش آمد." });
-      }
     }
     setIsFormOpen(false);
     setEditingCheck(null);

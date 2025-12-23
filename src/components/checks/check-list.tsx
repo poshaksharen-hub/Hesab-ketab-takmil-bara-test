@@ -188,10 +188,10 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                              <div className="text-right relative">
                                 <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
                                 <p className="font-body text-sm font-semibold h-6">{ownerName}</p>
-                                {check.signatureUrl && (
+                                {check.signatureDataUrl && (
                                     <div className="absolute -bottom-5 right-0 w-28 h-14 pointer-events-none">
                                         <Image 
-                                            src={check.signatureUrl} 
+                                            src={check.signatureDataUrl} 
                                             alt={`امضای ${ownerName}`} 
                                             width={112} 
                                             height={56}
