@@ -64,7 +64,10 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<CheckFormValues | null>(null);
+  
+  // This state will hold the form data while the signature dialog is open
+  const [pendingFormData, setPendingFormData] = useState<CheckFormValues | null>(null);
+
 
   const form = useForm<CheckFormValues>({
     resolver: zodResolver(formSchema),
@@ -106,7 +109,7 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
           checkSerialNumber: '',
       });
     }
-  }, [initialData]);
+  }, [initialData, form]);
   
   const handlePayeeSelection = (value: string) => {
     if (value === 'add_new') {
@@ -125,23 +128,21 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
   };
 
   const handleFormSubmit = (data: CheckFormValues) => {
-    // Don't ask for signature when editing
     if (initialData) {
         onSubmit(data);
-        return;
+    } else {
+        setPendingFormData(data);
+        setIsSignatureDialogOpen(true);
     }
-    // For new checks, open the signature dialog
-    setFormData(data);
-    setIsSignatureDialogOpen(true);
   };
 
   const handleSignatureConfirm = (signature: string) => {
-    if (formData) {
-        const finalData = { ...formData, signatureDataUrl: signature };
+    if (pendingFormData) {
+        const finalData = { ...pendingFormData, signatureDataUrl: signature };
         onSubmit(finalData);
     }
     setIsSignatureDialogOpen(false);
-    setFormData(null);
+    setPendingFormData(null);
   };
 
   const getOwnerName = (account: BankAccount) => {
