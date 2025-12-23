@@ -77,6 +77,7 @@ export type UserProfile = {
   email: string;
   firstName: string;
   lastName: string;
+  signatureImage?: string;
 }
 
 export type Payee = {
@@ -101,6 +102,7 @@ export type Check = {
     description?: string;
     sayadId: string;
     checkSerialNumber: string;
+    signatureUrl?: string;
 }
 
 export type FinancialGoalContribution = {

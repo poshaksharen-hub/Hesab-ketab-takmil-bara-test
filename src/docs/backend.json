@@ -147,7 +147,8 @@
         "clearedDate": { "type": "string", "format": "date-time", "description": "The date the check was cleared." },
         "description": { "type": "string" },
         "sayadId": { "type": "string", "description": "The Sayad ID of the check." },
-        "checkSerialNumber": { "type": "string", "description": "The serial number of the check." }
+        "checkSerialNumber": { "type": "string", "description": "The serial number of the check." },
+        "signatureUrl": { "type": "string", "description": "Public URL of the check signature image."}
       },
       "required": ["id", "registeredByUserId", "ownerId", "expenseFor", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
     },
