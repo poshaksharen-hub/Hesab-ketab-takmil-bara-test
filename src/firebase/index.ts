@@ -1,10 +1,8 @@
-
-'use client';
-
-// This file now acts as a simple barrel file for exporting hooks.
-// The initialization logic has been moved to FirebaseClientProvider
-// to ensure it runs only once on the client and that a single instance
-// of Firebase services is used throughout the app.
+// This file is intentionally left blank. 
+// The correct Firebase initialization and provider logic is handled 
+// in client-provider.tsx and provider.tsx.
+// This file is now redundant and its old content was causing initialization issues.
+// Exporting the necessary hooks and components from their new locations.
 
 export * from './provider';
 export * from './client-provider';
