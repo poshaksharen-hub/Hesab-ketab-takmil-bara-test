@@ -1,5 +1,6 @@
+
 {
-  "description": "Technical specification for migrating the Khanevadati app backend from Firebase/Firestore to Supabase/PostgreSQL.",
+  "description": "Technical specification for migrating the Khanevadati app backend from Firebase/Firestore to Supabase/PostgreSQL. This is the complete and corrected version.",
   "firestore": {
     "description": "Source Data Model (Firebase/Firestore). This structure will be mapped to PostgreSQL tables. The single-document model ('family-data' -> 'shared-data') will be flattened into multiple related tables in SQL.",
     "collections": {
@@ -8,35 +9,32 @@
           "shared-data": {
             "subcollections": {
               "users": {
-                "description": "User profiles. In Supabase, this will map to a 'users' table linked to 'auth.users'.",
+                "description": "User profiles. Maps to a 'users' table linked to 'auth.users'.",
                 "documents": {
                   "[userId]": {
                     "fields": [
-                      { "name": "id", "type": "string", "description": "The user's unique ID (matches auth UID). Primary Key in the 'users' table." },
-                      { "name": "email", "type": "string", "description": "The user's email address." },
-                      { "name": "firstName", "type": "string", "description": "The user's first name." },
-                      { "name": "lastName", "type": "string", "description": "The user's last name." },
-                      { "name": "signatureImage", "type": "string", "description": "Legacy field. URL to the user's signature image." },
-                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation. Managed by the database." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update. Managed by the database." }
+                      { "name": "id", "type": "string", "description": "Primary Key (matches auth UID)." },
+                      { "name": "email", "type": "string", "description": "User's email." },
+                      { "name": "firstName", "type": "string", "description": "User's first name." },
+                      { "name": "lastName", "type": "string", "description": "User's last name." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." }
                     ]
                   }
                 }
               },
               "bankAccounts": {
-                "description": "Bank accounts, personal and shared. Maps to 'bank_accounts' table.",
+                "description": "Bank accounts. Maps to 'bank_accounts' table.",
                 "documents": {
                   "[accountId]": {
                     "fields": [
                       { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "ownerId", "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Indicates who owns the account." },
-                      { "name": "bankName", "type": "string", "description": "The name of the bank." },
-                      { "name": "balance", "type": "number", "description": "Current balance of the account." },
-                      { "name": "blockedBalance", "type": "number", "description": "Amount reserved for pending transactions like financial goals." },
+                      { "name": "ownerId", "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Indicates account ownership." },
+                      { "name": "balance", "type": "number", "description": "Current balance." },
                       { "name": "registeredByUserId", "type": "string", "description": "Foreign Key to users.id." },
                       { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
-                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete. UI should filter out deleted accounts." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete." },
                       { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
                     ]
                   }
@@ -48,39 +46,32 @@
                   "[expenseId]": {
                     "fields": [
                       { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID for all records in a single atomic financial operation. Essential for auditing." },
+                      { "name": "transactionId", "type": "string", "description": "Shared UUID for atomic financial operations." },
                       { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
-                      { "name": "ownerId", "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Owner of the bank account used." },
-                      { "name": "registeredByUserId", "type": "string", "description": "Foreign Key to users.id, user who logged the expense." },
-                      { "name": "paidByUserId", "type": "string", "optional": true, "description": "Foreign Key to users.id, user who physically made the payment. Useful for future detailed reporting." },
+                      { "name": "paidByUserId", "type": "string", "optional": true, "description": "Foreign Key to users.id, who physically made the payment." },
                       { "name": "categoryId", "type": "string", "description": "Foreign Key to categories.id." },
-                      { "name": "payeeId", "type": "string", "optional": true, "description": "Foreign Key to payees.id." },
-                      { "name": "amount", "type": "number", "description": "The amount of the expense." },
-                      { "name": "date", "type": "string", "format": "date-time", "description": "The date of the expense." },
-                      { "name": "description", "type": "string", "description": "A description of the expense." },
-                      { "name": "expenseFor", "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Beneficiary of the expense." },
+                      { "name": "amount", "type": "number", "description": "Expense amount." },
+                      { "name": "date", "type": "string", "format": "date-time", "description": "Date of expense." },
                       { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." }
                     ]
                   }
                 }
               },
-              "incomes": {
+              "income": {
                 "description": "Income transactions. Maps to 'incomes' table.",
                 "documents": {
                   "[incomeId]": {
                     "fields": [
                       { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID for all records in a single atomic financial operation." },
-                      { "name": "date", "type": "string", "format": "date-time", "description": "The date of the income." },
-                      { "name": "description", "type": "string", "description": "A description of the income." },
-                      { "name": "amount", "type": "number", "description": "The amount of income." },
-                      { "name": "incomeSource", "type": "string", "enum": ["ali", "fatemeh", "daramad_moshtarak"], "description": "The source of the income (who earned it). Used for 'daramad Ali/Fatemeh/Moshtarak' reporting." },
-                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id, where the income was deposited." },
-                      { "name": "bankAccountOwner", "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Owner of the destination bank account. Used for structural analysis, populated based on the selected bank account." },
-                      { "name": "registeredByUserId", "type": "string", "description": "Foreign Key to users.id." },
+                      { "name": "transactionId", "type": "string", "description": "Shared UUID for atomic financial operations." },
+                      { "name": "incomeSource", "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who earned the income. Used for reporting." },
+                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
+                      { "name": "bankAccountOwner", "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Owner of the destination bank account." },
+                      { "name": "amount", "type": "number", "description": "Income amount." },
+                      { "name": "date", "type": "string", "format": "date-time", "description": "Date of income." },
                       { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." }
                     ]
                   }
                 }
@@ -91,68 +82,13 @@
                   "[transferId]": {
                     "fields": [
                       { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID for all records in a single atomic financial operation." },
-                      { "name": "registeredByUserId", "type": "string", "description": "Foreign Key to users.id." },
-                      { "name": "fromBankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id (source)." },
-                      { "name": "toBankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id (destination)." },
-                      { "name": "amount", "type": "number", "description": "The amount transferred." },
-                      { "name": "transferDate", "type": "string", "format": "date-time", "description": "The date of the transfer." },
+                      { "name": "transactionId", "type": "string", "description": "Shared UUID for atomic financial operations." },
+                      { "name": "fromBankAccountId", "type": "string", "description": "FK to bank_accounts.id (source)." },
+                      { "name": "toBankAccountId", "type": "string", "description": "FK to bank_accounts.id (destination)." },
+                      { "name": "amount", "type": "number", "description": "Amount transferred." },
+                      { "name": "transferDate", "type": "string", "format": "date-time", "description": "Date of transfer." },
                       { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
-                    ]
-                  }
-                }
-              },
-              "categories": {
-                "description": "Expense categories. Maps to 'categories' table.",
-                "documents": {
-                  "[categoryId]": {
-                    "fields": [
-                      { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "name", "type": "string", "description": "Name of the category." },
-                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
-                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete. Prevents deletion if category is in use." },
-                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
-                    ]
-                  }
-                }
-              },
-              "payees": {
-                "description": "Payees (people or businesses). Maps to 'payees' table.",
-                "documents": {
-                  "[payeeId]": {
-                    "fields": [
-                      { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "name", "type": "string", "description": "Name of the payee." },
-                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
-                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete. Prevents deletion if payee is in use." },
-                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
-                    ]
-                  }
-                }
-              },
-              "checks": {
-                "description": "Issued checks as liabilities. Maps to 'checks' table.",
-                "documents": {
-                  "[checkId]": {
-                    "fields": [
-                      { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID used when the check is cleared, linking it to the resulting expense." },
-                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
-                      { "name": "payeeId", "type": "string", "description": "Foreign Key to payees.id." },
-                      { "name": "amount", "type": "number", "description": "Amount of the check." },
-                      { "name": "issueDate", "type": "string", "format": "date-time", "description": "The date the check was issued." },
-                      { "name": "dueDate", "type": "string", "format": "date-time", "description": "The date the check is due." },
-                      { "name": "status", "type": "string", "enum": ["pending", "cleared"], "description": "Current status of the check." },
-                      { "name": "clearedDate", "type": "string", "format": "date-time", "optional": true, "description": "The date the check was cleared." },
-                      { "name": "signatureDataUrl", "type": "string", "description": "Legacy field: Data URL of the signature image. For migration only." },
-                      { "name": "signaturePath", "type": "string", "optional": true, "description": "Storage path for the signature file in Supabase Storage. The new standard." },
-                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
-                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete." },
-                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." }
                     ]
                   }
                 }
@@ -163,12 +99,20 @@
                   "[loanId]": {
                     "fields": [
                       { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "title", "type": "string", "description": "Title or description of the loan." },
+                      { "name": "ownerId", "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who is responsible for the loan." },
+                      { "name": "registeredByUserId", "type": "string", "description": "FK to users.id, who registered the loan." },
+                      { "name": "payeeId", "type": "string", "optional": true, "description": "FK to payees.id, the lender." },
                       { "name": "amount", "type": "number", "description": "Total loan amount." },
+                      { "name": "installmentAmount", "type": "number", "description": "Amount of each installment." },
                       { "name": "remainingAmount", "type": "number", "description": "The amount yet to be paid." },
+                      { "name": "startDate", "type": "string", "format": "date-time", "description": "Date the loan was taken." },
+                      { "name": "firstInstallmentDate", "type": "string", "format": "date-time", "description": "Due date of the first payment." },
+                      { "name": "numberOfInstallments", "type": "number", "description": "Total number of installments." },
+                      { "name": "paidInstallments", "type": "number", "description": "Number of paid installments." },
+                      { "name": "depositToAccountId", "type": "string", "optional": true, "description": "FK to bank_accounts.id, if amount was deposited." },
                       { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
-                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete. Not deletable if payments exist." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete." },
                       { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
                     ]
                   }
@@ -180,13 +124,102 @@
                   "[paymentId]": {
                     "fields": [
                       { "name": "id", "type": "string", "description": "Primary Key." },
-                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID for all records in a single atomic financial operation." },
+                      { "name": "transactionId", "type": "string", "description": "Shared UUID for atomic financial operations." },
                       { "name": "loanId", "type": "string", "description": "Foreign Key to loans.id." },
                       { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
                       { "name": "amount", "type": "number", "description": "Amount paid." },
                       { "name": "paymentDate", "type": "string", "format": "date-time", "description": "Date of payment." },
                       { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
-                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." }
+                    ]
+                  }
+                }
+              },
+              "previousDebts": {
+                "description": "Informal debts. Maps to 'previous_debts' table.",
+                "documents": {
+                  "[debtId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "ownerId", "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the debt is for." },
+                      { "name": "payeeId", "type": "string", "description": "FK to payees.id, the person owed." },
+                      { "name": "amount", "type": "number", "description": "Total debt amount." },
+                      { "name": "remainingAmount", "type": "number", "description": "Amount yet to be paid." },
+                      { "name": "startDate", "type": "string", "format": "date-time", "description": "Date the debt was incurred." },
+                      { "name": "dueDate", "type": "string", "format": "date-time", "optional": true, "description": "Due date for single-payment debts." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete." },
+                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
+                    ]
+                  }
+                }
+              },
+              "debtPayments": {
+                "description": "Records of debt payments. Maps to 'debt_payments' table.",
+                "documents": {
+                  "[paymentId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "transactionId", "type": "string", "description": "Shared UUID for atomic financial operations." },
+                      { "name": "debtId", "type": "string", "description": "Foreign Key to previous_debts.id." },
+                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
+                      { "name": "amount", "type": "number", "description": "Amount paid." },
+                      { "name": "paymentDate", "type": "string", "format": "date-time", "description": "Date of payment." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." }
+                    ]
+                  }
+                }
+              },
+              "financialGoals": {
+                "description": "Financial goals. Maps to 'financial_goals' table.",
+                "documents": {
+                  "[goalId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "name", "type": "string", "description": "Name of the goal." },
+                      { "name": "targetAmount", "type": "number", "description": "The target amount." },
+                      { "name": "currentAmount", "type": "number", "description": "Currently saved amount." },
+                      { "name": "targetDate", "type": "string", "format": "date-time", "description": "Planned achievement date." },
+                      { "name": "isAchieved", "type": "boolean", "default": false, "description": "Is the goal achieved?" },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete." },
+                      { "name": 'deletedAt', "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
+                    ]
+                  }
+                }
+              },
+              "goalContributions": {
+                "description": "Contributions towards a financial goal. Maps to 'goal_contributions' table.",
+                "documents": {
+                  "[contributionId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "transactionId", "type": "string", "description": "Shared UUID with the corresponding expense." },
+                      { "name": "goalId", "type": "string", "description": "Foreign Key to financial_goals.id." },
+                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
+                      { "name": "amount", "type": "number", "description": "Contribution amount." },
+                      { "name": "date", "type": "string", "format": "date-time", "description": "Date of contribution." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." }
+                    ]
+                  }
+                }
+              },
+              "chatMessages": {
+                "description": "Chat messages. Maps to 'chat_messages' table.",
+                "documents": {
+                  "[messageId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "senderId", "type": "string", "description": "FK to users.id or 'system'." },
+                      { "name": "text", "type": "string", "description": "Message content." },
+                      { "name": "readBy", "type": "jsonb", "description": "Array of user UIDs who have read it." },
+                      { "name": "replyTo", "type": "jsonb", "optional": true, "description": "Details of the message being replied to." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of last update." }
                     ]
                   }
                 }
@@ -197,75 +230,42 @@
       }
     }
   },
-  "auth": {
-    "description": "Handles user authentication and profiles.",
-    "migrationPlan": "Migrate from Firebase Authentication to Supabase Auth. User UIDs should be preserved if possible. User data will be stored in 'public.users' table, linked to 'auth.users' by a one-to-one relationship."
-  },
-  "businessLogic": {
-    "description": "High-level description of business logic to be re-implemented using PostgreSQL functions or application-level code.",
-    "transactions": {
-      "atomicity": "All multi-step financial operations (e.g., creating an expense, paying a loan installment) must be wrapped in a database transaction and share a single `transactionId` across all created/updated records (expenses, loan_payments, bank_account balance updates) for atomicity and auditability.",
-      "balanceUpdates": "Bank account balances must be updated within the same database transaction as the corresponding expense, income, or transfer record is created. This should be handled by a PostgreSQL function/trigger for consistency."
-    },
-    "incomeReporting": {
-      "sourceVsOwner": "Income reports must be generated by grouping records based on the `incomeSource` field ('ali', 'fatemeh', 'daramad_moshtarak') to reflect the origin of the income. The `bankAccountOwner` field is used for analyzing account structure, not for business income reports."
-    },
-    "softDeletes": {
-      "implementation": "All entities intended for deletion will use a soft-delete pattern. UI 'delete' operations must update the `isDeleted` flag to true and set the `deletedAt` timestamp. Row-Level Security (RLS) policies in Supabase must be configured to filter out records where `isDeleted` is true for all standard user roles."
-    }
-  },
   "migrationGuide": {
     "description": "A guide for the technical migration from Firestore to Supabase/PostgreSQL.",
-    "dataMapping": {
-      "introduction": "Firestore's nested subcollections under a single document will be flattened into separate, related tables in PostgreSQL. For example, `family-data/shared-data/expenses` becomes the `public.expenses` table.",
-      "fieldRenames": [
-        { "entity": "Income", "from": "ownerId", "to": "incomeSource", "reason": "To clearly distinguish the source of income from the owner of the bank account." }
-      ]
-    },
     "sqlDataModel": {
-      "introduction": "In PostgreSQL, document references from Firestore will be implemented as foreign key constraints to ensure relational integrity.",
+      "introduction": "Firestore's nested subcollections will be flattened into separate PostgreSQL tables. Document references become foreign key constraints.",
       "foreignKeyRelationships": [
         { "from": "expenses.bankAccountId", "to": "bank_accounts.id" },
-        { "from": "expenses.categoryId", "to": "categories.id" },
-        { "from": "expenses.payeeId", "to": "payees.id" },
-        { "from": "expenses.registeredByUserId", "to": "users.id" },
-        { "from": "expenses.paidByUserId", "to": "users.id" },
         { "from": "incomes.bankAccountId", "to": "bank_accounts.id" },
         { "from": "transfers.fromBankAccountId", "to": "bank_accounts.id" },
         { "from": "transfers.toBankAccountId", "to": "bank_accounts.id" },
-        { "from": "checks.bankAccountId", "to": "bank_accounts.id" },
-        { "from": "checks.payeeId", "to": "payees.id" },
+        { "from": "loans.payeeId", "to": "payees.id" },
+        { "from": "loans.depositToAccountId", "to": "bank_accounts.id" },
         { "from": "loan_payments.loanId", "to": "loans.id" },
-        { "from": "loan_payments.bankAccountId", "to": "bank_accounts.id" },
-        { "note": "The 'financialGoals.contributions' array will become a separate 'goal_contributions' table with a foreign key to 'financial_goals.id'." }
+        { "from": "previous_debts.payeeId", "to": "payees.id" },
+        { "from": "debt_payments.debtId", "to": "previous_debts.id" },
+        { "from": "goal_contributions.goalId", "to": "financial_goals.id" }
       ]
     },
     "databaseIndexes": {
-      "introduction": "To ensure high performance for queries and reports, indexes should be created on frequently queried columns.",
+      "introduction": "Indexes should be created on frequently queried columns for performance.",
       "recommendedIndexes": [
         "transactionId",
-        "date (on expenses, incomes, etc.)",
-        "paymentDate (on loan_payments, debt_payments)",
-        "dueDate (on checks)",
+        "date (on all transaction tables)",
+        "paymentDate (on payment tables)",
+        "dueDate (on checks, debts)",
         "createdAt",
         "updatedAt",
-        "incomeSource (on incomes)",
-        "expenseFor (on expenses)",
-        "bankAccountId (on all transaction tables)",
-        "categoryId (on expenses)",
-        "payeeId (on expenses, checks)",
-        "loanId (on loan_payments)",
-        "status (on checks)",
+        "ownerId",
+        "incomeSource",
+        "bankAccountId",
+        "categoryId",
+        "payeeId",
+        "loanId",
+        "debtId",
+        "goalId",
         "isDeleted"
       ]
-    }
-  },
-  "filesToMigrate": {
-    "description": "Plan for migrating files from Firebase Storage to Supabase Storage.",
-    "signatures": {
-      "source": "User signature images are currently stored as Data URLs (`signatureDataUrl`) in the 'checks' documents.",
-      "target": "During migration, these Data URLs should be converted to actual image files (e.g., PNG).",
-      "storagePlan": "The generated image files will be uploaded to a dedicated bucket in Supabase Storage. The path to the stored file will be saved in the `checks.signaturePath` column. The `signatureDataUrl` field can then be deprecated."
     }
   }
 }
