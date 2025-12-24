@@ -389,35 +389,77 @@
         "title": "Income and Expense Logic",
         "createExpense": "1. A Firestore Transaction is initiated. 2. It reads the source `BankAccount` document. 3. It verifies if the available balance (`balance` - `blockedBalance`) is sufficient. 4. It updates the `balance` on the bank account document (`balance` = `balance` - expense.amount). 5. It creates a new document in the `expenses` collection, storing `balanceBefore` and `balanceAfter` for audit purposes. 6. A system message is sent to the chat.",
         "deleteExpense": "1. A Firestore Transaction is initiated. 2. It reads the `Expense` to be deleted and its source `BankAccount`. 3. It updates the `balance` on the bank account document (`balance` = `balance` + expense.amount) to reverse the financial impact. 4. It deletes the `Expense` document.",
-        "createIncome": "1. A Firestore Transaction is initiated. 2. It reads the destination `BankAccount`. 3. It updates the `balance` on the bank account (`balance` = `balance` + income.amount). 4. It creates a new `Income` document with the `balanceAfter` field. 5. A system message is sent to the chat."
+        "createIncome": "1. A Firestore Transaction is initiated. 2. It reads the destination `BankAccount`. 3. It updates the `balance` on the bank account (`balance` = `balance` + income.amount). 4. It creates a new `Income` document with the `balanceAfter` field. 5. A system message is sent to the chat.",
+        "dataDisplayLogic": {
+          "title": "Data Display & UI Logic",
+          "description": "The component `ExpenseList` and `IncomeList` are responsible for displaying transactions.",
+          "dataSources": "They receive the complete lists of `expenses`, `incomes`, `bankAccounts`, `categories`, `payees`, and `users` from the `useDashboardData` hook.",
+          "dataJoining": "For each transaction, the components perform client-side 'joins': it finds the corresponding bank account name from the `bankAccounts` list using `bankAccountId`, the category name from the `categories` list using `categoryId`, the payee name from the `payees` list using `payeeId`, and the registrar's first name from the `users` list using `registeredByUserId`.",
+          "uiRendering": "The final rendered item displays the transaction `description`, `amount`, and `date`, along with the resolved names for the bank account, category, payee, and registrar."
+        }
     },
     "liabilities": {
       "title": "Checks, Loans, and Debts",
       "checkWorkflow": {
           "title": "Check Workflow (with Signature)",
-          "creation": "1. User fills the check form. 2. Upon submission, a signature dialog (`SignatureDialog`) opens. 3. The user draws their signature on a canvas. 4. On confirmation, the signature is converted to a Base64 Data URI string (`signatureDataUrl`). 5. This string is added to the form data. 6. The final data object is sent to a function that initiates a Firestore transaction. 7. The transaction creates a new `Check` document containing all details, including the `signatureDataUrl` string. The check `status` is set to 'pending'. No financial change occurs at this stage.",
+          "creation": "1. User fills the check form (`CheckForm`). 2. Upon submission, a signature dialog (`SignatureDialog`) opens. 3. The user draws their signature on an HTML canvas. 4. On confirmation, the signature is converted to a Base64 Data URI string (`signatureDataUrl`). 5. This string is added to the form data. 6. The final data object is sent to a function that initiates a Firestore transaction. 7. The transaction creates a new `Check` document containing all details, including the `signatureDataUrl` string. The check `status` is set to 'pending'. No financial change occurs at this stage.",
           "clearing": "1. A Firestore Transaction is initiated. 2. It reads the `Check` document and its associated `BankAccount`. 3. It verifies the bank account has sufficient available balance (`balance` - `blockedBalance`). 4. It updates the check's `status` to 'cleared' and sets the `clearedDate`. 5. It creates a new `Expense` document with a `subType` of 'check_cleared' and a reference to the check's ID, to record the financial impact. 6. It updates the `BankAccount`'s `balance` (`balance` = `balance` - check.amount).",
-          "deletion": "If a check is 'pending', the document is simply deleted. If it is 'cleared', a transaction runs to delete both the `Check` document and its corresponding `Expense` document, while also adding the amount back to the bank account's `balance`."
+          "deletion": "If a check is 'pending', the document is simply deleted. If it is 'cleared', a transaction runs to delete both the `Check` document and its corresponding `Expense` document, while also adding the amount back to the bank account's `balance`.",
+          "dataDisplayLogic": {
+            "title": "Data Display & UI Logic",
+            "description": "The `CheckList` and the `CheckDetailPage` (`/checks/[checkId]`) are responsible for display.",
+            "dataSources": "They receive `checks`, `bankAccounts`, `payees`, `categories`, and `users` from `useDashboardData`.",
+            "dataJoining": "Similar to other lists, they resolve IDs to names. Crucially, they both check for the existence of the `signatureDataUrl` field on the `Check` object.",
+            "uiRendering": "Both components display check details like amount, payee, and dates. If `signatureDataUrl` exists, they render an `<Image>` component with its `src` set to this Data URI, directly displaying the unique signature. If not, no signature is shown."
+          }
       },
       "loanAndDebtPayment": {
           "title": "Loan and Debt Payment",
-          "description": "Paying a loan or debt installment is a complex atomic transaction: 1. A Firestore transaction is initiated. 2. It reads the `Loan`/`PreviousDebt` and the source `BankAccount`. 3. It verifies the bank has sufficient funds (`balance` - `blockedBalance`). 4. It updates the `remainingAmount` and `paidInstallments` on the loan/debt document. 5. It creates a `LoanPayment`/`DebtPayment` history document. 6. It creates a corresponding `Expense` document (with `subType: 'loan_payment'` or `debt_payment`) to reflect the payment in the main ledger. 7. It updates the bank account's `balance` (`balance` = `balance` - payment.amount)."
+          "description": "Paying a loan or debt installment is a complex atomic transaction: 1. A Firestore transaction is initiated. 2. It reads the `Loan`/`PreviousDebt` and the source `BankAccount`. 3. It verifies the bank has sufficient funds (`balance` - `blockedBalance`). 4. It updates the `remainingAmount` and `paidInstallments` on the loan/debt document. 5. It creates a `LoanPayment`/`DebtPayment` history document. 6. It creates a corresponding `Expense` document (with `subType: 'loan_payment'` or `debt_payment`) to reflect the payment in the main ledger. 7. It updates the bank account's `balance` (`balance` = `balance` - payment.amount).",
+           "dataDisplayLogic": {
+            "title": "Data Display & UI Logic",
+            "description": "The `LoanList` and `DebtList` components display the items. The detail pages (`/loans/[loanId]` and `/debts/[debtId]`) show payment history.",
+            "dataSources": "The detail pages fetch the specific `Loan`/`Debt` and also the entire `loanPayments`/`debtPayments` and `bankAccounts` collections.",
+            "dataJoining": "For the payment history table, the component iterates through the relevant payment history documents (e.g., `loanPayments` where `loanId` matches). For each payment, it looks up the `bankAccountId` in the `bankAccounts` list to display the bank's name from which the payment was made.",
+            "uiRendering": "The lists show a progress bar calculated from `remainingAmount` / `amount`. The detail pages show a table of past payments with date, amount, and the source bank account name."
+          }
       },
       "deletionConstraint": "Loans, Debts, Categories, and Payees cannot be deleted if they are referenced by any existing transaction (e.g., a 'Loan' with 'paidInstallments' > 0 cannot be deleted). This is enforced by a pre-delete check within a transaction that queries for related documents before allowing the deletion to proceed."
     },
     "goals": {
         "title": "Financial Goals",
         "contribution": "1. Adding funds to a goal is an atomic transaction. 2. An `Expense` document with `subType: 'goal_contribution'` is created. 3. This transaction *reduces* the `balance` of the source bank account. 4. Simultaneously, the `blockedBalance` of the *same* bank account is *increased* by the same amount. This keeps the total `balance` field technically correct for accounting while separating spendable money from saved money. 5. The `currentAmount` on the `FinancialGoal` document is increased, and a contribution record (linking to the expense ID) is added to its `contributions` array.",
-        "achievement": "1. When a goal is marked as 'achieved', another complex transaction runs. 2. It releases the 'blockedBalance' from all contributing bank accounts by subtracting the contribution amounts from the `blockedBalance` field of each respective bank. This makes the saved money 'spendable' again. 3. It creates a final `Expense` for the `actualCost`, which may use a combination of the now-unblocked savings (represented as an expense with `subType: 'goal_saved_portion'`) and new cash from a specified payment card (represented as an expense with `subType: 'goal_cash_portion'`). 4. The `isAchieved` flag on the goal is set to true, and `currentAmount` is reset to 0."
+        "achievement": "1. When a goal is marked as 'achieved', another complex transaction runs. 2. It releases the 'blockedBalance' from all contributing bank accounts by subtracting the contribution amounts from the `blockedBalance` field of each respective bank. This makes the saved money 'spendable' again. 3. It creates a final `Expense` for the `actualCost`, which may use a combination of the now-unblocked savings (represented as an expense with `subType: 'goal_saved_portion'`) and new cash from a specified payment card (represented as an expense with `subType: 'goal_cash_portion'`). 4. The `isAchieved` flag on the goal is set to true, and `currentAmount` is reset to 0.",
+        "dataDisplayLogic": {
+          "title": "Data Display & UI Logic",
+          "description": "The `GoalList` shows an overview, and the `GoalDetailPage` (`/goals/[goalId]`) shows contribution history.",
+          "dataSources": "Both components source their data from the `financialGoals` and `bankAccounts` collections.",
+          "dataJoining": "The detail page iterates through the `contributions` array within the `FinancialGoal` document. For each contribution, it uses the `bankAccountId` to find the corresponding bank account name from the `bankAccounts` list.",
+          "uiRendering": "The list card displays a progress bar calculated from `currentAmount` / `targetAmount`. The detail page displays a table of all contributions, showing the amount, date, and source bank account name for each."
+        }
     },
     "transfers": {
         "title": "Internal Transfers",
-        "logic": "1. An atomic transaction updates two `BankAccount` documents. 2. It subtracts the amount from the `from` account's `balance`. 3. It adds the amount to the `to` account's `balance`. 4. A `Transfer` document is created to log this operation, including the balances before and after for both accounts for historical accuracy and reversibility."
+        "logic": "1. An atomic transaction updates two `BankAccount` documents. 2. It subtracts the amount from the `from` account's `balance`. 3. It adds the amount to the `to` account's `balance`. 4. A `Transfer` document is created to log this operation, including the balances before and after for both accounts for historical accuracy and reversibility.",
+        "dataDisplayLogic": {
+          "title": "Data Display & UI Logic",
+          "description": "The `TransferList` component displays the history of internal transfers.",
+          "dataSources": "It uses the `transfers` and `bankAccounts` collections.",
+          "dataJoining": "For each `Transfer` document, it performs two lookups in the `bankAccounts` list: one for `fromBankAccountId` and one for `toBankAccountId` to get the names of the source and destination banks.",
+          "uiRendering": "The component renders a card for each transfer, clearly showing the 'From' and 'To' bank accounts, the amount transferred, and the account balances before and after the transaction for both accounts, which it gets directly from the `Transfer` document itself."
+        }
     },
     "chat": {
         "title": "Chat and Notifications",
-        "systemMessages": "After a key financial transaction (creating an expense, income, check, loan, etc.), a `sendSystemNotification` function is called. This function creates a new `ChatMessage` document with `type: system`. The message contains a `transactionDetails` object with all relevant info, which the UI then uses to render a special summary card in the chat feed.",
-        "readReceipts": "Each message has a `readBy` array field containing UIDs. When a user opens the chat, the app identifies all messages not sent by them and where their UID is not in the `readBy` array. It then performs a batch update to add their UID to all those messages, marking them as read. The UI uses this array to show a single check (sent) or double check (read by the other user)."
+        "systemMessages": "After a key financial transaction (creating an expense, income, check, loan, etc.), a `sendSystemNotification` function is called. This function creates a new `ChatMessage` document with `type: system`. The message contains a `transactionDetails` object with all relevant info, which the UI (`SystemMessageCard`) then uses to render a special summary card in the chat feed.",
+        "readReceipts": "Each message has a `readBy` array field containing UIDs. When a user opens the chat, the app identifies all messages not sent by them and where their UID is not in the `readBy` array. It then performs a batch update to add their UID to all those messages, marking them as read. The UI uses this array to show a single check (sent) or double check (read by the other user).",
+        "dataDisplayLogic": {
+          "title": "Data Display & UI Logic",
+          "description": "The `ChatInterface` and `MessageList` components handle chat display.",
+          "dataSources": "They fetch all documents from the `chatMessages` and `users` collections.",
+          "dataJoining": "For each message, it uses the `senderId` to look up the sender's avatar and name from the `users` list. For system messages, it reads the `transactionDetails` object and renders a specific `SystemMessageCard` component, passing the details object to it.",
+          "uiRendering": "User messages are displayed with the sender's avatar and name. System messages are rendered as structured cards showing the details of the financial transaction."
+        }
     }
   }
 }
