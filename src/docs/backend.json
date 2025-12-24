@@ -4,20 +4,20 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user in the Hesab Ketab application.",
+      "description": "Represents a user in the Hesab Ketab application. This collection stores profile information, not credentials.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
+          "description": "Unique identifier for the User entity, identical to the Firebase Auth UID."
         },
         "email": {
           "type": "string",
-          "description": "Email address of the user.",
+          "description": "Email address of the user, used for login.",
           "format": "email"
         },
         "firstName": {
           "type": "string",
-          "description": "First name of the user."
+          "description": "First name of the user, used for display purposes across the app."
         },
         "lastName": {
             "type": "string",
@@ -25,7 +25,7 @@
         },
         "signatureImage": {
             "type": "string",
-            "description": "URL to the user's signature image file."
+            "description": "DEPRECATED. This was intended for a URL to a stored signature file. The logic now uses signatureDataUrl on the Check entity itself."
         }
       },
       "required": [
@@ -39,20 +39,19 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BankAccount",
       "type": "object",
-      "description": "Represents a bank account. Ownership is determined by the ownerId field.",
+      "description": "Represents a bank account. Ownership is determined by the ownerId field, which links to a user or the shared entity.",
       "properties": {
         "id": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "The owner of this account. Can be a person or the family's shared account." },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Defines the ownership of the account. 'ali' or 'fatemeh' for personal accounts, 'shared_account' for the single joint family account." },
         "bankName": { "type": "string" },
         "accountNumber": { "type": "string" },
         "cardNumber": { "type": "string" },
         "expiryDate": { "type": "string", "pattern": "^(0[1-9]|1[0-2])\\/([0-9]{2})$", "description": "Expiry date in MM/YY format." },
         "cvv2": { "type": "string" },
-        "accountType": { "type": "string", "enum": ["checking", "savings"], "description": "Type of the bank account." },
-        "balance": { "type": "number" },
-        "initialBalance": { "type": "number" },
-        "blockedBalance": { "type": "number", "description": "Amount blocked for financial goals."},
-        "theme": { "type": "string" }
+        "accountType": { "type": "string", "enum": ["checking", "savings"], "description": "Type of the bank account. 'checking' is required for issuing checks." },
+        "balance": { "type": "number", "description": "The current total balance of the account. This is the source of truth for account value." },
+        "initialBalance": { "type": "number", "description": "The balance of the account at the time of creation. This field is not used in calculations after creation." },
+        "blockedBalance": { "type": "number", "description": "Amount from the total balance that is earmarked for financial goals and is not considered 'available' for regular expenses."}
       },
       "required": ["id", "ownerId", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance"]
     },
@@ -60,20 +59,20 @@
       "$schema": "http://json-schema.org/draft_07/schema#",
       "title": "Income",
       "type": "object",
-      "description": "Represents an income transaction.",
+      "description": "Represents an income transaction. Atomically increases a BankAccount's balance.",
       "properties": {
         "id": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "daramad_moshtarak"], "description": "The ownership category of the income source (a person or the shared business)." },
-        "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
-        "bankAccountId": { "type": "string" },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "daramad_moshtarak"], "description": "The category of the income source, not necessarily the account owner. 'daramad_moshtarak' is for shared business income." },
+        "registeredByUserId": { "type": "string", "description": "The UID of the user who registered this transaction." },
+        "bankAccountId": { "type": "string", "description": "The ID of the BankAccount where the income was deposited." },
         "amount": { "type": "number" },
         "date": { "type": "string", "format": "date-time" },
         "description": { "type": "string" },
-        "source": { "type": "string" },
-        "type": { "type": "string", "enum": ["income"] },
-        "category": { "type": "string", "description": "Always 'درآمد'" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "balanceAfter": { "type": "number" }
+        "source": { "type": "string", "description": "Optional text field for the source of the income (e.g., company name)." },
+        "type": { "type": "string", "enum": ["income"], "description": "Transaction type identifier." },
+        "category": { "type": "string", "description": "Always 'درآمد' for income transactions." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
+        "balanceAfter": { "type": "number", "description": "Snapshot of the bank account's balance immediately after this income was added." }
       },
       "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "amount", "date", "description", "source", "type", "category", "createdAt"]
     },
@@ -81,27 +80,27 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
-      "description": "Represents an expense transaction.",
+      "description": "Represents an expense transaction. Atomically decreases a BankAccount's balance.",
       "properties": {
         "id": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "The owner of the bank account from which the expense was made." },
-        "registeredByUserId": { "type": "string", "description": "The user who registered this transaction." },
-        "bankAccountId": { "type": "string" },
-        "categoryId": { "type": "string" },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "The owner of the bank account from which the expense was made. Copied from BankAccount.ownerId at time of transaction." },
+        "registeredByUserId": { "type": "string", "description": "The UID of the user who registered this transaction." },
+        "bankAccountId": { "type": "string", "description": "The ID of the BankAccount used for payment." },
+        "categoryId": { "type": "string", "description": "The ID of the expense Category." },
         "payeeId": { "type": "string", "description": "Optional ID of the payee for this expense." },
         "amount": { "type": "number" },
         "date": { "type": "string", "format": "date-time" },
         "description": { "type": "string" },
-        "type": { "type": "string", "enum": ["expense"] },
-        "subType": { "type": "string", "enum": ["goal_saved_portion", "goal_cash_portion", "loan_payment", "debt_payment", "goal_contribution"], "description": "Differentiates special expenses." },
-        "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this expense was for (beneficiary)." },
-        "checkId": { "type": "string" },
-        "goalId": { "type": "string" },
-        "loanPaymentId": { "type": "string" },
-        "debtPaymentId": { "type": "string" },
+        "type": { "type": "string", "enum": ["expense"], "description": "Transaction type identifier." },
+        "subType": { "type": "string", "enum": ["goal_saved_portion", "goal_cash_portion", "loan_payment", "debt_payment", "goal_contribution"], "description": "Differentiates special expenses. 'goal_contribution' is for saving towards a goal. 'loan_payment' is for a loan installment. 'debt_payment' is for a miscellaneous debt payment." },
+        "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this expense was for (beneficiary). This is independent of the bank account owner." },
+        "checkId": { "type": "string", "description": "If this expense was created by clearing a check, this is the ID of the Check." },
+        "goalId": { "type": "string", "description": "If this expense is related to a financial goal, this is the ID of the FinancialGoal." },
+        "loanPaymentId": { "type": "string", "description": "If this expense was for a loan installment, this is the ID of the LoanPayment." },
+        "debtPaymentId": { "type": "string", "description": "If this expense was for a debt payment, this is the ID of the DebtPayment." },
         "createdAt": { "type": "string", "format": "date-time" },
-        "balanceBefore": { "type": "number" },
-        "balanceAfter": { "type": "number" }
+        "balanceBefore": { "type": "number", "description": "Snapshot of the bank account's balance before this expense." },
+        "balanceAfter": { "type": "number", "description": "Snapshot of the bank account's balance after this expense." }
       },
       "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt", "expenseFor"]
     },
@@ -121,7 +120,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payee",
       "type": "object",
-      "description": "Represents a payee, shared by all users.",
+      "description": "Represents a payee (person or business), shared by all users.",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
@@ -133,11 +132,11 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Check",
       "type": "object",
-      "description": "Represents a financial check.",
+      "description": "Represents a financial check. It is a liability, but only creates an expense when cleared.",
       "properties": {
         "id": { "type": "string" },
         "registeredByUserId": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Who owns this liability (person or shared account)." },
+        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "The owner of the source BankAccount. This determines who holds the liability." },
         "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this check was for (beneficiary)." },
         "bankAccountId": { "type": "string" },
         "payeeId": { "type": "string" },
@@ -150,7 +149,7 @@
         "description": { "type": "string" },
         "sayadId": { "type": "string", "description": "The Sayad ID of the check." },
         "checkSerialNumber": { "type": "string", "description": "The serial number of the check." },
-        "signatureDataUrl": { "type": "string", "description": "Data URI of the check signature image."}
+        "signatureDataUrl": { "type": "string", "description": "Base64 Data URI of the check signature image, generated on the client."}
       },
       "required": ["id", "registeredByUserId", "ownerId", "expenseFor", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
     },
@@ -158,9 +157,9 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FinancialGoalContribution",
       "type": "object",
-      "description": "Represents a single contribution towards a financial goal.",
+      "description": "Represents a single contribution towards a financial goal. It is a historical record within the FinancialGoal object.",
       "properties": {
-        "id": { "type": "string" },
+        "id": { "type": "string", "description": "The ID of the associated 'goal_contribution' Expense document." },
         "bankAccountId": { "type": "string" },
         "amount": { "type": "number" },
         "date": { "type": "string", "format": "date-time" },
@@ -172,7 +171,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "FinancialGoal",
         "type": "object",
-        "description": "Represents a financial savings goal.",
+        "description": "Represents a financial savings goal. Contributions to a goal decrease a bank account's spendable balance by increasing its 'blockedBalance'.",
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
@@ -197,12 +196,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "Loan",
         "type": "object",
-        "description": "Represents a loan.",
+        "description": "Represents a formal loan taken by the family or an individual.",
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the loan is for (beneficiary)." },
-            "payeeId": { "type": "string" },
+            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the loan is for (beneficiary/liable party)." },
+            "payeeId": { "type": "string", "description": "The entity (e.g., bank) from which the loan was received." },
             "title": { "type": "string" },
             "amount": { "type": "number" },
             "installmentAmount": { "type": "number" },
@@ -211,8 +210,7 @@
             "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "The exact date of the first installment payment."},
             "numberOfInstallments": { "type": "number" },
             "paidInstallments": { "type": "number" },
-            "depositToAccountId": { "type": "string", "description": "The ID of the bank account where the loan amount was deposited." },
-            "paymentDay": { "type": "number", "description": "The day of the month for installment payment reminders (1-30)." }
+            "depositToAccountId": { "type": "string", "description": "If the loan amount was deposited into an account, this is the account ID." }
         },
         "required": ["id", "registeredByUserId", "ownerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "numberOfInstallments", "paidInstallments", "firstInstallmentDate"]
     },
@@ -220,7 +218,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "LoanPayment",
         "type": "object",
-        "description": "Represents a payment towards a loan.",
+        "description": "A record of a single payment made towards a Loan.",
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
@@ -235,7 +233,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "PreviousDebt",
         "type": "object",
-        "description": "Represents a miscellaneous debt that is not a formal loan or check.",
+        "description": "Represents a miscellaneous debt that is not a formal loan or check (e.g., a personal loan from a friend).",
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
@@ -258,7 +256,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "DebtPayment",
         "type": "object",
-        "description": "Represents a payment towards a miscellaneous debt.",
+        "description": "A record of a single payment made towards a PreviousDebt.",
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string" },
@@ -273,7 +271,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "Transfer",
         "type": "object",
-        "description": "Represents an internal transfer between accounts.",
+        "description": "Represents an internal transfer between two BankAccounts. This is not an income or expense.",
         "properties": {
             "id": { "type": "string" },
             "registeredByUserId": { "type": "string", "description": "The user who initiated the transfer." },
@@ -293,15 +291,15 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChatMessage",
       "type": "object",
-      "description": "Represents a single chat message in the family chat.",
+      "description": "Represents a single chat message in the family chat. Can be a user message or a system notification about a transaction.",
       "properties": {
         "id": { "type": "string" },
-        "senderId": { "type": "string", "description": "The UID of the user who sent the message." },
-        "senderName": { "type": "string", "description": "The first name of the sender." },
-        "text": { "type": "string", "description": "The content of the message." },
+        "senderId": { "type": "string", "description": "The UID of the user who sent the message, or 'system'." },
+        "senderName": { "type": "string", "description": "The first name of the sender, or a system name." },
+        "text": { "type": "string", "description": "The content of the message or a title for system messages." },
         "timestamp": { "type": "string", "format": "date-time", "description": "The server timestamp of when the message was sent." },
         "type": { "type": "string", "enum": ["user", "system"] },
-        "readBy": { "type": "array", "items": { "type": "string" } },
+        "readBy": { "type": "array", "items": { "type": "string" }, "description": "An array of user UIDs who have read the message." },
         "replyTo": {
             "type": "object",
             "properties": {
@@ -310,7 +308,7 @@
                 "senderName": { "type": "string" }
             }
         },
-        "transactionDetails": { "type": "object" }
+        "transactionDetails": { "type": "object", "description": "If type is 'system', this object contains the structured details of the transaction for rendering a special card in the UI." }
       },
       "required": ["id", "senderId", "senderName", "text", "timestamp", "type", "readBy"]
     }
@@ -339,19 +337,19 @@
           "description": "A single document acting as a parent for all shared subcollections. All authenticated users have full read/write access to this document and all its subcollections."
         },
         "subcollections": [
-            { "name": "bankAccounts", "schema": { "$ref": "#/entities/BankAccount" }, "description": "All bank accounts for the family." },
-            { "name": "incomes", "schema": { "$ref": "#/entities/Income" }, "description": "All income records for the family." },
-            { "name": "expenses", "schema": { "$ref": "#/entities/Expense" }, "description": "All expense records for the family." },
-            { "name": "categories", "schema": { "$ref": "#/entities/Category" }, "description": "All expense categories for the family." },
-            { "name": "payees", "schema": { "$ref": "#/entities/Payee" }, "description": "All payees for the family." },
-            { "name": "checks", "schema": { "$ref": "#/entities/Check" }, "description": "All checks for the family." },
-            { "name": "financialGoals", "schema": { "$ref": "#/entities/FinancialGoal" }, "description": "All financial goals for the family." },
-            { "name": "loans", "schema": { "$ref": "#/entities/Loan" }, "description": "All loans for the family." },
-            { "name": "loanPayments", "schema": { "$ref": "#/entities/LoanPayment" }, "description": "All loan payments for the family." },
-            { "name": "previousDebts", "schema": { "$ref": "#/entities/PreviousDebt" }, "description": "All miscellaneous debts for the family." },
-            { "name": "debtPayments", "schema": { "$ref": "#/entities/DebtPayment" }, "description": "All payments for miscellaneous debts." },
-            { "name": "transfers", "schema": { "$ref": "#/entities/Transfer" }, "description": "All internal transfers for the family." },
-            { "name": "chatMessages", "schema": { "$ref": "#/entities/ChatMessage" }, "description": "All chat messages for the family." }
+            { "name": "bankAccounts", "schema": { "$ref": "#/entities/BankAccount" } },
+            { "name": "incomes", "schema": { "$ref": "#/entities/Income" } },
+            { "name": "expenses", "schema": { "$ref": "#/entities/Expense" } },
+            { "name": "categories", "schema": { "$ref": "#/entities/Category" } },
+            { "name": "payees", "schema": { "$ref": "#/entities/Payee" } },
+            { "name": "checks", "schema": { "$ref": "#/entities/Check" } },
+            { "name": "financialGoals", "schema": { "$ref": "#/entities/FinancialGoal" } },
+            { "name": "loans", "schema": { "$ref": "#/entities/Loan" } },
+            { "name": "loanPayments", "schema": { "$ref": "#/entities/LoanPayment" } },
+            { "name": "previousDebts", "schema": { "$ref": "#/entities/PreviousDebt" } },
+            { "name": "debtPayments", "schema": { "$ref": "#/entities/DebtPayment" } },
+            { "name": "transfers", "schema": { "$ref": "#/entities/Transfer" } },
+            { "name": "chatMessages", "schema": { "$ref": "#/entities/ChatMessage" } }
         ]
       }
     ]
@@ -365,7 +363,7 @@
       },
       "ownerId_vs_expenseFor": {
         "title": "Ownership vs. Beneficiary",
-        "description": "It's crucial to distinguish between 'ownerId' and 'expenseFor'. 'ownerId' typically refers to the owner of the asset or liability (e.g., the owner of the BankAccount). 'expenseFor' defines who the expense benefits (Ali, Fatemeh, or Shared). For example, Ali can use his personal card ('ownerId: ali') to pay for a shared expense ('expenseFor: shared')."
+        "description": "It's crucial to distinguish between 'ownerId' and 'expenseFor'. 'ownerId' typically refers to the owner of the asset or liability (e.g., the owner of the BankAccount from which a payment is made). 'expenseFor' defines who the expense benefits (Ali, Fatemeh, or Shared). For example, Ali can use his personal card ('ownerId: ali') to pay for a shared expense ('expenseFor: shared')."
       },
       "atomicTransactions": {
           "title": "Atomic Operations with Firestore Transactions",
@@ -376,40 +374,40 @@
       "title": "Dashboard Logic",
       "summaryCalculations": {
         "title": "Summary Card Calculations",
-        "netWorth": "Total Assets - Total Liabilities. This is a global calculation, not affected by filters.",
+        "netWorth": "'Total Assets' - 'Total Liabilities'. This is a global calculation, not affected by filters.",
         "totalAssets": "Sum of the 'balance' field from all documents in the 'bankAccounts' collection.",
-        "totalLiabilities": "Sum of 'remainingAmount' from all 'loans' + 'remainingAmount' from all 'previousDebts' + 'amount' from all 'checks' with 'status: pending'.",
+        "totalLiabilities": "Sum of ('remainingAmount' from all 'loans') + ('remainingAmount' from all 'previousDebts') + ('amount' from all 'checks' with 'status: pending').",
         "totalIncome": "Sum of 'amount' from 'incomes' that match the current date and owner filters.",
         "totalExpense": "Sum of 'amount' from 'expenses' that match the current date and owner filters."
       },
       "filters": {
           "title": "Dashboard Filtering",
-          "description": "The dashboard allows filtering by owner ('All', 'Ali', 'Fatemeh', 'Shared', 'Shared Business Income') and by date preset ('This Week', 'This Month', 'This Year'). These filters apply ONLY to the 'Total Income', 'Total Expense' cards, the income/expense chart, and the category spending chart. All other summary cards (Net Worth, Assets, Liabilities) always show global, unfiltered totals."
+          "description": "The dashboard allows filtering by owner ('all', 'ali', 'fatemeh', 'shared', 'daramad_moshtarak') and by date preset ('thisWeek', 'thisMonth', 'thisYear'). These filters apply ONLY to the 'Total Income', 'Total Expense' cards, the income/expense chart, and the category spending chart. All other summary cards (Net Worth, Assets, Liabilities) always show global, unfiltered totals."
       }
     },
     "transactions": {
         "title": "Income and Expense Logic",
-        "createExpense": "1. A Firestore Transaction is initiated. 2. It reads the source `BankAccount` document. 3. It verifies if the available balance (`balance` - `blockedBalance`) is sufficient. 4. It updates the `balance` on the bank account document (`balance` - expense.amount). 5. It creates a new document in the `expenses` collection, storing `balanceBefore` and `balanceAfter` for audit purposes. 6. A system message is sent to the chat.",
-        "deleteExpense": "1. A Firestore Transaction is initiated. 2. It reads the `Expense` to be deleted and its source `BankAccount`. 3. It updates the `balance` on the bank account document (`balance` + expense.amount) to reverse the financial impact. 4. It deletes the `Expense` document.",
-        "createIncome": "1. A Firestore Transaction is initiated. 2. It reads the destination `BankAccount`. 3. It updates the `balance` on the bank account (`balance` + income.amount). 4. It creates a new `Income` document with the `balanceAfter` field. 5. A system message is sent to the chat."
+        "createExpense": "1. A Firestore Transaction is initiated. 2. It reads the source `BankAccount` document. 3. It verifies if the available balance (`balance` - `blockedBalance`) is sufficient. 4. It updates the `balance` on the bank account document (`balance` = `balance` - expense.amount). 5. It creates a new document in the `expenses` collection, storing `balanceBefore` and `balanceAfter` for audit purposes. 6. A system message is sent to the chat.",
+        "deleteExpense": "1. A Firestore Transaction is initiated. 2. It reads the `Expense` to be deleted and its source `BankAccount`. 3. It updates the `balance` on the bank account document (`balance` = `balance` + expense.amount) to reverse the financial impact. 4. It deletes the `Expense` document.",
+        "createIncome": "1. A Firestore Transaction is initiated. 2. It reads the destination `BankAccount`. 3. It updates the `balance` on the bank account (`balance` = `balance` + income.amount). 4. It creates a new `Income` document with the `balanceAfter` field. 5. A system message is sent to the chat."
     },
     "liabilities": {
       "title": "Checks, Loans, and Debts",
       "checkWorkflow": {
           "title": "Check Workflow (with Signature)",
-          "creation": "1. User fills the check form. 2. Upon submission, a signature dialog (`SignatureDialog`) opens. 3. The user draws their signature on a canvas. 4. On confirmation, the signature is converted to a Base64 Data URI string (`signatureDataUrl`). 5. A Firestore transaction is initiated to create a new `Check` document. 6. All check details, including the `signatureDataUrl` string, are saved in the new document. The check `status` is set to 'pending'. No financial change occurs at this stage.",
-          "clearing": "1. A Firestore Transaction is initiated. 2. It reads the `Check` document and its associated `BankAccount`. 3. It verifies the bank account has sufficient available balance (`balance` - `blockedBalance`). 4. It updates the check's `status` to 'cleared' and sets the `clearedDate`. 5. It creates a new `Expense` document with a `subType` of 'check_cleared' and a reference to the check's ID, to record the financial impact. 6. It updates the `BankAccount`'s `balance` (`balance` - check.amount).",
+          "creation": "1. User fills the check form. 2. Upon submission, a signature dialog (`SignatureDialog`) opens. 3. The user draws their signature on a canvas. 4. On confirmation, the signature is converted to a Base64 Data URI string (`signatureDataUrl`). 5. This string is added to the form data. 6. The final data object is sent to a function that initiates a Firestore transaction. 7. The transaction creates a new `Check` document containing all details, including the `signatureDataUrl` string. The check `status` is set to 'pending'. No financial change occurs at this stage.",
+          "clearing": "1. A Firestore Transaction is initiated. 2. It reads the `Check` document and its associated `BankAccount`. 3. It verifies the bank account has sufficient available balance (`balance` - `blockedBalance`). 4. It updates the check's `status` to 'cleared' and sets the `clearedDate`. 5. It creates a new `Expense` document with a `subType` of 'check_cleared' and a reference to the check's ID, to record the financial impact. 6. It updates the `BankAccount`'s `balance` (`balance` = `balance` - check.amount).",
           "deletion": "If a check is 'pending', the document is simply deleted. If it is 'cleared', a transaction runs to delete both the `Check` document and its corresponding `Expense` document, while also adding the amount back to the bank account's `balance`."
       },
       "loanAndDebtPayment": {
           "title": "Loan and Debt Payment",
-          "description": "Paying a loan or debt installment is a complex atomic transaction: 1. It reads the `Loan`/`PreviousDebt` and the source `BankAccount`. 2. It verifies the bank has sufficient funds (`balance` - `blockedBalance`). 3. It updates the `remainingAmount` and `paidInstallments` on the loan/debt document. 4. It creates a `LoanPayment`/`DebtPayment` history document. 5. It creates a corresponding `Expense` document (with `subType: 'loan_payment'` or `debt_payment`) to reflect the payment in the main ledger. 6. It updates the bank account's `balance`."
+          "description": "Paying a loan or debt installment is a complex atomic transaction: 1. A Firestore transaction is initiated. 2. It reads the `Loan`/`PreviousDebt` and the source `BankAccount`. 3. It verifies the bank has sufficient funds (`balance` - `blockedBalance`). 4. It updates the `remainingAmount` and `paidInstallments` on the loan/debt document. 5. It creates a `LoanPayment`/`DebtPayment` history document. 6. It creates a corresponding `Expense` document (with `subType: 'loan_payment'` or `debt_payment`) to reflect the payment in the main ledger. 7. It updates the bank account's `balance` (`balance` = `balance` - payment.amount)."
       },
       "deletionConstraint": "Loans, Debts, Categories, and Payees cannot be deleted if they are referenced by any existing transaction (e.g., a 'Loan' with 'paidInstallments' > 0 cannot be deleted). This is enforced by a pre-delete check within a transaction that queries for related documents before allowing the deletion to proceed."
     },
     "goals": {
         "title": "Financial Goals",
-        "contribution": "1. Adding funds to a goal is an atomic transaction. 2. A `goal_contribution` expense is created, which *reduces* the `balance` of the source bank account. 3. Simultaneously, the `blockedBalance` of the *same* bank account is *increased* by the same amount. This keeps the total `balance` field technically correct for accounting while separating spendable money from saved money. 4. The `currentAmount` on the `FinancialGoal` document is increased, and a contribution record (linking to the expense ID) is added to its `contributions` array.",
+        "contribution": "1. Adding funds to a goal is an atomic transaction. 2. An `Expense` document with `subType: 'goal_contribution'` is created. 3. This transaction *reduces* the `balance` of the source bank account. 4. Simultaneously, the `blockedBalance` of the *same* bank account is *increased* by the same amount. This keeps the total `balance` field technically correct for accounting while separating spendable money from saved money. 5. The `currentAmount` on the `FinancialGoal` document is increased, and a contribution record (linking to the expense ID) is added to its `contributions` array.",
         "achievement": "1. When a goal is marked as 'achieved', another complex transaction runs. 2. It releases the 'blockedBalance' from all contributing bank accounts by subtracting the contribution amounts from the `blockedBalance` field of each respective bank. This makes the saved money 'spendable' again. 3. It creates a final `Expense` for the `actualCost`, which may use a combination of the now-unblocked savings (represented as an expense with `subType: 'goal_saved_portion'`) and new cash from a specified payment card (represented as an expense with `subType: 'goal_cash_portion'`). 4. The `isAchieved` flag on the goal is set to true, and `currentAmount` is reset to 0."
     },
     "transfers": {
