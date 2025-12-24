@@ -374,11 +374,11 @@
       "title": "Dashboard Logic",
       "summaryCalculations": {
         "title": "Summary Card Calculations",
-        "netWorth": "'Total Assets' - 'Total Liabilities'. This is a global calculation, not affected by filters.",
-        "totalAssets": "Sum of the 'balance' field from all documents in the 'bankAccounts' collection.",
-        "totalLiabilities": "Sum of ('remainingAmount' from all 'loans') + ('remainingAmount' from all 'previousDebts') + ('amount' from all 'checks' with 'status: pending').",
-        "totalIncome": "Sum of 'amount' from 'incomes' that match the current date and owner filters.",
-        "totalExpense": "Sum of 'amount' from 'expenses' that match the current date and owner filters."
+        "netWorth": "('Total Assets') - ('Total Liabilities'). This is a global calculation, not affected by filters.",
+        "totalAssets": "Sum of the `balance` field from all documents in the `bankAccounts` collection.",
+        "totalLiabilities": "Sum of (`remainingAmount` from all `loans`) + (`remainingAmount` from all `previousDebts`) + (`amount` from all `checks` where `status: 'pending'`).",
+        "totalIncome": "Sum of `amount` from `incomes` where `date` is within the selected date range and `ownerId` matches the selected owner filter.",
+        "totalExpense": "Sum of `amount` from `expenses` where `date` is within the selected date range and `expenseFor` matches the selected owner filter."
       },
       "filters": {
           "title": "Dashboard Filtering",
@@ -387,9 +387,9 @@
     },
     "transactions": {
         "title": "Income and Expense Logic",
-        "createExpense": "1. A Firestore Transaction is initiated. 2. It reads the source `BankAccount` document. 3. It verifies if the available balance (`balance` - `blockedBalance`) is sufficient. 4. It updates the `balance` on the bank account document (`balance` = `balance` - expense.amount). 5. It creates a new document in the `expenses` collection, storing `balanceBefore` and `balanceAfter` for audit purposes. 6. A system message is sent to the chat.",
-        "deleteExpense": "1. A Firestore Transaction is initiated. 2. It reads the `Expense` to be deleted and its source `BankAccount`. 3. It updates the `balance` on the bank account document (`balance` = `balance` + expense.amount) to reverse the financial impact. 4. It deletes the `Expense` document.",
-        "createIncome": "1. A Firestore Transaction is initiated. 2. It reads the destination `BankAccount`. 3. It updates the `balance` on the bank account (`balance` = `balance` + income.amount). 4. It creates a new `Income` document with the `balanceAfter` field. 5. A system message is sent to the chat.",
+        "createExpense": "1. `runTransaction` is initiated. 2. It reads the source `BankAccount` document. 3. It verifies if `balance` - `blockedBalance` >= expense amount. 4. It updates the `balance` on the bank account document: `new_balance` = `balance` - expense.amount. 5. It creates a new document in the `expenses` collection, storing `balanceBefore` and `balanceAfter` for audit. 6. A system message is sent to the chat.",
+        "deleteExpense": "1. `runTransaction` is initiated. 2. It reads the `Expense` to be deleted and its source `BankAccount`. 3. It updates the `balance` on the bank account document: `new_balance` = `balance` + expense.amount. 4. It deletes the `Expense` document.",
+        "createIncome": "1. `runTransaction` is initiated. 2. It reads the destination `BankAccount`. 3. It updates the `balance` on the bank account: `new_balance` = `balance` + income.amount. 4. It creates a new `Income` document with `balanceAfter`. 5. A system message is sent to the chat.",
         "dataDisplayLogic": {
           "title": "Data Display & UI Logic",
           "description": "The component `ExpenseList` and `IncomeList` are responsible for displaying transactions.",
@@ -402,12 +402,12 @@
       "title": "Checks, Loans, and Debts",
       "checkWorkflow": {
           "title": "Check Workflow (with Signature)",
-          "creation": "1. User fills the check form (`CheckForm`). 2. Upon submission, a signature dialog (`SignatureDialog`) opens. 3. The user draws their signature on an HTML canvas. 4. On confirmation, the signature is converted to a Base64 Data URI string (`signatureDataUrl`). 5. This string is added to the form data. 6. The final data object is sent to a function that initiates a Firestore transaction. 7. The transaction creates a new `Check` document containing all details, including the `signatureDataUrl` string. The check `status` is set to 'pending'. No financial change occurs at this stage.",
-          "clearing": "1. A Firestore Transaction is initiated. 2. It reads the `Check` document and its associated `BankAccount`. 3. It verifies the bank account has sufficient available balance (`balance` - `blockedBalance`). 4. It updates the check's `status` to 'cleared' and sets the `clearedDate`. 5. It creates a new `Expense` document with a `subType` of 'check_cleared' and a reference to the check's ID, to record the financial impact. 6. It updates the `BankAccount`'s `balance` (`balance` = `balance` - check.amount).",
-          "deletion": "If a check is 'pending', the document is simply deleted. If it is 'cleared', a transaction runs to delete both the `Check` document and its corresponding `Expense` document, while also adding the amount back to the bank account's `balance`.",
+          "creation": "1. User fills the `CheckForm`. 2. On submit, the `SignatureDialog` opens. 3. User draws their signature on an HTML canvas. 4. On confirmation, the signature is converted to a Base64 Data URI string. 5. This `signatureDataUrl` string is added to the form data object. 6. A `runTransaction` is initiated. 7. It creates a new `Check` document containing all details, including the `signatureDataUrl`. The check `status` is set to 'pending'. No financial change occurs.",
+          "clearing": "1. `runTransaction` is initiated. 2. It reads the `Check` and the source `BankAccount`. 3. It verifies `balance` - `blockedBalance` >= check.amount. 4. It updates the check `status` to 'cleared' and sets `clearedDate`. 5. It creates a new `Expense` document with `subType: 'check_cleared'` and a reference to the `checkId`. 6. It updates the `BankAccount` `balance` by subtracting the check amount.",
+          "deletion": "If `status` is 'pending', the `Check` document is simply deleted. If `status` is 'cleared', a transaction runs to delete both the `Check` and its corresponding `Expense` document, while also adding the amount back to the `BankAccount` `balance`.",
           "dataDisplayLogic": {
             "title": "Data Display & UI Logic",
-            "description": "The `CheckList` and the `CheckDetailPage` (`/checks/[checkId]`) are responsible for display.",
+            "description": "The `CheckList` and `CheckDetailPage` (`/checks/[checkId]`) are responsible for display.",
             "dataSources": "They receive `checks`, `bankAccounts`, `payees`, `categories`, and `users` from `useDashboardData`.",
             "dataJoining": "Similar to other lists, they resolve IDs to names. Crucially, they both check for the existence of the `signatureDataUrl` field on the `Check` object.",
             "uiRendering": "Both components display check details like amount, payee, and dates. If `signatureDataUrl` exists, they render an `<Image>` component with its `src` set to this Data URI, directly displaying the unique signature. If not, no signature is shown."
@@ -415,8 +415,8 @@
       },
       "loanAndDebtPayment": {
           "title": "Loan and Debt Payment",
-          "description": "Paying a loan or debt installment is a complex atomic transaction: 1. A Firestore transaction is initiated. 2. It reads the `Loan`/`PreviousDebt` and the source `BankAccount`. 3. It verifies the bank has sufficient funds (`balance` - `blockedBalance`). 4. It updates the `remainingAmount` and `paidInstallments` on the loan/debt document. 5. It creates a `LoanPayment`/`DebtPayment` history document. 6. It creates a corresponding `Expense` document (with `subType: 'loan_payment'` or `debt_payment`) to reflect the payment in the main ledger. 7. It updates the bank account's `balance` (`balance` = `balance` - payment.amount).",
-           "dataDisplayLogic": {
+          "description": "Paying a loan or debt installment is an atomic transaction: 1. `runTransaction` is initiated. 2. It reads the `Loan`/`PreviousDebt` and the source `BankAccount`. 3. It verifies `balance` - `blockedBalance` >= payment amount. 4. It updates `remainingAmount` and `paidInstallments` on the loan/debt document. 5. It creates a `LoanPayment`/`DebtPayment` history document. 6. It creates a corresponding `Expense` document (with `subType: 'loan_payment'` or `debt_payment`) to reflect the payment in the main ledger. 7. It updates the bank account's `balance` by subtracting the payment amount.",
+          "dataDisplayLogic": {
             "title": "Data Display & UI Logic",
             "description": "The `LoanList` and `DebtList` components display the items. The detail pages (`/loans/[loanId]` and `/debts/[debtId]`) show payment history.",
             "dataSources": "The detail pages fetch the specific `Loan`/`Debt` and also the entire `loanPayments`/`debtPayments` and `bankAccounts` collections.",
@@ -461,5 +461,42 @@
           "uiRendering": "User messages are displayed with the sender's avatar and name. System messages are rendered as structured cards showing the details of the financial transaction."
         }
     }
+  },
+  "migrationGuide": {
+      "title": "Professional Migration Guide: Firebase to Supabase (PostgreSQL)",
+      "introduction": "This guide provides a high-level technical blueprint for a developer to migrate the 'Hesab Ketab' application from a Firebase/NoSQL architecture to a Supabase/SQL architecture. The focus is on translating core concepts to ensure data integrity, security, and performance.",
+      "dataModeling": {
+          "title": "Data Modeling: From Collections to Tables",
+          "concept": "The biggest architectural shift is moving from Firestore's document/collection model to PostgreSQL's relational table model. Denormalization, which is common in Firestore, should be replaced with normalization and foreign key constraints in SQL.",
+          "translation": {
+              "collectionsToTables": "Each Firestore collection (e.g., `expenses`, `bankAccounts`, `users`) becomes a PostgreSQL table.",
+              "documentsToRows": "Each document within a collection becomes a row in the corresponding table.",
+              "fieldsToColumns": "Each field in a document becomes a column in the table, with appropriate SQL data types (e.g., `TEXT`, `NUMERIC`, `TIMESTAMP`, `BOOLEAN`, `UUID`).",
+              "foreignKeys": "Fields that store an ID from another collection (e.g., `bankAccountId` in the `expenses` collection) must become foreign key columns (`bank_account_id UUID REFERENCES bank_accounts(id)`). This enforces relational integrity at the database level, something Firestore lacks."
+          }
+      },
+      "serverSideLogic": {
+          "title": "Server-Side Logic: Atomic Transactions",
+          "concept": "Financial applications require atomicity. In Firestore, this is achieved with `runTransaction`. In PostgreSQL, this is achieved using database functions and transactions.",
+          "translation": "All sensitive business logic (creating an expense, clearing a check, paying an installment) currently inside a `runTransaction` block on the client MUST be moved to a PostgreSQL function (using `plpgsql`) on the Supabase server. The client application should then call this function via Supabase's RPC (Remote Procedure Call) mechanism. This is critical for security and data integrity, as it prevents clients from manipulating balances directly."
+      },
+      "realtime": {
+          "title": "Real-time Subscriptions",
+          "concept": "Firestore's `onSnapshot` provides real-time updates to the UI.",
+          "translation": "Supabase provides a similar mechanism called 'Realtime Subscriptions'. The `useCollection` hook in the current project would be replaced by a similar custom hook that uses Supabase's client library to subscribe to changes on specific tables (e.g., `supabase.channel('public:expenses').on('postgres_changes', ...)`). The logic of re-fetching and re-rendering the UI remains conceptually similar."
+      },
+      "authenticationAndSecurity": {
+          "title": "Authentication and Row-Level Security (RLS)",
+          "concept": "Firebase uses Auth UIDs and Firestore Security Rules to control data access. Supabase uses Auth UIDs and PostgreSQL's Row-Level Security (RLS).",
+          "translation": {
+              "auth": "Supabase Auth can replace Firebase Auth. The user schema remains similar (`auth.users` table). The client-side logic for login/logout will use the Supabase SDK.",
+              "securityRulesToRLS": "Firestore security rules (`match /family-data/shared-data/{document=**} { allow read, write: if request.auth != null; }`) must be translated into RLS policies on each PostgreSQL table. For this project, a simple policy on each table would be `CREATE POLICY 'allow_all_for_authenticated_users' ON public.expenses FOR ALL TO authenticated USING (true);`. This ensures only logged-in users can access the data, mirroring the current Firebase rule."
+          }
+      },
+      "storage": {
+          "title": "File Storage: Signature Images",
+          "concept": "Currently, signature images are stored as long Base64 Data URI strings (`signatureDataUrl`) directly within the `Check` documents. This is inefficient for a database.",
+          "translation": "The `signatureDataUrl` field should be replaced with a `signature_image_path` (TEXT) column in the `checks` table. On the client, after the user draws their signature, the Base64 string should be converted to a Blob/File object. This file should be uploaded to Supabase Storage. The returned file path is then stored in the `signature_image_path` column. To display the image, the UI would fetch the signed URL for that path from Supabase Storage and use it in the `<img>` tag's `src` attribute."
+      }
   }
 }
