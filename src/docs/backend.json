@@ -1,594 +1,271 @@
 {
-  "entities": {
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user in the Hesab Ketab application. This collection stores profile information, not credentials.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity, identical to the Firebase Auth UID."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user, used for login.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "First name of the user, used for display purposes across the app."
-        },
-        "lastName": {
-            "type": "string",
-            "description": "Last name of the user."
-        },
-        "signatureImage": {
-            "type": "string",
-            "description": "DEPRECATED. This was intended for a URL to a stored signature file. The logic now uses signatureDataUrl on the Check entity itself."
-        }
-      },
-      "required": [
-        "id",
-        "email",
-        "firstName",
-        "lastName"
-      ]
-    },
-    "BankAccount": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BankAccount",
-      "type": "object",
-      "description": "Represents a bank account. Ownership is determined by the ownerId field, which links to a user or the shared entity.",
-      "properties": {
-        "id": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Defines the ownership of the account. 'ali' or 'fatemeh' for personal accounts, 'shared_account' for the single joint family account." },
-        "bankName": { "type": "string" },
-        "accountNumber": { "type": "string" },
-        "cardNumber": { "type": "string" },
-        "expiryDate": { "type": "string", "pattern": "^(0[1-9]|1[0-2])\\/([0-9]{2})$", "description": "Expiry date in MM/YY format." },
-        "cvv2": { "type": "string" },
-        "accountType": { "type": "string", "enum": ["checking", "savings"], "description": "Type of the bank account. 'checking' is required for issuing checks." },
-        "balance": { "type": "number", "description": "The current total balance of the account. This is the source of truth for account value." },
-        "initialBalance": { "type": "number", "description": "The balance of the account at the time of creation. This field is not used in calculations after creation." },
-        "blockedBalance": { "type": "number", "description": "Amount from the total balance that is earmarked for financial goals and is not considered 'available' for regular expenses."}
-      },
-      "required": ["id", "ownerId", "bankName", "accountNumber", "cardNumber", "expiryDate", "cvv2", "accountType", "balance", "initialBalance"]
-    },
-    "Income": {
-      "$schema": "http://json-schema.org/draft_07/schema#",
-      "title": "Income",
-      "type": "object",
-      "description": "Represents an income transaction. Atomically increases a BankAccount's balance.",
-      "properties": {
-        "id": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "daramad_moshtarak"], "description": "The category of the income source, not necessarily the account owner. 'daramad_moshtarak' is for shared business income." },
-        "registeredByUserId": { "type": "string", "description": "The UID of the user who registered this transaction." },
-        "bankAccountId": { "type": "string", "description": "The ID of the BankAccount where the income was deposited." },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" },
-        "description": { "type": "string" },
-        "source": { "type": "string", "description": "Optional text field for the source of the income (e.g., company name)." },
-        "type": { "type": "string", "enum": ["income"], "description": "Transaction type identifier." },
-        "category": { "type": "string", "description": "Always 'درآمد' for income transactions." },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp of creation." },
-        "balanceAfter": { "type": "number", "description": "Snapshot of the bank account's balance immediately after this income was added." }
-      },
-      "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "amount", "date", "description", "source", "type", "category", "createdAt"]
-    },
-    "Expense": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Expense",
-      "type": "object",
-      "description": "Represents an expense transaction. Atomically decreases a BankAccount's balance.",
-      "properties": {
-        "id": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "The owner of the bank account from which the expense was made. Copied from BankAccount.ownerId at time of transaction." },
-        "registeredByUserId": { "type": "string", "description": "The UID of the user who registered this transaction." },
-        "bankAccountId": { "type": "string", "description": "The ID of the BankAccount used for payment." },
-        "categoryId": { "type": "string", "description": "The ID of the expense Category." },
-        "payeeId": { "type": "string", "description": "Optional ID of the payee for this expense." },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" },
-        "description": { "type": "string" },
-        "type": { "type": "string", "enum": ["expense"], "description": "Transaction type identifier." },
-        "subType": { "type": "string", "enum": ["goal_saved_portion", "goal_cash_portion", "loan_payment", "debt_payment", "goal_contribution"], "description": "Differentiates special expenses. 'goal_contribution' is for saving towards a goal. 'loan_payment' is for a loan installment. 'debt_payment' is for a miscellaneous debt payment." },
-        "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this expense was for (beneficiary). This is independent of the bank account owner." },
-        "checkId": { "type": "string", "description": "If this expense was created by clearing a check, this is the ID of the Check." },
-        "goalId": { "type": "string", "description": "If this expense is related to a financial goal, this is the ID of the FinancialGoal." },
-        "loanPaymentId": { "type": "string", "description": "If this expense was for a loan installment, this is the ID of the LoanPayment." },
-        "debtPaymentId": { "type": "string", "description": "If this expense was for a debt payment, this is the ID of the DebtPayment." },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "balanceBefore": { "type": "number", "description": "Snapshot of the bank account's balance before this expense." },
-        "balanceAfter": { "type": "number", "description": "Snapshot of the bank account's balance after this expense." }
-      },
-      "required": ["id", "ownerId", "registeredByUserId", "bankAccountId", "categoryId", "amount", "date", "description", "type", "createdAt", "expenseFor"]
-    },
-    "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Category",
-      "type": "object",
-      "description": "Represents a category for expenses, shared by all users.",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" }
-      },
-      "required": ["id", "name"]
-    },
-    "Payee": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Payee",
-      "type": "object",
-      "description": "Represents a payee (person or business), shared by all users.",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "phoneNumber": { "type": "string" }
-      },
-      "required": ["id", "name"]
-    },
-    "Check": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Check",
-      "type": "object",
-      "description": "Represents a financial check. It is a liability, but only creates an expense when cleared.",
-      "properties": {
-        "id": { "type": "string" },
-        "registeredByUserId": { "type": "string" },
-        "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "The owner of the source BankAccount. This determines who holds the liability." },
-        "expenseFor": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "The person or purpose this check was for (beneficiary)." },
-        "bankAccountId": { "type": "string" },
-        "payeeId": { "type": "string" },
-        "categoryId": { "type": "string" },
-        "amount": { "type": "number" },
-        "issueDate": { "type": "string", "format": "date-time" },
-        "dueDate": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["pending", "cleared"] },
-        "clearedDate": { "type": "string", "format": "date-time", "description": "The date the check was cleared." },
-        "description": { "type": "string" },
-        "sayadId": { "type": "string", "description": "The Sayad ID of the check." },
-        "checkSerialNumber": { "type": "string", "description": "The serial number of the check." },
-        "signatureDataUrl": { "type": "string", "description": "Base64 Data URI of the check signature image, generated on the client."}
-      },
-      "required": ["id", "registeredByUserId", "ownerId", "expenseFor", "bankAccountId", "payeeId", "categoryId", "amount", "issueDate", "dueDate", "status", "sayadId", "checkSerialNumber"]
-    },
-    "FinancialGoalContribution": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FinancialGoalContribution",
-      "type": "object",
-      "description": "Represents a single contribution towards a financial goal. It is a historical record within the FinancialGoal object.",
-      "properties": {
-        "id": { "type": "string", "description": "The ID of the associated 'goal_contribution' Expense document." },
-        "bankAccountId": { "type": "string" },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" },
-        "registeredByUserId": { "type": "string", "description": "The user who registered this contribution." }
-      },
-      "required": ["id", "bankAccountId", "amount", "date", "registeredByUserId"]
-    },
-    "FinancialGoal": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "FinancialGoal",
-        "type": "object",
-        "description": "Represents a financial savings goal. Contributions to a goal decrease a bank account's spendable balance by increasing its 'blockedBalance'.",
-        "properties": {
-            "id": { "type": "string" },
-            "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who this goal is for (beneficiary)." },
-            "name": { "type": "string" },
-            "targetAmount": { "type": "number" },
-            "currentAmount": { "type": "number" },
-            "actualCost": { "type": "number", "description": "The real cost of the goal when it was achieved." },
-            "targetDate": { "type": "string", "format": "date-time" },
-            "isAchieved": { "type": "boolean" },
-            "priority": { "type": "string", "enum": ["low", "medium", "high"] },
-            "contributions": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/entities/FinancialGoalContribution"
+  "description": "Technical specification for migrating the Khanevadati app backend from Firebase/Firestore to Supabase/PostgreSQL.",
+  "firestore": {
+    "description": "Source Data Model (Firebase/Firestore). This structure will be mapped to PostgreSQL tables. The single-document model ('family-data' -> 'shared-data') will be flattened into multiple related tables in SQL.",
+    "collections": {
+      "family-data": {
+        "documents": {
+          "shared-data": {
+            "subcollections": {
+              "users": {
+                "description": "User profiles. In Supabase, this will map to a 'users' table linked to 'auth.users'.",
+                "documents": {
+                  "[userId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "The user's unique ID (matches auth UID). Primary Key in the 'users' table." },
+                      { "name": "email", "type": "string", "description": "The user's email address." },
+                      { "name": "firstName", "type": "string", "description": "The user's first name." },
+                      { "name": "lastName", "type": "string", "description": "The user's last name." },
+                      { "name": "signatureImage", "type": "string", "description": "Legacy field. URL to the user's signature image." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation. Managed by the database." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update. Managed by the database." }
+                    ]
+                  }
                 }
+              },
+              "bankAccounts": {
+                "description": "Bank accounts, personal and shared. Maps to 'bank_accounts' table.",
+                "documents": {
+                  "[accountId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "ownerId", "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Indicates who owns the account." },
+                      { "name": "bankName", "type": "string", "description": "The name of the bank." },
+                      { "name": "balance", "type": "number", "description": "Current balance of the account." },
+                      { "name": "blockedBalance", "type": "number", "description": "Amount reserved for pending transactions like financial goals." },
+                      { "name": "registeredByUserId", "type": "string", "description": "Foreign Key to users.id." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete. UI should filter out deleted accounts." },
+                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
+                    ]
+                  }
+                }
+              },
+              "expenses": {
+                "description": "Expense transactions. Maps to 'expenses' table.",
+                "documents": {
+                  "[expenseId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID for all records in a single atomic financial operation. Essential for auditing." },
+                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
+                      { "name": "ownerId", "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Owner of the bank account used." },
+                      { "name": "registeredByUserId", "type": "string", "description": "Foreign Key to users.id, user who logged the expense." },
+                      { "name": "paidByUserId", "type": "string", "optional": true, "description": "Foreign Key to users.id, user who physically made the payment. Useful for future detailed reporting." },
+                      { "name": "categoryId", "type": "string", "description": "Foreign Key to categories.id." },
+                      { "name": "payeeId", "type": "string", "optional": true, "description": "Foreign Key to payees.id." },
+                      { "name": "amount", "type": "number", "description": "The amount of the expense." },
+                      { "name": "date", "type": "string", "format": "date-time", "description": "The date of the expense." },
+                      { "name": "description", "type": "string", "description": "A description of the expense." },
+                      { "name": "expenseFor", "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Beneficiary of the expense." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+                    ]
+                  }
+                }
+              },
+              "incomes": {
+                "description": "Income transactions. Maps to 'incomes' table.",
+                "documents": {
+                  "[incomeId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID for all records in a single atomic financial operation." },
+                      { "name": "date", "type": "string", "format": "date-time", "description": "The date of the income." },
+                      { "name": "description", "type": "string", "description": "A description of the income." },
+                      { "name": "amount", "type": "number", "description": "The amount of income." },
+                      { "name": "incomeSource", "type": "string", "enum": ["ali", "fatemeh", "daramad_moshtarak"], "description": "The source of the income (who earned it). Used for 'daramad Ali/Fatemeh/Moshtarak' reporting." },
+                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id, where the income was deposited." },
+                      { "name": "bankAccountOwner", "type": "string", "enum": ["ali", "fatemeh", "shared_account"], "description": "Owner of the destination bank account. Used for structural analysis, populated based on the selected bank account." },
+                      { "name": "registeredByUserId", "type": "string", "description": "Foreign Key to users.id." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+                    ]
+                  }
+                }
+              },
+              "transfers": {
+                "description": "Internal account transfers. Maps to 'transfers' table.",
+                "documents": {
+                  "[transferId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID for all records in a single atomic financial operation." },
+                      { "name": "registeredByUserId", "type": "string", "description": "Foreign Key to users.id." },
+                      { "name": "fromBankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id (source)." },
+                      { "name": "toBankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id (destination)." },
+                      { "name": "amount", "type": "number", "description": "The amount transferred." },
+                      { "name": "transferDate", "type": "string", "format": "date-time", "description": "The date of the transfer." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+                    ]
+                  }
+                }
+              },
+              "categories": {
+                "description": "Expense categories. Maps to 'categories' table.",
+                "documents": {
+                  "[categoryId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "name", "type": "string", "description": "Name of the category." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete. Prevents deletion if category is in use." },
+                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
+                    ]
+                  }
+                }
+              },
+              "payees": {
+                "description": "Payees (people or businesses). Maps to 'payees' table.",
+                "documents": {
+                  "[payeeId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "name", "type": "string", "description": "Name of the payee." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete. Prevents deletion if payee is in use." },
+                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
+                    ]
+                  }
+                }
+              },
+              "checks": {
+                "description": "Issued checks as liabilities. Maps to 'checks' table.",
+                "documents": {
+                  "[checkId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID used when the check is cleared, linking it to the resulting expense." },
+                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
+                      { "name": "payeeId", "type": "string", "description": "Foreign Key to payees.id." },
+                      { "name": "amount", "type": "number", "description": "Amount of the check." },
+                      { "name": "issueDate", "type": "string", "format": "date-time", "description": "The date the check was issued." },
+                      { "name": "dueDate", "type": "string", "format": "date-time", "description": "The date the check is due." },
+                      { "name": "status", "type": "string", "enum": ["pending", "cleared"], "description": "Current status of the check." },
+                      { "name": "clearedDate", "type": "string", "format": "date-time", "optional": true, "description": "The date the check was cleared." },
+                      { "name": "signatureDataUrl", "type": "string", "description": "Legacy field: Data URL of the signature image. For migration only." },
+                      { "name": "signaturePath", "type": "string", "optional": true, "description": "Storage path for the signature file in Supabase Storage. The new standard." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete." },
+                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
+                    ]
+                  }
+                }
+              },
+              "loans": {
+                "description": "Loans taken (money borrowed). Maps to 'loans' table.",
+                "documents": {
+                  "[loanId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "title", "type": "string", "description": "Title or description of the loan." },
+                      { "name": "amount", "type": "number", "description": "Total loan amount." },
+                      { "name": "remainingAmount", "type": "number", "description": "The amount yet to be paid." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." },
+                      { "name": "isDeleted", "type": "boolean", "default": false, "description": "Flag for soft delete. Not deletable if payments exist." },
+                      { "name": "deletedAt", "type": "string", "format": "date-time", "optional": true, "description": "Timestamp of soft deletion." }
+                    ]
+                  }
+                }
+              },
+              "loanPayments": {
+                "description": "Records of loan payments. Maps to 'loan_payments' table.",
+                "documents": {
+                  "[paymentId]": {
+                    "fields": [
+                      { "name": "id", "type": "string", "description": "Primary Key." },
+                      { "name": "transactionId", "type": "string", "optional": true, "description": "Shared UUID for all records in a single atomic financial operation." },
+                      { "name": "loanId", "type": "string", "description": "Foreign Key to loans.id." },
+                      { "name": "bankAccountId", "type": "string", "description": "Foreign Key to bank_accounts.id." },
+                      { "name": "amount", "type": "number", "description": "Amount paid." },
+                      { "name": "paymentDate", "type": "string", "format": "date-time", "description": "Date of payment." },
+                      { "name": "createdAt", "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+                      { "name": "updatedAt", "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+                    ]
+                  }
+                }
+              }
             }
-        },
-        "required": ["id", "registeredByUserId", "ownerId", "name", "targetAmount", "currentAmount", "targetDate", "isAchieved", "priority", "contributions"]
-    },
-    "Loan": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Loan",
-        "type": "object",
-        "description": "Represents a formal loan taken by the family or an individual.",
-        "properties": {
-            "id": { "type": "string" },
-            "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the loan is for (beneficiary/liable party)." },
-            "payeeId": { "type": "string", "description": "The entity (e.g., bank) from which the loan was received." },
-            "title": { "type": "string" },
-            "amount": { "type": "number" },
-            "installmentAmount": { "type": "number" },
-            "remainingAmount": { "type": "number" },
-            "startDate": { "type": "string", "format": "date-time" },
-            "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "The exact date of the first installment payment."},
-            "numberOfInstallments": { "type": "number" },
-            "paidInstallments": { "type": "number" },
-            "depositToAccountId": { "type": "string", "description": "If the loan amount was deposited into an account, this is the account ID." }
-        },
-        "required": ["id", "registeredByUserId", "ownerId", "title", "amount", "installmentAmount", "remainingAmount", "startDate", "numberOfInstallments", "paidInstallments", "firstInstallmentDate"]
-    },
-    "LoanPayment": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "LoanPayment",
-        "type": "object",
-        "description": "A record of a single payment made towards a Loan.",
-        "properties": {
-            "id": { "type": "string" },
-            "registeredByUserId": { "type": "string" },
-            "loanId": { "type": "string" },
-            "bankAccountId": { "type": "string" },
-            "amount": { "type": "number" },
-            "paymentDate": { "type": "string", "format": "date-time" }
-        },
-        "required": ["id", "registeredByUserId", "loanId", "bankAccountId", "amount", "paymentDate"]
-    },
-    "PreviousDebt": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "PreviousDebt",
-        "type": "object",
-        "description": "Represents a miscellaneous debt that is not a formal loan or check (e.g., a personal loan from a friend).",
-        "properties": {
-            "id": { "type": "string" },
-            "registeredByUserId": { "type": "string" },
-            "ownerId": { "type": "string", "enum": ["ali", "fatemeh", "shared"], "description": "Who the debt is for (beneficiary)." },
-            "payeeId": { "type": "string" },
-            "description": { "type": "string" },
-            "amount": { "type": "number" },
-            "remainingAmount": { "type": "number" },
-            "startDate": { "type": "string", "format": "date-time" },
-            "isInstallment": { "type": "boolean" },
-            "dueDate": { "type": "string", "format": "date-time", "description": "Due date for single-payment debts." },
-            "firstInstallmentDate": { "type": "string", "format": "date-time", "description": "Date of the first installment for installment-based debts." },
-            "numberOfInstallments": { "type": "number" },
-            "installmentAmount": { "type": "number" },
-            "paidInstallments": { "type": "number" }
-        },
-        "required": ["id", "registeredByUserId", "ownerId", "payeeId", "description", "amount", "remainingAmount", "startDate", "isInstallment", "paidInstallments"]
-    },
-    "DebtPayment": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "DebtPayment",
-        "type": "object",
-        "description": "A record of a single payment made towards a PreviousDebt.",
-        "properties": {
-            "id": { "type": "string" },
-            "registeredByUserId": { "type": "string" },
-            "debtId": { "type": "string" },
-            "bankAccountId": { "type": "string" },
-            "amount": { "type": "number" },
-            "paymentDate": { "type": "string", "format": "date-time" }
-        },
-        "required": ["id", "registeredByUserId", "debtId", "bankAccountId", "amount", "paymentDate"]
-    },
-    "Transfer": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Transfer",
-        "type": "object",
-        "description": "Represents an internal transfer between two BankAccounts. This is not an income or expense.",
-        "properties": {
-            "id": { "type": "string" },
-            "registeredByUserId": { "type": "string", "description": "The user who initiated the transfer." },
-            "fromBankAccountId": { "type": "string" },
-            "toBankAccountId": { "type": "string" },
-            "amount": { "type": "number" },
-            "transferDate": { "type": "string", "format": "date-time" },
-            "description": { "type": "string" },
-            "fromAccountBalanceBefore": { "type": "number" },
-            "fromAccountBalanceAfter": { "type": "number" },
-            "toAccountBalanceBefore": { "type": "number" },
-            "toAccountBalanceAfter": { "type": "number" }
-        },
-        "required": ["id", "registeredByUserId", "fromBankAccountId", "toBankAccountId", "amount", "transferDate", "fromAccountBalanceBefore", "fromAccountBalanceAfter", "toAccountBalanceBefore", "toAccountBalanceAfter"]
-    },
-    "ChatMessage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ChatMessage",
-      "type": "object",
-      "description": "Represents a single chat message in the family chat. Can be a user message or a system notification about a transaction.",
-      "properties": {
-        "id": { "type": "string" },
-        "senderId": { "type": "string", "description": "The UID of the user who sent the message, or 'system'." },
-        "senderName": { "type": "string", "description": "The first name of the sender, or a system name." },
-        "text": { "type": "string", "description": "The content of the message or a title for system messages." },
-        "timestamp": { "type": "string", "format": "date-time", "description": "The server timestamp of when the message was sent." },
-        "type": { "type": "string", "enum": ["user", "system"] },
-        "readBy": { "type": "array", "items": { "type": "string" }, "description": "An array of user UIDs who have read the message." },
-        "replyTo": {
-            "type": "object",
-            "properties": {
-                "messageId": { "type": "string" },
-                "text": { "type": "string" },
-                "senderName": { "type": "string" }
-            }
-        },
-        "transactionDetails": { "type": "object", "description": "If type is 'system', this object contains the structured details of the transaction for rendering a special card in the UI." }
-      },
-      "required": ["id", "senderId", "senderName", "text", "timestamp", "type", "readBy"]
+          }
+        }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ],
-    "logic": {
-      "description": "Authentication is limited to two specific users: 'ali@khanevadati.app' and 'fatemeh@khanevadati.app'. The login form enforces this client-side. Upon first successful login, a user profile document is created in the '/users/{userId}' collection."
-    }
-  },
-  "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "schema": { "$ref": "#/entities/User" },
-          "description": "Stores user profiles. This collection is readable by all authenticated users to map user IDs to names, but each user can only write to their own document."
-        }
-      },
-      {
-        "path": "/family-data/shared-data",
-        "definition": {
-          "schema": {},
-          "description": "A single document acting as a parent for all shared subcollections. All authenticated users have full read/write access to this document and all its subcollections."
-        },
-        "subcollections": [
-            { "name": "bankAccounts", "schema": { "$ref": "#/entities/BankAccount" } },
-            { "name": "incomes", "schema": { "$ref": "#/entities/Income" } },
-            { "name": "expenses", "schema": { "$ref": "#/entities/Expense" } },
-            { "name": "categories", "schema": { "$ref": "#/entities/Category" } },
-            { "name": "payees", "schema": { "$ref": "#/entities/Payee" } },
-            { "name": "checks", "schema": { "$ref": "#/entities/Check" } },
-            { "name": "financialGoals", "schema": { "$ref": "#/entities/FinancialGoal" } },
-            { "name": "loans", "schema": { "$ref": "#/entities/Loan" } },
-            { "name": "loanPayments", "schema": { "$ref": "#/entities/LoanPayment" } },
-            { "name": "previousDebts", "schema": { "$ref": "#/entities/PreviousDebt" } },
-            { "name": "debtPayments", "schema": { "$ref": "#/entities/DebtPayment" } },
-            { "name": "transfers", "schema": { "$ref": "#/entities/Transfer" } },
-            { "name": "chatMessages", "schema": { "$ref": "#/entities/ChatMessage" } }
-        ]
-      }
-    ]
+    "description": "Handles user authentication and profiles.",
+    "migrationPlan": "Migrate from Firebase Authentication to Supabase Auth. User UIDs should be preserved if possible. User data will be stored in 'public.users' table, linked to 'auth.users' by a one-to-one relationship."
   },
   "businessLogic": {
-    "description": "This section outlines the core business logic, calculations, and workflows of the Hesab Ketab application.",
-    "coreMechanisms": {
-      "registeredByUserId": {
-        "title": "Tracking the Registrar",
-        "description": "Every financial transaction (income, expense, check, etc.) has a 'registeredByUserId' field. This field stores the UID of the user who was logged in when the transaction was created. The UI uses this ID to look up the user's first name from the '/users' collection and display it, ensuring clarity on who registered what."
-      },
-      "ownerId_vs_expenseFor": {
-        "title": "Ownership vs. Beneficiary",
-        "description": "It's crucial to distinguish between 'ownerId' and 'expenseFor'. 'ownerId' typically refers to the owner of the asset or liability (e.g., the owner of the BankAccount from which a payment is made). 'expenseFor' defines who the expense benefits (Ali, Fatemeh, or Shared). For example, Ali can use his personal card ('ownerId: ali') to pay for a shared expense ('expenseFor: shared')."
-      },
-      "atomicTransactions": {
-          "title": "Atomic Operations with Firestore Transactions",
-          "description": "All operations that involve multiple, related database writes are wrapped in a Firestore Transaction (`runTransaction`). This guarantees that all writes succeed or all fail together, preventing data inconsistency. For example, when an expense is recorded, decreasing the bank account balance and creating the expense document happen atomically. This is crucial for financial integrity."
-      }
-    },
-    "dashboard": {
-      "title": "Dashboard Logic",
-      "summaryCalculations": {
-        "title": "Summary Card Calculations",
-        "netWorth": "('Total Assets') - ('Total Liabilities'). This is a global calculation, not affected by filters.",
-        "totalAssets": "Sum of the `balance` field from all documents in the `bankAccounts` collection.",
-        "totalLiabilities": "Sum of (`remainingAmount` from all `loans`) + (`remainingAmount` from all `previousDebts`) + (`amount` from all `checks` where `status: 'pending'`).",
-        "totalIncome": "Sum of `amount` from `incomes` where `date` is within the selected date range and `ownerId` matches the selected owner filter.",
-        "totalExpense": "Sum of `amount` from `expenses` where `date` is within the selected date range and `expenseFor` matches the selected owner filter."
-      },
-      "filters": {
-          "title": "Dashboard Filtering",
-          "description": "The dashboard allows filtering by owner ('all', 'ali', 'fatemeh', 'shared', 'daramad_moshtarak') and by date preset ('thisWeek', 'thisMonth', 'thisYear'). These filters apply ONLY to the 'Total Income', 'Total Expense' cards, the income/expense chart, and the category spending chart. All other summary cards (Net Worth, Assets, Liabilities) always show global, unfiltered totals."
-      }
-    },
+    "description": "High-level description of business logic to be re-implemented using PostgreSQL functions or application-level code.",
     "transactions": {
-        "title": "Income and Expense Logic",
-        "createExpense": "1. `runTransaction` is initiated. 2. It reads the source `BankAccount` document. 3. It verifies if `balance` - `blockedBalance` >= expense amount. 4. It updates the `balance` on the bank account document: `new_balance` = `balance` - expense.amount. 5. It creates a new document in the `expenses` collection, storing `balanceBefore` and `balanceAfter` for audit. 6. A system message is sent to the chat.",
-        "deleteExpense": "1. `runTransaction` is initiated. 2. It reads the `Expense` to be deleted and its source `BankAccount`. 3. It updates the `balance` on the bank account document: `new_balance` = `balance` + expense.amount. 4. It deletes the `Expense` document.",
-        "createIncome": "1. `runTransaction` is initiated. 2. It reads the destination `BankAccount`. 3. It updates the `balance` on the bank account: `new_balance` = `balance` + income.amount. 4. It creates a new `Income` document with `balanceAfter`. 5. A system message is sent to the chat.",
-        "dataDisplayLogic": {
-          "title": "Data Display & UI Logic",
-          "description": "The component `ExpenseList` and `IncomeList` are responsible for displaying transactions.",
-          "dataSources": "They receive the complete lists of `expenses`, `incomes`, `bankAccounts`, `categories`, `payees`, and `users` from the `useDashboardData` hook.",
-          "dataJoining": "For each transaction, the components perform client-side 'joins': it finds the corresponding bank account name from the `bankAccounts` list using `bankAccountId`, the category name from the `categories` list using `categoryId`, the payee name from the `payees` list using `payeeId`, and the registrar's first name from the `users` list using `registeredByUserId`.",
-          "uiRendering": "The final rendered item displays the transaction `description`, `amount`, and `date`, along with the resolved names for the bank account, category, payee, and registrar."
-        }
+      "atomicity": "All multi-step financial operations (e.g., creating an expense, paying a loan installment) must be wrapped in a database transaction and share a single `transactionId` across all created/updated records (expenses, loan_payments, bank_account balance updates) for atomicity and auditability.",
+      "balanceUpdates": "Bank account balances must be updated within the same database transaction as the corresponding expense, income, or transfer record is created. This should be handled by a PostgreSQL function/trigger for consistency."
     },
-    "liabilities": {
-      "title": "Checks, Loans, and Debts",
-      "checkWorkflow": {
-          "title": "Check Workflow (with Signature)",
-          "creation": "1. User fills the `CheckForm`. 2. On submit, the `SignatureDialog` opens. 3. User draws their signature on an HTML canvas. 4. On confirmation, the signature is converted to a Base64 Data URI string. 5. This `signatureDataUrl` string is added to the form data object. 6. A `runTransaction` is initiated. 7. It creates a new `Check` document containing all details, including the `signatureDataUrl`. The check `status` is set to 'pending'. No financial change occurs.",
-          "clearing": "1. `runTransaction` is initiated. 2. It reads the `Check` and the source `BankAccount`. 3. It verifies `balance` - `blockedBalance` >= check.amount. 4. It updates the check `status` to 'cleared' and sets `clearedDate`. 5. It creates a new `Expense` document with `subType: 'check_cleared'` and a reference to the `checkId`. 6. It updates the `BankAccount` `balance` by subtracting the check amount.",
-          "deletion": "If `status` is 'pending', the `Check` document is simply deleted. If `status` is 'cleared', a transaction runs to delete both the `Check` and its corresponding `Expense` document, while also adding the amount back to the `BankAccount` `balance`.",
-          "dataDisplayLogic": {
-            "title": "Data Display & UI Logic",
-            "description": "The `CheckList` and `CheckDetailPage` (`/checks/[checkId]`) are responsible for display.",
-            "dataSources": "They receive `checks`, `bankAccounts`, `payees`, `categories`, and `users` from `useDashboardData`.",
-            "dataJoining": "Similar to other lists, they resolve IDs to names. Crucially, they both check for the existence of the `signatureDataUrl` field on the `Check` object.",
-            "uiRendering": "Both components display check details like amount, payee, and dates. If `signatureDataUrl` exists, they render an `<Image>` component with its `src` set to this Data URI, directly displaying the unique signature. If not, no signature is shown."
-          }
-      },
-      "loanAndDebtPayment": {
-          "title": "Loan and Debt Payment",
-          "description": "Paying a loan or debt installment is an atomic transaction: 1. `runTransaction` is initiated. 2. It reads the `Loan`/`PreviousDebt` and the source `BankAccount`. 3. It verifies `balance` - `blockedBalance` >= payment amount. 4. It updates `remainingAmount` and `paidInstallments` on the loan/debt document. 5. It creates a `LoanPayment`/`DebtPayment` history document. 6. It creates a corresponding `Expense` document (with `subType: 'loan_payment'` or `debt_payment`) to reflect the payment in the main ledger. 7. It updates the bank account's `balance` by subtracting the payment amount.",
-          "dataDisplayLogic": {
-            "title": "Data Display & UI Logic",
-            "description": "The `LoanList` and `DebtList` components display the items. The detail pages (`/loans/[loanId]` and `/debts/[debtId]`) show payment history.",
-            "dataSources": "The detail pages fetch the specific `Loan`/`Debt` and also the entire `loanPayments`/`debtPayments` and `bankAccounts` collections.",
-            "dataJoining": "For the payment history table, the component iterates through the relevant payment history documents (e.g., `loanPayments` where `loanId` matches). For each payment, it looks up the `bankAccountId` in the `bankAccounts` list to display the bank's name from which the payment was made.",
-            "uiRendering": "The lists show a progress bar calculated from `remainingAmount` / `amount`. The detail pages show a table of past payments with date, amount, and the source bank account name."
-          }
-      },
-      "deletionConstraint": "Loans, Debts, Categories, and Payees cannot be deleted if they are referenced by any existing transaction (e.g., a 'Loan' with 'paidInstallments' > 0 cannot be deleted). This is enforced by a pre-delete check within a transaction that queries for related documents before allowing the deletion to proceed."
+    "incomeReporting": {
+      "sourceVsOwner": "Income reports must be generated by grouping records based on the `incomeSource` field ('ali', 'fatemeh', 'daramad_moshtarak') to reflect the origin of the income. The `bankAccountOwner` field is used for analyzing account structure, not for business income reports."
     },
-    "goals": {
-        "title": "Financial Goals",
-        "contribution": "1. Adding funds to a goal is an atomic transaction. 2. An `Expense` document with `subType: 'goal_contribution'` is created. 3. This transaction *reduces* the `balance` of the source bank account. 4. Simultaneously, the `blockedBalance` of the *same* bank account is *increased* by the same amount. This keeps the total `balance` field technically correct for accounting while separating spendable money from saved money. 5. The `currentAmount` on the `FinancialGoal` document is increased, and a contribution record (linking to the expense ID) is added to its `contributions` array.",
-        "achievement": "1. When a goal is marked as 'achieved', another complex transaction runs. 2. It releases the 'blockedBalance' from all contributing bank accounts by subtracting the contribution amounts from the `blockedBalance` field of each respective bank. This makes the saved money 'spendable' again. 3. It creates a final `Expense` for the `actualCost`, which may use a combination of the now-unblocked savings (represented as an expense with `subType: 'goal_saved_portion'`) and new cash from a specified payment card (represented as an expense with `subType: 'goal_cash_portion'`). 4. The `isAchieved` flag on the goal is set to true, and `currentAmount` is reset to 0.",
-        "dataDisplayLogic": {
-          "title": "Data Display & UI Logic",
-          "description": "The `GoalList` shows an overview, and the `GoalDetailPage` (`/goals/[goalId]`) shows contribution history.",
-          "dataSources": "Both components source their data from the `financialGoals` and `bankAccounts` collections.",
-          "dataJoining": "The detail page iterates through the `contributions` array within the `FinancialGoal` document. For each contribution, it uses the `bankAccountId` to find the corresponding bank account name from the `bankAccounts` list.",
-          "uiRendering": "The list card displays a progress bar calculated from `currentAmount` / `targetAmount`. The detail page displays a table of all contributions, showing the amount, date, and source bank account name for each."
-        }
-    },
-    "transfers": {
-        "title": "Internal Transfers",
-        "logic": "1. An atomic transaction updates two `BankAccount` documents. 2. It subtracts the amount from the `from` account's `balance`. 3. It adds the amount to the `to` account's `balance`. 4. A `Transfer` document is created to log this operation, including the balances before and after for both accounts for historical accuracy and reversibility.",
-        "dataDisplayLogic": {
-          "title": "Data Display & UI Logic",
-          "description": "The `TransferList` component displays the history of internal transfers.",
-          "dataSources": "It uses the `transfers` and `bankAccounts` collections.",
-          "dataJoining": "For each `Transfer` document, it performs two lookups in the `bankAccounts` list: one for `fromBankAccountId` and one for `toBankAccountId` to get the names of the source and destination banks.",
-          "uiRendering": "The component renders a card for each transfer, clearly showing the 'From' and 'To' bank accounts, the amount transferred, and the account balances before and after the transaction for both accounts, which it gets directly from the `Transfer` document itself."
-        }
-    },
-    "chat": {
-        "title": "Chat and Notifications",
-        "systemMessages": "After a key financial transaction (creating an expense, income, check, loan, etc.), a `sendSystemNotification` function is called. This function creates a new `ChatMessage` document with `type: system`. The message contains a `transactionDetails` object with all relevant info, which the UI (`SystemMessageCard`) then uses to render a special summary card in the chat feed.",
-        "readReceipts": "Each message has a `readBy` array field containing UIDs. When a user opens the chat, the app identifies all messages not sent by them and where their UID is not in the `readBy` array. It then performs a batch update to add their UID to all those messages, marking them as read. The UI uses this array to show a single check (sent) or double check (read by the other user).",
-        "dataDisplayLogic": {
-          "title": "Data Display & UI Logic",
-          "description": "The `ChatInterface` and `MessageList` components handle chat display.",
-          "dataSources": "They fetch all documents from the `chatMessages` and `users` collections.",
-          "dataJoining": "For each message, it uses the `senderId` to look up the sender's avatar and name from the `users` list. For system messages, it reads the `transactionDetails` object and renders a specific `SystemMessageCard` component, passing the details object to it.",
-          "uiRendering": "User messages are displayed with the sender's avatar and name. System messages are rendered as structured cards showing the details of the financial transaction."
-        }
+    "softDeletes": {
+      "implementation": "All entities intended for deletion will use a soft-delete pattern. UI 'delete' operations must update the `isDeleted` flag to true and set the `deletedAt` timestamp. Row-Level Security (RLS) policies in Supabase must be configured to filter out records where `isDeleted` is true for all standard user roles."
     }
   },
   "migrationGuide": {
-      "title": "Professional Migration Guide: Firebase to Supabase (PostgreSQL)",
-      "introduction": "This guide provides a high-level technical blueprint for a developer to migrate the 'Hesab Ketab' application from a Firebase/NoSQL architecture to a Supabase/SQL architecture. The focus is on translating core concepts to ensure data integrity, security, and performance.",
-      "dataModeling": {
-          "title": "Data Modeling: From Collections to Tables",
-          "concept": "The biggest architectural shift is moving from Firestore's document/collection model to PostgreSQL's relational table model. Denormalization, which is common in Firestore, should be replaced with normalization and foreign key constraints in SQL.",
-          "translation": {
-              "collectionsToTables": "Each Firestore collection (e.g., `expenses`, `bankAccounts`, `users`) becomes a PostgreSQL table.",
-              "documentsToRows": "Each document within a collection becomes a row in the corresponding table.",
-              "fieldsToColumns": "Each field in a document becomes a column in the table, with appropriate SQL data types (e.g., `TEXT`, `NUMERIC`, `TIMESTAMP`, `BOOLEAN`, `UUID`).",
-              "foreignKeys": "Fields that store an ID from another collection (e.g., `bankAccountId` in the `expenses` collection) must become foreign key columns (`bank_account_id UUID REFERENCES bank_accounts(id)`). This enforces relational integrity at the database level, something Firestore lacks."
-          }
-      },
-      "serverSideLogic": {
-          "title": "Server-Side Logic: Atomic Transactions",
-          "concept": "Financial applications require atomicity. In Firestore, this is achieved with `runTransaction`. In PostgreSQL, this is achieved using database functions and transactions.",
-          "translation": "All sensitive business logic (creating an expense, clearing a check, paying an installment) currently inside a `runTransaction` block on the client MUST be moved to a PostgreSQL function (using `plpgsql`) on the Supabase server. The client application should then call this function via Supabase's RPC (Remote Procedure Call) mechanism. This is critical for security and data integrity, as it prevents clients from manipulating balances directly."
-      },
-      "realtime": {
-          "title": "Real-time Subscriptions",
-          "concept": "Firestore's `onSnapshot` provides real-time updates to the UI.",
-          "translation": "Supabase provides a similar mechanism called 'Realtime Subscriptions'. The `useCollection` hook in the current project would be replaced by a similar custom hook that uses Supabase's client library to subscribe to changes on specific tables (e.g., `supabase.channel('public:expenses').on('postgres_changes', ...)`). The logic of re-fetching and re-rendering the UI remains conceptually similar."
-      },
-      "authenticationAndSecurity": {
-          "title": "Authentication and Row-Level Security (RLS)",
-          "concept": "Firebase uses Auth UIDs and Firestore Security Rules to control data access. Supabase uses Auth UIDs and PostgreSQL's Row-Level Security (RLS).",
-          "translation": {
-              "auth": "Supabase Auth can replace Firebase Auth. The user schema remains similar (`auth.users` table). The client-side logic for login/logout will use the Supabase SDK.",
-              "securityRulesToRLS": "Firestore security rules (`match /family-data/shared-data/{document=**} { allow read, write: if request.auth != null; }`) must be translated into RLS policies on each PostgreSQL table. For this project, a simple policy on each table would be `CREATE POLICY 'allow_all_for_authenticated_users' ON public.expenses FOR ALL TO authenticated USING (true);`. This ensures only logged-in users can access the data, mirroring the current Firebase rule."
-          }
-      },
-      "storage": {
-          "title": "File Storage: Signature Images",
-          "concept": "Currently, signature images are stored as long Base64 Data URI strings (`signatureDataUrl`) directly within the `Check` documents. This is inefficient for a database.",
-          "translation": "The `signatureDataUrl` field should be replaced with a `signature_image_path` (TEXT) column in the `checks` table. On the client, after the user draws their signature, the Base64 string should be converted to a Blob/File object. This file should be uploaded to Supabase Storage. The returned file path is then stored in the `signature_image_path` column. To display the image, the UI would fetch the signed URL for that path from Supabase Storage and use it in the `<img>` tag's `src` attribute."
-      }
-  },
-  "filesToMigrate": [
-    {
-      "path": "src/app/layout.tsx",
-      "description": "This is the root layout of the application. It contains the main Firebase context provider (`FirebaseClientProvider`) and handles the top-level authentication routing logic.",
-      "keyAreas": ["FirebaseClientProvider", "useUser", "useAuth", "handleSignOut"]
+    "description": "A guide for the technical migration from Firestore to Supabase/PostgreSQL.",
+    "dataMapping": {
+      "introduction": "Firestore's nested subcollections under a single document will be flattened into separate, related tables in PostgreSQL. For example, `family-data/shared-data/expenses` becomes the `public.expenses` table.",
+      "fieldRenames": [
+        { "entity": "Income", "from": "ownerId", "to": "incomeSource", "reason": "To clearly distinguish the source of income from the owner of the bank account." }
+      ]
     },
-    {
-      "path": "src/firebase/provider.tsx",
-      "description": "This file defines the core React Context for Firebase services and the main hooks (`useFirebase`, `useAuth`, `useFirestore`, `useUser`) used throughout the app. The entire file would be replaced with a Supabase equivalent.",
-      "keyAreas": ["FirebaseContext", "FirebaseProvider", "useFirebase", "useAuth", "useFirestore", "useUser"]
+    "sqlDataModel": {
+      "introduction": "In PostgreSQL, document references from Firestore will be implemented as foreign key constraints to ensure relational integrity.",
+      "foreignKeyRelationships": [
+        { "from": "expenses.bankAccountId", "to": "bank_accounts.id" },
+        { "from": "expenses.categoryId", "to": "categories.id" },
+        { "from": "expenses.payeeId", "to": "payees.id" },
+        { "from": "expenses.registeredByUserId", "to": "users.id" },
+        { "from": "expenses.paidByUserId", "to": "users.id" },
+        { "from": "incomes.bankAccountId", "to": "bank_accounts.id" },
+        { "from": "transfers.fromBankAccountId", "to": "bank_accounts.id" },
+        { "from": "transfers.toBankAccountId", "to": "bank_accounts.id" },
+        { "from": "checks.bankAccountId", "to": "bank_accounts.id" },
+        { "from": "checks.payeeId", "to": "payees.id" },
+        { "from": "loan_payments.loanId", "to": "loans.id" },
+        { "from": "loan_payments.bankAccountId", "to": "bank_accounts.id" },
+        { "note": "The 'financialGoals.contributions' array will become a separate 'goal_contributions' table with a foreign key to 'financial_goals.id'." }
+      ]
     },
-    {
-      "path": "src/firebase/client-provider.tsx",
-      "description": "This component is responsible for client-side initialization of the Firebase SDK. This logic would be replaced with the initialization of the Supabase client SDK.",
-      "keyAreas": ["initializeFirebaseClient", "FirebaseClientProvider"]
-    },
-    {
-      "path": "src/firebase/config.ts",
-      "description": "Contains the Firebase project configuration object. This would be replaced with Supabase project URL and anon key.",
-      "keyAreas": ["firebaseConfig"]
-    },
-    {
-      "path": "src/firebase/firestore/use-collection.tsx",
-      "description": "A custom hook that provides a real-time subscription to a Firestore collection (`onSnapshot`). This needs to be replaced with a hook that uses Supabase's real-time subscription functionality.",
-      "keyAreas": ["useCollection", "onSnapshot"]
-    },
-    {
-      "path": "src/firebase/firestore/use-doc.tsx",
-      "description": "A custom hook for real-time subscription to a single Firestore document. This would be replaced by a Supabase equivalent for subscribing to a single row.",
-      "keyAreas": ["useDoc", "onSnapshot"]
-    },
-    {
-      "path": "src/hooks/use-dashboard-data.ts",
-      "description": "This is the most critical data-fetching hook in the app. It uses `useCollection` for every data type. All these calls must be replaced with Supabase data fetching methods.",
-      "keyAreas": ["useCollection", "collection", "doc"]
-    },
-    {
-      "path": "src/app/login/page.tsx",
-      "description": "Handles user login. The authentication logic needs to be migrated from Firebase Auth to Supabase Auth.",
-      "keyAreas": ["signInWithEmailAndPassword", "ensureUserProfile", "setDoc", "getDoc"]
-    },
-    {
-      "path": "src/app/transactions/page.tsx",
-      "description": "Manages expenses. The `handleFormSubmit` and `handleDelete` functions contain `runTransaction` calls to atomically update Firestore documents. This logic must be moved to a Supabase server-side function.",
-      "keyAreas": ["runTransaction", "doc", "collection", "updateDoc", "deleteDoc"]
-    },
-    {
-      "path": "src/app/income/page.tsx",
-      "description": "Manages incomes. Contains a `runTransaction` to atomically update the bank balance and create an income document.",
-      "keyAreas": ["runTransaction", "collection", "doc", "updateDoc", "deleteDoc"]
-    },
-    {
-      "path": "src/app/transfers/page.tsx",
-      "description": "Manages internal transfers between accounts. Uses `runTransaction` to atomically update two bank accounts and create a transfer log.",
-      "keyAreas": ["runTransaction", "collection", "doc", "updateDoc", "deleteDoc"]
-    },
-    {
-      "path": "src/app/checks/page.tsx",
-      "description": "Manages checks. Contains complex `runTransaction` logic for creating, clearing (which creates an expense), and deleting checks (which may reverse an expense).",
-      "keyAreas": ["runTransaction", "setDoc", "updateDoc", "deleteDoc", "getDocs", "collection", "query", "where"]
-    },
-    {
-      "path": "src/app/loans/page.tsx",
-      "description": "Manages loans. Contains `runTransaction` for creating loans (and potentially depositing funds) and paying installments (which creates an expense and payment log).",
-      "keyAreas": ["runTransaction", "doc", "collection", "updateDoc", "getDoc", "addDoc", "deleteDoc"]
-    },
-    {
-      "path": "src/app/debts/page.tsx",
-      "description": "Manages miscellaneous debts. Contains `runTransaction` logic for creating debts and paying them, which is similar to the loan payment workflow.",
-      "keyAreas": ["runTransaction", "doc", "collection", "updateDoc", "getDocs", "query", "where"]
-    },
-    {
-      "path": "src/app/goals/page.tsx",
-      "description": "Manages financial goals. Contains highly complex `runTransaction` logic for contributing to goals (blocking balance), achieving goals (unblocking balance and creating final expenses), and reverting/deleting goals.",
-      "keyAreas": ["runTransaction", "doc", "collection", "updateDoc", "getDocs", "query", "where"]
-    },
-    {
-      "path": "src/app/chat/page.tsx",
-      "description": "Handles the chat interface. The `ChatInterface` component within this page fetches messages and sends new ones using Firestore.",
-      "keyAreas": ["useCollection", "addDoc", "writeBatch", "collection", "query", "orderBy", "serverTimestamp"]
-    },
-    {
-      "path": "src/lib/notifications.ts",
-      "description": "This utility function sends system messages to the chat by creating a new document in the `chatMessages` collection in Firestore.",
-      "keyAreas": ["collection", "doc", "setDoc", "serverTimestamp"]
-    },
-    {
-      "path": "firestore.rules",
-      "description": "Contains the security rules for the Firestore database. This logic must be translated into Row-Level Security (RLS) policies for each table in Supabase/PostgreSQL.",
-      "keyAreas": ["match /family-data/shared-data/{document=**}", "allow read, write"]
+    "databaseIndexes": {
+      "introduction": "To ensure high performance for queries and reports, indexes should be created on frequently queried columns.",
+      "recommendedIndexes": [
+        "transactionId",
+        "date (on expenses, incomes, etc.)",
+        "paymentDate (on loan_payments, debt_payments)",
+        "dueDate (on checks)",
+        "createdAt",
+        "updatedAt",
+        "incomeSource (on incomes)",
+        "expenseFor (on expenses)",
+        "bankAccountId (on all transaction tables)",
+        "categoryId (on expenses)",
+        "payeeId (on expenses, checks)",
+        "loanId (on loan_payments)",
+        "status (on checks)",
+        "isDeleted"
+      ]
     }
-  ]
+  },
+  "filesToMigrate": {
+    "description": "Plan for migrating files from Firebase Storage to Supabase Storage.",
+    "signatures": {
+      "source": "User signature images are currently stored as Data URLs (`signatureDataUrl`) in the 'checks' documents.",
+      "target": "During migration, these Data URLs should be converted to actual image files (e.g., PNG).",
+      "storagePlan": "The generated image files will be uploaded to a dedicated bucket in Supabase Storage. The path to the stored file will be saved in the `checks.signaturePath` column. The `signatureDataUrl` field can then be deprecated."
+    }
+  }
 }
