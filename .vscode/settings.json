@@ -14,5 +14,17 @@
     "terminal.integrated.allowMnemonics": true,
     "terminal.integrated.accessibleViewPreserveCursorPosition": true,
     "terminal.integrated.accessibleViewFocusOnCommandExecution": true,
-    "debug.terminal.clearBeforeReusing": true
+    "debug.terminal.clearBeforeReusing": true,
+    "workbench.editor.autoLockGroups": {
+        "workbench.input.interactive": true,
+        "mainThreadWebview-markdown.preview": true,
+        "vscode.videoPreview": true,
+        "imagePreview.previewEditor": true,
+        "vscode.audioPreview": true,
+        "repl": true,
+        "workbench.editors.gettingStartedInput": true,
+        "jupyter-notebook": true,
+        "workbench.editorinputs.searchEditorInput": true,
+        "default": true
+    }
 }
