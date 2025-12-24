@@ -1,5 +1,3 @@
-
-
 {
   "entities": {
     "User": {
@@ -391,28 +389,32 @@
     },
     "transactions": {
         "title": "Income and Expense Logic",
-        "createExpense": "1. A Firestore Transaction is initiated. 2. It reads the source 'BankAccount' document. 3. It verifies if the 'balance' is sufficient. 4. It updates the 'balance' on the bank account document (balance - expense.amount). 5. It creates a new document in the 'expenses' collection. 6. A system message is sent to the chat.",
+        "createExpense": "1. A Firestore Transaction is initiated. 2. It reads the source 'BankAccount' document. 3. It verifies if the 'balance' minus 'blockedBalance' is sufficient. 4. It updates the 'balance' on the bank account document (balance - expense.amount). 5. It creates a new document in the 'expenses' collection with 'balanceBefore' and 'balanceAfter' fields. 6. A system message is sent to the chat.",
         "deleteExpense": "1. A Firestore Transaction is initiated. 2. It reads the 'Expense' to be deleted and its source 'BankAccount'. 3. It updates the 'balance' on the bank account document (balance + expense.amount). 4. It deletes the 'Expense' document. This reverses the financial impact.",
-        "createIncome": "1. A Firestore Transaction is initiated. 2. It reads the destination 'BankAccount'. 3. It updates the 'balance' on the bank account (balance + income.amount). 4. It creates a new 'Income' document. 5. A system message is sent to the chat."
+        "createIncome": "1. A Firestore Transaction is initiated. 2. It reads the destination 'BankAccount'. 3. It updates the 'balance' on the bank account (balance + income.amount). 4. It creates a new 'Income' document with 'balanceAfter' field. 5. A system message is sent to the chat."
     },
     "liabilities": {
       "title": "Checks, Loans, and Debts",
       "checkWorkflow": {
           "title": "Check Workflow",
           "creation": "A new 'Check' document is created with 'status: pending'. The signature is saved as a Data URI in the 'signatureDataUrl' field. No financial change occurs at this stage.",
-          "clearing": "1. A Firestore Transaction is initiated. 2. It verifies the bank account has sufficient 'balance'. 3. It updates the check's 'status' to 'cleared'. 4. It creates a new 'Expense' document with the check's details to record the financial impact. 5. It updates the bank account's 'balance' (balance - check.amount).",
+          "clearing": "1. A Firestore Transaction is initiated. 2. It verifies the bank account has sufficient 'balance' minus 'blockedBalance'. 3. It updates the check's 'status' to 'cleared'. 4. It creates a new 'Expense' document with the check's details to record the financial impact. 5. It updates the bank account's 'balance' (balance - check.amount).",
           "deletion": "If a check is 'pending', it's simply deleted. If it's 'cleared', a transaction runs to delete both the 'Check' document and its corresponding 'Expense' document, while also adding the amount back to the bank account's 'balance'."
       },
       "loanAndDebtPayment": {
           "title": "Loan and Debt Payment",
-          "description": "Paying a loan or debt installment is a complex atomic transaction: 1. It reads the 'Loan'/'PreviousDebt' and the source 'BankAccount'. 2. It verifies the bank has sufficient funds. 3. It updates the 'remainingAmount' and 'paidInstallments' on the loan/debt document. 4. It creates a 'LoanPayment'/'DebtPayment' history document. 5. It creates a corresponding 'Expense' document to reflect the payment. 6. It updates the bank account's 'balance'."
+          "description": "Paying a loan or debt installment is a complex atomic transaction: 1. It reads the 'Loan'/'PreviousDebt' and the source 'BankAccount'. 2. It verifies the bank has sufficient funds ('balance' - 'blockedBalance'). 3. It updates the 'remainingAmount' and 'paidInstallments' on the loan/debt document. 4. It creates a 'LoanPayment'/'DebtPayment' history document. 5. It creates a corresponding 'Expense' document to reflect the payment. 6. It updates the bank account's 'balance'."
       },
       "deletionConstraint": "Loans, Debts, Categories, and Payees cannot be deleted if they are referenced by any existing transaction (e.g., a 'Loan' with 'paidInstallments' > 0 cannot be deleted). This is enforced by checking for related documents before deletion."
     },
     "goals": {
         "title": "Financial Goals",
         "contribution": "1. Adding funds to a goal is an atomic transaction. 2. A 'goal_contribution' expense is created, reducing the 'balance' of the source bank account. 3. Simultaneously, the 'blockedBalance' of the same bank account is *increased* by the same amount. This keeps the total 'balance' correct while separating spendable money. 4. The 'currentAmount' on the 'FinancialGoal' document is increased, and a contribution record is added to its 'contributions' array.",
-        "achievement": "1. When a goal is marked as 'achieved', another complex transaction runs. 2. It releases the 'blockedBalance' from all contributing bank accounts. 3. It creates a final 'Expense' for the `actualCost`, potentially using a combination of the now-unblocked savings and new cash from a specified payment card. 4. The 'isAchieved' flag on the goal is set to true."
+        "achievement": "1. When a goal is marked as 'achieved', another complex transaction runs. 2. It releases the 'blockedBalance' from all contributing bank accounts by subtracting the contribution amounts from the 'blockedBalance' field of each respective bank. 3. It creates a final 'Expense' for the 'actualCost', potentially using a combination of the now-unblocked savings and new cash from a specified payment card. 4. The 'isAchieved' flag on the goal is set to true, and 'currentAmount' is reset to 0."
+    },
+    "transfers": {
+        "title": "Internal Transfers",
+        "logic": "1. An atomic transaction updates two 'BankAccount' documents. 2. It subtracts the amount from the 'from' account's 'balance'. 3. It adds the amount to the 'to' account's 'balance'. 4. A 'Transfer' document is created to log this operation, including the balances before and after for both accounts for historical accuracy."
     },
     "chat": {
         "title": "Chat and Notifications",
