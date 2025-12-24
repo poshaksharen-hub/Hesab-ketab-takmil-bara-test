@@ -1,20 +1,41 @@
-
 name: Run Tests
 on:
   push:
     branches:
       - main
+
 jobs:
-  test:
+  jest-tests:
+    name: Jest Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - name: Install dependencies
         run: npm install
-      - name: Run tests
+      - name: Run Jest tests
         run: npm test
+
+  cypress-run:
+    name: Cypress E2E Tests
+    needs: jest-tests # Run after Jest tests pass
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Run Cypress tests
+        uses: cypress-io/github-action@v6
+        with:
+          build: npm run build
+          start: npm start
+          wait-on: 'http://localhost:3000'
