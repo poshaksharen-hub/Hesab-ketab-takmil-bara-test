@@ -43,7 +43,6 @@ const formSchema = z.object({
   cardNumber: z.string().regex(/^\d{16}$/, { message: 'شماره کارت باید ۱۶ رقم باشد.' }),
   expiryDate: z.string().regex(expiryDateRegex, { message: 'تاریخ انقضا را با فرمت MM/YY وارد کنید.' }),
   cvv2: z.string().min(3, { message: 'CVV2 حداقل ۳ رقم است.' }).max(4, { message: 'CVV2 حداکثر ۴ رقم است.' }),
-  accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
   ownerId: z.enum(['ali', 'fatemeh', 'shared_account'], { required_error: 'لطفا صاحب حساب را مشخص کنید.' }),
   theme: z.string().min(1, { message: 'لطفا یک طرح برای کارت انتخاب کنید.' }),
@@ -236,27 +235,6 @@ const CardFormContent = ({ form, initialData, hasSharedAccount, isSubmitting }: 
             </FormItem>
             )}
         />
-        <FormField
-            control={form.control}
-            name="accountType"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>نوع حساب</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                <FormControl>
-                    <SelectTrigger>
-                    <SelectValue placeholder="نوع حساب را انتخاب کنید" />
-                    </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                    <SelectItem value="savings">پس‌انداز / کوتاه مدت</SelectItem>
-                    <SelectItem value="checking">جاری / دسته‌چک دار</SelectItem>
-                </SelectContent>
-                </Select>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
     </div>
     )
 }
@@ -272,7 +250,6 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
       cardNumber: '',
       expiryDate: '',
       cvv2: '',
-      accountType: 'savings',
       initialBalance: 0,
       ownerId: 'ali',
       theme: '',
@@ -296,7 +273,6 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
           cardNumber: '',
           expiryDate: '',
           cvv2: '',
-          accountType: 'savings',
           initialBalance: 0,
           ownerId: loggedInUserOwnerId as 'ali' | 'fatemeh',
           theme: '',

@@ -244,37 +244,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             )}
                         />
                     </div>
-                    <div className="rounded-lg border p-4 space-y-4">
-                        <p className='text-sm text-muted-foreground'>اطلاعات آماری و پیشنهادی اقساط</p>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <FormField
-                                control={form.control}
-                                name="installmentAmount"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
-                                    <FormControl>
-                                    <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={isSubmitting}/>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="numberOfInstallments"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
-                                    <FormControl>
-                                        <NumericInput {...field} value={field.value || ''} disabled={isSubmitting}/>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                        </div>
-                    </div>
+
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <FormField
                             control={form.control}
@@ -320,6 +290,37 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             </FormItem>
                             )}
                         />
+                    </div>
+                     <div className="rounded-lg border p-4 space-y-4">
+                        <p className='text-sm text-muted-foreground'>اطلاعات آماری و پیشنهادی (اختیاری)</p>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <FormField
+                                control={form.control}
+                                name="installmentAmount"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
+                                    <FormControl>
+                                    <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={isSubmitting}/>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="numberOfInstallments"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
+                                    <FormControl>
+                                        <NumericInput {...field} value={field.value || ''} disabled={isSubmitting}/>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
                     </div>
                     {!initialData && (
                         <div className="space-y-4 rounded-lg border p-4">
