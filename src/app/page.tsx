@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 import { isEqual, startOfDay, endOfDay } from 'date-fns';
@@ -26,19 +25,17 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare, Settings, BrainCircuit } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
-import type { DashboardFilter, Income, Expense } from '@/lib/types';
+import type { DashboardFilter, Income, Expense, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-
+import { supabase } from '@/lib/supabase-client';
+import type { User } from '@supabase/supabase-js';
 
 function DashboardSkeleton() {
-  const auth = useAuth();
   const router = useRouter();
   const handleSignOut = async () => {
-    if (auth) {
-      await auth.signOut();
-    }
+    await supabase.auth.signOut();
     router.push('/login');
   };
 
@@ -108,7 +105,8 @@ function QuickAccess() {
 
 
 export default function DashboardPage() {
-  const { user, isUserLoading } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
   const [ownerFilter, setOwnerFilter] = useState<DashboardFilter>('all');
   const [date, setDate] = useState<DateRange | undefined>(() => getDateRange('thisMonth').range);
   const [activePreset, setActivePreset] = useState<ReturnType<typeof getDateRange>['preset']>('thisMonth');
@@ -126,6 +124,30 @@ export default function DashboardPage() {
     users,
     goals,
   } = allData;
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Error getting session:', error);
+        setIsUserLoading(false);
+        return;
+      }
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    };
+
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
   
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -245,7 +267,7 @@ export default function DashboardPage() {
         <AccountBalanceCards 
             aliBalance={globalSummary.aliBalance}
             fatemehBalance={globalSummary.fatemehBalance}
-            sharedBalance={globalSummary.sharedBalance}
+            sharedBalance={global.sharedBalance}
             currentUser={user}
         />
       </div>

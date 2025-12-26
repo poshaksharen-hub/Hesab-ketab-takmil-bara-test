@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useUser } from '@/firebase';
 import { supabase } from '@/lib/supabase-client';
 import type { 
     BankAccount, 
@@ -37,7 +36,6 @@ const transformData = (data: any[]) => {
 
 
 export function useDashboardData() {
-  const { user } = useUser();
   const [allData, setAllData] = useState<any>({
     bankAccounts: [],
     incomes: [],
@@ -58,11 +56,6 @@ export function useDashboardData() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!user) {
-        setIsLoading(false);
-        return;
-    };
-
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
@@ -127,11 +120,10 @@ export function useDashboardData() {
         const goalsData = transformData(goalsRes.data || []) as FinancialGoal[];
         const expensesData = transformData(expensesRes.data || []) as Expense[];
         
-        // This is the key change: we now fetch all goal contributions directly from expenses
         const allGoalContributions = expensesData
             .filter(expense => expense.subType === 'goal_contribution' && expense.goalId)
             .map((expense): FinancialGoalContribution => ({
-                id: expense.id, // The ID of the contribution is the ID of the expense itself
+                id: expense.id, 
                 goalId: expense.goalId!,
                 bankAccountId: expense.bankAccountId,
                 amount: expense.amount,
@@ -146,7 +138,7 @@ export function useDashboardData() {
 
 
         setAllData({
-          firestore: supabase, 
+          db: supabase, 
           users: transformData(usersRes.data || []) as UserProfile[],
           bankAccounts: transformData(bankAccountsRes.data || []) as BankAccount[],
           categories: transformData(categoriesRes.data || []) as Category[],
@@ -173,7 +165,7 @@ export function useDashboardData() {
 
     fetchData();
 
-  }, [user]);
+  }, []);
 
   return { isLoading, allData, error };
 }

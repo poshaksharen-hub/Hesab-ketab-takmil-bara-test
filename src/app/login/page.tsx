@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { HesabKetabLogo } from '@/components/icons';
-import { useAuth, useUser } from '@/firebase';
 import { ALLOWED_USERS, USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -50,10 +49,10 @@ type LoginFormValues = z.infer<typeof formSchema>;
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { user: currentUser, isUserLoading } = useUser();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
@@ -62,6 +61,25 @@ export default function LoginPage() {
       password: '',
     },
   });
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUser(session?.user ?? null);
+      setIsUserLoading(false);
+    };
+
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setCurrentUser(session?.user ?? null);
+      setIsUserLoading(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isUserLoading && currentUser) {
@@ -102,7 +120,7 @@ export default function LoginPage() {
     const { email, password } = values;
 
     try {
-      const { data, error } = await auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithEmailAndPassword({ email, password });
       
       if (error) throw error;
       

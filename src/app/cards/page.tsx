@@ -1,10 +1,8 @@
-
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/firebase';
 import { CardList } from '@/components/cards/card-list';
 import { CardForm } from '@/components/cards/card-form';
 import type { BankAccount, UserProfile } from '@/lib/types';
@@ -13,52 +11,74 @@ import { useToast } from '@/hooks/use-toast';
 import { toEnglishDigits } from '@/lib/utils';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { supabase } from '@/lib/supabase-client';
+import type { User } from '@supabase/supabase-js';
 
 export default function CardsPage() {
-  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
-  // TODO: Replace with Supabase data fetching
-  const isDashboardLoading = true;
-  const allData = {
-      firestore: null,
-      bankAccounts: [],
-      incomes: [],
-      expenses: [],
-      transfers: [],
-      checks: [],
-      loanPayments: [],
-      debtPayments: [],
-      users: [],
-  };
-
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const { firestore, bankAccounts: allBankAccounts, incomes, expenses, transfers, checks, loanPayments, debtPayments, users } = allData;
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUser(session?.user ?? null);
+      setIsUserLoading(false);
+    };
+
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setCurrentUser(session?.user ?? null);
+      setIsUserLoading(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const { bankAccounts: allBankAccounts, incomes, expenses, transfers, checks, loanPayments, debtPayments, users } = allData;
 
   const hasSharedAccount = useMemo(() => (allBankAccounts || []).some(acc => acc.ownerId === 'shared_account'), [allBankAccounts]);
 
-  const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId' | 'blockedBalance'>) => {
-    // TODO: Implement Supabase logic
+  const handleFormSubmit = useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId' | 'blockedBalance'>) => {
+    if (!currentUser) return;
+    setIsSubmitting(true);
+    
+    const cardData = {
+        ...values,
+        registered_by_user_id: currentUser.uid,
+        balance: values.initialBalance,
+    };
+    
+    // TODO: Implement Supabase logic for add/edit
     toast({ title: "در حال توسعه", description: "عملیات ثبت کارت هنوز پیاده‌سازی نشده است."});
-  }, [user, firestore, editingCard, toast]);
+    
+    setIsSubmitting(false);
+    setIsFormOpen(false);
+  }, [currentUser, toast, editingCard]);
 
-  const handleDelete = React.useCallback(async (cardId: string) => {
+  const handleDelete = useCallback(async (cardId: string) => {
     // TODO: Implement Supabase logic
     toast({ title: "در حال توسعه", description: "عملیات حذف کارت هنوز پیاده‌سازی نشده است."});
-  }, [user, firestore, allBankAccounts, toast, expenses, incomes, transfers, checks, loanPayments, debtPayments]);
+  }, [currentUser, allBankAccounts, toast, expenses, incomes, transfers, checks, loanPayments, debtPayments]);
 
 
-  const handleEdit = React.useCallback((card: BankAccount) => {
+  const handleEdit = useCallback((card: BankAccount) => {
     setEditingCard(card);
     setIsFormOpen(true);
   }, []);
 
-  const handleAddNew = React.useCallback(() => {
+  const handleAddNew = useCallback(() => {
     setEditingCard(null);
     setIsFormOpen(true);
   }, []);

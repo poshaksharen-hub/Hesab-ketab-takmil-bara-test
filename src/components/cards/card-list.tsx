@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, MoreVertical, Wifi, Users, User, History, Copy, Wallet, PiggyBank } from 'lucide-react';
@@ -27,8 +27,9 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { getBankTheme } from '@/lib/bank-data';
-import { useUser } from '@/firebase';
 import { Separator } from '../ui/separator';
+import { supabase } from '@/lib/supabase-client';
+import type { User as AuthUser } from '@supabase/supabase-js';
 
 const ChipIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="36" viewBox="0 0 48 36" fill="none" className="w-10 h-auto sm:w-12">
@@ -216,8 +217,16 @@ interface CardListProps {
 }
 
 export function CardList({ cards, onEdit, onDelete }: CardListProps) {
-  const { user } = useUser();
-  const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUser(session?.user ?? null);
+    };
+    getSession();
+  }, []);
+  const loggedInUserOwnerId = currentUser?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
 
   const sortedCards = [...(cards || [])].sort((a, b) => {
     // Grouping logic: shared, then logged-in user, then other user

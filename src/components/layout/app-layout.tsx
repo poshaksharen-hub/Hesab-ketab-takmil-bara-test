@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -39,12 +39,12 @@ import {
 } from 'lucide-react';
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
-import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
 import type { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { supabase } from '@/lib/supabase-client';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -178,15 +178,33 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useSimpleTheme();
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
   const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const { unreadCount } = useUnreadMessages();
   
   const handleSignOut = async () => {
-    await auth.signOut();
+    await supabase.auth.signOut();
     router.push('/login');
   };
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    };
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!isUserLoading && !user && pathname !== '/login') {

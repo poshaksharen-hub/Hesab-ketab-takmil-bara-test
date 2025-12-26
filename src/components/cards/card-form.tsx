@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,6 +32,8 @@ import { BANK_DATA, type BankInfo } from '@/lib/bank-data';
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/lib/supabase-client';
+import type { User } from '@supabase/supabase-js';
 
 
 const expiryDateRegex = /^(0[1-9]|1[0-2])\/?([0-9]{2})$/;
@@ -60,10 +62,21 @@ interface CardFormProps {
   isSubmitting: boolean;
 }
 
-const CardFormContent = ({ form, initialData, hasSharedAccount, isSubmitting }: any) => {
+const CardFormContent = ({ form, initialData, hasSharedAccount, isSubmitting, users }: { form: any, initialData: BankAccount | null, hasSharedAccount: boolean, isSubmitting: boolean, users: UserProfile[] }) => {
     const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        const getSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            setCurrentUser(session?.user ?? null);
+        };
+        getSession();
+    }, []);
+
     const selectedBankName = form.watch('bankName');
     const selectedBankInfo = BANK_DATA.find(b => b.name === selectedBankName);
+    const loggedInUserOwnerId = users.find(u => u.id === currentUser?.id)?.email.startsWith('ali') ? 'ali' : 'fatemeh';
 
     return (
         <div className="space-y-6">
@@ -241,6 +254,15 @@ const CardFormContent = ({ form, initialData, hasSharedAccount, isSubmitting }: 
 
 export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount, isSubmitting }: CardFormProps) {
   const isMobile = useIsMobile();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const getSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setCurrentUser(session?.user ?? null);
+    };
+    getSession();
+  }, []);
   
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),
@@ -257,7 +279,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
     },
   });
   
-  const loggedInUserOwnerId = users.find(u => u.email.startsWith('ali')) ? 'ali' : 'fatemeh';
+  const loggedInUserOwnerId = users.find(u => u.id === currentUser?.id)?.email.startsWith('ali') ? 'ali' : 'fatemeh';
 
   React.useEffect(() => {
     if (isOpen) { // Only reset when opening
@@ -289,7 +311,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
     onSubmit({ ...data, expiryDate: formattedExpiry });
   }
 
-  const commonProps = { form, initialData, hasSharedAccount, isSubmitting };
+  const commonProps = { form, initialData, hasSharedAccount, isSubmitting, users };
 
   if (isMobile) {
     return (

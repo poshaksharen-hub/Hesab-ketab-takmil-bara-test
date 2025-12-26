@@ -8,5 +8,6 @@
   "workbench.editor.autoLockGroups": {
     "default": true
   },
-  "IDX.agenticWorkspace": false
+  "IDX.agenticWorkspace": true,
+  "IDX.aI.enableInlineCompletion": true
 }

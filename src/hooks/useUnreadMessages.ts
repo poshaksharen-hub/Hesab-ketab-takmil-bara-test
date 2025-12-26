@@ -1,10 +1,11 @@
 
 'use client';
 
-import { useMemo } from 'react';
-import { useUser } from '@/firebase';
+import { useMemo, useState, useEffect } from 'react';
 import type { ChatMessage } from '@/lib/types';
 import { useDashboardData } from './use-dashboard-data';
+import { supabase } from '@/lib/supabase-client';
+import type { User } from '@supabase/supabase-js';
 
 /**
  * A hook to get the count of unread chat messages for the current user.
@@ -12,9 +13,27 @@ import { useDashboardData } from './use-dashboard-data';
  * @returns {object} An object containing the `unreadCount`.
  */
 export function useUnreadMessages() {
-  const { user, isUserLoading } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
   const { allData, isLoading: isDashboardLoading } = useDashboardData();
   
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    };
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
   const allMessages: ChatMessage[] = allData.chatMessages || [];
 
   const unreadCount = useMemo(() => {
