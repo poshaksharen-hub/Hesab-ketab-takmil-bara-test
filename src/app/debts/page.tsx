@@ -81,7 +81,7 @@ export default function DebtsPage() {
             color: 'rgb(99 102 241)',
             registeredBy: currentUserFirstName,
             payee: payeeName,
-            expenseFor: USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
+            expenseFor: (values.ownerId && USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             properties: [
                 { label: 'شرح', value: values.description },
                 { label: 'نوع پرداخت', value: values.isInstallment ? 'قسطی' : 'یکجا' },
@@ -93,7 +93,7 @@ export default function DebtsPage() {
                 ])
             ]
         };
-        // await sendSystemNotification(supabase, user.uid, notificationDetails);
+        await sendSystemNotification(user.uid, notificationDetails);
 
     } catch (error: any) {
         console.error("Error in handleFormSubmit:", error);
@@ -145,14 +145,14 @@ export default function DebtsPage() {
             color: 'rgb(22 163 74)',
             registeredBy: currentUserFirstName,
             payee: payeeName,
-            expenseFor: USER_DETAILS[debt.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
+            expenseFor: (debt.ownerId && USER_DETAILS[debt.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             bankAccount: { name: bankAccount?.bankName || 'نامشخص', owner: accountOwner || 'نامشخص' },
             properties: [
                 { label: 'شرح', value: debt.description },
                 { label: 'مبلغ باقی‌مانده', value: formatCurrency(debt.remainingAmount - amount, 'IRT') },
             ]
         };
-        // await sendSystemNotification(supabase, user.uid, notificationDetails);
+        await sendSystemNotification(user.uid, notificationDetails);
     
     } catch (error: any) {
         toast({

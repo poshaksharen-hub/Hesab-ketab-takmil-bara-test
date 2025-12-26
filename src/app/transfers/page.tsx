@@ -14,6 +14,7 @@ import { ArrowRight, PlusCircle, Plus, Loader2 } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useUser } from '@/firebase';
 import { supabase } from '@/lib/supabase-client';
+import { sendSystemNotification } from '@/lib/notifications';
 
 export default function TransfersPage() {
   const { user, isUserLoading } = useUser();
@@ -58,8 +59,29 @@ export default function TransfersPage() {
             description: "انتقال وجه با موفقیت انجام شد.",
         });
 
-        // The notification logic can be triggered here if needed,
-        // though it might be better handled by a database trigger in the future.
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+        const fromAccount = allBankAccounts.find(acc => acc.id === values.fromBankAccountId);
+        const toAccount = allBankAccounts.find(acc => acc.id === values.toBankAccountId);
+        const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : (fromAccount?.ownerId && USER_DETAILS[fromAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+        const toAccountOwner = toAccount?.ownerId === 'shared_account' ? 'مشترک' : (toAccount?.ownerId && USER_DETAILS[toAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+
+
+        const notificationDetails: TransactionDetails = {
+            type: 'transfer',
+            title: `انتقال داخلی`,
+            amount: values.amount,
+            date: new Date().toISOString(),
+            icon: 'ArrowRightLeft',
+            color: 'rgb(59 130 246)',
+            registeredBy: currentUserFirstName,
+            properties: [
+                { label: 'شرح', value: values.description || 'انتقال داخلی' },
+            ],
+            bankAccount: fromAccount ? { name: fromAccount.bankName, owner: fromAccountOwner || 'نامشخص' } : undefined,
+            toBankAccount: toAccount ? { name: toAccount.bankName, owner: toAccountOwner || 'نامشخص' } : undefined,
+        };
+        await sendSystemNotification(user.uid, notificationDetails);
+
 
     } catch (error: any) {
         toast({

@@ -7,7 +7,7 @@ import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import { ExpenseForm } from '@/components/transactions/expense-form';
-import type { Expense, BankAccount, Category, UserProfile, TransactionDetails } from '@/lib/types';
+import type { Expense, BankAccount, Category, UserProfile, TransactionDetails, Payee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -109,8 +109,7 @@ export default function ExpensesPage() {
                 expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             };
             
-            // Notification logic remains but doesn't use firestore directly anymore
-            // await sendSystemNotification(firestore, user.uid, notificationDetails);
+            await sendSystemNotification(user.uid, notificationDetails);
         } catch (notificationError: any) {
             console.error("Failed to send notification:", notificationError.message);
         }

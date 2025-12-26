@@ -2,7 +2,6 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { useFirestore } from '@/firebase';
 import type { ChatMessage, UserProfile } from '@/lib/types';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
@@ -16,7 +15,7 @@ const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 export function ChatInterface({ currentUser, allData }: { currentUser: User, allData: any }) {
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
 
-  const { firestore, users: allUsers, chatMessages: messages } = allData;
+  const { users: allUsers, chatMessages: messages } = allData;
   const isLoading = !messages;
 
   useEffect(() => {
@@ -66,8 +65,9 @@ export function ChatInterface({ currentUser, allData }: { currentUser: User, all
       text: newMessage.text,
       type: newMessage.type,
       read_by: newMessage.readBy,
-      reply_to: newMessage.replyTo,
+      reply_to_message_id: newMessage.replyTo?.messageId, // Store only the ID
       timestamp: new Date().toISOString(),
+      transaction_details: null, // User messages don't have transaction details
     };
 
     const { error } = await supabase.from('chat_messages').insert([dataToSend]);
@@ -80,6 +80,27 @@ export function ChatInterface({ currentUser, allData }: { currentUser: User, all
     }
   };
 
+  const enrichedMessages = useMemo(() => {
+      if (!messages) return [];
+      return messages.map((msg: ChatMessage) => {
+          if (msg.replyTo) {
+            const originalMessage = messages.find((m: ChatMessage) => m.id === (msg.replyTo as any).messageId);
+            if (originalMessage) {
+                return {
+                    ...msg,
+                    replyTo: {
+                        messageId: originalMessage.id,
+                        text: originalMessage.text,
+                        senderName: originalMessage.senderName,
+                    }
+                }
+            }
+          }
+          return msg;
+      });
+  }, [messages]);
+
+
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="flex-grow overflow-y-auto p-4">
@@ -91,7 +112,7 @@ export function ChatInterface({ currentUser, allData }: { currentUser: User, all
           </div>
         ) : (
           <MessageList
-            messages={messages || []}
+            messages={enrichedMessages || []}
             currentUserId={currentUser.uid}
             onReply={setReplyingToMessage}
             allUsers={allUsers}

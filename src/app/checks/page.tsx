@@ -60,6 +60,8 @@ export default function ChecksPage() {
         const payeeName = payees.find(p => p.id === values.payeeId)?.name || 'ناشناس';
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const bankAccount = bankAccounts.find(b => b.id === values.bankAccountId);
+        const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+
 
         const notificationDetails: TransactionDetails = {
             type: 'check',
@@ -70,14 +72,14 @@ export default function ChecksPage() {
             color: 'rgb(245 158 11)',
             registeredBy: currentUserFirstName,
             payee: payeeName,
-            expenseFor: USER_DETAILS[values.expenseFor]?.firstName || 'مشترک',
-            bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccount.ownerId } : undefined,
+            expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
+            bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
             checkDetails: {
                 sayadId: values.sayadId,
                 dueDate: formatJalaliDate(values.dueDate),
             },
         };
-        // await sendSystemNotification(supabase, user.uid, notificationDetails);
+        await sendSystemNotification(user.uid, notificationDetails);
 
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در ثبت چک', description: error.message });
@@ -103,6 +105,8 @@ export default function ChecksPage() {
         const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
         const categoryName = categories.find(c => c.id === check.categoryId)?.name;
         const bankAccount = bankAccounts.find(b => b.id === check.bankAccountId);
+        const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+
 
         const notificationDetails: TransactionDetails = {
             type: 'expense',
@@ -114,10 +118,10 @@ export default function ChecksPage() {
             registeredBy: 'سیستم (پاس کردن چک)',
             payee: payeeName,
             category: categoryName,
-            expenseFor: USER_DETAILS[check.expenseFor]?.firstName || 'مشترک',
-            bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccount.ownerId } : undefined,
+            expenseFor: (check.expenseFor && USER_DETAILS[check.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
+            bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
         };
-        // await sendSystemNotification(supabase, user.uid, notificationDetails);
+        await sendSystemNotification(user.uid, notificationDetails);
 
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در پاس کردن چک', description: error.message });

@@ -87,12 +87,11 @@ export default function IncomePage() {
               color: 'rgb(34 197 94)',
               registeredBy: currentUserFirstName,
               payee: values.source,
-              category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
+              category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${values.ownerId && USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
               bankAccount: account ? { name: account.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
           };
-          // This part still uses firestore for notifications, which can be migrated later.
-          // For now, we will comment it out to avoid errors.
-          // await sendSystemNotification(firestore, user.uid, notificationDetails);
+          
+          await sendSystemNotification(user.uid, notificationDetails);
       } catch (notificationError: any) {
            console.error("Failed to send notification:", notificationError.message);
       }

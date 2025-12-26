@@ -93,7 +93,7 @@ export default function LoansPage() {
                 icon: 'Landmark', 
                 color: 'rgb(139 92 246)', 
                 registeredBy: currentUser?.firstName || 'کاربر',
-                expenseFor: USER_DETAILS[loanValues.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
+                expenseFor: (loanValues.ownerId && USER_DETAILS[loanValues.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
                 payee: payeeName,
                 properties: [
                     { label: 'تعداد اقساط', value: loanValues.numberOfInstallments ? `${loanValues.numberOfInstallments} ماه` : 'نامشخص' },
@@ -101,7 +101,7 @@ export default function LoansPage() {
                 ],
                 bankAccount: loanValues.depositOnCreate && bankAccount ? { name: bankAccount.bankName, owner: accountOwner || 'نامشخص' } : undefined
             };
-            // await sendSystemNotification(firestore, user.uid, notificationDetails);
+            await sendSystemNotification(user.uid, notificationDetails);
         }
         setIsFormOpen(false);
         setEditingLoan(null);
@@ -148,14 +148,14 @@ export default function LoansPage() {
             color: 'rgb(22 163 74)', 
             registeredBy: currentUser?.firstName || 'کاربر',
             payee: payees.find(p => p.id === loan.payeeId)?.name,
-            expenseFor: USER_DETAILS[loan.ownerId as 'ali' | 'fatemeh']?.firstName || 'مشترک',
+            expenseFor: (loan.ownerId && USER_DETAILS[loan.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             bankAccount: { name: bankAccount?.bankName || 'نامشخص', owner: accountOwner || 'نامشخص' },
             properties: [
                 { label: 'اقساط پرداخت شده', value: `${loan.paidInstallments + 1} از ${loan.numberOfInstallments}` },
                 { label: 'مبلغ باقی‌مانده', value: formatCurrency(loan.remainingAmount - installmentAmount, 'IRT') },
             ]
         };
-        // await sendSystemNotification(firestore, user.uid, notificationDetails);
+        await sendSystemNotification(user.uid, notificationDetails);
 
     } catch (error: any) {
         toast({ variant: "destructive", title: "خطا در پرداخت قسط", description: error.message });

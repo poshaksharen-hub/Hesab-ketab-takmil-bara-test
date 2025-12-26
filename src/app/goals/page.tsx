@@ -111,7 +111,23 @@ export default function GoalsPage() {
         toast({ title: 'موفقیت', description: `هدف مالی جدید با موفقیت ذخیره شد.` });
         setIsFormOpen(false);
         
-        // Notification logic would go here
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+        const notificationDetails: TransactionDetails = {
+            type: 'goal',
+            title: `هدف جدید: ${goalData.name}`,
+            amount: goalData.targetAmount,
+            date: goalData.targetDate.toISOString(),
+            icon: 'Target',
+            color: 'rgb(20 184 166)',
+            registeredBy: currentUserFirstName,
+            expenseFor: (goalData.ownerId && USER_DETAILS[goalData.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
+            properties: [
+                { label: 'اولویت', value: goalData.priority === 'high' ? 'بالا' : goalData.priority === 'medium' ? 'متوسط' : 'پایین' },
+                { label: 'پس‌انداز اولیه', value: finalCurrentAmount > 0 ? formatCurrency(finalCurrentAmount, 'IRT') : 'ندارد' }
+            ]
+        };
+        await sendSystemNotification(user.uid, notificationDetails);
+
     } catch (error: any) {
         toast({
             variant: 'destructive',
@@ -176,7 +192,24 @@ export default function GoalsPage() {
         toast({ title: 'موفقیت', description: `مبلغ با موفقیت به پس‌انداز هدف "${goal.name}" اضافه شد.` });
         setContributingGoal(null);
 
-        // Notification logic would go here
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+        const bankAccountOwnerName = account.ownerId === 'shared_account' ? 'مشترک' : (account.ownerId && USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName);
+        const notificationDetails: TransactionDetails = {
+            type: 'payment',
+            title: `پس‌انداز برای هدف: ${goal.name}`,
+            amount: amount,
+            date: new Date().toISOString(),
+            icon: 'PiggyBank',
+            color: 'rgb(236 72 153)',
+            registeredBy: currentUserFirstName,
+            bankAccount: { name: account.bankName, owner: bankAccountOwnerName || 'نامشخص' },
+            expenseFor: (goal.ownerId && USER_DETAILS[goal.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
+            properties: [
+                { label: 'مبلغ پس‌انداز شده', value: formatCurrency(newCurrentAmount, 'IRT') },
+                { label: 'باقی‌مانده تا هدف', value: formatCurrency(goal.targetAmount - newCurrentAmount, 'IRT') }
+            ]
+        };
+        await sendSystemNotification(user.uid, notificationDetails);
 
      } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در افزودن پس‌انداز', description: error.message || "مشکلی در عملیات پیش آمد." });
@@ -206,7 +239,22 @@ export default function GoalsPage() {
         toast({ title: "تبریک!", description: `هدف "${goal.name}" با موفقیت محقق شد.` });
         setAchievingGoal(null);
         
-        // Notification logic could be triggered here or by a DB trigger.
+        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+        const notificationDetails: TransactionDetails = {
+            type: 'payment',
+            title: `هدف محقق شد: ${goal.name}`,
+            amount: actualCost,
+            date: new Date().toISOString(),
+            icon: 'Trophy',
+            color: 'rgb(234 179 8)',
+            registeredBy: currentUserFirstName,
+            expenseFor: (goal.ownerId && USER_DETAILS[goal.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
+            properties: [
+                { label: 'هزینه نهایی', value: formatCurrency(actualCost, 'IRT') },
+                { label: 'مبلغ پس‌انداز شده', value: formatCurrency(goal.currentAmount, 'IRT') },
+            ]
+        };
+        await sendSystemNotification(user.uid, notificationDetails);
 
     } catch (error: any) {
         toast({
