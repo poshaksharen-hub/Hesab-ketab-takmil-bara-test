@@ -1,32 +1,11 @@
 {
-        "IDX.aI.showChatInEditorTab": false,
-            "IDX.agenticWorkspace": true,
-                "git.terminalGitEditor": true,
-                    "terminal.integrated.suggest.enabled": true,
-                        "terminal.integrated.smoothScrolling": true,
-                            "terminal.integrated.macOptionClickForcesSelection": true,
-                                "terminal.integrated.macOptionIsMeta": true,
-                                    "terminal.integrated.ignoreBracketedPasteMode": true,
-                                        "terminal.integrated.fontLigatures.enabled": true,
-                                            "terminal.integrated.enableVisualBell": true,
-                                                "terminal.integrated.copyOnSelection": true,
-                                                    "terminal.integrated.cursorBlinking": true,
-                                                        "terminal.integrated.allowMnemonics": true,
-                                                            "terminal.integrated.accessibleViewPreserveCursorPosition": true,
-                                                                "terminal.integrated.accessibleViewFocusOnCommandExecution": true,
-                                                                    "debug.terminal.clearBeforeReusing": true,
-                                                                        "workbench.editor.autoLockGroups": {
-                                                                                "workbench.input.interactive": true,
-                                                                                        "mainThreadWebview-markdown.preview": true,
-                                                                                                "vscode.videoPreview": true,
-                                                                                                        "imagePreview.previewEditor": true,
-                                                                                                                "vscode.audioPreview": true,
-                                                                                                                        "repl": true,
-                                                                                                                                "workbench.editors.gettingStartedInput": true,
-                                                                                                                                        "jupyter-notebook": true,
-                                                                                                                                                "workbench.editorinputs.searchEditorInput": true,
-                                                                                                                                                        "default": true
-                                                                                                                                                            }
-                                                                                                                                                            }
-                                                                                                                                                            
+  "IDX.aI.showChatInEditorTab": true,
+  "files.autoSave": "afterDelay",
+  "editor.wordWrap": "on",
+  "editor.minimap.enabled": false,
+  "terminal.integrated.smoothScrolling": true,
+  "terminal.integrated.copyOnSelection": true,
+  "workbench.editor.autoLockGroups": {
+    "default": true
+  }
 }

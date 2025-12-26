@@ -8,11 +8,11 @@ import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, H
 import type { PreviousDebt, Payee, OwnerId, UserProfile } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '../ui/badge';
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { USER_DETAILS } from '@/lib/constants';
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '../ui/alert-dialog';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../ui/dropdown-menu';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 
 interface DebtListProps {
