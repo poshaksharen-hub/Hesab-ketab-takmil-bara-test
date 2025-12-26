@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 function CheckDetailSkeleton() {
   return (
@@ -38,20 +39,17 @@ export default function CheckDetailPage() {
 
   const { user } = useUser();
   const { toast } = useToast();
-  // TODO: Replace with Supabase data fetching
-  const isLoading = true;
-  const { check, bankAccounts, payees, categories, users } = {
-      check: null,
-      bankAccounts: [],
-      payees: [],
-      categories: [],
-      users: [],
-  };
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { checks, bankAccounts, payees, categories, users } = allData;
+
+  const check = useMemo(() => checks?.find((c: any) => c.id === checkId), [checks, checkId]);
 
   const handleClearCheck = useCallback(async (checkToClear: any) => {
     // TODO: Implement Supabase logic
     toast({ title: "در حال توسعه", description: "عملیات پاس کردن چک هنوز پیاده‌سازی نشده است." });
   }, [user, bankAccounts, payees, toast]);
+  
+  const isLoading = isDashboardLoading || !check;
 
   if (isLoading) {
     return <CheckDetailSkeleton />;
@@ -77,17 +75,17 @@ export default function CheckDetailPage() {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
-    return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+    return payees.find((p: any) => p.id === payeeId)?.name || 'نامشخص';
   };
   
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return 'نامشخص';
-    return categories.find(c => c.id === categoryId)?.name || 'نامشخص';
+    return categories.find((c: any) => c.id === categoryId)?.name || 'نامشخص';
   }
 
   const getBankAccount = (bankAccountId?: string) => {
     if (!bankAccountId) return null;
-    return bankAccounts.find(b => b.id === bankAccountId);
+    return bankAccounts.find((b: any) => b.id === bankAccountId);
   }
 
   const getOwnerDetails = (bankAccount?: ReturnType<typeof getBankAccount>) => {
@@ -104,7 +102,7 @@ export default function CheckDetailPage() {
     return USER_DETAILS[expenseFor]?.firstName || 'نامشخص';
   };
 
-  const registeredByName = users.find(u => u.id === check.registeredByUserId)?.firstName || 'سیستم';
+  const registeredByName = users.find((u: any) => u.id === check.registeredByUserId)?.firstName || 'سیستم';
   const bankAccount = getBankAccount(check.bankAccountId);
   const { name: ownerName } = getOwnerDetails(bankAccount);
   const expenseForName = getExpenseForName(check.expenseFor);
