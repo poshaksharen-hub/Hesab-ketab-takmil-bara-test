@@ -67,10 +67,8 @@ export function useDashboardData() {
       setError(null);
 
       try {
-        // Use an RPC call to a secure function to get all users
-        const usersRes = await supabase.rpc('get_all_users');
-
         const [
+          usersRes,
           bankAccountsRes,
           categoriesRes,
           payeesRes,
@@ -85,6 +83,7 @@ export function useDashboardData() {
           debtPaymentsRes,
           chatMessagesRes,
         ] = await Promise.all([
+          supabase.rpc('get_all_users'),
           supabase.from('bank_accounts').select('*').eq('is_deleted', false),
           supabase.from('categories').select('*').eq('is_archived', false),
           supabase.from('payees').select('*'),
@@ -100,7 +99,6 @@ export function useDashboardData() {
           supabase.from('chat_messages').select('*').order('timestamp', { ascending: true }),
         ]);
 
-        // Check for errors in each response
         const responses = [
           { name: 'users', ...usersRes },
           { name: 'bank_accounts', ...bankAccountsRes },
@@ -125,7 +123,6 @@ export function useDashboardData() {
           }
         }
         
-        // Manual mapping for financial_goals contributions for now
         const goalsData = transformData(goalsRes.data || []);
         const expensesData = transformData(expensesRes.data || []) as Expense[];
         
@@ -144,7 +141,7 @@ export function useDashboardData() {
 
 
         setAllData({
-          firestore: supabase, // For compatibility with existing code that expects a 'firestore' object
+          firestore: supabase, 
           users: transformData(usersRes.data || []) as UserProfile[],
           bankAccounts: transformData(bankAccountsRes.data || []) as BankAccount[],
           categories: transformData(categoriesRes.data || []) as Category[],
@@ -170,9 +167,6 @@ export function useDashboardData() {
     };
 
     fetchData();
-
-    // Note: Real-time subscriptions are not implemented here for simplicity in the initial migration step.
-    // This can be added later if required.
 
   }, [user]);
 
