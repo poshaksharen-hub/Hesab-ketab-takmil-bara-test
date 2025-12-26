@@ -5,7 +5,6 @@
 // This file should NOT contain any initialization logic itself.
 
 export * from './provider';
-// export * from './client-provider'; // This is now obsolete as we move to Supabase
+// client-provider is now obsolete.
 export * from './firestore/use-collection';
-// use-doc is no longer used or needed.
-// export * from './firestore/use-doc';
+// use-doc and non-blocking helpers are no longer used or needed.
