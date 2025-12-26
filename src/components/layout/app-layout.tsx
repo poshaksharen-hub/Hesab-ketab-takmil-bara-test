@@ -40,10 +40,9 @@ import {
 import { HesabKetabLogo } from '@/components/icons';
 import { getPlaceholderImage } from '@/lib/placeholder-images';
 import { useUser, useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
-import type { User } from 'firebase/auth';
+import type { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
@@ -186,7 +185,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   
   const handleSignOut = async () => {
     if (auth) {
-      await signOut(auth);
+      await auth.signOut();
     }
     router.push('/login');
   };

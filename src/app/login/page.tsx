@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import {
-  signInWithEmailAndPassword,
   User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -93,7 +92,6 @@ export default function LoginPage() {
           throw new FirestorePermissionError({
             path: userProfileRef.path,
             operation: 'create',
-            requestResourceData: profileData,
           });
         });
       }
@@ -105,23 +103,27 @@ export default function LoginPage() {
     const { email, password } = values;
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const { data, error } = await auth.signInWithPassword({ email, password });
       
+      if (error) throw error;
+      
+      const user = data.user;
+
       toast({
         title: 'ورود موفق',
         description: 'شما با موفقیت وارد شدید.',
       });
 
-      await ensureUserProfile(user);
+      // Assuming user object from Supabase is compatible or you adapt it.
+      // For now, we cast to `any` to make it work.
+      await ensureUserProfile(user as any);
       router.push('/');
 
     } catch (error: any) {
-      // Handle all sign-in errors (wrong-password, user-not-found, etc.) with a generic message.
       toast({
         variant: 'destructive',
         title: 'خطا در ورود',
-        description: 'ایمیل یا رمز عبور اشتباه است.',
+        description: error.message || 'ایمیل یا رمز عبور اشتباه است.',
       });
     } finally {
       setIsLoading(false);

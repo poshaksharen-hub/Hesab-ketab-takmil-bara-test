@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/select';
 import { USER_DETAILS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
-import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare, Settings } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
@@ -38,7 +37,7 @@ function DashboardSkeleton() {
   const router = useRouter();
   const handleSignOut = async () => {
     if (auth) {
-      await signOut(auth);
+      await auth.signOut();
     }
     router.push('/login');
   };
@@ -309,5 +308,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-
-    

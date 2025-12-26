@@ -6,7 +6,7 @@
 // This file should NOT contain any initialization logic itself.
 
 export * from './provider';
-export * from './client-provider';
+// export * from './client-provider'; // This is now obsolete as we move to Supabase
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
 export * from './non-blocking-login';
