@@ -26,9 +26,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import type { Loan, BankAccount, Payee, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { cn, formatCurrency } from '@/lib/utils';
-import { Switch } from '../ui/switch';
+import { Switch } from '@/components/ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
-import { AddPayeeDialog } from '../payees/add-payee-dialog';
+import { AddPayeeDialog } from '@/components/payees/add-payee-dialog';
 import type { User as AuthUser } from 'firebase/auth';
 
 const baseSchema = z.object({

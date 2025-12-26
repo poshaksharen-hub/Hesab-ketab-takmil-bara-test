@@ -25,7 +25,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import type { BankAccount, OwnerId } from '@/lib/types';
 import { ArrowDown, ArrowRightLeft, Loader2 } from 'lucide-react';
-import { Textarea } from '../ui/textarea';
+import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/lib/utils';
 import type { User } from 'firebase/auth';
 import { USER_DETAILS } from '@/lib/constants';

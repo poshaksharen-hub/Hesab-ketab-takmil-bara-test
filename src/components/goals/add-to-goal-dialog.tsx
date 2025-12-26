@@ -34,7 +34,7 @@ import { CurrencyInput } from '@/components/ui/input';
 import type { FinancialGoal, BankAccount, OwnerId } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
-import { Alert, AlertDescription } from '../ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Loader2 } from 'lucide-react';
 
 
