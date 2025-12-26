@@ -67,8 +67,10 @@ export function useDashboardData() {
       setError(null);
 
       try {
+        // Use an RPC call to a secure function to get all users
+        const usersRes = await supabase.rpc('get_all_users');
+
         const [
-          usersRes,
           bankAccountsRes,
           categoriesRes,
           payeesRes,
@@ -83,7 +85,6 @@ export function useDashboardData() {
           debtPaymentsRes,
           chatMessagesRes,
         ] = await Promise.all([
-          supabase.from('users').select('*'),
           supabase.from('bank_accounts').select('*').eq('is_deleted', false),
           supabase.from('categories').select('*').eq('is_archived', false),
           supabase.from('payees').select('*'),
