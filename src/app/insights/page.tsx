@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { USER_DETAILS } from '@/lib/constants';
 import { SummaryCards } from '@/components/insights/summary-cards';
-import type { Expense, Income, Loan, PreviousDebt, Check, FinancialGoal, OwnerId } from '@/lib/types';
+import type { Expense, Income, Loan, PreviousDebt, Check, FinancialGoal, OwnerId, BankAccount } from '@/lib/types';
 import { BrainCircuit } from 'lucide-react';
 
 function InsightsPageSkeleton() {
@@ -30,40 +30,51 @@ function InsightsPageSkeleton() {
 export default function InsightsPage() {
   const { isLoading, allData } = useDashboardData();
 
-  const { incomes, expenses, loans, previousDebts, checks, goals, categories } = allData;
+  const { incomes, expenses, loans, previousDebts, checks, goals, categories, bankAccounts } = allData;
 
   const processedData = useMemo(() => {
-    if (isLoading || !incomes || !expenses || !loans || !previousDebts || !checks || !goals || !categories) {
+    if (isLoading || !incomes || !expenses || !loans || !previousDebts || !checks || !goals || !categories || !bankAccounts) {
       return null;
     }
 
     const calculateStats = (
-      ownerFilter: OwnerId | 'all' | 'daramad_moshtarak'
+      ownerFilter: OwnerId | 'all' | 'daramad_moshtarak' | 'shared_account'
     ) => {
-      let filteredIncomes: Income[] = [];
-      let filteredExpenses: Expense[] = [];
-      let filteredLoans: Loan[] = [];
-      let filteredDebts: PreviousDebt[] = [];
-      let filteredChecks: Check[] = [];
-      let filteredGoals: FinancialGoal[] = [];
+      let filteredIncomes: Income[] = incomes;
+      let filteredExpenses: Expense[] = expenses;
+      let filteredLoans: Loan[] = loans;
+      let filteredDebts: PreviousDebt[] = previousDebts;
+      let filteredChecks: Check[] = checks;
+      let filteredGoals: FinancialGoal[] = goals;
+      let incomeOnly = false;
+      let expenseOnly = false;
 
-      if (ownerFilter === 'all') {
-        filteredIncomes = incomes;
-        filteredExpenses = expenses;
-        filteredLoans = loans;
-        filteredDebts = previousDebts;
-        filteredChecks = checks;
-        filteredGoals = goals;
-      } else if (ownerFilter === 'daramad_moshtarak') {
-         filteredIncomes = incomes.filter((i) => i.ownerId === 'daramad_moshtarak');
-      } 
-      else {
-        filteredIncomes = incomes.filter((i) => i.ownerId === ownerFilter);
-        filteredExpenses = expenses.filter((e) => e.expenseFor === ownerFilter);
-        filteredLoans = loans.filter((l) => l.ownerId === ownerFilter);
-        filteredDebts = previousDebts.filter((d) => d.ownerId === ownerFilter);
-        filteredChecks = checks.filter((c) => c.expenseFor === ownerFilter);
-        filteredGoals = goals.filter((g) => g.ownerId === ownerFilter);
+      if (ownerFilter !== 'all') {
+        if (ownerFilter === 'daramad_moshtarak') {
+            filteredIncomes = incomes.filter(i => i.ownerId === 'daramad_moshtarak');
+            filteredExpenses = [];
+            filteredLoans = [];
+            filteredDebts = [];
+            filteredChecks = [];
+            filteredGoals = [];
+            incomeOnly = true;
+        } else if (ownerFilter === 'shared_account') {
+            // 'shared_account' shows income deposited TO shared accounts and expenses made FROM shared accounts
+            const sharedAccountIds = bankAccounts.filter(b => b.ownerId === 'shared_account').map(b => b.id);
+            filteredIncomes = incomes.filter(i => sharedAccountIds.includes(i.bankAccountId));
+            filteredExpenses = expenses.filter(e => sharedAccountIds.includes(e.bankAccountId));
+            filteredLoans = loans.filter(l => l.ownerId === 'shared');
+            filteredDebts = previousDebts.filter(d => d.ownerId === 'shared');
+            filteredChecks = checks.filter(c => c.expenseFor === 'shared');
+            filteredGoals = goals.filter(g => g.ownerId === 'shared');
+        } else { // 'ali' or 'fatemeh'
+            filteredIncomes = incomes.filter(i => i.ownerId === ownerFilter);
+            filteredExpenses = expenses.filter(e => e.expenseFor === ownerFilter);
+            filteredLoans = loans.filter(l => l.ownerId === ownerFilter);
+            filteredDebts = previousDebts.filter(d => d.ownerId === ownerFilter);
+            filteredChecks = checks.filter(c => c.expenseFor === ownerFilter);
+            filteredGoals = goals.filter(g => g.ownerId === ownerFilter);
+        }
       }
 
       const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -97,6 +108,8 @@ export default function InsightsPage() {
         totalGoalSavings,
         totalGoalTarget,
         expenseByCategory: sortedCategories,
+        incomeOnly,
+        expenseOnly: totalIncome === 0 && totalExpense > 0,
       };
     };
     
@@ -104,11 +117,11 @@ export default function InsightsPage() {
         all: calculateStats('all'),
         ali: calculateStats('ali'),
         fatemeh: calculateStats('fatemeh'),
-        shared: calculateStats('shared'),
+        shared: calculateStats('shared_account'),
         business: calculateStats('daramad_moshtarak'),
     }
 
-  }, [isLoading, incomes, expenses, loans, previousDebts, checks, goals, categories]);
+  }, [isLoading, incomes, expenses, loans, previousDebts, checks, goals, categories, bankAccounts]);
 
   if (isLoading || !processedData) {
     return <InsightsPageSkeleton />;
@@ -125,11 +138,12 @@ export default function InsightsPage() {
       <p className="text-muted-foreground">تحلیل جامع وضعیت مالی خانواده به تفکیک افراد و موارد مشترک.</p>
 
       <Tabs defaultValue="all" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="all">خلاصه کلی</TabsTrigger>
           <TabsTrigger value="ali">{USER_DETAILS.ali.firstName}</TabsTrigger>
           <TabsTrigger value="fatemeh">{USER_DETAILS.fatemeh.firstName}</TabsTrigger>
           <TabsTrigger value="shared">مشترک</TabsTrigger>
+          <TabsTrigger value="business">شغل مشترک</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -142,7 +156,10 @@ export default function InsightsPage() {
             <SummaryCards stats={processedData.fatemeh} title={`عملکرد مالی ${USER_DETAILS.fatemeh.firstName}`} />
         </TabsContent>
         <TabsContent value="shared" className="space-y-4">
-            <SummaryCards stats={processedData.shared} title="عملکرد مالی هزینه‌های مشترک" />
+            <SummaryCards stats={processedData.shared} title="عملکرد مالی حساب‌های مشترک" />
+        </TabsContent>
+         <TabsContent value="business" className="space-y-4">
+            <SummaryCards stats={processedData.business} title="عملکرد مالی شغل مشترک" />
         </TabsContent>
       </Tabs>
     </main>

@@ -16,6 +16,8 @@ interface Stats {
   totalGoalSavings: number;
   totalGoalTarget: number;
   expenseByCategory: [string, number][];
+  incomeOnly: boolean;
+  expenseOnly: boolean;
 }
 
 interface SummaryCardsProps {
@@ -24,6 +26,14 @@ interface SummaryCardsProps {
 }
 
 export function SummaryCards({ stats, title }: SummaryCardsProps) {
+  
+  const getNetFlowDescription = () => {
+    if (stats.incomeOnly) return 'فقط درآمد ثبت شده';
+    if (stats.expenseOnly) return 'فقط هزینه ثبت شده';
+    if (stats.netFlow >= 0) return 'ورودی مثبت';
+    return 'خروجی مثبت';
+  }
+
   return (
     <Card className="bg-muted/20">
       <CardHeader>
@@ -38,7 +48,7 @@ export function SummaryCards({ stats, title }: SummaryCardsProps) {
             amount={stats.netFlow}
             Icon={ArrowRightLeft}
             colorClass={stats.netFlow >= 0 ? 'text-emerald-500' : 'text-red-500'}
-            description={stats.netFlow >= 0 ? 'ورودی مثبت' : 'خروجی مثبت'}
+            description={getNetFlowDescription()}
           />
         </div>
 
