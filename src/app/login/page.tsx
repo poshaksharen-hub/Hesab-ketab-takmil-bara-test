@@ -6,10 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import {
-  User,
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import type { User } from '@supabase/supabase-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -30,11 +27,11 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { HesabKetabLogo } from '@/components/icons';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { ALLOWED_USERS, USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { supabase } from '@/lib/supabase-client';
 import type { UserProfile } from '@/lib/types';
 
 const formSchema = z.object({
@@ -54,7 +51,6 @@ type LoginFormValues = z.infer<typeof formSchema>;
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
-  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const { user: currentUser, isUserLoading } = useUser();
@@ -74,26 +70,29 @@ export default function LoginPage() {
   }, [currentUser, isUserLoading, router]);
 
   const ensureUserProfile = async (user: User) => {
-    if (!firestore) return;
-    const userProfileRef = doc(firestore, 'users', user.uid);
-    const userProfileSnap = await getDoc(userProfileRef);
+    const { data, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
 
-    if (!userProfileSnap.exists()) {
+    if (error && error.code !== 'PGRST116') { // PGRST116: "object not found"
+      throw error;
+    }
+
+    if (!data) { // Profile does not exist
       const userDetailKey = user.email!.split('@')[0] as 'ali' | 'fatemeh';
       const userDetail = USER_DETAILS[userDetailKey];
       if (userDetail) {
-        const profileData: UserProfile = {
-          id: user.uid,
+        const profileData: Omit<UserProfile, 'id' | 'signatureImage'> & { id: string, signature_image_path: string | null } = {
+          id: user.id,
           email: user.email!,
-          firstName: userDetail.firstName,
-          lastName: userDetail.lastName,
+          first_name: userDetail.firstName,
+          last_name: userDetail.lastName,
+          signature_image_path: userDetail.signatureImage || null,
         };
-        await setDoc(userProfileRef, profileData).catch((serverError) => {
-          throw new FirestorePermissionError({
-            path: userProfileRef.path,
-            operation: 'create',
-          });
-        });
+        const { error: insertError } = await supabase.from('users').insert([profileData]);
+        if (insertError) throw insertError;
       }
     }
   };
@@ -108,22 +107,21 @@ export default function LoginPage() {
       if (error) throw error;
       
       const user = data.user;
+      if (!user) throw new Error("ورود ناموفق بود. لطفاً دوباره تلاش کنید.");
 
       toast({
         title: 'ورود موفق',
         description: 'شما با موفقیت وارد شدید.',
       });
 
-      // Assuming user object from Supabase is compatible or you adapt it.
-      // For now, we cast to `any` to make it work.
-      await ensureUserProfile(user as any);
+      await ensureUserProfile(user);
       router.push('/');
 
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'خطا در ورود',
-        description: error.message || 'ایمیل یا رمز عبور اشتباه است.',
+        description: error.message === 'Invalid login credentials' ? 'ایمیل یا رمز عبور اشتباه است.' : (error.message || 'مشکلی در ورود پیش آمد.'),
       });
     } finally {
       setIsLoading(false);

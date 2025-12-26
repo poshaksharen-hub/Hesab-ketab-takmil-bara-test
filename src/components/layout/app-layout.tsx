@@ -184,9 +184,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { unreadCount } = useUnreadMessages();
   
   const handleSignOut = async () => {
-    if (auth) {
-      await auth.signOut();
-    }
+    await auth.signOut();
     router.push('/login');
   };
 
