@@ -11,14 +11,14 @@ import type { Category } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { supabase } from '@/lib/supabase-client';
 
 export default function CategoriesPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   
-  // TODO: Replace with Supabase data fetching
-  const isDashboardLoading = true;
-  const allData = { categories: [], expenses: [], checks: [] };
+  const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
@@ -27,13 +27,78 @@ export default function CategoriesPage() {
   const { categories, expenses, checks } = allData;
 
   const handleFormSubmit = useCallback(async (values: Omit<Category, 'id'>) => {
-     // TODO: Implement Supabase logic
-    toast({ title: "در حال توسعه", description: "عملیات ثبت دسته‌بندی هنوز پیاده‌سازی نشده است."});
-  }, [user, toast]);
+    if (!user) return;
+    setIsSubmitting(true);
+
+    const onComplete = () => {
+        setIsSubmitting(false);
+        setIsFormOpen(false);
+        setEditingCategory(null);
+        // Data will be re-fetched by useDashboardData hook automatically after some time,
+        // or we could implement a manual refresh if needed.
+    };
+
+    if (editingCategory) {
+        // Update logic
+        const { error } = await supabase
+            .from('categories')
+            .update({ name: values.name, description: values.description })
+            .eq('id', editingCategory.id);
+
+        if (error) {
+            toast({ variant: "destructive", title: "خطا در ویرایش", description: error.message });
+            setIsSubmitting(false);
+        } else {
+            toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." });
+            onComplete();
+        }
+    } else {
+        // Create logic
+        const { error } = await supabase
+            .from('categories')
+            .insert([{ name: values.name, description: values.description }]);
+
+        if (error) {
+            toast({ variant: "destructive", title: "خطا در ثبت", description: error.message });
+            setIsSubmitting(false);
+        } else {
+            toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
+            onComplete();
+        }
+    }
+  }, [user, editingCategory, toast]);
 
   const handleDelete = useCallback(async (categoryId: string) => {
-    // TODO: Implement Supabase logic
-    toast({ title: "در حال توسعه", description: "عملیات حذف دسته‌بندی هنوز پیاده‌سازی نشده است."});
+    if (!user) return;
+    
+    setIsSubmitting(true);
+
+    try {
+        const isUsedInExpense = (expenses || []).some(e => e.categoryId === categoryId);
+        const isUsedInCheck = (checks || []).some(c => c.categoryId === categoryId);
+
+        if (isUsedInExpense || isUsedInCheck) {
+            throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند هزینه یا چک استفاده شده است.");
+        }
+
+        const { error } = await supabase
+            .from('categories')
+            .update({ is_archived: true }) // Soft delete by archiving
+            .eq('id', categoryId);
+
+        if (error) throw error;
+        
+        toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت بایگانی (حذف) شد." });
+
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "خطا در حذف",
+            description: error.message || "مشکلی در حذف دسته‌بندی پیش آمد.",
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
   }, [user, toast, expenses, checks]);
 
   const handleEdit = useCallback((category: Category) => {

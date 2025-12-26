@@ -23,12 +23,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '../ui/textarea';
-import { useFirestore } from '@/firebase';
-import { collection, addDoc, updateDoc } from 'firebase/firestore';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { Category } from '@/lib/types';
+import { supabase } from '@/lib/supabase-client';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'نام دسته‌بندی باید حداقل ۲ حرف داشته باشد.' }),
@@ -43,15 +42,12 @@ interface AddCategoryDialogProps {
   onCategoryAdded: (newCategory: Category) => void;
 }
 
-const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
-
 export function AddCategoryDialog({
   isOpen,
   onOpenChange,
   onCategoryAdded,
 }: AddCategoryDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   const form = useForm<CategoryFormValues>({
@@ -63,21 +59,23 @@ export function AddCategoryDialog({
   });
 
   const handleFormSubmit = async (data: CategoryFormValues) => {
-    if (!firestore) return;
     setIsSubmitting(true);
     try {
-        const categoriesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'categories');
-        const newDocRef = await addDoc(categoriesColRef, data);
-        const newCategory = { ...data, id: newDocRef.id };
-        await updateDoc(newDocRef, { id: newDocRef.id });
+        const { data: newCategoryData, error } = await supabase
+            .from('categories')
+            .insert([{ name: data.name, description: data.description }])
+            .select()
+            .single();
+
+        if (error) throw error;
         
         toast({ title: 'موفقیت', description: 'دسته‌بندی جدید با موفقیت اضافه شد.' });
-        onCategoryAdded(newCategory);
+        onCategoryAdded(newCategoryData as Category);
         onOpenChange(false);
         form.reset();
 
     } catch (error: any) {
-         toast({ variant: "destructive", title: "خطا", description: "مشکلی در ثبت دسته‌بندی پیش آمد." });
+         toast({ variant: "destructive", title: "خطا", description: error.message || "مشکلی در ثبت دسته‌بندی پیش آمد." });
     } finally {
         setIsSubmitting(false);
     }
