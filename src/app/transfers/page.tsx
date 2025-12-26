@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import type { BankAccount, Transfer, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -12,18 +12,38 @@ import Link from 'next/link';
 import { USER_DETAILS } from '@/lib/constants';
 import { ArrowRight, PlusCircle, Plus, Loader2 } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useUser } from '@/firebase';
 import { supabase } from '@/lib/supabase-client';
 import { sendSystemNotification } from '@/lib/notifications';
+import type { User } from '@supabase/supabase-js';
 
 export default function TransfersPage() {
-  const { user, isUserLoading } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    };
+
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
   const { bankAccounts: allBankAccounts, transfers, users } = allData;
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
