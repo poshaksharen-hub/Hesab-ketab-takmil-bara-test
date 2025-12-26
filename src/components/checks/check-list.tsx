@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, MoreVertical, History, Edit, Users, User, CheckCircle } from 'lucide-react';
+import { Trash2, MoreVertical, History, Edit, Users, User, CheckCircle, Loader2 } from 'lucide-react';
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import {
@@ -39,9 +39,10 @@ interface CheckListProps {
   onDelete: (check: Check) => void;
   onEdit: (check: Check) => void;
   users: UserProfile[];
+  isSubmitting: boolean;
 }
 
-const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete, onEdit, users }: {
+const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete, onEdit, users, isSubmitting }: {
     check: Check;
     bankAccounts: BankAccount[];
     payees: Payee[];
@@ -50,6 +51,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
     onDelete: (check: Check) => void;
     onEdit: (check: Check) => void;
     users: UserProfile[];
+    isSubmitting: boolean;
 }) => {
 
     const getDetails = (item: Check) => {
@@ -57,7 +59,9 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
         const category = categories.find(c => c.id === item.categoryId)?.name || 'نامشخص';
         const bankAccount = bankAccounts.find(b => b.id === item.bankAccountId);
         const ownerId = bankAccount?.ownerId;
-        const signatureImage = ownerId ? (USER_DETAILS[ownerId as 'ali' | 'fatemeh']?.signatureImage) : undefined;
+        
+        // Use signatureDataUrl from check object, fallback to default from constants
+        const signatureImage = item.signatureDataUrl || (ownerId ? (USER_DETAILS[ownerId as 'ali' | 'fatemeh']?.signatureImage) : undefined);
         const ownerName = ownerId === 'shared_account' ? 'علی و فاطمه' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName} ${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].lastName}` : 'ناشناس');
         const expenseForName = item.expenseFor && USER_DETAILS[item.expenseFor] ? USER_DETAILS[item.expenseFor].firstName : 'مشترک';
         const registeredByName = users.find(u => u.id === item.registeredByUserId)?.firstName || 'سیستم';
@@ -67,6 +71,8 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
 
     const { payee, bankAccount, ownerId, ownerName, expenseForName, category, signatureImage, registeredByName } = getDetails(check);
     const isCleared = check.status === 'cleared';
+    const isDeleteDisabled = isCleared || isSubmitting;
+
 
     return (
         <div className="relative group" data-testid={`check-item-${check.id}`}>
@@ -101,7 +107,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                          <div onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="absolute top-2 left-2 z-20">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Actions">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Actions" disabled={isSubmitting}>
                                         <MoreVertical className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -124,20 +130,20 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                                 <AlertDialogFooter>
                                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
                                                 <AlertDialogAction onClick={() => onClear(check)}>
-                                                    تایید و پاس کردن
+                                                    {isSubmitting ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : 'تایید و پاس کردن'}
                                                 </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
                                     )}
-                                    <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared}>
+                                    <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared || isSubmitting}>
                                         <Edit className="ml-2 h-4 w-4" />
                                         ویرایش چک
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                            <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground cursor-not-allowed" : "text-destructive focus:text-destructive")}>
                                                 <Trash2 className="ml-2 h-4 w-4" />
                                                 حذف چک
                                             </div>
@@ -146,13 +152,17 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                             <AlertDialogHeader>
                                                 <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                    این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، هزینه مربوط به آن نیز حذف و مبلغ به حساب شما بازگردانده می‌شود. در غیر اینصورت فقط خود چک حذف می‌شود.
+                                                    این عمل قابل بازگشت نیست. اگر چک پاس شده باشد، امکان حذف آن وجود ندارد. در غیر این صورت، چک و مبلغ مسدود شده آن از سیستم حذف خواهد شد.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(check)}>
-                                                    بله، حذف کن
+                                                <AlertDialogAction 
+                                                    className="bg-destructive hover:bg-destructive/90" 
+                                                    onClick={() => onDelete(check)}
+                                                    disabled={isDeleteDisabled}
+                                                >
+                                                     {isSubmitting ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : 'بله، حذف کن'}
                                                 </AlertDialogAction>
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
@@ -212,7 +222,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
     );
 };
 
-export function CheckList({ checks, bankAccounts, payees, categories, onClear, onDelete, onEdit, users }: CheckListProps) {
+export function CheckList({ checks, bankAccounts, payees, categories, onClear, onDelete, onEdit, users, isSubmitting }: CheckListProps) {
   
   if (checks.length === 0) {
     return (
@@ -240,6 +250,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
                 onDelete={onDelete}
                 onEdit={onEdit}
                 users={users}
+                isSubmitting={isSubmitting}
             />
         ))}
       </div>
