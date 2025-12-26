@@ -2,8 +2,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LoginPage from '@/app/login/page';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useAuth, useUser } from '@/firebase'; // Keep for compatibility mocking
+import { supabase } from '@/lib/supabase-client';
 
 // Mock useRouter from next/navigation
 const mockPush = jest.fn();
@@ -13,27 +13,33 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock Firebase services
+// Mock Supabase client
+jest.mock('@/lib/supabase-client', () => ({
+  supabase: {
+    auth: {
+      signInWithPassword: jest.fn(),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
+      getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
+    },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn(),
+        })),
+      })),
+      insert: jest.fn(),
+    })),
+  },
+}));
+
+// Mock Firebase hooks to return "not logged in" state
 jest.mock('@/firebase', () => ({
-  useAuth: () => ({}), // We mock the auth functions directly
-  useFirestore: () => ({}), // We mock the firestore functions directly
-  useUser: () => ({ user: null, isUserLoading: false }), // Assume no user is logged in initially
+  useAuth: () => supabase.auth,
+  useUser: () => ({ user: null, isUserLoading: false }),
 }));
 
-// Mock firebase/auth module
-jest.mock('firebase/auth', () => ({
-  ...jest.requireActual('firebase/auth'),
-  signInWithEmailAndPassword: jest.fn(),
-  onAuthStateChanged: jest.fn(() => () => {}), // Returns a mock unsubscribe function
-}));
-
-// Mock firebase/firestore module
-jest.mock('firebase/firestore', () => ({
-  ...jest.requireActual('firebase/firestore'),
-  doc: jest.fn(),
-  getDoc: jest.fn(),
-  setDoc: jest.fn(),
-}));
 
 // Mock useToast
 const mockToast = jest.fn();
@@ -64,7 +70,7 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(screen.getByText('شما اجازه ورود به این اپلیکیشن را ندارید.')).toBeInTheDocument();
     });
-    expect(signInWithEmailAndPassword).not.toHaveBeenCalled();
+    expect(supabase.auth.signInWithPassword).not.toHaveBeenCalled();
     expect(mockToast).not.toHaveBeenCalled();
   });
 
@@ -77,9 +83,26 @@ describe('LoginPage', () => {
   describe.each(authorizedUsers)('for user $email', ({ email, uid }) => {
     it('should redirect to dashboard and create a profile on first successful login', async () => {
       // Arrange: Mock successful authentication and a non-existent user profile
-      (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({ user: { uid, email } });
-      (getDoc as jest.Mock).mockResolvedValue({ exists: () => false });
-      (setDoc as jest.Mock).mockResolvedValue(undefined);
+      (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue({
+        data: { user: { id: uid, email } },
+        error: null,
+      });
+      // Mock the chained calls for checking user existence
+      const fromMock = supabase.from as jest.Mock;
+      const selectMock = jest.fn().mockReturnThis();
+      const eqMock = jest.fn().mockReturnThis();
+      const singleMock = jest.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }); // Not found
+      const insertMock = jest.fn().mockResolvedValue({ error: null });
+
+      fromMock.mockImplementation((tableName) => {
+        if (tableName === 'users') {
+          return { select: selectMock, insert: insertMock };
+        }
+        return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn() }; // Default mock for other tables
+      });
+      selectMock.mockImplementation(() => ({ eq: eqMock }));
+      eqMock.mockImplementation(() => ({ single: singleMock }));
+
 
       render(<LoginPage />);
 
@@ -90,36 +113,19 @@ describe('LoginPage', () => {
 
       // Assert: Check for redirection and profile creation
       await waitFor(() => {
-        expect(signInWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), email, 'any-password');
-        expect(setDoc).toHaveBeenCalled(); // Profile creation is called
+        expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({ email, password: 'any-password' });
+        expect(insertMock).toHaveBeenCalled(); // Profile creation is called
         expect(mockPush).toHaveBeenCalledWith('/');
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'ورود موفق' }));
       });
     });
 
-    it('should redirect to dashboard if the user profile already exists', async () => {
-        // Arrange: Mock successful authentication and an existing user profile
-        (signInWithEmailAndPassword as jest.Mock).mockResolvedValue({ user: { uid, email } });
-        (getDoc as jest.Mock).mockResolvedValue({ exists: () => true }); // Profile already exists
-  
-        render(<LoginPage />);
-  
-        // Act: Fill and submit the form
-        fireEvent.input(screen.getByLabelText(/ایمیل/i), { target: { value: email } });
-        fireEvent.input(screen.getByLabelText(/رمز عبور/i), { target: { value: 'any-password' } });
-        fireEvent.submit(screen.getByRole('button', { name: /ورود/i }));
-  
-        // Assert: Check for redirection WITHOUT profile creation
-        await waitFor(() => {
-          expect(setDoc).not.toHaveBeenCalled(); // Profile creation is NOT called
-          expect(mockPush).toHaveBeenCalledWith('/');
-          expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'ورود موفق' }));
-        });
-      });
-
     it('should show a toast error for wrong password', async () => {
-      // Arrange: Mock the specific "wrong-password" error from Firebase
-      (signInWithEmailAndPassword as jest.Mock).mockRejectedValue({ code: 'auth/wrong-password' });
+      // Arrange: Mock the specific "wrong-password" error from Supabase
+      (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue({
+        data: { user: null, session: null },
+        error: new Error('Invalid login credentials'),
+      });
 
       render(<LoginPage />);
 

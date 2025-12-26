@@ -41,7 +41,7 @@ interface CheckListProps {
   users: UserProfile[];
 }
 
-const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete, onEdit }: {
+const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete, onEdit, users }: {
     check: Check;
     bankAccounts: BankAccount[];
     payees: Payee[];
@@ -49,6 +49,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
     onClear: (check: Check) => void;
     onDelete: (check: Check) => void;
     onEdit: (check: Check) => void;
+    users: UserProfile[];
 }) => {
 
     const getDetails = (item: Check) => {
@@ -56,16 +57,19 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
         const category = categories.find(c => c.id === item.categoryId)?.name || 'نامشخص';
         const bankAccount = bankAccounts.find(b => b.id === item.bankAccountId);
         const ownerId = bankAccount?.ownerId;
+        const signatureImage = ownerId ? (USER_DETAILS[ownerId as 'ali' | 'fatemeh']?.signatureImage) : undefined;
         const ownerName = ownerId === 'shared_account' ? 'علی و فاطمه' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName} ${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].lastName}` : 'ناشناس');
         const expenseForName = item.expenseFor && USER_DETAILS[item.expenseFor] ? USER_DETAILS[item.expenseFor].firstName : 'مشترک';
-        return { payee, category, bankAccount, ownerId, ownerName, expenseForName };
+        const registeredByName = users.find(u => u.id === item.registeredByUserId)?.firstName || 'سیستم';
+        
+        return { payee, category, bankAccount, ownerId, ownerName, expenseForName, signatureImage, registeredByName };
     }
 
-    const { payee, bankAccount, ownerId, ownerName, expenseForName, category } = getDetails(check);
+    const { payee, bankAccount, ownerId, ownerName, expenseForName, category, signatureImage, registeredByName } = getDetails(check);
     const isCleared = check.status === 'cleared';
 
     return (
-        <div className="relative group">
+        <div className="relative group" data-testid={`check-item-${check.id}`}>
             <Link href={`/checks/${check.id}`} className="block h-full cursor-pointer" aria-label={`View details for check to ${payee}`}>
                 <Card className={cn("overflow-hidden shadow-lg h-full flex flex-col group-hover:shadow-xl transition-shadow bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
                     {isCleared && (
@@ -105,7 +109,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                     {!isCleared && (
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-emerald-600 focus:text-emerald-700")}>
+                                                <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-emerald-600 focus:text-emerald-700")}>
                                                     <CheckCircle className="ml-2 h-4 w-4" />
                                                     پاس کردن چک
                                                 </div>
@@ -133,7 +137,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                     <DropdownMenuSeparator />
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
+                                            <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-destructive focus:text-destructive")}>
                                                 <Trash2 className="ml-2 h-4 w-4" />
                                                 حذف چک
                                             </div>
@@ -182,20 +186,20 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                 <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
                             </div>
                             <div className="text-center">
-                                <span className="text-xs text-muted-foreground font-body">دسته‌بندی</span>
+                                <span className="text-xs text-muted-foreground font-body">ثبت توسط: {registeredByName}</span>
                                 <p className="font-handwriting font-bold text-base">{category}</p>
                             </div>
                              <div className="text-right relative">
                                 <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
                                 <p className="font-body text-sm font-semibold h-6">{ownerName}</p>
-                                {check.signatureDataUrl && (
+                                {signatureImage && (
                                     <div className="absolute -bottom-5 right-0 w-28 h-14 pointer-events-none">
                                         <Image 
-                                            src={check.signatureDataUrl} 
+                                            src={signatureImage} 
                                             alt={`امضای ${ownerName}`} 
                                             width={112} 
                                             height={56}
-                                            style={{ objectFit: 'contain'}} // Ensures the signature fits well
+                                            style={{ objectFit: 'contain'}}
                                         />
                                     </div>
                                 )}
@@ -235,6 +239,7 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
                 onClear={onClear}
                 onDelete={onDelete}
                 onEdit={onEdit}
+                users={users}
             />
         ))}
       </div>

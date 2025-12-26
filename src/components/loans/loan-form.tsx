@@ -278,7 +278,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>تاریخ دریافت وام</FormLabel>
-                                <JalaliDatePicker title="تاریخ دریافت وام" value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
+                                <JalaliDatePicker title="تاریخ دریافت وام" value={field.value} onChange={field.onChange} />
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -289,7 +289,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>تاریخ اولین قسط</FormLabel>
-                                <JalaliDatePicker title="تاریخ اولین قسط" value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
+                                <JalaliDatePicker title="تاریخ اولین قسط" value={field.value} onChange={field.onChange} />
                                 <FormMessage />
                             </FormItem>
                             )}
