@@ -1,10 +1,9 @@
 
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/firebase';
 import { CategoryList } from '@/components/categories/category-list';
 import { CategoryForm } from '@/components/categories/category-form';
 import type { Category } from '@/lib/types';
@@ -13,16 +12,27 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
+import type { User } from '@supabase/supabase-js';
 
 export default function CategoriesPage() {
-  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
   
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    };
+    getSession();
+  }, []);
 
   const { categories, expenses, checks } = allData;
 
@@ -34,12 +44,9 @@ export default function CategoriesPage() {
         setIsSubmitting(false);
         setIsFormOpen(false);
         setEditingCategory(null);
-        // Data will be re-fetched by useDashboardData hook automatically after some time,
-        // or we could implement a manual refresh if needed.
     };
 
     if (editingCategory) {
-        // Update logic
         const { error } = await supabase
             .from('categories')
             .update({ name: values.name, description: values.description })
@@ -53,7 +60,6 @@ export default function CategoriesPage() {
             onComplete();
         }
     } else {
-        // Create logic
         const { error } = await supabase
             .from('categories')
             .insert([{ name: values.name, description: values.description }]);
@@ -74,8 +80,8 @@ export default function CategoriesPage() {
     setIsSubmitting(true);
 
     try {
-        const isUsedInExpense = (expenses || []).some(e => e.categoryId === categoryId);
-        const isUsedInCheck = (checks || []).some(c => c.categoryId === categoryId);
+        const isUsedInExpense = (expenses || []).some((e: any) => e.categoryId === categoryId);
+        const isUsedInCheck = (checks || []).some((c: any) => c.categoryId === categoryId);
 
         if (isUsedInExpense || isUsedInCheck) {
             throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند هزینه یا چک استفاده شده است.");
@@ -83,7 +89,7 @@ export default function CategoriesPage() {
 
         const { error } = await supabase
             .from('categories')
-            .update({ is_archived: true }) // Soft delete by archiving
+            .update({ is_archived: true }) 
             .eq('id', categoryId);
 
         if (error) throw error;
