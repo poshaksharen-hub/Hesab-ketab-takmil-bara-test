@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { toEnglishDigits } from '@/lib/utils';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
 
 export default function CardsPage() {
   const { user, isUserLoading } = useUser();
