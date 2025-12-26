@@ -7,5 +7,6 @@
   "terminal.integrated.copyOnSelection": true,
   "workbench.editor.autoLockGroups": {
     "default": true
-  }
+  },
+  "IDX.agenticWorkspace": false
 }
