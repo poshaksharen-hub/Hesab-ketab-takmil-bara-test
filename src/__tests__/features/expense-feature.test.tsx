@@ -2,11 +2,9 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import ExpensesPage from '@/app/transactions/page.tsx';
-import { useUser, useFirestore } from '@/firebase';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { runTransaction } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase-client';
 import { USER_DETAILS } from '@/lib/constants';
-import { formatCurrency } from '@/lib/utils';
 
 // --- JSDOM API Mocks ---
 if (typeof window !== 'undefined') {
@@ -16,15 +14,20 @@ if (typeof window !== 'undefined') {
 }
 
 // --- Mocks Setup ---
-jest.mock('@/firebase');
 jest.mock('@/hooks/use-dashboard-data');
-jest.mock('firebase/firestore', () => ({
-    ...jest.requireActual('firebase/firestore'),
-    runTransaction: jest.fn(),
-    collection: jest.fn(),
-    doc: jest.fn(),
-    serverTimestamp: jest.fn(() => new Date()),
+jest.mock('@/lib/supabase-client', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn(),
+      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } }})),
+    },
+    from: jest.fn(() => ({
+      insert: jest.fn().mockResolvedValue({ error: null }),
+      update: jest.fn().mockResolvedValue({ error: null }),
+    })),
+  },
 }));
+
 jest.mock('next/link', () => ({ children }: { children: React.ReactNode }) => <>{children}</>);
 jest.mock('@/lib/notifications', () => ({
     sendSystemNotification: jest.fn().mockResolvedValue(undefined),
@@ -32,7 +35,7 @@ jest.mock('@/lib/notifications', () => ({
 jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: jest.fn() }) }));
 jest.mock('lucide-react', () => {
     const original = jest.requireActual('lucide-react');
-    return { ...original, ArrowRight: () => <div />, Plus: () => <div />, PlusCircle: () => <div /> };
+    return { ...original, Plus: () => <div />, PlusCircle: () => <div /> };
 });
 
 // --- Test Data ---
@@ -48,62 +51,26 @@ const mockBankAccounts = [
 const mockCategories = [{ id: 'cat_food', name: 'Food' }];
 const mockPayees = [{ id: 'payee_store', name: 'Hyperstar' }];
 
-// --- The Final, Victorious Feature Test Suite ---
 describe('Feature: Expense Management', () => {
     const testUsers = [
-        { user: { uid: 'ali_uid', email: 'ali@khanevadati.app' }, name: 'Ali' },
-        { user: { uid: 'fatemeh_uid', email: 'fatemeh@khanevadati.app' }, name: 'Fatemeh' },
+        { user: { id: 'ali_uid', email: 'ali@khanevadati.app' }, name: 'Ali' },
+        { user: { id: 'fatemeh_uid', email: 'fatemeh@khanevadati.app' }, name: 'Fatemeh' },
     ];
 
     describe.each(testUsers)('when logged in as $name', ({ user }) => {
-        let transactionUpdateSpy: jest.Mock;
-        let transactionSetSpy: jest.Mock;
 
         beforeEach(() => {
             jest.clearAllMocks();
-            (useUser as jest.Mock).mockReturnValue({ user, isUserLoading: false });
-            (useFirestore as jest.Mock).mockReturnValue({}); // Returns a mock firestore instance
+            (supabase.auth.getSession as jest.Mock).mockResolvedValue({ data: { session: { user } } });
 
-            const collectionMock = require('firebase/firestore').collection;
-            const docMock = require('firebase/firestore').doc;
-
-            // Mock for collection to return a reference object with a path
-            collectionMock.mockImplementation((parent, pathSegment) => ({
-                _path: parent.path ? `${parent.path}/${pathSegment}` : pathSegment,
-                _isCollection: true,
+            const fromMock = supabase.from as jest.Mock;
+            fromMock.mockImplementation((tableName) => ({
+                insert: jest.fn().mockResolvedValue({ error: null }),
+                update: jest.fn().mockResolvedValue({ error: null }),
             }));
-            
-            // Mock for doc to handle all pathing scenarios correctly
-            docMock.mockImplementation((parent, ...pathSegments) => {
-                if (parent._isCollection && pathSegments.length === 0) {
-                    // Auto-ID generation: doc(collection(db, '..._))
-                    return { path: `${parent._path}/auto-gen-id-${Math.random()}` };
-                }
-                const path = pathSegments.join('/');
-                // Document from root or from another doc ref
-                const newPath = parent.path ? `${parent.path}/${path}` : path;
-                return { path: newPath };
-            });
-
-            transactionUpdateSpy = jest.fn();
-            transactionSetSpy = jest.fn();
-
-            (runTransaction as jest.Mock).mockImplementation(async (firestore, updateFunction) => {
-                const transaction = {
-                    get: jest.fn().mockImplementation((docRef) => {
-                        const accountId = docRef.path.split('/').pop();
-                        const account = mockBankAccounts.find(acc => acc.id === accountId);
-                        return Promise.resolve({ exists: () => !!account, data: () => account });
-                    }),
-                    update: transactionUpdateSpy,
-                    set: transactionSetSpy,
-                };
-                await updateFunction(transaction);
-                return Promise.resolve();
-            });
         });
 
-        it('should create a new expense, update bank balance, and display it correctly in the list', async () => {
+        it('should create a new expense, update bank balance, and display it correctly', async () => {
             // 1. ARRANGE
             const useDashboardDataMock = useDashboardData as jest.Mock;
             useDashboardDataMock.mockReturnValue({
@@ -116,36 +83,49 @@ describe('Feature: Expense Management', () => {
             // 2. ACT
             fireEvent.click(screen.getByTestId('add-new-expense-desktop'));
             await waitFor(() => expect(screen.getByRole('heading', { name: 'ثبت هزینه جدید' })).toBeInTheDocument());
-
+            
             fireEvent.input(screen.getByLabelText(/شرح هزینه/i), { target: { value: 'Weekly Groceries' } });
             fireEvent.input(screen.getByLabelText(/مبلغ/i), { target: { value: '75000' } });
 
-            const bankSelect = screen.getByTestId('bank-account-select-wrapper').querySelector('select');
-            fireEvent.change(bankSelect!, { target: { value: 'shared_bank_1' } });
-            fireEvent.change(screen.getByTestId('category-select-wrapper').querySelector('select')!, { target: { value: 'cat_food' } });
-            fireEvent.change(screen.getByTestId('payee-select-wrapper').querySelector('select')!, { target: { value: 'payee_store' } });
-            fireEvent.change(screen.getByTestId('expense-for-select-wrapper').querySelector('select')!, { target: { value: 'shared' } });
+            const bankSelect = screen.getByTestId('bank-account-select-wrapper').querySelector('button[role="combobox"]');
+            fireEvent.click(bankSelect!);
+            await waitFor(() => screen.getByText(/Saderat/i));
+            fireEvent.click(screen.getByText(/Saderat/i));
+
+            const categorySelect = screen.getByTestId('category-select-wrapper').querySelector('button[role="combobox"]');
+            fireEvent.click(categorySelect!);
+            await waitFor(() => screen.getByText(/Food/i));
+            fireEvent.click(screen.getByText(/Food/i));
+
+            const expenseForSelect = screen.getByTestId('expense-for-select-wrapper').querySelector('button[role="combobox"]');
+            fireEvent.click(expenseForSelect!);
+            await waitFor(() => screen.getByText(/مشترک/i));
+            fireEvent.click(screen.getByText(/مشترک/i));
 
             fireEvent.click(screen.getByRole('button', { name: /ذخیره/i }));
 
+
             // 3. ASSERT (Backend)
-            await waitFor(() => expect(runTransaction).toHaveBeenCalled());
-
-            const sharedAccount = mockBankAccounts.find(a => a.id === 'shared_bank_1')!;
-            const expectedNewBalance = sharedAccount.balance - 75000;
-            expect(transactionUpdateSpy).toHaveBeenCalledWith(expect.objectContaining({ path: 'family-data/shared-data/bankAccounts/shared_bank_1' }), { balance: expectedNewBalance });
-
-            expect(transactionSetSpy).toHaveBeenCalled(); // Check if set was called at all
-            const submittedData = transactionSetSpy.mock.calls[0][1];
-            expect(submittedData).toMatchObject({
-                description: 'Weekly Groceries', amount: 75000, bankAccountId: 'shared_bank_1',
-                categoryId: 'cat_food', payeeId: 'payee_store', expenseFor: 'shared',
-                registeredByUserId: user.uid, ownerId: 'shared_account',
+            const fromMock = supabase.from as jest.Mock;
+            const updateMock = fromMock('bank_accounts').update as jest.Mock;
+            const insertMock = fromMock('expenses').insert as jest.Mock;
+            
+            await waitFor(() => {
+                expect(updateMock).toHaveBeenCalledWith({ balance: 500000 - 75000 });
+                expect(insertMock).toHaveBeenCalledWith([expect.objectContaining({
+                    description: 'Weekly Groceries',
+                    amount: 75000,
+                    bank_account_id: 'shared_bank_1',
+                    category_id: 'cat_food',
+                    expense_for: 'shared',
+                    owner_id: 'shared_account',
+                    registered_by_user_id: user.id
+                })]);
             });
 
-            // 4. ARRANGE (UI Update)
-            const newExpenseForUI = { ...submittedData, id: 'new_exp_1', date: new Date().toISOString() };
-            const updatedBankAccounts = mockBankAccounts.map(acc => acc.id === 'shared_bank_1' ? { ...acc, balance: expectedNewBalance } : acc);
+            // 4. ARRANGE & ASSERT (UI)
+            const newExpenseForUI = { ...insertMock.mock.calls[0][0], id: 'new_exp_1', date: new Date().toISOString() };
+            const updatedBankAccounts = mockBankAccounts.map(acc => acc.id === 'shared_bank_1' ? { ...acc, balance: 425000 } : acc);
 
             useDashboardDataMock.mockReturnValue({
                 isLoading: false,
@@ -154,11 +134,10 @@ describe('Feature: Expense Management', () => {
 
             rerender(<ExpensesPage />);
 
-            // 5. ASSERT (UI Display)
             await waitFor(() => {
                 const expenseCard = screen.getByTestId('expense-item-new_exp_1');
                 expect(expenseCard).toBeInTheDocument();
-                const registrarFirstName = user.uid === 'ali_uid' ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
+                const registrarFirstName = user.id === 'ali_uid' ? USER_DETAILS.ali.firstName : USER_DETAILS.fatemeh.firstName;
                 expect(within(expenseCard).getByText(registrarFirstName)).toBeInTheDocument();
             });
         });

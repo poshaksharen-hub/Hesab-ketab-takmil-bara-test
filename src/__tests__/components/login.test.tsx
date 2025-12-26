@@ -2,7 +2,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LoginPage from '@/app/login/page';
-import { useAuth, useUser } from '@/firebase'; // Keep for compatibility mocking
 import { supabase } from '@/lib/supabase-client';
 
 // Mock useRouter from next/navigation
@@ -33,13 +32,6 @@ jest.mock('@/lib/supabase-client', () => ({
     })),
   },
 }));
-
-// Mock Firebase hooks to return "not logged in" state
-jest.mock('@/firebase', () => ({
-  useAuth: () => supabase.auth,
-  useUser: () => ({ user: null, isUserLoading: false }),
-}));
-
 
 // Mock useToast
 const mockToast = jest.fn();

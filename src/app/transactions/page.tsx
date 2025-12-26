@@ -1,10 +1,9 @@
 
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/firebase';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import { ExpenseForm } from '@/components/transactions/expense-form';
 import type { Expense, BankAccount, Category, UserProfile, TransactionDetails, Payee } from '@/lib/types';
@@ -15,13 +14,33 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase-client';
+import type { User } from '@supabase/supabase-js';
 
 export default function ExpensesPage() {
-  const { user, isUserLoading } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    };
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      setIsUserLoading(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   const {
     expenses: allExpenses,
@@ -72,8 +91,7 @@ export default function ExpensesPage() {
             expense_for: values.expenseFor,
             owner_id: account.ownerId, // Set ownerId from bank account
             registered_by_user_id: user.uid,
-            type: 'expense',
-            // Supabase handles createdAt
+            // type: 'expense' is now handled by the database or implied
         };
 
         const { error: expenseError } = await supabase.from('expenses').insert([newExpenseData]);
@@ -124,7 +142,7 @@ export default function ExpensesPage() {
   }, [user, allBankAccounts, allCategories, allPayees, users, toast]);
 
    const handleDelete = useCallback(async (expenseId: string) => {
-    if (!allExpenses) return;
+    if (!allExpenses || !allBankAccounts) return;
     
     const expenseToDelete = allExpenses.find(exp => exp.id === expenseId);
     if (!expenseToDelete) {
