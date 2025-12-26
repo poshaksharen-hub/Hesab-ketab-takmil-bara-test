@@ -13,7 +13,6 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import Link from 'next/link';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 type FilterType = 'all' | ExpenseFor;
 
@@ -45,7 +44,17 @@ export default function CategoryDetailPage() {
   const params = useParams();
   const categoryId = params.categoryId as string;
   const [filter, setFilter] = useState<FilterType>('all');
-  const { isLoading, allData } = useDashboardData();
+  
+  // TODO: Replace with Supabase data fetching
+  const isLoading = true;
+  const allData = {
+    expenses: [],
+    categories: [],
+    bankAccounts: [],
+    payees: [],
+    users: [],
+  };
+
   const { expenses, categories, bankAccounts, payees, users } = allData;
 
   const { category, filteredExpenses, totalAmount } = useMemo(() => {
@@ -92,8 +101,7 @@ export default function CategoryDetailPage() {
   }
   
   const handleDelete = (expenseId: string) => {
-      // In a real app, you'd call the delete logic from useDashboardData or a similar hook.
-      // For this prototype, we'll just show a toast.
+      // In a real app, you'd call the delete logic from a Supabase hook or function.
       console.log(`Deletion requested for expense ${expenseId}, but not implemented in detail view.`);
   }
 

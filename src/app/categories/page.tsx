@@ -5,107 +5,36 @@ import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { CategoryList } from '@/components/categories/category-list';
 import { CategoryForm } from '@/components/categories/category-form';
 import type { Category } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
-
-const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export default function CategoriesPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  
+  // TODO: Replace with Supabase data fetching
+  const isDashboardLoading = true;
+  const allData = { categories: [], expenses: [], checks: [] };
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const { firestore, categories, expenses, checks } = allData;
+  const { categories, expenses, checks } = allData;
 
   const handleFormSubmit = useCallback(async (values: Omit<Category, 'id'>) => {
-    if (!user || !firestore) return;
-    setIsSubmitting(true);
-
-    const categoriesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'categories');
-    
-    const onComplete = () => {
-        setIsSubmitting(false);
-        setIsFormOpen(false);
-        setEditingCategory(null);
-    };
-
-    if (editingCategory) {
-        const categoryRef = doc(categoriesColRef, editingCategory.id);
-        updateDoc(categoryRef, values)
-            .then(() => {
-                toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." });
-                onComplete();
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({ path: categoryRef.path, operation: 'update', requestResourceData: values });
-                errorEmitter.emit('permission-error', permissionError);
-                setIsSubmitting(false);
-            });
-    } else {
-        const newCategoryData = { ...values, id: '' };
-        addDoc(categoriesColRef, newCategoryData)
-            .then((docRef) => {
-                if (docRef) {
-                  updateDoc(docRef, { id: docRef.id });
-                  toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
-                  onComplete();
-                }
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({ path: categoriesColRef.path, operation: 'create', requestResourceData: newCategoryData });
-                errorEmitter.emit('permission-error', permissionError);
-                setIsSubmitting(false);
-            });
-    }
-  }, [user, firestore, editingCategory, toast]);
+     // TODO: Implement Supabase logic
+    toast({ title: "در حال توسعه", description: "عملیات ثبت دسته‌بندی هنوز پیاده‌سازی نشده است."});
+  }, [user, toast]);
 
   const handleDelete = useCallback(async (categoryId: string) => {
-    if (!user || !firestore) return;
-    const categoryRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'categories', categoryId);
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const usedIn = [];
-            if ((expenses || []).some(e => e.categoryId === categoryId)) {
-                usedIn.push('هزینه');
-            }
-            if ((checks || []).some(c => c.categoryId === categoryId)) {
-                usedIn.push('چک');
-            }
-            
-            if (usedIn.length > 0) {
-                throw new Error(`امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند ${usedIn.join(' یا ')} استفاده شده است.`);
-            }
-            
-            transaction.delete(categoryRef);
-        });
-
-        toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت حذف شد." });
-    } catch (error: any) {
-        if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({ path: categoryRef.path, operation: 'delete' });
-             errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
-                variant: "destructive",
-                title: "خطا در حذف",
-                description: error.message || "مشکلی در حذف دسته‌بندی پیش آمد.",
-            });
-        }
-    }
-  }, [user, firestore, toast, expenses, checks]);
+    // TODO: Implement Supabase logic
+    toast({ title: "در حال توسعه", description: "عملیات حذف دسته‌بندی هنوز پیاده‌سازی نشده است."});
+  }, [user, toast, expenses, checks]);
 
   const handleEdit = useCallback((category: Category) => {
     setEditingCategory(category);

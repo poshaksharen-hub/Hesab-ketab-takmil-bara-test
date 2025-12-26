@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 type Transaction = (Income | Expense | Transfer) & {
   type: 'income' | 'expense' | 'transfer';
@@ -60,57 +59,10 @@ export default function CardTransactionsPage() {
   const router = useRouter();
   const params = useParams();
   const cardId = params.cardId as string;
-  const { isLoading, allData } = useDashboardData();
-  const { incomes, expenses, transfers, bankAccounts, categories, users } = allData;
-
-  const { card, ledger } = useMemo(() => {
-    if (isLoading || !cardId || !incomes || !expenses || !transfers || !bankAccounts) {
-      return { card: null, ledger: [] };
-    }
-
-    const cardAccount = bankAccounts.find((acc) => acc.id === cardId);
-    if (!cardAccount) {
-      return { card: null, ledger: [] };
-    }
-
-    // Unify all transactions related to this card
-    const allTransactions: Transaction[] = [
-      // Incomes
-      ...incomes
-        .filter(t => t.bankAccountId === cardId)
-        .map(t => ({ ...t, type: 'income' as const })),
-      
-      // Expenses
-      ...expenses
-        .filter(t => t.bankAccountId === cardId)
-        .map(t => ({ ...t, type: 'expense' as const })),
-      
-      // Transfers (both debit and credit)
-      ...transfers
-        .filter(t => t.fromBankAccountId === cardId || t.toBankAccountId === cardId)
-        .map(t => {
-            const isDebit = t.fromBankAccountId === cardId;
-            const toAccount = bankAccounts.find(b => b.id === t.toBankAccountId);
-            const fromAccount = bankAccounts.find(b => b.id === t.fromBankAccountId);
-            
-            return {
-                ...t,
-                type: 'transfer' as const,
-                date: t.transferDate,
-                description: isDebit
-                    ? `انتقال به ${toAccount?.bankName || 'ناشناس'}`
-                    : `دریافت از ${fromAccount?.bankName || 'ناشناس'}`,
-                balanceBefore: isDebit ? t.fromAccountBalanceBefore : t.toAccountBalanceBefore,
-                balanceAfter: isDebit ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter,
-            };
-        })
-    ];
-        
-    const sortedLedger = allTransactions
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    return { card: cardAccount, ledger: sortedLedger };
-  }, [isLoading, cardId, incomes, expenses, transfers, bankAccounts]);
+  // TODO: Replace with Supabase data fetching
+  const isLoading = true;
+  const card: BankAccount | null = null;
+  const ledger: Transaction[] = [];
 
   if (isLoading) {
     return <TransactionLedgerSkeleton />;
@@ -135,11 +87,7 @@ export default function CardTransactionsPage() {
   }
   
   const getCategoryName = (tx: Transaction) => {
-    if (tx.type === 'income') return 'درآمد';
-    if (tx.type === 'transfer') return 'انتقال داخلی';
-    if (tx.type === 'expense' && 'categoryId' in tx && tx.categoryId) {
-        return categories?.find(c => c.id === tx.categoryId)?.name || 'متفرقه';
-    }
+    // TODO: Replace with Supabase data fetching
     return 'متفرقه';
   }
 
@@ -263,4 +211,3 @@ export default function CardTransactionsPage() {
     </main>
   );
 }
-

@@ -3,7 +3,6 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,12 +10,10 @@ import { ArrowRight, User, Users, Calendar, PenSquare, AlertCircle, CheckCircle 
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
-import { HesabKetabLogo, SignatureAli, SignatureFatemeh } from '@/components/icons';
-import { useUser, useFirestore } from '@/firebase';
+import { HesabKetabLogo } from '@/components/icons';
+import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { runTransaction, doc, collection, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -40,96 +37,21 @@ export default function CheckDetailPage() {
   const checkId = params.checkId as string;
 
   const { user } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
-  const { isLoading, allData } = useDashboardData();
-  const { checks, bankAccounts, payees, categories, users } = allData;
+  // TODO: Replace with Supabase data fetching
+  const isLoading = true;
+  const { check, bankAccounts, payees, categories, users } = {
+      check: null,
+      bankAccounts: [],
+      payees: [],
+      categories: [],
+      users: [],
+  };
 
-  const { check } = useMemo(() => {
-    if (isLoading || !checkId) {
-      return { check: null };
-    }
-    const currentCheck = checks.find((c) => c.id === checkId);
-    return { check: currentCheck };
-  }, [isLoading, checkId, checks]);
-
-  const handleClearCheck = useCallback(async (checkToClear: typeof check) => {
-    if (!user || !firestore || !checkToClear || checkToClear.status === 'cleared') return;
-    
-    const familyDataRef = doc(firestore, 'family-data', 'shared-data');
-    const checkRef = doc(familyDataRef, 'checks', checkToClear.id);
-    
-    const account = bankAccounts.find(acc => acc.id === checkToClear.bankAccountId);
-    if (!account) {
-        toast({ variant: 'destructive', title: "خطا", description: "حساب بانکی چک یافت نشد." });
-        return;
-    }
-    const bankAccountRef = doc(familyDataRef, 'bankAccounts', account.id);
-    const expensesColRef = collection(familyDataRef, 'expenses');
-    const payeeName = payees?.find(p => p.id === checkToClear.payeeId)?.name || 'نامشخص';
-
-    try {
-      await runTransaction(firestore, async (transaction) => {
-        const bankAccountDoc = await transaction.get(bankAccountRef);
-        if (!bankAccountDoc.exists()) throw new Error("حساب بانکی یافت نشد.");
-
-        const bankAccountData = bankAccountDoc.data()!;
-        const availableBalance = bankAccountData.balance - (bankAccountData.blockedBalance || 0);
-
-        if (availableBalance < checkToClear.amount) {
-          throw new Error("موجودی قابل استفاده حساب برای پاس کردن چک کافی نیست.");
-        }
-
-        const clearedDate = new Date().toISOString();
-        const balanceBefore = bankAccountData.balance;
-        const balanceAfter = balanceBefore - checkToClear.amount;
-
-        // Update check status and cleared date
-        transaction.update(checkRef, { status: 'cleared', clearedDate });
-        
-        // Update bank account balance
-        transaction.update(bankAccountRef, { balance: balanceAfter });
-        
-        // Create a detailed description for the expense
-        const expenseDescription = `پاس کردن چک به: ${payeeName}`
-
-
-        // Create the corresponding expense
-        const expenseRef = doc(expensesColRef);
-        transaction.set(expenseRef, {
-            id: expenseRef.id,
-            ownerId: account.ownerId,
-            registeredByUserId: user.uid,
-            amount: checkToClear.amount,
-            bankAccountId: checkToClear.bankAccountId,
-            categoryId: checkToClear.categoryId,
-            payeeId: checkToClear.payeeId,
-            date: clearedDate,
-            description: expenseDescription,
-            type: 'expense',
-            checkId: checkToClear.id,
-            expenseFor: checkToClear.expenseFor,
-            createdAt: serverTimestamp(),
-            balanceBefore: balanceBefore,
-            balanceAfter: balanceAfter,
-        });
-      });
-      toast({ title: "موفقیت", description: "چک با موفقیت پاس شد و از حساب شما کسر گردید." });
-    } catch (error: any) {
-       if (error.name === 'FirebaseError') {
-            throw new FirestorePermissionError({
-                path: checkRef.path, // Simplified path for the transaction
-                operation: 'write', 
-            });
-       } else {
-            toast({
-                variant: "destructive",
-                title: "خطا در پاس کردن چک",
-                description: error.message || "مشکلی در عملیات پاس کردن چک پیش آمد.",
-            });
-       }
-    }
-  }, [user, firestore, bankAccounts, payees, toast]);
+  const handleClearCheck = useCallback(async (checkToClear: any) => {
+    // TODO: Implement Supabase logic
+    toast({ title: "در حال توسعه", description: "عملیات پاس کردن چک هنوز پیاده‌سازی نشده است." });
+  }, [user, bankAccounts, payees, toast]);
 
   if (isLoading) {
     return <CheckDetailSkeleton />;

@@ -5,28 +5,33 @@ import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, ArrowRight, Plus } from 'lucide-react';
 import { useUser } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { CardList } from '@/components/cards/card-list';
 import { CardForm } from '@/components/cards/card-form';
 import type { BankAccount, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { toEnglishDigits } from '@/lib/utils';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { Input } from '@/components/ui/input';
-
-
-const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
 export default function CardsPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
-  
+
+  // TODO: Replace with Supabase data fetching
+  const isDashboardLoading = true;
+  const allData = {
+      firestore: null,
+      bankAccounts: [],
+      incomes: [],
+      expenses: [],
+      transfers: [],
+      checks: [],
+      loanPayments: [],
+      debtPayments: [],
+      users: [],
+  };
+
+
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -37,101 +42,13 @@ export default function CardsPage() {
   const hasSharedAccount = useMemo(() => (allBankAccounts || []).some(acc => acc.ownerId === 'shared_account'), [allBankAccounts]);
 
   const handleFormSubmit = React.useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId' | 'blockedBalance'>) => {
-    if (!user || !firestore) return;
-    setIsSubmitting(true);
-    
-    const collectionRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts');
-  
-    const onComplete = () => {
-        setIsSubmitting(false);
-        setIsFormOpen(false);
-        setEditingCard(null);
-    }
-
-    if (editingCard) {
-      // --- Edit ---
-      const { initialBalance, ...updateData } = values as any;
-       const dataToSend = {
-        ...updateData,
-        registeredByUserId: editingCard.registeredByUserId, // Preserve original registrar
-      };
-      updateDocumentNonBlocking(doc(collectionRef, editingCard.id), dataToSend, () => {
-        toast({ title: "موفقیت", description: "کارت بانکی با موفقیت ویرایش شد." });
-        onComplete();
-      }, () => {
-        setIsSubmitting(false); // Only re-enable form on error
-      });
-
-    } else {
-        // --- Create ---
-        const newCardData: Omit<BankAccount, 'id'> = { 
-            ...values,
-            registeredByUserId: user.uid,
-            balance: values.initialBalance,
-            blockedBalance: 0,
-        };
-        
-        addDocumentNonBlocking(collectionRef, newCardData, (id) => {
-            updateDoc(doc(collectionRef, id), { id });
-            toast({ title: "موفقیت", description: `کارت بانکی جدید با موفقیت اضافه شد.` });
-            onComplete();
-        }, () => {
-            setIsSubmitting(false);
-        });
-    }
+    // TODO: Implement Supabase logic
+    toast({ title: "در حال توسعه", description: "عملیات ثبت کارت هنوز پیاده‌سازی نشده است."});
   }, [user, firestore, editingCard, toast]);
 
   const handleDelete = React.useCallback(async (cardId: string) => {
-    if (!user || !firestore || !allBankAccounts) return;
-    
-    const cardToDelete = allBankAccounts.find(c => c.id === cardId);
-    if (!cardToDelete) {
-        toast({ variant: 'destructive', title: 'خطا', description: 'کارت مورد نظر برای حذف یافت نشد.'});
-        return;
-    }
-
-    const cardToDeleteRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', cardId);
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            
-            const dependencyChecks = [
-              { name: 'هزینه‌ها', data: expenses, field: 'bankAccountId' },
-              { name: 'درآمدها', data: incomes, field: 'bankAccountId' },
-              { name: 'انتقال‌ها (مبدا)', data: transfers, field: 'fromBankAccountId' },
-              { name: 'انتقال‌ها (مقصد)', data: transfers, field: 'toBankAccountId' },
-              { name: 'چک‌ها', data: checks, field: 'bankAccountId' },
-              { name: 'پرداخت وام‌ها', data: loanPayments, field: 'bankAccountId' },
-              { name: 'پرداخت بدهی‌ها', data: debtPayments, field: 'bankAccountId' },
-            ];
-
-            for (const dep of dependencyChecks) {
-                if (!dep.data) continue;
-                 const isUsed = dep.data.some(item => (item as any)[dep.field] === cardId);
-                 if (isUsed) {
-                    throw new Error(`امکان حذف وجود ندارد. این کارت در یک یا چند تراکنش (${dep.name}) استفاده شده است.`);
-                }
-            }
-                         
-             transaction.delete(cardToDeleteRef);
-        });
-
-        toast({ title: "موفقیت", description: "کارت بانکی با موفقیت حذف شد." });
-    } catch (error: any) {
-        if (error.name === 'FirebaseError') {
-             const permissionError = new FirestorePermissionError({
-                path: cardToDeleteRef.path,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
-                variant: "destructive",
-                title: "خطا در حذف کارت",
-                description: error.message || "مشکلی در حذف کارت پیش آمد.",
-            });
-        }
-    }
+    // TODO: Implement Supabase logic
+    toast({ title: "در حال توسعه", description: "عملیات حذف کارت هنوز پیاده‌سازی نشده است."});
   }, [user, firestore, allBankAccounts, toast, expenses, incomes, transfers, checks, loanPayments, debtPayments]);
 
 
