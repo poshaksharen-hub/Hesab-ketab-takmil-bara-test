@@ -380,6 +380,8 @@ COMMENT ON FUNCTION public.handle_new_user IS 'Automatically creates a user prof
 CREATE OR REPLACE FUNCTION public.create_check(p_sayad_id text, p_serial_number text, p_amount numeric, p_issue_date timestamptz, p_due_date timestamptz, p_bank_account_id uuid, p_payee_id uuid, p_category_id uuid, p_description text, p_expense_for text, p_signature_data_url text, p_registered_by_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   INSERT INTO public.cheques (sayad_id, serial_number, amount, issue_date, due_date, bank_account_id, payee_id, category_id, description, expense_for, signature_data_url, registered_by_user_id, status)
@@ -398,6 +400,8 @@ COMMENT ON FUNCTION public.create_check IS 'Creates a new cheque with "pending" 
 CREATE OR REPLACE FUNCTION public.clear_check(p_check_id uuid, p_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_check public.cheques;
@@ -431,6 +435,8 @@ COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates a
 CREATE OR REPLACE FUNCTION public.delete_check(p_check_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_check public.cheques;
@@ -457,6 +463,8 @@ COMMENT ON FUNCTION public.delete_check IS 'Safely deletes a non-cleared cheque 
 CREATE OR REPLACE FUNCTION public.create_loan(p_title text, p_amount numeric, p_owner_id text, p_installment_amount numeric, p_number_of_installments integer, p_start_date timestamptz, p_first_installment_date timestamptz, p_payee_id uuid, p_deposit_on_create boolean, p_deposit_to_account_id uuid, p_registered_by_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   INSERT INTO public.loans (title, amount, remaining_amount, owner_id, installment_amount, number_of_installments, start_date, first_installment_date, payee_id, deposit_to_account_id, registered_by_user_id)
@@ -475,6 +483,8 @@ COMMENT ON FUNCTION public.create_loan IS 'Creates a new loan and optionally dep
 CREATE OR REPLACE FUNCTION public.pay_loan_installment(p_loan_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_loan public.loans;
@@ -518,6 +528,8 @@ COMMENT ON FUNCTION public.pay_loan_installment IS 'Atomically pays a loan insta
 CREATE OR REPLACE FUNCTION public.delete_loan(p_loan_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     payment_count integer;
@@ -545,6 +557,8 @@ COMMENT ON FUNCTION public.delete_loan IS 'Safely deletes a loan only if no paym
 CREATE OR REPLACE FUNCTION public.pay_debt_installment(p_debt_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_debt public.debts;
@@ -586,6 +600,8 @@ COMMENT ON FUNCTION public.pay_debt_installment IS 'Atomically pays a debt insta
 CREATE OR REPLACE FUNCTION public.delete_debt(p_debt_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     payment_count integer;
@@ -604,6 +620,8 @@ COMMENT ON FUNCTION public.delete_debt IS 'Safely deletes a debt only if no paym
 CREATE OR REPLACE FUNCTION public.create_transfer(p_from_account_id uuid, p_to_account_id uuid, p_amount numeric, p_description text, p_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_from_balance_before numeric;
@@ -637,6 +655,8 @@ COMMENT ON FUNCTION public.create_transfer IS 'Atomically creates an internal tr
 CREATE OR REPLACE FUNCTION public.delete_transfer(p_transfer_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_transfer public.transfers;
@@ -660,6 +680,8 @@ COMMENT ON FUNCTION public.delete_transfer IS 'Atomically deletes a transfer and
 CREATE OR REPLACE FUNCTION public.achieve_financial_goal(p_goal_id uuid, p_actual_cost numeric, p_user_id uuid, p_payment_card_id uuid DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_goal public.financial_goals;
@@ -710,6 +732,8 @@ COMMENT ON FUNCTION public.achieve_financial_goal IS 'Handles the logic for achi
 CREATE OR REPLACE FUNCTION public.revert_financial_goal(p_goal_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_goal public.financial_goals;
@@ -749,6 +773,8 @@ COMMENT ON FUNCTION public.revert_financial_goal IS 'Reverts an achieved financi
 CREATE OR REPLACE FUNCTION public.delete_financial_goal(p_goal_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_goal public.financial_goals;
@@ -791,8 +817,7 @@ AS $$
 $$;
 COMMENT ON FUNCTION public.get_all_users() IS 'Securely fetches a list of all user profiles.';
 
-GRANT EXECUTE ON FUNCTION public.get_all_users() TO anon;
-GRANT EXECUTE ON FUNCTION public.get_all_users() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_all_users() TO anon, authenticated;
 
 
 -- ====================================================================
@@ -807,3 +832,5 @@ CREATE TRIGGER on_auth_user_created
 -- ====================================================================
 -- END OF SCRIPT
 -- ====================================================================
+
+    
