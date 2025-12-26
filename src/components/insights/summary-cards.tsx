@@ -28,8 +28,8 @@ interface SummaryCardsProps {
 export function SummaryCards({ stats, title }: SummaryCardsProps) {
   
   const getNetFlowDescription = () => {
-    if (stats.incomeOnly) return 'فقط درآمد ثبت شده';
-    if (stats.expenseOnly) return 'فقط هزینه ثبت شده';
+    if (stats.incomeOnly) return 'این بخش فقط شامل درآمد است';
+    if (stats.expenseOnly) return 'این بخش فقط شامل هزینه است';
     if (stats.netFlow >= 0) return 'ورودی مثبت';
     return 'خروجی مثبت';
   }
