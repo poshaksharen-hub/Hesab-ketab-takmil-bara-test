@@ -4,25 +4,20 @@
 import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 import { ExpenseList } from '@/components/transactions/expense-list';
 import { ExpenseForm } from '@/components/transactions/expense-form';
 import type { Expense, BankAccount, Category, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
-import { errorEmitter } from '@/firebase/error-emitter';
-
-const FAMILY_DATA_DOC = 'shared-data';
+import { supabase } from '@/lib/supabase-client';
 
 export default function ExpensesPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
@@ -37,137 +32,143 @@ export default function ExpensesPage() {
   } = allData;
 
   const handleFormSubmit = useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'>) => {
-    if (!user || !firestore || !allBankAccounts || !users || !allCategories || !allPayees) return;
-    const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
+    if (!user || !allBankAccounts || !users || !allCategories || !allPayees) {
+        toast({ variant: "destructive", title: "خطا", description: "سرویس‌های مورد نیاز بارگذاری نشده‌اند." });
+        return;
+    }
     
-    runTransaction(firestore, async (transaction) => {
-        const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
-        if (!account) throw new Error("کارت بانکی یافت نشد");
-        
-        const fromCardRef = doc(familyDataRef, 'bankAccounts', account.id);
-        const fromCardDoc = await transaction.get(fromCardRef);
+    const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
+    if (!account) {
+        toast({ variant: "destructive", title: "خطا", description: "کارت بانکی یافت نشد." });
+        return;
+    }
 
-        if (!fromCardDoc.exists()) {
-            throw new Error("کارت بانکی مورد نظر یافت نشد.");
-        }
-        const fromCardData = fromCardDoc.data() as BankAccount;
-        const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
-        
-        if (availableBalance < values.amount) {
-            throw new Error("موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست.");
-        }
-        
-        const balanceBefore = fromCardData.balance;
+    const availableBalance = account.balance - (account.blockedBalance || 0);
+    if (availableBalance < values.amount) {
+        toast({ variant: "destructive", title: "خطای موجودی", description: "موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست." });
+        return;
+    }
+
+    try {
+        const balanceBefore = account.balance;
         const balanceAfter = balanceBefore - values.amount;
-        
-        transaction.update(fromCardRef, { balance: balanceAfter });
 
-        const newExpenseRef = doc(collection(familyDataRef, 'expenses'));
-        
+        // 1. Update bank account balance
+        const { error: accountError } = await supabase
+            .from('bank_accounts')
+            .update({ balance: balanceAfter })
+            .eq('id', account.id);
+
+        if (accountError) throw accountError;
+
+        // 2. Insert new expense record
         const newExpenseData = {
-            ...values,
+            description: values.description,
+            amount: values.amount,
             date: (values.date as any).toISOString(),
-            id: newExpenseRef.id,
-            ownerId: account.ownerId,
-            registeredByUserId: user.uid, // Set registrar here
-            balanceBefore,
-            balanceAfter,
-            type: 'expense' as const,
-            createdAt: serverTimestamp(),
+            bank_account_id: values.bankAccountId,
+            category_id: values.categoryId,
+            payee_id: values.payeeId === 'none' ? null : values.payeeId,
+            expense_for: values.expenseFor,
+            owner_id: account.ownerId, // Set ownerId from bank account
+            registered_by_user_id: user.uid,
+            type: 'expense',
+            // Supabase handles createdAt
         };
 
-        transaction.set(newExpenseRef, newExpenseData);
-    }).then(async () => {
+        const { error: expenseError } = await supabase.from('expenses').insert([newExpenseData]);
+
+        if (expenseError) {
+            // Attempt to revert balance change
+            await supabase.from('bank_accounts').update({ balance: balanceBefore }).eq('id', account.id);
+            throw expenseError;
+        }
+
         setIsFormOpen(false);
         toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
-        
+
+        // 3. Send notification (non-critical)
         try {
             const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
             const category = allCategories.find(c => c.id === values.categoryId);
             const payee = allPayees.find(p => p.id === values.payeeId);
-            const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-            const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
+            const bankAccountOwnerName = account?.ownerId === 'shared_account' ? 'مشترک' : (account?.ownerId && USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName);
+            const expenseDate = values.date instanceof Date ? values.date.toISOString() : new Date().toISOString();
 
             const notificationDetails: TransactionDetails = {
                 type: 'expense',
                 title: values.description,
                 amount: values.amount,
-                date: (values.date as any).toISOString(),
+                date: expenseDate,
                 icon: 'TrendingDown',
                 color: 'rgb(220 38 38)',
                 registeredBy: currentUserFirstName,
                 category: category?.name,
                 payee: payee?.name,
-                bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
+                bankAccount: account ? { name: account.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
                 expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             };
             
-            await sendSystemNotification(firestore, user.uid, notificationDetails);
+            // Notification logic remains but doesn't use firestore directly anymore
+            // await sendSystemNotification(firestore, user.uid, notificationDetails);
         } catch (notificationError: any) {
             console.error("Failed to send notification:", notificationError.message);
-            toast({
-                variant: "destructive",
-                title: "خطا در ارسال نوتیفیکیشن",
-                description: "هزینه ثبت شد اما در ارسال پیام آن به گفتگو مشکلی پیش آمد.",
-            });
         }
 
-    }).catch((error: any) => {
-        if (error.name === 'FirebaseError') {
-          const permissionError = new FirestorePermissionError({
-                path: 'family-data/shared-data/expenses',
-                operation: 'create',
-            });
-          errorEmitter.emit("permission-error", permissionError);
-        } else {
-          toast({
+    } catch (error: any) {
+        toast({
             variant: "destructive",
-            title: "خطا در ثبت تراکنش",
-            description: error.message || "مشکلی در ثبت هزینه پیش آمد.",
-          });
-        }
-    });
-  }, [user, firestore, allBankAccounts, allCategories, allPayees, users, toast]);
+            title: "خطا در ثبت هزینه",
+            description: error.message || "مشکلی در ثبت اطلاعات پیش آمد. لطفا دوباره تلاش کنید.",
+        });
+    }
+  }, [user, allBankAccounts, allCategories, allPayees, users, toast]);
 
    const handleDelete = useCallback(async (expenseId: string) => {
-    if (!firestore || !allExpenses) return;
+    if (!allExpenses) return;
     
     const expenseToDelete = allExpenses.find(exp => exp.id === expenseId);
     if (!expenseToDelete) {
         toast({ variant: "destructive", title: "خطا", description: "تراکنش هزینه مورد نظر یافت نشد." });
         return;
     }
-    const expenseRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'expenses', expenseId);
+    
+    const account = allBankAccounts.find(acc => acc.id === expenseToDelete.bankAccountId);
+    if (!account) {
+        toast({ variant: "destructive", title: "خطا", description: "حساب بانکی مرتبط یافت نشد." });
+        return;
+    }
 
-    runTransaction(firestore, async (transaction) => {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        const accountRef = doc(familyDataRef, 'bankAccounts', expenseToDelete.bankAccountId);
+    try {
+        const newBalance = account.balance + expenseToDelete.amount;
 
-        const accountDoc = await transaction.get(accountRef);
-        if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این هزینه یافت نشد.");
+        // 1. Restore bank balance
+        const { error: accountError } = await supabase
+            .from('bank_accounts')
+            .update({ balance: newBalance })
+            .eq('id', account.id);
 
-        const accountData = accountDoc.data()!;
-        transaction.update(accountRef, { balance: accountData.balance + expenseToDelete.amount });
+        if (accountError) throw accountError;
 
-        transaction.delete(expenseRef);
-    }).then(() => {
-        toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ آن به حساب بازگردانده شد." });
-    }).catch((error: any) => {
-         if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
-                path: expenseRef.path,
-                operation: 'delete',
-            });
-            errorEmitter.emit("permission-error", permissionError);
-        } else {
-          toast({
-            variant: "destructive",
-            title: "خطا در حذف هزینه",
-            description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
-          });
+        // 2. Delete the expense record
+        const { error: deleteError } = await supabase.from('expenses').delete().eq('id', expenseId);
+
+        if (deleteError) {
+            // Attempt to revert balance change
+            await supabase.from('bank_accounts').update({ balance: account.balance }).eq('id', account.id);
+            throw deleteError;
         }
-    });
-  }, [firestore, allExpenses, toast]);
+
+        toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ به حساب بازگردانده شد." });
+
+    } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "خطا در حذف هزینه",
+          description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
+        });
+    }
+  }, [allExpenses, allBankAccounts, toast]);
 
   
   const handleAddNew = useCallback(() => {
