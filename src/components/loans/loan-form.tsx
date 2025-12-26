@@ -359,7 +359,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         <SelectContent className="max-h-[250px]">
                                             {availableDepositAccounts.map((account) => (
                                             <SelectItem key={account.id} value={account.id}>
-                                                {`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}
+                                                {`${account.bankName} ${getOwnerName(account)} - (موجودی: ${formatCurrency(account.balance, 'IRT')})`}
                                             </SelectItem>
                                             ))}
                                         </SelectContent>

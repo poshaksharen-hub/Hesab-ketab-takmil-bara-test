@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import type { BankAccount, UserProfile, BankTheme, OwnerId } from '@/lib/types';
 import { USER_DETAILS } from '@/lib/constants';
@@ -46,6 +45,7 @@ const formSchema = z.object({
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
   ownerId: z.enum(['ali', 'fatemeh', 'shared_account'], { required_error: 'لطفا صاحب حساب را مشخص کنید.' }),
   theme: z.string().min(1, { message: 'لطفا یک طرح برای کارت انتخاب کنید.' }),
+  accountType: z.enum(['checking', 'savings']),
 });
 
 type CardFormValues = z.infer<typeof formSchema>;
@@ -253,6 +253,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
       initialBalance: 0,
       ownerId: 'ali',
       theme: '',
+      accountType: 'savings',
     },
   });
   
@@ -276,13 +277,13 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
           initialBalance: 0,
           ownerId: loggedInUserOwnerId as 'ali' | 'fatemeh',
           theme: '',
+          accountType: 'savings',
         });
       }
     }
   }, [initialData, loggedInUserOwnerId, isOpen, form]); 
 
   const handleFormSubmit = (data: CardFormValues) => {
-    // Ensure expiryDate has a separator for consistency, but remove it for validation check
     const expiry = data.expiryDate.replace(/\//g, '');
     const formattedExpiry = expiry.slice(0, 2) + '/' + expiry.slice(2, 4);
     onSubmit({ ...data, expiryDate: formattedExpiry });
