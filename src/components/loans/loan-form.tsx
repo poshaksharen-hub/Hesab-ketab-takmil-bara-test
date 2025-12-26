@@ -42,6 +42,7 @@ const baseSchema = z.object({
   numberOfInstallments: z.coerce.number().int().min(0, 'تعداد اقساط نمی‌تواند منفی باشد.').optional(),
   startDate: z.date({ required_error: 'لطفا تاریخ شروع را انتخاب کنید.' }),
   firstInstallmentDate: z.date({ required_error: 'لطفا تاریخ اولین قسط را انتخاب کنید.'}),
+  paymentDay: z.coerce.number().min(1).max(30, 'روز پرداخت باید بین ۱ تا ۳۰').optional(),
   depositOnCreate: z.boolean().default(false),
   depositToAccountId: z.string().optional(),
 });
@@ -85,6 +86,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             numberOfInstallments: 0,
             startDate: new Date(),
             firstInstallmentDate: new Date(),
+            paymentDay: 5,
             depositOnCreate: false,
             depositToAccountId: '',
         },
@@ -109,6 +111,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 payeeId: initialData.payeeId || '',
                 installmentAmount: initialData.installmentAmount || 0,
                 numberOfInstallments: initialData.numberOfInstallments || 0,
+                paymentDay: initialData.paymentDay || 5,
                 depositOnCreate: !!initialData.depositToAccountId,
                 depositToAccountId: initialData.depositToAccountId || '',
             });
@@ -122,6 +125,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 numberOfInstallments: 0,
                 startDate: new Date(),
                 firstInstallmentDate: new Date(),
+                paymentDay: 5,
                 depositOnCreate: false,
                 depositToAccountId: '',
             });
@@ -241,8 +245,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         />
                     </div>
                     <div className="rounded-lg border p-4 space-y-4">
-                        <p className='text-sm text-muted-foreground'>اطلاعات پرداخت اقساط</p>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <p className='text-sm text-muted-foreground'>اطلاعات پرداخت و یادآوری (اختیاری)</p>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <FormField
                                 control={form.control}
                                 name="installmentAmount"
@@ -264,6 +268,25 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                     <FormLabel>تعداد کل اقساط</FormLabel>
                                     <FormControl>
                                         <NumericInput {...field} value={field.value || ''} disabled={isSubmitting}/>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="paymentDay"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>روز پرداخت در ماه</FormLabel>
+                                    <FormControl>
+                                        <NumericInput
+                                            min="1"
+                                            max="30"
+                                            {...field}
+                                            value={field.value || ''}
+                                            disabled={isSubmitting}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -370,3 +393,5 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </>
     );
 }
+
+    
