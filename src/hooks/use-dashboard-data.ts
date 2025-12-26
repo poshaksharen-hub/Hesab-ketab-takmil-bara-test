@@ -17,7 +17,8 @@ import type {
     PreviousDebt,
     DebtPayment,
     Transfer,
-    UserProfile
+    UserProfile,
+    ChatMessage
 } from '@/lib/types';
 
 // Maps Supabase snake_case columns to our camelCase types
@@ -50,6 +51,7 @@ export function useDashboardData() {
     categories: [],
     payees: [],
     users: [],
+    chatMessages: [],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -79,6 +81,7 @@ export function useDashboardData() {
           loanPaymentsRes,
           debtsRes,
           debtPaymentsRes,
+          chatMessagesRes,
         ] = await Promise.all([
           supabase.from('users').select('*'),
           supabase.from('bank_accounts').select('*').eq('is_deleted', false),
@@ -93,6 +96,7 @@ export function useDashboardData() {
           supabase.from('loan_payments').select('*'),
           supabase.from('debts').select('*'),
           supabase.from('debt_payments').select('*'),
+          supabase.from('chat_messages').select('*').order('timestamp', { ascending: true }),
         ]);
 
         // Check for errors in each response
@@ -110,6 +114,7 @@ export function useDashboardData() {
           { name: 'loan_payments', ...loanPaymentsRes },
           { name: 'debts', ...debtsRes },
           { name: 'debt_payments', ...debtPaymentsRes },
+          { name: 'chat_messages', ...chatMessagesRes },
         ];
 
         for (const res of responses) {
@@ -152,6 +157,7 @@ export function useDashboardData() {
           loanPayments: transformData(loanPaymentsRes.data || []) as LoanPayment[],
           previousDebts: transformData(debtsRes.data || []) as PreviousDebt[],
           debtPayments: transformData(debtPaymentsRes.data || []) as DebtPayment[],
+          chatMessages: transformData(chatMessagesRes.data || []) as ChatMessage[],
         });
 
       } catch (e: any) {

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ChatInterface } from '@/components/chat/chat-interface';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 function ChatPageSkeleton() {
     return (
@@ -32,9 +33,7 @@ function ChatPageSkeleton() {
 
 export default function ChatPage() {
     const { user, isUserLoading } = useUser();
-
-    // TODO: Replace with Supabase data fetching
-    const isDataLoading = true;
+    const { isLoading: isDataLoading, allData } = useDashboardData();
     
     const isLoading = isUserLoading || isDataLoading;
 
@@ -57,7 +56,7 @@ export default function ChatPage() {
                 </h1>
             </div>
         </div>
-        <ChatInterface currentUser={user} />
+        <ChatInterface currentUser={user} allData={allData} />
     </main>
   );
 }

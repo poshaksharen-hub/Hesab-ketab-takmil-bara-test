@@ -1,68 +1,46 @@
 
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import type { User } from 'firebase/auth';
-import { useFirestore, useCollection } from '@/firebase';
-import {
-  collection,
-  query,
-  orderBy,
-  addDoc,
-  serverTimestamp,
-  writeBatch,
-  doc,
-  updateDoc,
-} from 'firebase/firestore';
+import type { User } from '@supabase/supabase-js';
+import { useFirestore } from '@/firebase';
 import type { ChatMessage, UserProfile } from '@/lib/types';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { USER_DETAILS } from '@/lib/constants';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { supabase } from '@/lib/supabase-client';
 
 const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
 
-export function ChatInterface({ currentUser }: { currentUser: User }) {
-  const { isLoading: isDataLoading, allData } = useDashboardData();
+export function ChatInterface({ currentUser, allData }: { currentUser: User, allData: any }) {
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
 
-  const { firestore, users: allUsers } = allData;
-  const messagesQuery = useMemo(
-    () => (firestore ? query(collection(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages'), orderBy('timestamp', 'asc')) : null),
-    [firestore]
-  );
-  const { data: messages, isLoading: isLoadingMessages } = useCollection<ChatMessage>(messagesQuery);
-  const isLoading = isDataLoading || isLoadingMessages;
+  const { firestore, users: allUsers, chatMessages: messages } = allData;
+  const isLoading = !messages;
 
   useEffect(() => {
-    if (!firestore || !messages || messages.length === 0 || isLoadingMessages || !currentUser) return;
+    if (isLoading || !messages || messages.length === 0 || !currentUser) return;
 
     const unreadMessages = messages.filter(
-      (msg) => msg.senderId !== currentUser.uid && (!msg.readBy || !msg.readBy.includes(currentUser.uid))
+      (msg: ChatMessage) => msg.senderId !== currentUser.uid && (!msg.readBy || !msg.readBy.includes(currentUser.uid))
     );
 
     if (unreadMessages.length > 0) {
-      const batch = writeBatch(firestore);
-      unreadMessages.forEach((message) => {
-        if (message.id) { // Ensure message has an ID before trying to update
-          const messageRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages', message.id);
-          const currentReadBy = message.readBy || [];
-          batch.update(messageRef, {
-            readBy: [...currentReadBy, currentUser.uid],
-          });
-        }
-      });
+      const updates = unreadMessages.map(message => ({
+        id: message.id,
+        read_by: [...(message.readBy || []), currentUser.uid]
+      }));
 
-      batch.commit().catch(console.error);
+      supabase.from('chat_messages').upsert(updates).then(({ error }) => {
+        if (error) console.error("Error marking messages as read:", error);
+      });
     }
-  }, [messages, firestore, currentUser, isLoadingMessages]);
+  }, [messages, currentUser, isLoading]);
 
   const handleSendMessage = async (text: string) => {
-    if (!firestore || text.trim() === '') return;
+    if (text.trim() === '') return;
     
-    const messagesCollectionRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'chatMessages');
-
     const senderKey = currentUser.email?.startsWith('ali') ? 'ali' : 'fatemeh';
     const senderName = USER_DETAILS[senderKey].firstName;
 
@@ -83,14 +61,23 @@ export function ChatInterface({ currentUser }: { currentUser: User }) {
     }
     
     const dataToSend = {
-      ...newMessage,
-      timestamp: serverTimestamp(),
+      sender_id: newMessage.senderId,
+      sender_name: newMessage.senderName,
+      text: newMessage.text,
+      type: newMessage.type,
+      read_by: newMessage.readBy,
+      reply_to: newMessage.replyTo,
+      timestamp: new Date().toISOString(),
     };
 
-    addDocumentNonBlocking(messagesCollectionRef, dataToSend, (id) => {
-        updateDoc(doc(messagesCollectionRef, id), { id });
-        setReplyingToMessage(null);
-    });
+    const { error } = await supabase.from('chat_messages').insert([dataToSend]);
+
+    if (error) {
+      console.error("Error sending message:", error);
+      // Optionally show a toast to the user
+    } else {
+      setReplyingToMessage(null);
+    }
   };
 
   return (

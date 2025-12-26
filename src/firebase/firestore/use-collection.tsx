@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Query, DocumentData, FirestoreError } from 'firebase/firestore';
+import type { FirestoreError } from 'firebase/firestore';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
