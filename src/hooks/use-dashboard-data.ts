@@ -12,6 +12,7 @@ import type {
     Payee, 
     Check, 
     FinancialGoal, 
+    FinancialGoalContribution,
     Loan, 
     LoanPayment,
     PreviousDebt,
@@ -123,19 +124,23 @@ export function useDashboardData() {
           }
         }
         
-        const goalsData = transformData(goalsRes.data || []);
+        const goalsData = transformData(goalsRes.data || []) as FinancialGoal[];
         const expensesData = transformData(expensesRes.data || []) as Expense[];
         
+        // This is the key change: we now fetch all goal contributions directly from expenses
+        const allGoalContributions = expensesData
+            .filter(expense => expense.subType === 'goal_contribution' && expense.goalId)
+            .map((expense): FinancialGoalContribution => ({
+                id: expense.id, // The ID of the contribution is the ID of the expense itself
+                goalId: expense.goalId!,
+                bankAccountId: expense.bankAccountId,
+                amount: expense.amount,
+                date: expense.date,
+                registeredByUserId: expense.registeredByUserId,
+            }));
+
         const goalsWithContributions = goalsData.map((goal: FinancialGoal) => {
-            const contributions = expensesData
-                .filter(expense => expense.subType === 'goal_contribution' && expense.goalId === goal.id)
-                .map(expense => ({
-                    id: expense.id,
-                    bankAccountId: expense.bankAccountId,
-                    amount: expense.amount,
-                    date: expense.date,
-                    registeredByUserId: expense.registeredByUserId,
-                }));
+            const contributions = allGoalContributions.filter(c => c.goalId === goal.id);
             return { ...goal, contributions };
         });
 
