@@ -23,11 +23,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { Payee } from '@/lib/types';
+import { supabase } from '@/lib/supabase-client';
 
 
 const formSchema = z.object({
@@ -43,15 +42,12 @@ interface AddPayeeDialogProps {
   onPayeeAdded: (newPayee: Payee) => void;
 }
 
-const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
-
 export function AddPayeeDialog({
   isOpen,
   onOpenChange,
   onPayeeAdded,
 }: AddPayeeDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   const form = useForm<PayeeFormValues>({
@@ -63,14 +59,22 @@ export function AddPayeeDialog({
   });
 
   const handleFormSubmit = async (data: PayeeFormValues) => {
-    if (!firestore) return;
     setIsSubmitting(true);
     try {
-        const payeesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'payees');
-        const newDocRef = await addDoc(payeesColRef, data);
-        const newPayee = { ...data, id: newDocRef.id };
-        await updateDoc(newDocRef, { id: newDocRef.id });
+        const { data: newPayeeData, error } = await supabase
+            .from('payees')
+            .insert([{ name: data.name, phone_number: data.phoneNumber }])
+            .select()
+            .single();
+
+        if (error) throw error;
         
+        const newPayee: Payee = {
+            id: newPayeeData.id,
+            name: newPayeeData.name,
+            phoneNumber: newPayeeData.phone_number,
+        };
+
         toast({ title: 'موفقیت', description: 'طرف حساب جدید با موفقیت اضافه شد.' });
         onPayeeAdded(newPayee);
         onOpenChange(false);
