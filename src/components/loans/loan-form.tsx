@@ -245,14 +245,14 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         />
                     </div>
                     <div className="rounded-lg border p-4 space-y-4">
-                        <p className='text-sm text-muted-foreground'>اطلاعات پرداخت و یادآوری (اختیاری)</p>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <p className='text-sm text-muted-foreground'>اطلاعات آماری و پیشنهادی اقساط</p>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <FormField
                                 control={form.control}
                                 name="installmentAmount"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>مبلغ هر قسط (تومان)</FormLabel>
+                                    <FormLabel>مبلغ پیشنهادی هر قسط (تومان)</FormLabel>
                                     <FormControl>
                                     <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={isSubmitting}/>
                                     </FormControl>
@@ -265,7 +265,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 name="numberOfInstallments"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>تعداد کل اقساط</FormLabel>
+                                    <FormLabel>تعداد پیشنهادی اقساط</FormLabel>
                                     <FormControl>
                                         <NumericInput {...field} value={field.value || ''} disabled={isSubmitting}/>
                                     </FormControl>
@@ -273,28 +273,9 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 </FormItem>
                                 )}
                             />
-                             <FormField
-                                control={form.control}
-                                name="paymentDay"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>روز پرداخت در ماه</FormLabel>
-                                    <FormControl>
-                                        <NumericInput
-                                            min="1"
-                                            max="30"
-                                            {...field}
-                                            value={field.value || ''}
-                                            disabled={isSubmitting}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <FormField
                             control={form.control}
                             name="startDate"
@@ -313,6 +294,28 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             <FormItem className="flex flex-col">
                                 <FormLabel>تاریخ اولین قسط</FormLabel>
                                 <JalaliDatePicker title="تاریخ اولین قسط" value={field.value} onChange={field.onChange} />
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="paymentDay"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>روز پرداخت در ماه</FormLabel>
+                                <FormControl>
+                                    <NumericInput
+                                        min="1"
+                                        max="30"
+                                        {...field}
+                                        value={field.value || ''}
+                                        disabled={isSubmitting}
+                                    />
+                                </FormControl>
+                                <FormDescription>
+                                روز یادآوری سررسید
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -393,5 +396,3 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         </>
     );
 }
-
-    

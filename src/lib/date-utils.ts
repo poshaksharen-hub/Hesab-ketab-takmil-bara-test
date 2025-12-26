@@ -7,7 +7,8 @@ import type { Loan, PreviousDebt } from './types';
 
 /**
  * Calculates the next upcoming due date for a Loan or installment-based PreviousDebt.
- * This function intelligently determines the next payment date based on the number of installments already paid.
+ * This function intelligently determines the next payment date based on the number of installments already paid
+ * and the designated payment day of the month for loans.
  * @param item - The full Loan or PreviousDebt object.
  * @returns A Date object for the next due date, or null if not applicable (e.g., fully paid).
  */
@@ -17,20 +18,34 @@ export function getNextDueDate(item: Loan | PreviousDebt): Date | null {
     return item.dueDate ? new Date(item.dueDate) : null;
   }
   
-  // For installment-based debts that have been fully paid.
   const paidCount = 'paidInstallments' in item ? item.paidInstallments || 0 : 0;
   const totalInstallments = 'numberOfInstallments' in item ? item.numberOfInstallments || 0 : 0;
+  
+  // For installment-based items that have been fully paid.
   if (totalInstallments > 0 && paidCount >= totalInstallments) {
       return null;
   }
 
-  // --- Logic for installment-based items (Loans and installment Debts) ---
   const firstInstallmentDateStr = 'firstInstallmentDate' in item ? item.firstInstallmentDate : undefined;
   if (!firstInstallmentDateStr) return null; // Cannot calculate without the first date.
   
   const firstInstallmentDate = new Date(firstInstallmentDateStr);
-  
-  // The next due date is `paidCount` months after the first installment date.
+
+  // --- Logic for Loans with a specific paymentDay ---
+  if ('paymentDay' in item && item.paymentDay) {
+    // 1. Determine the month of the last payment made. If 0 paid, start from the month before the first installment.
+    const lastPaymentMonth = addMonths(firstInstallmentDate, paidCount - 1);
+    
+    // 2. The next payment is in the following month.
+    const nextPaymentMonth = addMonths(lastPaymentMonth, 1);
+
+    // 3. Set the day of that month to the designated paymentDay.
+    // The `set` function from date-fns handles month rollovers correctly (e.g., setting day 30 in February).
+    return set(nextPaymentMonth, { date: item.paymentDay, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+  }
+
+  // --- Fallback/Default Logic for installment items without a paymentDay (e.g., PreviousDebts) ---
+  // The next due date is simply `paidCount` months after the first installment date.
   return addMonths(firstInstallmentDate, paidCount);
 }
 
