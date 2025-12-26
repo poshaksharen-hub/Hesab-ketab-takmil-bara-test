@@ -40,10 +40,10 @@ interface LoanListProps {
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
   onEdit: (loan: Loan) => void;
+  isSubmitting: boolean;
 }
 
-export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: LoanListProps) {
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+export function LoanList({ loans, payees, users, onDelete, onPay, onEdit, isSubmitting }: LoanListProps) {
   
   const getPayeeName = (payeeId?: string) => {
     if (!payeeId) return 'نامشخص';
@@ -67,12 +67,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
   }
 
   const handleDeleteClick = async (loanId: string) => {
-      setIsDeleting(loanId);
-      try {
-          await onDelete(loanId);
-      } finally {
-          setIsDeleting(null);
-      }
+      onDelete(loanId);
   };
 
   const getLoanStatus = (loan: Loan) => {
@@ -105,7 +100,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
             const isCompleted = loan.remainingAmount <= 0;
             const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(loan.ownerId);
             const registeredByName = users.find(u => u.id === loan.registeredByUserId)?.firstName || 'سیستم';
-            const isDeleteDisabled = (loan.paidInstallments > 0) || isDeleting === loan.id;
+            const isDeleteDisabled = (loan.paidInstallments > 0) || isSubmitting;
 
             return (
              <div key={loan.id} className="relative group">
@@ -126,7 +121,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
                             <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions" disabled={isSubmitting}>
                                             <MoreVertical className="h-5 w-5" />
                                         </Button>
                                     </DropdownMenuTrigger>
@@ -135,14 +130,14 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
                                             <History className="ml-2 h-4 w-4" />
                                             مشاهده تاریخچه
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted}>
+                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted || isSubmitting}>
                                             <Edit className="ml-2 h-4 w-4" />
                                             ویرایش وام
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
+                                                <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
                                                     <Trash2 className="ml-2 h-4 w-4" />
                                                     حذف وام
                                                 </div>
@@ -151,7 +146,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
                                                 <AlertDialogHeader>
                                                 <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، تمام سوابق مالی مرتبط (مانند واریز اولیه) معکوس و وام حذف خواهد شد.
+                                                این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، وام حذف خواهد شد.
                                                 </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
@@ -160,7 +155,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
                                                     className="bg-destructive hover:bg-destructive/90"
                                                     disabled={isDeleteDisabled}
                                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(loan.id); }}>
-                                                    {isDeleting === loan.id ? 'در حال حذف...' : 'بله، حذف کن'}
+                                                    {isSubmitting ? 'در حال حذف...' : 'بله، حذف کن'}
                                                 </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
@@ -194,7 +189,7 @@ export function LoanList({ loans, payees, users, onDelete, onPay, onEdit }: Loan
                                     <span>وام تسویه شد!</span>
                                 </div>
                             ) : (
-                                <Button className="w-full col-span-2" onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}}>
+                                <Button className="w-full col-span-2" onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}} disabled={isSubmitting}>
                                     <CalendarCheck2 className="ml-2 h-4 w-4" />
                                     پرداخت قسط
                                 </Button>

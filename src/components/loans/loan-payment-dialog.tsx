@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React from 'react';
@@ -33,7 +32,7 @@ import {
 import type { Loan, BankAccount } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { CurrencyInput } from '../ui/input';
 import { USER_DETAILS } from '@/lib/constants';
 
@@ -53,6 +52,7 @@ interface LoanPaymentDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: { loan: Loan; paymentBankAccountId: string; installmentAmount: number }) => void;
+  isSubmitting: boolean;
 }
 
 export function LoanPaymentDialog({
@@ -61,6 +61,7 @@ export function LoanPaymentDialog({
   isOpen,
   onOpenChange,
   onSubmit,
+  isSubmitting,
 }: LoanPaymentDialogProps) {
   
   const formSchema = createFormSchema(loan.remainingAmount);
@@ -69,17 +70,19 @@ export function LoanPaymentDialog({
   const form = useForm<LoanPaymentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
+      paymentBankAccountId: '',
       installmentAmount: Math.min(loan.installmentAmount, loan.remainingAmount),
     },
   });
   
   React.useEffect(() => {
-    form.reset({
-        paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
-        installmentAmount: Math.min(loan.installmentAmount > 0 ? loan.installmentAmount : loan.remainingAmount, loan.remainingAmount),
-    });
-  }, [loan, bankAccounts]);
+    if (isOpen) {
+        form.reset({
+            paymentBankAccountId: bankAccounts.length > 0 ? bankAccounts[0].id : '',
+            installmentAmount: Math.min(loan.installmentAmount > 0 ? loan.installmentAmount : loan.remainingAmount, loan.remainingAmount),
+        });
+    }
+  }, [loan, bankAccounts, isOpen, form]);
   
   const getOwnerName = (account: BankAccount) => {
     if (account.ownerId === 'shared_account') return "(مشترک)";
@@ -125,7 +128,7 @@ export function LoanPaymentDialog({
                 <FormItem>
                   <FormLabel>مبلغ پرداخت (تومان)</FormLabel>
                   <FormControl>
-                    <CurrencyInput value={field.value} onChange={field.onChange} />
+                    <CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -138,7 +141,7 @@ export function LoanPaymentDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>پرداخت از کارت</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="یک کارت بانکی انتخاب کنید" />
@@ -161,10 +164,13 @@ export function LoanPaymentDialog({
                 پس از تایید، یک هزینه به مبلغ قسط در سیستم ثبت خواهد شد و موجودی شما به‌روز می‌شود.
             </p>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 انصراف
               </Button>
-              <Button type="submit">پرداخت و ثبت هزینه</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin"/>}
+                پرداخت و ثبت هزینه
+              </Button>
             </DialogFooter>
           </form>
         </Form>

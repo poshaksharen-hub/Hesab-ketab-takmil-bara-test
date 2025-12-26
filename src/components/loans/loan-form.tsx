@@ -29,7 +29,9 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '@/components/payees/add-payee-dialog';
-import type { User as AuthUser } from 'firebase/auth';
+import type { User as AuthUser } from '@supabase/supabase-js';
+import { Loader2 } from 'lucide-react';
+
 
 const baseSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
@@ -66,9 +68,10 @@ interface LoanFormProps {
   bankAccounts: BankAccount[];
   payees: Payee[];
   user: AuthUser | null;
+  isSubmitting: boolean;
 }
 
-export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, user }: LoanFormProps) {
+export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, user, isSubmitting }: LoanFormProps) {
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
     
     const form = useForm<LoanFormValues>({
@@ -123,7 +126,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 depositToAccountId: '',
             });
         }
-    }, [initialData, user]);
+    }, [initialData, user, form]);
 
     const availableDepositAccounts = useMemo(() => {
         if (watchLoanOwnerId === 'shared') {
@@ -141,12 +144,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
 
 
     const handleFormSubmit = useCallback((data: LoanFormValues) => {
-        const submissionData = {
-            ...data,
-            startDate: data.startDate.toISOString(),
-            firstInstallmentDate: data.firstInstallmentDate.toISOString(),
-        };
-        onSubmit(submissionData);
+        onSubmit(data);
     }, [onSubmit]);
 
     const handlePayeeSelection = (value: string) => {
@@ -175,7 +173,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         <FormItem>
                         <FormLabel>عنوان وام</FormLabel>
                         <FormControl>
-                            <Input placeholder="مثال: وام خرید مسکن" {...field} />
+                            <Input placeholder="مثال: وام خرید مسکن" {...field} disabled={isSubmitting}/>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -188,7 +186,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         <FormItem>
                             <FormLabel>مبلغ کل وام (تومان)</FormLabel>
                             <FormControl>
-                            <CurrencyInput value={field.value} onChange={field.onChange} />
+                            <CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -201,7 +199,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>دریافت وام از (طرف حساب)</FormLabel>
-                            <Select onValueChange={handlePayeeSelection} value={field.value}>
+                            <Select onValueChange={handlePayeeSelection} value={field.value} disabled={isSubmitting}>
                                 <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="یک طرف حساب انتخاب کنید (اختیاری)" />
@@ -224,7 +222,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>این وام برای کیست؟</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData}>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData || isSubmitting}>
                                 <FormControl>
                                     <SelectTrigger>
                                     <SelectValue placeholder="شخص مورد نظر را انتخاب کنید" />
@@ -252,7 +250,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 <FormItem>
                                     <FormLabel>مبلغ هر قسط (تومان)</FormLabel>
                                     <FormControl>
-                                    <CurrencyInput value={field.value || 0} onChange={field.onChange} />
+                                    <CurrencyInput value={field.value || 0} onChange={field.onChange} disabled={isSubmitting}/>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -265,7 +263,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                 <FormItem>
                                     <FormLabel>تعداد کل اقساط</FormLabel>
                                     <FormControl>
-                                        <NumericInput {...field} value={field.value || ''} />
+                                        <NumericInput {...field} value={field.value || ''} disabled={isSubmitting}/>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -280,7 +278,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>تاریخ دریافت وام</FormLabel>
-                                <JalaliDatePicker title="تاریخ دریافت وام" value={field.value} onChange={field.onChange} />
+                                <JalaliDatePicker title="تاریخ دریافت وام" value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -291,7 +289,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                             render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>تاریخ اولین قسط</FormLabel>
-                                <JalaliDatePicker title="تاریخ اولین قسط" value={field.value} onChange={field.onChange} />
+                                <JalaliDatePicker title="تاریخ اولین قسط" value={field.value} onChange={field.onChange} disabled={isSubmitting}/>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -313,6 +311,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                     <Switch
                                         checked={field.value}
                                         onCheckedChange={field.onChange}
+                                        disabled={isSubmitting}
                                     />
                                 </FormItem>
                                 )}
@@ -324,7 +323,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                     render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>واریز به کارت</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={availableDepositAccounts.length === 0}>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={availableDepositAccounts.length === 0 || isSubmitting}>
                                         <FormControl>
                                             <SelectTrigger>
                                             <SelectValue placeholder={availableDepositAccounts.length > 0 ? "یک کارت برای واریز انتخاب کنید" : "کارتی برای این ذی‌نفع وجود ندارد"} />
@@ -350,8 +349,11 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                     )}
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={onCancel}>لغو</Button>
-                    <Button type="submit">ذخیره</Button>
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>لغو</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                        ذخیره
+                    </Button>
                 </CardFooter>
                 </form>
             </Form>
