@@ -5,18 +5,14 @@ import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { useUser } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { PayeeList } from '@/components/payees/payee-list';
 import { PayeeForm } from '@/components/payees/payee-form';
 import type { Payee } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-
-const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
+import { supabase } from '@/lib/supabase-client';
 
 export default function PayeesPage() {
   const { user, isUserLoading } = useUser();
@@ -27,94 +23,77 @@ export default function PayeesPage() {
   const [editingPayee, setEditingPayee] = React.useState<Payee | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const { firestore, payees, checks, expenses, loans, previousDebts } = allData;
+  const { payees, checks, expenses, loans, previousDebts } = allData;
 
   const handleFormSubmit = useCallback(async (values: Omit<Payee, 'id'>) => {
-    if (!user || !firestore) return;
+    if (!user) return;
     setIsSubmitting(true);
-    
-    const payeesColRef = collection(firestore, FAMILY_DATA_DOC_PATH, 'payees');
-    
+
     const onComplete = () => {
         setIsSubmitting(false);
         setIsFormOpen(false);
         setEditingPayee(null);
+        // We rely on the dashboard data hook to re-fetch, but can trigger it manually if needed.
     };
 
     if (editingPayee) {
-        const payeeRef = doc(payeesColRef, editingPayee.id);
-        updateDoc(payeeRef, values)
-            .then(() => {
-                toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
-                onComplete();
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({ path: payeeRef.path, operation: 'update', requestResourceData: values });
-                errorEmitter.emit('permission-error', permissionError);
-                setIsSubmitting(false);
-            });
+        const { error } = await supabase
+            .from('payees')
+            .update({ name: values.name, phone_number: values.phoneNumber })
+            .eq('id', editingPayee.id);
 
-    } else {
-        addDoc(payeesColRef, values)
-            .then((docRef) => {
-                if(docRef) {
-                  updateDoc(docRef, { id: docRef.id });
-                  toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
-                  onComplete();
-                }
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({ path: payeesColRef.path, operation: 'create', requestResourceData: values });
-                errorEmitter.emit('permission-error', permissionError);
-                setIsSubmitting(false);
-            });
-    }
-  }, [user, firestore, editingPayee, toast]);
-
-  const handleDelete = useCallback(async (payeeId: string) => {
-    if (!user || !firestore) return;
-    const payeeRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'payees', payeeId);
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const usedIn = [];
-            if ((checks || []).some(c => c.payeeId === payeeId)) {
-                usedIn.push('چک');
-            }
-            if ((expenses || []).some(e => e.payeeId === payeeId)) {
-                usedIn.push('هزینه');
-            }
-            if ((loans || []).some(l => l.payeeId === payeeId)) {
-                usedIn.push('وام');
-            }
-            if ((previousDebts || []).some(d => d.payeeId === payeeId)) {
-                usedIn.push('بدهی');
-            }
-            
-            if (usedIn.length > 0) {
-                 throw new Error(`امکان حذف وجود ندارد. این طرف حساب در یک یا چند تراکنش (${usedIn.join(', ')}) استفاده شده است.`);
-            }
-            
-            transaction.delete(payeeRef);
-        });
-
-        toast({ title: "موفقیت", description: "طرف حساب با موفقیت حذف شد." });
-    } catch (error: any) {
-        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
-                path: payeeRef.path,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
+        if (error) {
+            toast({ variant: "destructive", title: "خطا در ویرایش", description: error.message });
+            setIsSubmitting(false);
         } else {
-            toast({
-                variant: "destructive",
-                title: "خطا در حذف",
-                description: error.message || "مشکلی در حذف طرف حساب پیش آمد.",
-            });
+            toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
+            onComplete();
+        }
+    } else {
+        const { data, error } = await supabase
+            .from('payees')
+            .insert([{ name: values.name, phone_number: values.phoneNumber }])
+            .select()
+            .single();
+
+        if (error) {
+            toast({ variant: "destructive", title: "خطا در ثبت", description: error.message });
+            setIsSubmitting(false);
+        } else {
+            toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
+            onComplete();
         }
     }
-  }, [user, firestore, toast, checks, expenses, loans, previousDebts]);
+  }, [user, editingPayee, toast]);
+
+  const handleDelete = useCallback(async (payeeId: string) => {
+    if (!user) return;
+
+    try {
+        const usedIn = [];
+        if ((checks || []).some(c => c.payeeId === payeeId)) usedIn.push('چک');
+        if ((expenses || []).some(e => e.payeeId === payeeId)) usedIn.push('هزینه');
+        if ((loans || []).some(l => l.payeeId === payeeId)) usedIn.push('وام');
+        if ((previousDebts || []).some(d => d.payeeId === payeeId)) usedIn.push('بدهی');
+        
+        if (usedIn.length > 0) {
+            throw new Error(`امکان حذف وجود ندارد. این طرف حساب در یک یا چند تراکنش (${usedIn.join(', ')}) استفاده شده است.`);
+        }
+
+        const { error } = await supabase.from('payees').delete().eq('id', payeeId);
+
+        if (error) throw error;
+        
+        toast({ title: "موفقیت", description: "طرف حساب با موفقیت حذف شد." });
+
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "خطا در حذف",
+            description: error.message || "مشکلی در حذف طرف حساب پیش آمد.",
+        });
+    }
+  }, [user, toast, checks, expenses, loans, previousDebts]);
 
   const handleEdit = useCallback((payee: Payee) => {
     setEditingPayee(payee);

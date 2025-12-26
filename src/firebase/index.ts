@@ -1,4 +1,3 @@
-
 'use client';
 
 // This file acts as a central barrel file for exporting Firebase-related hooks and components.
@@ -10,4 +9,3 @@ export * from './provider';
 export * from './firestore/use-collection';
 // use-doc is no longer used or needed.
 // export * from './firestore/use-doc';
-export * from './non-blocking-login';
