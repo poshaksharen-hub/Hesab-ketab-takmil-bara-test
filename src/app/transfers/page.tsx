@@ -148,20 +148,22 @@ export default function TransfersPage() {
             </Button>
         </div>
       </div>
-
-       <p className="text-muted-foreground text-sm">
+      
+      <p className="text-muted-foreground text-sm">
           از این بخش برای جابجایی پول بین حساب‌های خود استفاده کنید. این عملیات به عنوان درآمد یا هزینه در گزارش‌ها ثبت نمی‌شود.
       </p>
-      
-      <TransferForm
-          bankAccounts={allBankAccounts || []}
-          onSubmit={handleTransferSubmit}
-          user={user}
-          onCancel={handleCancelForm}
-          isOpen={isFormOpen}
-          setIsOpen={setIsFormOpen}
-          isSubmitting={isSubmitting}
-      />
+
+      {isFormOpen && (
+        <TransferForm
+            bankAccounts={allBankAccounts || []}
+            onSubmit={handleTransferSubmit}
+            user={user}
+            onCancel={handleCancelForm}
+            isOpen={isFormOpen}
+            setIsOpen={setIsFormOpen}
+            isSubmitting={isSubmitting}
+        />
+      )}
 
       {isLoading ? (
           <div className="space-y-4 mt-4">
