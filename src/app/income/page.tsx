@@ -4,113 +4,111 @@
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 import { IncomeList } from '@/components/income/income-list';
 import { IncomeForm } from '@/components/income/income-form';
 import type { Income, BankAccount, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
-import { errorEmitter } from '@/firebase/error-emitter';
-
-const FAMILY_DATA_DOC = 'shared-data';
+import { supabase } from '@/lib/supabase-client';
 
 export default function IncomePage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, error } = useDashboardData();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { firestore, incomes: allIncomes, bankAccounts: allBankAccounts, users } = allData;
+  const { incomes: allIncomes, bankAccounts: allBankAccounts, users } = allData;
 
   const handleFormSubmit = useCallback(async (values: Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category'>) => {
-    if (!user || !firestore || !allBankAccounts || !users) return;
+    if (!user || !allBankAccounts || !users) return;
     
+    setIsSubmitting(true);
     const isoDate = (values.date as Date).toISOString();
+    const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
+    if (!account) {
+      toast({ variant: "destructive", title: "خطا", description: "کارت بانکی یافت نشد" });
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
-      await runTransaction(firestore, async (transaction) => {
-          const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-          const newIncomeRef = doc(collection(familyDataRef, 'incomes'));
+      const balanceBefore = account.balance;
+      const balanceAfter = balanceBefore + values.amount;
 
-          const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
-          if (!account) throw new Error("کارت بانکی یافت نشد");
-    
-          const targetCardRef = doc(familyDataRef, 'bankAccounts', account.id);
-          const targetCardDoc = await transaction.get(targetCardRef);
-    
-          if (!targetCardDoc.exists()) {
-            throw new Error("کارت بانکی مورد نظر یافت نشد.");
-          }
-          const targetCardData = targetCardDoc.data()!;
-          
-          const balanceBefore = targetCardData.balance;
-          const balanceAfter = balanceBefore + values.amount;
-    
-          transaction.update(targetCardRef, { balance: balanceAfter });
-          
-          const newIncomeData: Omit<Income, 'id'> = {
-              ...values,
-              date: isoDate,
-              type: 'income',
-              category: 'درآمد',
-              registeredByUserId: user.uid,
-              createdAt: serverTimestamp(),
-              balanceAfter: balanceAfter,
-          };
-          transaction.set(newIncomeRef, {...newIncomeData, id: newIncomeRef.id});
-        });
+      // 1. Update bank account balance
+      const { error: accountError } = await supabase
+        .from('bank_accounts')
+        .update({ balance: balanceAfter })
+        .eq('id', account.id);
 
-        setIsFormOpen(false);
-        toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
-    
-        try {
-            const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
-            const bankAccount = allBankAccounts.find(b => b.id === values.bankAccountId);
-            const bankAccountOwnerName = bankAccount?.ownerId === 'shared_account' ? 'مشترک' : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
-            
-             const notificationDetails: TransactionDetails = {
-                type: 'income',
-                title: `ثبت درآمد: ${values.description}`,
-                amount: values.amount,
-                date: isoDate,
-                icon: 'TrendingUp',
-                color: 'rgb(34 197 94)',
-                registeredBy: currentUserFirstName,
-                payee: values.source,
-                category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
-                bankAccount: bankAccount ? { name: bankAccount.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
-            };
+      if (accountError) throw accountError;
 
-            await sendSystemNotification(firestore, user.uid, notificationDetails);
-
-        } catch (notificationError: any) {
-             console.error("Failed to send notification:", notificationError.message);
-        }
-    } catch (error: any) {
-        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
-                path: 'family-data/shared-data/incomes',
-                operation: 'write',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-          toast({
-            variant: "destructive",
-            title: "خطا در ثبت درآمد",
-            description: error.message || "مشکلی در ثبت اطلاعات پیش آمد. لطفا دوباره تلاش کنید.",
-          });
-        }
+      // 2. Insert new income record
+      const newIncomeData = {
+          amount: values.amount,
+          description: values.description,
+          date: isoDate,
+          owner_id: values.ownerId,
+          bank_account_id: values.bankAccountId,
+          source_text: values.source || values.description,
+          category: 'درآمد', // As per schema
+          registered_by_user_id: user.uid,
+          // Supabase automatically handles created_at/updated_at
+      };
+      
+      const { error: incomeError } = await supabase.from('incomes').insert([newIncomeData]);
+      
+      if (incomeError) {
+        // Attempt to revert the balance change if income insertion fails
+        await supabase.from('bank_accounts').update({ balance: balanceBefore }).eq('id', account.id);
+        throw incomeError;
       }
-  }, [user, firestore, allBankAccounts, users, toast]);
+      
+      setIsFormOpen(false);
+      toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
+
+      // 3. Send notification (non-critical)
+      try {
+          const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+          const bankAccountOwnerName = account?.ownerId === 'shared_account' ? 'مشترک' : (account?.ownerId && USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName);
+          
+           const notificationDetails: TransactionDetails = {
+              type: 'income',
+              title: `ثبت درآمد: ${values.description}`,
+              amount: values.amount,
+              date: isoDate,
+              icon: 'TrendingUp',
+              color: 'rgb(34 197 94)',
+              registeredBy: currentUserFirstName,
+              payee: values.source,
+              category: values.ownerId === 'daramad_moshtarak' ? 'شغل مشترک' : `درآمد ${USER_DETAILS[values.ownerId as 'ali' | 'fatemeh']?.firstName}`,
+              bankAccount: account ? { name: account.bankName, owner: bankAccountOwnerName || 'نامشخص' } : undefined,
+          };
+          // This part still uses firestore for notifications, which can be migrated later.
+          // For now, we will comment it out to avoid errors.
+          // await sendSystemNotification(firestore, user.uid, notificationDetails);
+      } catch (notificationError: any) {
+           console.error("Failed to send notification:", notificationError.message);
+      }
+    } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "خطا در ثبت درآمد",
+          description: error.message || "مشکلی در ثبت اطلاعات پیش آمد. لطفا دوباره تلاش کنید.",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }, [user, allBankAccounts, users, toast]);
 
   const handleDelete = useCallback(async (incomeId: string) => {
-    if (!firestore || !allIncomes) return;
+    if (!allIncomes || !allBankAccounts) return;
     
     const incomeToDelete = allIncomes.find(inc => inc.id === incomeId);
     if (!incomeToDelete) {
@@ -118,39 +116,42 @@ export default function IncomePage() {
         return;
     }
     
-    const incomeRef = doc(firestore, 'family-data', FAMILY_DATA_DOC, 'incomes', incomeId);
+    const account = allBankAccounts.find(acc => acc.id === incomeToDelete.bankAccountId);
+    if (!account) {
+        toast({ variant: "destructive", title: "خطا", description: "حساب بانکی مرتبط با این درآمد یافت نشد." });
+        return;
+    }
 
-    runTransaction(firestore, async (transaction) => {
-        const familyDataRef = doc(firestore, 'family-data', FAMILY_DATA_DOC);
-        const accountRef = doc(familyDataRef, 'bankAccounts', incomeToDelete.bankAccountId);
+    try {
+        const newBalance = account.balance - incomeToDelete.amount;
 
-        const accountDoc = await transaction.get(accountRef);
-        if (!accountDoc.exists()) throw new Error("حساب بانکی مرتبط با این درآمد یافت نشد.");
+        // 1. Revert bank balance
+        const { error: accountError } = await supabase
+            .from('bank_accounts')
+            .update({ balance: newBalance })
+            .eq('id', account.id);
 
-        const accountData = accountDoc.data()!;
-        transaction.update(accountRef, { balance: accountData.balance - incomeToDelete.amount });
+        if (accountError) throw accountError;
 
-        transaction.delete(incomeRef);
-    })
-    .then(() => {
-        toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ آن از حساب کسر شد." });
-    })
-    .catch((error: any) => {
-         if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
-                path: incomeRef.path,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-          toast({
-            variant: "destructive",
-            title: "خطا در حذف درآمد",
-            description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
-          });
+        // 2. Delete the income record
+        const { error: deleteError } = await supabase.from('incomes').delete().eq('id', incomeId);
+
+        if (deleteError) {
+            // Attempt to revert balance change
+            await supabase.from('bank_accounts').update({ balance: account.balance }).eq('id', account.id);
+            throw deleteError;
         }
-    });
-  }, [firestore, allIncomes, toast]);
+
+        toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ آن از حساب کسر شد." });
+
+    } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "خطا در حذف درآمد",
+          description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
+        });
+    }
+  }, [allIncomes, allBankAccounts, toast]);
 
   const handleAddNew = useCallback(() => {
     setIsFormOpen(true);
@@ -172,7 +173,7 @@ export default function IncomePage() {
           </h1>
         </div>
         <div className="hidden md:block">
-            <Button onClick={handleAddNew}>
+            <Button onClick={handleAddNew} disabled={isSubmitting}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 ثبت درآمد جدید
             </Button>
@@ -209,6 +210,7 @@ export default function IncomePage() {
             size="icon"
             className="h-14 w-14 rounded-full shadow-lg"
             aria-label="ثبت درآمد جدید"
+            disabled={isSubmitting}
           >
             <Plus className="h-6 w-6" />
           </Button>
