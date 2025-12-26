@@ -16,10 +16,6 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    // This is to allow cross-origin requests from the development environment.
-    allowedDevOrigins: ["*.cloudworkstations.dev"],
-  },
   images: {
     remotePatterns: [
       {
