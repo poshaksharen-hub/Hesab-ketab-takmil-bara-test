@@ -1,17 +1,150 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { USER_DETAILS } from '@/lib/constants';
+import { SummaryCards } from '@/components/insights/summary-cards';
+import type { Expense, Income, Loan, PreviousDebt, Check, FinancialGoal, OwnerId } from '@/lib/types';
+import { BrainCircuit } from 'lucide-react';
+
+function InsightsPageSkeleton() {
+  return (
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-64" />
+      </div>
+      <Skeleton className="h-10 w-full max-w-sm" />
+      <div className="space-y-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-48 w-full" />
+      </div>
+    </main>
+  );
+}
 
 export default function InsightsPage() {
+  const { isLoading, allData } = useDashboardData();
+
+  const { incomes, expenses, loans, previousDebts, checks, goals, categories } = allData;
+
+  const processedData = useMemo(() => {
+    if (isLoading || !incomes || !expenses || !loans || !previousDebts || !checks || !goals || !categories) {
+      return null;
+    }
+
+    const calculateStats = (
+      ownerFilter: OwnerId | 'all' | 'daramad_moshtarak'
+    ) => {
+      let filteredIncomes: Income[] = [];
+      let filteredExpenses: Expense[] = [];
+      let filteredLoans: Loan[] = [];
+      let filteredDebts: PreviousDebt[] = [];
+      let filteredChecks: Check[] = [];
+      let filteredGoals: FinancialGoal[] = [];
+
+      if (ownerFilter === 'all') {
+        filteredIncomes = incomes;
+        filteredExpenses = expenses;
+        filteredLoans = loans;
+        filteredDebts = previousDebts;
+        filteredChecks = checks;
+        filteredGoals = goals;
+      } else if (ownerFilter === 'daramad_moshtarak') {
+         filteredIncomes = incomes.filter((i) => i.ownerId === 'daramad_moshtarak');
+      } 
+      else {
+        filteredIncomes = incomes.filter((i) => i.ownerId === ownerFilter);
+        filteredExpenses = expenses.filter((e) => e.expenseFor === ownerFilter);
+        filteredLoans = loans.filter((l) => l.ownerId === ownerFilter);
+        filteredDebts = previousDebts.filter((d) => d.ownerId === ownerFilter);
+        filteredChecks = checks.filter((c) => c.expenseFor === ownerFilter);
+        filteredGoals = goals.filter((g) => g.ownerId === ownerFilter);
+      }
+
+      const totalIncome = filteredIncomes.reduce((sum, item) => sum + item.amount, 0);
+      const totalExpense = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
+      const netFlow = totalIncome - totalExpense;
+      
+      const totalLoanLiability = filteredLoans.reduce((sum, item) => sum + item.remainingAmount, 0);
+      const totalDebtLiability = filteredDebts.reduce((sum, item) => sum + item.remainingAmount, 0);
+      const totalCheckLiability = filteredChecks.filter(c => c.status === 'pending').reduce((sum, item) => sum + item.amount, 0);
+      const totalLiabilities = totalLoanLiability + totalDebtLiability + totalCheckLiability;
+
+      const totalGoalSavings = filteredGoals.reduce((sum, item) => sum + item.currentAmount, 0);
+      const totalGoalTarget = filteredGoals.reduce((sum, item) => sum + item.targetAmount, 0);
+
+      const expenseByCategory = filteredExpenses.reduce((acc, expense) => {
+          const categoryName = categories.find(c => c.id === expense.categoryId)?.name || 'متفرقه';
+          acc[categoryName] = (acc[categoryName] || 0) + expense.amount;
+          return acc;
+      }, {} as {[key: string]: number});
+      
+      const sortedCategories = Object.entries(expenseByCategory).sort(([,a], [,b]) => b - a);
+
+      return {
+        totalIncome,
+        totalExpense,
+        netFlow,
+        totalLiabilities,
+        totalLoanLiability,
+        totalDebtLiability,
+        totalCheckLiability,
+        totalGoalSavings,
+        totalGoalTarget,
+        expenseByCategory: sortedCategories,
+      };
+    };
+    
+    return {
+        all: calculateStats('all'),
+        ali: calculateStats('ali'),
+        fatemeh: calculateStats('fatemeh'),
+        shared: calculateStats('shared'),
+        business: calculateStats('daramad_moshtarak'),
+    }
+
+  }, [isLoading, incomes, expenses, loans, previousDebts, checks, goals, categories]);
+
+  if (isLoading || !processedData) {
+    return <InsightsPageSkeleton />;
+  }
+
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <h1 className="font-headline text-3xl font-bold tracking-tight">
-        آمار و گزارشات
-      </h1>
-      <div className="flex justify-center items-center h-64">
-        <p className="text-muted-foreground">این صفحه در حال ساخت است.</p>
+    <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+      <div className="flex items-center gap-2">
+        <BrainCircuit className="h-8 w-8 text-primary" />
+        <h1 className="font-headline text-3xl font-bold tracking-tight">
+          آمار و گزارشات
+        </h1>
       </div>
-    </div>
+      <p className="text-muted-foreground">تحلیل جامع وضعیت مالی خانواده به تفکیک افراد و موارد مشترک.</p>
+
+      <Tabs defaultValue="all" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="all">خلاصه کلی</TabsTrigger>
+          <TabsTrigger value="ali">{USER_DETAILS.ali.firstName}</TabsTrigger>
+          <TabsTrigger value="fatemeh">{USER_DETAILS.fatemeh.firstName}</TabsTrigger>
+          <TabsTrigger value="shared">مشترک</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="space-y-4">
+            <SummaryCards stats={processedData.all} title="خلاصه کلی تمام فعالیت‌های مالی" />
+        </TabsContent>
+        <TabsContent value="ali" className="space-y-4">
+            <SummaryCards stats={processedData.ali} title={`عملکرد مالی ${USER_DETAILS.ali.firstName}`} />
+        </TabsContent>
+        <TabsContent value="fatemeh" className="space-y-4">
+            <SummaryCards stats={processedData.fatemeh} title={`عملکرد مالی ${USER_DETAILS.fatemeh.firstName}`} />
+        </TabsContent>
+        <TabsContent value="shared" className="space-y-4">
+            <SummaryCards stats={processedData.shared} title="عملکرد مالی هزینه‌های مشترک" />
+        </TabsContent>
+      </Tabs>
+    </main>
   );
 }

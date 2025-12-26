@@ -24,7 +24,7 @@ import {
 import { USER_DETAILS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare, Settings } from 'lucide-react';
+import { LogOut, TrendingUp, TrendingDown, Bell, BookCopy, Landmark, Handshake, FolderKanban, BookUser, Target, CreditCard, ArrowRightLeft, MessageSquare, Settings, BrainCircuit } from 'lucide-react';
 import { getDateRange } from '@/lib/date-utils';
 import type { DashboardFilter, Income, Expense } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -83,6 +83,7 @@ const quickAccessItems = [
     { href: '/loans', label: 'وام‌ها', icon: Landmark, color: 'text-violet-500' },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake, color: 'text-indigo-500' },
     { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban, color: 'text-orange-500' },
+    { href: '/insights', label: 'آمار و گزارشات', icon: BrainCircuit, color: 'text-purple-500' },
 ];
 
 function QuickAccess() {
@@ -91,7 +92,7 @@ function QuickAccess() {
             <CardHeader>
                 <CardTitle className="font-headline">دسترسی سریع</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
                 {quickAccessItems.map(item => (
                     <Link key={item.href} href={item.href} className="group">
                         <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg hover:bg-muted hover:shadow-sm transition-all duration-200 h-full text-center border">
