@@ -24,10 +24,9 @@ export const SignatureDialog: React.FC<SignatureDialogProps> = ({ open, onOpenCh
   const handleConfirm = () => {
     if (sigCanvas.current) {
       if (sigCanvas.current.isEmpty()) {
+        // If it's empty, explicitly pass an empty string to indicate no signature
         onConfirm('');
       } else {
-        // FIX: Use toDataURL() directly. getTrimmedCanvas().toDataURL() is buggy in some environments.
-        // This ensures a valid data URL is always generated.
         const signatureImage = sigCanvas.current.toDataURL('image/png');
         onConfirm(signatureImage);
       }
@@ -64,7 +63,7 @@ export const SignatureDialog: React.FC<SignatureDialogProps> = ({ open, onOpenCh
           <Button onClick={handleClear} variant="outline">
             پاک کردن
           </Button>
-          <Button onClick={handleConfirm} disabled={!isDrawing}>
+          <Button onClick={handleConfirm}>
             تایید و ذخیره امضا
           </Button>
         </DialogFooter>
