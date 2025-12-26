@@ -27,7 +27,7 @@ import type { BankAccount, OwnerId } from '@/lib/types';
 import { ArrowDown, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/lib/utils';
-import type { User } from 'firebase/auth';
+import type { User } from '@supabase/supabase-js';
 import { USER_DETAILS } from '@/lib/constants';
 
 const formSchema = z.object({

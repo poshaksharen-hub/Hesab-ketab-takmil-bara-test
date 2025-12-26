@@ -2,23 +2,18 @@
 'use client';
 
 import React, { useCallback, useState } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import type { BankAccount, Transfer, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TransferForm } from '@/components/transfers/transfer-form';
 import { TransferList } from '@/components/transfers/transfer-list';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
 import { ArrowRight, PlusCircle, Plus, Loader2 } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-
-const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
+import { useUser } from '@/firebase';
+import { supabase } from '@/lib/supabase-client';
 
 export default function TransfersPage() {
   const { user, isUserLoading } = useUser();
@@ -28,10 +23,10 @@ export default function TransfersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { firestore, bankAccounts: allBankAccounts, transfers, users } = allData;
+  const { bankAccounts: allBankAccounts, transfers, users } = allData;
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
-    if (!user || !firestore || !allBankAccounts || !users) return;
+    if (!user || !allBankAccounts || !users) return;
     setIsSubmitting(true);
 
     if (values.fromBankAccountId === values.toBankAccountId) {
@@ -44,95 +39,41 @@ export default function TransfersPage() {
       return;
     }
     
-    runTransaction(firestore, async (transaction) => {
-      
-      const fromCardRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', values.fromBankAccountId);
-      const toCardRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', values.toBankAccountId);
+    try {
+        const { error } = await supabase.rpc('create_transfer', {
+            p_from_account_id: values.fromBankAccountId,
+            p_to_account_id: values.toBankAccountId,
+            p_amount: values.amount,
+            p_description: values.description,
+            p_user_id: user.id
+        });
 
-      const fromCardDoc = await transaction.get(fromCardRef);
-      const toCardDoc = await transaction.get(toCardRef);
-
-      if (!fromCardDoc.exists() || !toCardDoc.exists()) {
-        throw new Error("یک یا هر دو حساب بانکی در پایگاه داده یافت نشدند.");
-      }
-
-      const fromCardData = fromCardDoc.data() as BankAccount;
-      const availableBalance = fromCardData.balance - (fromCardData.blockedBalance || 0);
-
-      if (availableBalance < values.amount) {
-        throw new Error("موجودی قابل استفاده حساب مبدا برای این انتقال کافی نیست.");
-      }
-
-      const fromBalanceBefore = fromCardData.balance;
-      const fromBalanceAfter = fromBalanceBefore - values.amount;
-      const toCardData = toCardDoc.data() as BankAccount;
-      const toBalanceBefore = toCardData.balance;
-      const toBalanceAfter = toBalanceBefore + values.amount;
-
-      transaction.update(fromCardRef, { balance: fromBalanceAfter });
-      transaction.update(toCardRef, { balance: toBalanceAfter });
-      
-      const newTransferRef = doc(collection(firestore, FAMILY_DATA_DOC_PATH, 'transfers'));
-      
-      const newTransferData: Omit<Transfer, 'id'> = {
-          ...values,
-          registeredByUserId: user.uid,
-          transferDate: new Date().toISOString(),
-          fromAccountBalanceBefore: fromBalanceBefore,
-          fromAccountBalanceAfter: fromBalanceAfter,
-          toAccountBalanceBefore: toBalanceBefore,
-          toAccountBalanceAfter: toBalanceAfter,
-      };
-      
-      transaction.set(newTransferRef, {...newTransferData, id: newTransferRef.id});
-
-    }).then(async () => {
+        if (error) {
+             throw new Error(error.message);
+        }
+        
         setIsFormOpen(false);
         toast({
             title: "موفقیت",
             description: "انتقال وجه با موفقیت انجام شد.",
         });
-        
-        const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
-        const fromAccount = allBankAccounts.find(b => b.id === values.fromBankAccountId);
-        const toAccount = allBankAccounts.find(b => b.id === values.toBankAccountId);
-        const fromAccountOwner = fromAccount?.ownerId === 'shared_account' ? 'مشترک' : (fromAccount?.ownerId && USER_DETAILS[fromAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
-        const toAccountOwner = toAccount?.ownerId === 'shared_account' ? 'مشترک' : (toAccount?.ownerId && USER_DETAILS[toAccount.ownerId as 'ali' | 'fatemeh']?.firstName);
-        
-        const notificationDetails: TransactionDetails = {
-              type: 'transfer',
-              title: `انتقال داخلی`,
-              amount: values.amount,
-              date: new Date().toISOString(),
-              icon: 'ArrowRightLeft',
-              color: 'rgb(59 130 246)',
-              registeredBy: currentUserFirstName,
-              bankAccount: fromAccount ? { name: fromAccount.bankName, owner: fromAccountOwner || 'نامشخص' } : undefined,
-              toBankAccount: toAccount ? { name: toAccount.bankName, owner: toAccountOwner || 'نامشخص' } : undefined,
-          };
-          await sendSystemNotification(firestore, user.uid, notificationDetails);
-    }).catch((error: any) => {
-        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
-                path: 'family-data/shared-data/transfers',
-                operation: 'write',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
-                variant: "destructive",
-                title: "خطا در انتقال وجه",
-                description: error.message || "مشکلی در انجام عملیات پیش آمد. لطفا دوباره تلاش کنید.",
-            });
-        }
-    }).finally(() => {
-        setIsSubmitting(false);
-    });
 
-  }, [user, firestore, allBankAccounts, users, toast]);
+        // The notification logic can be triggered here if needed,
+        // though it might be better handled by a database trigger in the future.
+
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "خطا در انتقال وجه",
+            description: error.message || "مشکلی در انجام عملیات پیش آمد. لطفا دوباره تلاش کنید.",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }, [user, allBankAccounts, users, toast]);
 
   const handleDeleteTransfer = useCallback(async (transferId: string) => {
-    if (!firestore || !transfers) return;
+    if (!transfers) return;
 
     const transferToDelete = transfers.find(t => t.id === transferId);
     if (!transferToDelete) {
@@ -140,45 +81,20 @@ export default function TransfersPage() {
       return;
     }
     
-    const transferRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'transfers', transferId);
+    try {
+       const { error } = await supabase.rpc('delete_transfer', { p_transfer_id: transferId });
+       if (error) throw new Error(error.message);
 
-    runTransaction(firestore, async (transaction) => {
-        const fromAccountRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', transferToDelete.fromBankAccountId);
-        const toAccountRef = doc(firestore, FAMILY_DATA_DOC_PATH, 'bankAccounts', transferToDelete.toBankAccountId);
+       toast({ title: "موفقیت", description: "تراکنش انتقال با موفقیت حذف و مبالغ به حساب‌ها بازگردانده شد." });
 
-        const fromAccountDoc = await transaction.get(fromAccountRef);
-        const toAccountDoc = await transaction.get(toAccountRef);
-
-        if (!fromAccountDoc.exists() || !toAccountDoc.exists()) {
-            throw new Error("یک یا هر دو حساب بانکی مرتبط با این انتقال یافت نشدند.");
-        }
-
-        const fromAccountData = fromAccountDoc.data()!;
-        const toAccountData = toAccountDoc.data()!;
-        
-        transaction.update(fromAccountRef, { balance: fromAccountData.balance + transferToDelete.amount });
-        transaction.update(toAccountRef, { balance: toAccountData.balance - transferToDelete.amount });
-
-        transaction.delete(transferRef);
-    }).then(() => {
-         toast({ title: "موفقیت", description: "تراکنش انتقال با موفقیت حذف و مبالغ به حساب‌ها بازگردانده شد." });
-    }).catch((error: any) => {
-        if (error.name === 'FirebaseError') {
-            const permissionError = new FirestorePermissionError({
-                path: transferRef.path,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-          toast({
+    } catch (error: any) {
+         toast({
             variant: "destructive",
             title: "خطا در حذف انتقال",
             description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
           });
-        }
-    });
-
-  }, [firestore, transfers, toast]);
+    }
+  }, [transfers, toast]);
 
   const handleAddNew = useCallback(() => {
     setIsFormOpen(true);
@@ -204,7 +120,7 @@ export default function TransfersPage() {
             </h1>
         </div>
         <div className="hidden md:block">
-            <Button onClick={handleAddNew}>
+            <Button onClick={handleAddNew} disabled={isSubmitting}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 ثبت انتقال جدید
             </Button>
@@ -247,6 +163,7 @@ export default function TransfersPage() {
               size="icon"
               className="h-14 w-14 rounded-full shadow-lg"
               aria-label="ثبت انتقال جدید"
+              disabled={isSubmitting}
             >
               <Plus className="h-6 w-6" />
             </Button>
