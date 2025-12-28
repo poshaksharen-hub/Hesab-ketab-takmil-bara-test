@@ -16,6 +16,9 @@ import { sendSystemNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase-client';
 import type { User } from '@supabase/supabase-js';
 
+// Define a more specific type for the form values we expect
+type ExpenseSubmissionValues = Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'> & { receipt_path?: string };
+
 export default function ExpensesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
@@ -50,7 +53,8 @@ export default function ExpensesPage() {
     users,
   } = allData;
 
-  const handleFormSubmit = useCallback(async (values: Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'>) => {
+  // 1. Update the function signature to accept the new values type
+  const handleFormSubmit = useCallback(async (values: ExpenseSubmissionValues) => {
     if (!user || !allBankAccounts || !users || !allCategories || !allPayees) {
         toast({ variant: "destructive", title: "خطا", description: "سرویس‌های مورد نیاز بارگذاری نشده‌اند." });
         return;
@@ -80,7 +84,7 @@ export default function ExpensesPage() {
 
         if (accountError) throw accountError;
 
-        // 2. Insert new expense record
+        // 2. Insert new expense record, now with receipt_path
         const newExpenseData = {
             description: values.description,
             amount: values.amount,
@@ -89,9 +93,9 @@ export default function ExpensesPage() {
             category_id: values.categoryId,
             payee_id: values.payeeId === 'none' ? null : values.payeeId,
             expense_for: values.expenseFor,
-            owner_id: account.ownerId, // Set ownerId from bank account
+            owner_id: account.ownerId,
             registered_by_user_id: user.uid,
-            // type: 'expense' is now handled by the database or implied
+            receipt_path: values.receipt_path, // <<< THE MAGIC HAPPENS HERE
         };
 
         const { error: expenseError } = await supabase.from('expenses').insert([newExpenseData]);
@@ -185,6 +189,7 @@ export default function ExpensesPage() {
           description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
         });
     }
+    // TODO: Delete the associated receipt file from storage
   }, [allExpenses, allBankAccounts, toast]);
 
   

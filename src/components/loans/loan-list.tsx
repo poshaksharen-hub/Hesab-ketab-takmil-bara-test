@@ -1,12 +1,12 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, CalendarCheck2, ArrowLeft, CheckCircle, Landmark, MoreVertical, History, Edit, PenSquare, User, Users } from 'lucide-react';
-import type { Loan, LoanPayment, Payee, BankAccount, UserProfile, OwnerId } from '@/lib/types';
-import { formatCurrency, formatJalaliDate } from '@/lib/utils';
+import { Trash2, CalendarCheck2, FileText, Edit, MoreVertical, Users, User, Landmark } from 'lucide-react';
+import type { Loan, LoanPayment, Payee, UserProfile } from '@/lib/types';
+import { formatCurrency, formatJalaliDate, getPublicUrl } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import {
   AlertDialog,
@@ -24,181 +24,110 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-
-import { cn } from '@/lib/utils';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from '../ui/badge';
-import { getNextDueDate } from '@/lib/date-utils';
-import Link from 'next/link';
 import { USER_DETAILS } from '@/lib/constants';
+import { Separator } from '../ui/separator';
 
 interface LoanListProps {
   loans: Loan[];
   payees: Payee[];
   users: UserProfile[];
+  loanPayments: LoanPayment[];
   onDelete: (loanId: string) => void;
   onPay: (loan: Loan) => void;
   onEdit: (loan: Loan) => void;
   isSubmitting: boolean;
 }
 
-export function LoanList({ loans, payees, users, onDelete, onPay, onEdit, isSubmitting }: LoanListProps) {
-  
-  const getPayeeName = (payeeId?: string) => {
-    if (!payeeId) return 'نامشخص';
-    return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
-  };
+export function LoanList({ loans, payees, users, loanPayments, onDelete, onPay, onEdit, isSubmitting }: LoanListProps) {
+
+  const getPayeeName = (payeeId?: string) => payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+  const getOwnerName = (ownerId: 'ali' | 'fatemeh' | 'shared') => {
+      if (ownerId === 'shared') return 'مشترک';
+      return USER_DETAILS[ownerId]?.firstName || 'نامشخص';
+  }
 
   if (loans.length === 0) {
     return (
-        <Card className="mt-4">
-            <CardContent>
-                <div className="text-center py-12">
-                    <Landmark className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">هنوز وامی ثبت نشده است</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        با کلیک بر روی دکمه "ثبت وام جدید"، اولین وام خود را ثبت کنید.
-                    </p>
-                </div>
-            </CardContent>
-        </Card>
-    )
+      <Card className="mt-4">
+        <CardContent>
+          <div className="text-center py-12">
+            <Landmark className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-semibold">هنوز وامی ثبت نشده است</h3>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
-  const handleDeleteClick = async (loanId: string) => {
-      onDelete(loanId);
-  };
-
-  const getLoanStatus = (loan: Loan) => {
-    if (loan.remainingAmount <= 0) {
-      return <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">تسویه شده</Badge>;
-    }
-    const nextDueDate = getNextDueDate(loan);
-    if (!nextDueDate) return <Badge variant="secondary">در حال پرداخت</Badge>;
-
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    if(nextDueDate < today) {
-        return <Badge variant="destructive">قسط معوق</Badge>;
-    }
-    return <Badge variant="secondary">در حال پرداخت</Badge>;
-  };
-
-  const getOwnerDetails = (ownerId: OwnerId) => {
-    if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
-    if (!userDetail) return { name: "ناشناس", Icon: User };
-    return { name: userDetail.firstName, Icon: User };
-  };
-
-
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-4'>
-        {loans.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((loan) => {
-            const progress = 100 - (loan.remainingAmount / loan.amount) * 100;
-            const isCompleted = loan.remainingAmount <= 0;
-            const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(loan.ownerId);
-            const registeredByName = users.find(u => u.id === loan.registeredByUserId)?.firstName || 'سیستم';
-            const isDeleteDisabled = (loan.paidInstallments > 0) || isSubmitting;
+    <Accordion type="multiple" className="w-full space-y-4 mt-4">
+      {loans.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((loan) => {
+        const progress = loan.amount > 0 ? 100 - (loan.remainingAmount / loan.amount) * 100 : 0;
+        const isCompleted = loan.remainingAmount <= 0;
+        const paymentsForLoan = loanPayments.filter(p => p.loan_id === loan.id).sort((a,b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
 
-            return (
-             <div key={loan.id} className="relative group">
-                <Link href={`/loans/${loan.id}`} className="block h-full cursor-pointer" aria-label={`View details for loan ${loan.title}`}>
-                    <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
-                        <CardHeader>
-                            <div className='flex justify-between items-start'>
-                                <div className="space-y-1">
-                                    <CardTitle className={cn("font-headline flex items-center gap-2", isCompleted && "text-muted-foreground line-through")}>
-                                      <OwnerIcon className="h-5 w-5 text-muted-foreground" />
-                                      {loan.title}
-                                    </CardTitle>
-                                    <CardDescription className='flex items-center gap-2'>
-                                        {getLoanStatus(loan)}
-                                        {loan.payeeId && <span className="text-xs">(از: {getPayeeName(loan.payeeId)})</span>}
-                                    </CardDescription>
-                                </div>
-                            <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                               <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions" disabled={isSubmitting}>
-                                            <MoreVertical className="h-5 w-5" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onSelect={(e) => {e.preventDefault(); const router = (e.target as HTMLElement).closest('a')?.href; if(router) window.location.href = router; }}>
-                                            <History className="ml-2 h-4 w-4" />
-                                            مشاهده تاریخچه
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => onEdit(loan)} disabled={isCompleted || isSubmitting}>
-                                            <Edit className="ml-2 h-4 w-4" />
-                                            ویرایش وام
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
-                                                    <Trash2 className="ml-2 h-4 w-4" />
-                                                    حذف وام
-                                                </div>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>آیا از حذف این وام مطمئن هستید؟</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                این عمل قابل بازگشت نیست. اگر وام دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، وام حذف خواهد شد.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    className="bg-destructive hover:bg-destructive/90"
-                                                    disabled={isDeleteDisabled}
-                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(loan.id); }}>
-                                                    {isSubmitting ? 'در حال حذف...' : 'بله، حذف کن'}
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                <div className="flex justify-between text-sm text-muted-foreground">
-                                    <span>{formatCurrency(loan.remainingAmount, 'IRT')}</span>
-                                    <span>{formatCurrency(loan.amount, 'IRT')}</span>
-                                </div>
-                                <Progress value={progress} className="h-2" />
-                                <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
-                                    <span>{`${loan.numberOfInstallments > 0 ? (loan.numberOfInstallments - loan.paidInstallments) + ' قسط باقی‌مانده' : 'پرداخت نشده'}`}</span>
-                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${registeredByName}`}>
-                                      <PenSquare className="h-3 w-3" />
-                                      <span>{registeredByName}</span>
-                                    </div>
-                                    <span>{`${loan.paidInstallments} از ${loan.numberOfInstallments || '؟'} قسط`}</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter className="grid grid-cols-2 gap-2">
-                            {isCompleted ? (
-                                <div className="col-span-2 w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
-                                    <CheckCircle className="h-5 w-5" />
-                                    <span>وام تسویه شد!</span>
-                                </div>
-                            ) : (
-                                <Button className="w-full col-span-2" onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(loan);}} disabled={isSubmitting}>
-                                    <CalendarCheck2 className="ml-2 h-4 w-4" />
-                                    پرداخت قسط
-                                </Button>
-                            )}
-                        </CardFooter>
-                    </Card>
-                </Link>
-             </div>
-        )})}
-    </div>
+        return (
+          <AccordionItem key={loan.id} value={loan.id} className="border-none">
+            <Card className={`shadow-sm hover:shadow-md transition-shadow ${isCompleted ? 'bg-muted/50' : ''}`}>
+              <AccordionTrigger className="p-6 text-right w-full">
+                <div className="w-full">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className={`font-headline ${isCompleted ? 'text-muted-foreground' : ''}`}>{loan.title}</CardTitle>
+                    <Badge variant={isCompleted ? 'default' : 'secondary'}>{isCompleted ? 'تسویه شده' : 'در حال پرداخت'}</Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-2">وام‌گیرنده: {getOwnerName(loan.ownerId)}</div>
+                  <Progress value={progress} className="mt-4 h-2" />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>{formatCurrency(loan.remainingAmount, 'IRT')} مانده</span>
+                    <span>{loan.paidInstallments} از {loan.numberOfInstallments} قسط</span>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-4">
+                <Separator className="mb-4"/>
+                <h4 className="font-semibold mb-3">تاریخچه پرداخت‌ها</h4>
+                {paymentsForLoan.length > 0 ? (
+                  <ul className="space-y-3">
+                    {paymentsForLoan.map(payment => {
+                       const attachmentUrl = payment.attachment_path ? getPublicUrl(payment.attachment_path) : null;
+                       return (
+                        <li key={payment.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
+                          <div className="flex flex-col">
+                             <span className="font-semibold">{formatCurrency(payment.amount, 'IRT')}</span>
+                             <span className="text-xs text-muted-foreground">{formatJalaliDate(new Date(payment.payment_date))}</span>
+                          </div>
+                          {attachmentUrl && (
+                            <Button asChild variant="outline" size="sm">
+                              <a href={attachmentUrl} target="_blank" rel="noopener noreferrer">
+                                <FileText className="ml-2 h-4 w-4"/> مشاهده رسید
+                              </a>
+                            </Button>
+                          )}
+                        </li>
+                       )
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">هنوز پرداختی برای این وام ثبت نشده است.</p>
+                )}
+                <div className="flex items-center justify-end gap-2 mt-6 border-t pt-4">
+                   <Button variant="outline" onClick={() => onEdit(loan)} disabled={isCompleted || isSubmitting}><Edit className="ml-2 h-4 w-4"/> ویرایش</Button>
+                   <Button onClick={() => onPay(loan)} disabled={isCompleted || isSubmitting}><CalendarCheck2 className="ml-2 h-4 w-4"/> پرداخت قسط</Button>
+                </div>
+              </AccordionContent>
+            </Card>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
   );
 }
