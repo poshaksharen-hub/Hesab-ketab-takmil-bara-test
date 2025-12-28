@@ -45,6 +45,7 @@ import type { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { supabase } from '@/lib/supabase-client';
+import { useSupabaseAuth } from '@/hooks/use-auth';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -178,8 +179,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useSimpleTheme();
-  const [user, setUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
+  const { user, isLoading } = useSupabaseAuth();
   const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const { unreadCount } = useUnreadMessages();
   
@@ -188,35 +188,17 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
     router.push('/login');
   };
 
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    };
-    getSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
   React.useEffect(() => {
-    if (!isUserLoading && !user && pathname !== '/login') {
+    if (!isLoading && !user && pathname !== '/login') {
       router.replace('/login');
     }
-  }, [isUserLoading, user, pathname, router]);
+  }, [isLoading, user, pathname, router]);
 
   const userDetail = user ? USER_DETAILS[user.email?.startsWith('ali') ? 'ali' : 'fatemeh'] : null;
   const userAvatar = getPlaceholderImage(`${user?.email?.startsWith('ali') ? 'ali' : 'fatemeh'}-avatar`);
   const userName = userDetail?.firstName || 'کاربر';
   
-  if (isUserLoading && pathname !== '/login') {
+  if (isLoading && pathname !== '/login') {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -227,7 +209,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  if (pathname === '/login' || (!user && !isUserLoading)) {
+  if (pathname === '/login' || (!user && !isLoading)) {
     return <>{children}</>;
   }
 
@@ -259,7 +241,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           <Menu unreadCount={unreadCount} />
         </SidebarContent>
         <SidebarFooter>
-          {isUserLoading ? (
+          {isLoading ? (
             <div className="flex items-center gap-3">
               <Skeleton className="h-10 w-10 rounded-full" />
               <div className="flex-1 space-y-2">

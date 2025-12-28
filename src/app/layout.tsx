@@ -5,6 +5,7 @@ import './globals.css';
 import React from 'react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from "@/components/ui/toaster"
+import { SupabaseAuthProvider } from '@/hooks/use-auth';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="description" content="اپلیکیشن مدرن و جامع برای مدیریت مالی شخصی و خانوادگی" />
       </head>
       <body>
-        <AppLayout>{children}</AppLayout>
+        <SupabaseAuthProvider>
+          <AppLayout>{children}</AppLayout>
+        </SupabaseAuthProvider>
         <Toaster />
       </body>
     </html>
