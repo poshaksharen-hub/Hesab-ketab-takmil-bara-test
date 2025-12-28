@@ -38,7 +38,7 @@ jobs:
           
       - name: 'Upload Migration Log as Artifact'
         if: steps.check_file.outputs.file_exists == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: migration-log
           path: migration_output.log 
