@@ -38,7 +38,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { HesabKetabLogo } from '../icons';
 import Image from 'next/image';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { uploadClearanceReceipt } from '@/lib/storage';
 import { Input } from '../ui/input';
@@ -56,7 +56,7 @@ interface CheckListProps {
 }
 
 const ClearCheckDialog = ({ check, onClear, isSubmitting, children }: { check: Check, onClear: (data: { check: Check; receiptPath?: string }) => void, isSubmitting: boolean, children: React.ReactNode }) => {
-    const { user } = useUser();
+    const { user } = useAuth();
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');

@@ -36,7 +36,7 @@ import { Info, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { CurrencyInput, Input } from '../ui/input';
 import { USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { uploadDebtReceipt } from '@/lib/storage';
 
 const createFormSchema = (remainingAmount: number) => z.object({
@@ -65,7 +65,7 @@ export function PayDebtDialog({
   onSubmit,
   isSubmitting,
 }: PayDebtDialogProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [fileName, setFileName] = useState<string>('');

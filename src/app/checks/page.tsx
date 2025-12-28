@@ -4,7 +4,7 @@
 import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { CheckList } from '@/components/checks/check-list';
 import { CheckForm } from '@/components/checks/check-form';
 import type { Check, BankAccount, Payee, Category, Expense, TransactionDetails, UserProfile } from '@/lib/types';
@@ -20,7 +20,7 @@ import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 type CheckFormData = Omit<Check, 'id' | 'registeredByUserId' | 'status'> & { signatureDataUrl?: string; image_path?: string };
 
 export default function ChecksPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading } = useAuth();
   const { toast } = useToast();
   
   const { isLoading: isDashboardLoading, allData } = useDashboardData();

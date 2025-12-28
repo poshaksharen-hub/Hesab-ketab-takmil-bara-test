@@ -4,7 +4,7 @@
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { IncomeList } from '@/components/income/income-list';
 import { IncomeForm } from '@/components/income/income-form';
 import type { Income, BankAccount, UserProfile, TransactionDetails } from '@/lib/types';
@@ -20,7 +20,7 @@ import { supabase } from '@/lib/supabase-client';
 type IncomeFormData = Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category'> & { attachment_path?: string };
 
 export default function IncomePage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading } = useAuth();
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData, error } = useDashboardData();
   

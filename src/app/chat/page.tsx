@@ -5,7 +5,7 @@ import { ArrowRight, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ChatInterface } from '@/components/chat/chat-interface';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
@@ -32,7 +32,7 @@ function ChatPageSkeleton() {
 }
 
 export default function ChatPage() {
-    const { user, isUserLoading } = useUser();
+    const { user, isUserLoading } = useAuth();
     const { isLoading: isDataLoading, allData } = useDashboardData();
     
     const isLoading = isUserLoading || isDataLoading;

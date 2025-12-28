@@ -4,7 +4,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { PayeeList } from '@/components/payees/payee-list';
 import { PayeeForm } from '@/components/payees/payee-form';
 import type { Payee } from '@/lib/types';
@@ -15,7 +15,7 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 
 export default function PayeesPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading } = useAuth();
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
