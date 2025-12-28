@@ -45,7 +45,7 @@ import type { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { supabase } from '@/lib/supabase-client';
-import { useSupabaseAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 
 const useSimpleTheme = () => {
   const [theme, setTheme] = React.useState('light');
@@ -179,7 +179,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useSimpleTheme();
-  const { user, isLoading } = useSupabaseAuth();
+  const { user, isLoading } = useAuth();
   const [isMobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const { unreadCount } = useUnreadMessages();
   

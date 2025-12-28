@@ -19,11 +19,18 @@ jobs:
         with:
           version: latest
 
+      - name: Check for Project Ref Secret
+        run: |
+          if [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ]; then
+            echo "Error: The SUPABASE_PROJECT_REF secret is not set."
+            echo "Please add it to your repository settings under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
       - name: Push database migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }} # Added this line
         run: |
-          supabase link --project-ref $SUPABASE_PROJECT_REF
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
           supabase db push

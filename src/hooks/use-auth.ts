@@ -1,7 +1,7 @@
 
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import type { User } from '@supabase/supabase-js';
 
@@ -12,12 +12,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
+export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSession = async () => {
+    const getSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
@@ -28,9 +28,9 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       }
     };
 
-    fetchSession();
+    getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setIsLoading(false);
     });
@@ -40,18 +40,19 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     };
   }, []);
 
-  const value = {
-    user,
-    isLoading,
-  };
+  const value = { user, isLoading };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-export function useSupabaseAuth() {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useSupabaseAuth must be used within a SupabaseAuthProvider');
+    throw new Error('useAuth must be used within a SupabaseAuthProvider');
   }
   return context;
 }
