@@ -56,16 +56,20 @@ export const uploadIncomeDocument = (user: User, file: File) => {
   return uploadAttachment(file, 'income', user);
 };
 
+export const uploadLoanReceipt = (user: User, loanId: string, file: File) => {
+  const pathPrefix = `loan-receipts/${loanId}`;
+  return uploadAttachment(file, pathPrefix, user);
+};
 
 /**
- * Uploads a loan installment payment receipt.
+ * Uploads a debt payment receipt.
  * @param user The authenticated user.
- * @param loanId The ID of the loan for which the receipt is being uploaded.
+ * @param debtId The ID of the debt for which the receipt is being uploaded.
  * @param file The receipt file.
  * @returns The storage path of the uploaded file.
  */
-export const uploadLoanReceipt = (user: User, loanId: string, file: File) => {
-  const pathPrefix = `loan-receipts/${loanId}`;
+export const uploadDebtReceipt = (user: User, debtId: string, file: File) => {
+  const pathPrefix = `debt-receipts/${debtId}`;
   return uploadAttachment(file, pathPrefix, user);
 };
 

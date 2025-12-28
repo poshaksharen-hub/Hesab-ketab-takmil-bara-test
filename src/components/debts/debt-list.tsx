@@ -1,163 +1,123 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Handshake, ArrowLeft, CheckCircle, User, Users, Trash2, MoreVertical, History, PenSquare, Loader2 } from 'lucide-react';
-import type { PreviousDebt, Payee, OwnerId, UserProfile } from '@/lib/types';
-import { formatCurrency, cn } from '@/lib/utils';
+import { Handshake, FileText, CheckCircle, User, Users, Trash2, MoreVertical, PenSquare } from 'lucide-react';
+import type { PreviousDebt, Payee, OwnerId, UserProfile, DebtPayment } from '@/lib/types';
+import { formatCurrency, cn, getPublicUrl, formatJalaliDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
 import { USER_DETAILS } from '@/lib/constants';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Separator } from '../ui/separator';
 
 interface DebtListProps {
   debts: PreviousDebt[];
   payees: Payee[];
+  debtPayments: DebtPayment[];
   onPay: (debt: PreviousDebt) => void;
   onDelete: (debtId: string) => void;
   users: UserProfile[];
   isSubmitting: boolean;
 }
 
-export function DebtList({ debts, payees, onPay, onDelete, users, isSubmitting }: DebtListProps) {
-  
-  const getPayeeName = (payeeId?: string) => {
-    if (!payeeId) return 'نامشخص';
-    return payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+export function DebtList({ debts, payees, debtPayments, onPay, onDelete, users, isSubmitting }: DebtListProps) {
+
+  const getPayeeName = (payeeId?: string) => payees.find(p => p.id === payeeId)?.name || 'نامشخص';
+  const getOwnerName = (ownerId: OwnerId) => {
+    if (ownerId === 'shared') return 'مشترک';
+    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
+    return userDetail?.firstName || 'نامشخص';
   };
-  
+
   if (debts.length === 0) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">لیست بدهی‌ها</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className='text-center text-muted-foreground py-8'>هیچ بدهی برای نمایش وجود ندارد.</p>
-            </CardContent>
-        </Card>
-    )
+      <Card className="mt-4">
+        <CardContent>
+          <div className="text-center py-12">
+            <Handshake className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-semibold">هنوز بدهی ثبت نشده است</h3>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
-  const getOwnerDetails = (ownerId: OwnerId) => {
-    if (ownerId === 'shared') return { name: "مشترک", Icon: Users };
-    const userDetail = Object.values(USER_DETAILS).find(u => u.email.startsWith(ownerId));
-    if (!userDetail) return { name: "ناشناس", Icon: User };
-    return { name: userDetail.firstName, Icon: User };
-  };
-
-  const handleDeleteClick = async (debtId: string) => {
-      onDelete(debtId);
-  };
-
   return (
-    <div className='grid grid-cols-1 gap-6'>
-        {debts.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((debt) => {
-            const progress = 100 - (debt.remainingAmount / debt.amount) * 100;
-            const isCompleted = debt.remainingAmount <= 0;
-            const { name: ownerName, Icon: OwnerIcon } = getOwnerDetails(debt.ownerId);
-            const registeredByName = users.find(u => u.id === debt.registeredByUserId)?.firstName || 'نامشخص';
-            const isDeleteDisabled = (debt.paidInstallments > 0) || isSubmitting;
+    <Accordion type="multiple" className="w-full space-y-4 mt-4">
+      {debts.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((debt) => {
+        const progress = debt.amount > 0 ? 100 - (debt.remainingAmount / debt.amount) * 100 : 0;
+        const isCompleted = debt.remainingAmount <= 0;
+        const paymentsForDebt = debtPayments.filter(p => p.debt_id === debt.id).sort((a,b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
 
-            return (
-             <div key={debt.id} className="relative group">
-                <Link href={`/debts/${debt.id}`} className="block h-full cursor-pointer" aria-label={`View details for debt: ${debt.description}`}>
-                    <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl", isCompleted && "bg-muted/50")}>
-                        <CardHeader>
-                            <div className='flex justify-between items-start'>
-                                <div className="space-y-1">
-                                    <CardTitle className={cn("flex items-center gap-2", isCompleted && "text-muted-foreground line-through")}>
-                                        <OwnerIcon className="h-5 w-5 text-muted-foreground" />
-                                        <span>{debt.description}</span>
-                                    </CardTitle>
-                                    <CardDescription className='flex items-center gap-2'>
-                                        {isCompleted ? <Badge className="bg-emerald-500 text-white">تسویه شده</Badge> : <Badge variant="destructive">در حال پرداخت</Badge>}
-                                        <span className="text-xs">(به: {getPayeeName(debt.payeeId)})</span>
-                                    </CardDescription>
-                                </div>
-                            <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                               <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions" disabled={isSubmitting}>
-                                            <MoreVertical className="h-5 w-5" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); const router = (e.target as HTMLElement).closest('a')?.href; if (router) window.location.href = router; }}>
-                                            <History className="ml-2 h-4 w-4" />
-                                            مشاهده تاریخچه
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground" : "text-destructive focus:text-destructive")}>
-                                                    <Trash2 className="ml-2 h-4 w-4" />
-                                                    حذف بدهی
-                                                </div>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>آیا از حذف این بدهی مطمئن هستید؟</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    این عمل قابل بازگشت نیست. اگر بدهی دارای سابقه پرداخت باشد، امکان حذف آن وجود ندارد. در غیر این صورت، بدهی برای همیشه حذف خواهد شد.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    className="bg-destructive hover:bg-destructive/90"
-                                                    disabled={isDeleteDisabled}
-                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(debt.id); }}>
-                                                    {isSubmitting ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : 'بله، حذف کن'}
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                <div className="flex justify-between text-sm text-muted-foreground">
-                                    <span>{formatCurrency(debt.remainingAmount, 'IRT')}</span>
-                                    <span>{formatCurrency(debt.amount, 'IRT')}</span>
-                                </div>
-                                <Progress value={progress} className="h-2" />
-                                <div className="flex justify-between items-center text-xs text-muted-foreground text-center">
-                                    <span>{`${Math.round(progress)}٪ پرداخت شده`}</span>
-                                    <div className="flex items-center gap-1" title={`ثبت توسط: ${registeredByName}`}>
-                                    <PenSquare className="h-3 w-3" />
-                                    <span>{registeredByName}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            {isCompleted ? (
-                                <div className="w-full flex items-center justify-center text-emerald-600 gap-2 font-bold">
-                                    <CheckCircle className="h-5 w-5" />
-                                    <span>بدهی تسویه شد!</span>
-                                </div>
-                            ) : (
-                                <div onClick={(e) => {e.preventDefault(); e.stopPropagation(); onPay(debt);}} className="w-full">
-                                    <Button className="w-full" disabled={isSubmitting}>
-                                        <Handshake className="ml-2 h-4 w-4" />
-                                        پرداخت بدهی
-                                    </Button>
-                                </div>
-                            )}
-                        </CardFooter>
-                    </Card>
-                </Link>
-             </div>
-        )})}
-    </div>
+        return (
+          <AccordionItem key={debt.id} value={debt.id} className="border-none">
+            <Card className={`shadow-sm hover:shadow-md transition-shadow ${isCompleted ? 'bg-muted/50' : ''}`}>
+              <AccordionTrigger className="p-6 text-right w-full">
+                <div className="w-full">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className={`font-headline ${isCompleted ? 'text-muted-foreground' : ''}`}>{debt.description}</CardTitle>
+                    <Badge variant={isCompleted ? 'default' : 'destructive'}>{isCompleted ? 'تسویه شده' : 'در حال پرداخت'}</Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-2">بدهکار: {getOwnerName(debt.ownerId)} (به: {getPayeeName(debt.payeeId)})</div>
+                  <Progress value={progress} className="mt-4 h-2" />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>{formatCurrency(debt.remainingAmount, 'IRT')} مانده</span>
+                    <span>{Math.round(progress)}٪ پرداخت شده</span>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-4">
+                <Separator className="mb-4"/>
+                <h4 className="font-semibold mb-3">تاریخچه پرداخت‌ها</h4>
+                {paymentsForDebt.length > 0 ? (
+                  <ul className="space-y-3">
+                    {paymentsForDebt.map(payment => {
+                       const attachmentUrl = payment.attachment_path ? getPublicUrl(payment.attachment_path) : null;
+                       return (
+                        <li key={payment.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
+                          <div className="flex flex-col">
+                             <span className="font-semibold">{formatCurrency(payment.amount, 'IRT')}</span>
+                             <span className="text-xs text-muted-foreground">{formatJalaliDate(new Date(payment.payment_date))}</span>
+                          </div>
+                          {attachmentUrl && (
+                            <Button asChild variant="outline" size="sm">
+                              <a href={attachmentUrl} target="_blank" rel="noopener noreferrer">
+                                <FileText className="ml-2 h-4 w-4"/> مشاهده رسید
+                              </a>
+                            </Button>
+                          )}
+                        </li>
+                       )
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">هنوز پرداختی برای این بدهی ثبت نشده است.</p>
+                )}
+                <div className="flex items-center justify-end gap-2 mt-6 border-t pt-4">
+                   <AlertDialog>
+                      <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={isSubmitting || debt.paidInstallments > 0}>حذف</Button></AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>آیا مطمئنید؟</AlertDialogTitle><AlertDialogDescription>این بدهی برای همیشه حذف خواهد شد.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>انصراف</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(debt.id)}>حذف</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                   </AlertDialog>
+                   <Button onClick={() => onPay(debt)} disabled={isCompleted || isSubmitting}><Handshake className="ml-2 h-4 w-4"/> پرداخت</Button>
+                </div>
+              </AccordionContent>
+            </Card>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
   );
 }
