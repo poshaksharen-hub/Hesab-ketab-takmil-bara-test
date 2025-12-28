@@ -120,7 +120,7 @@ export default function LoginPage() {
     const { email, password } = values;
 
     try {
-      const { data, error } = await supabase.auth.signInWithEmailAndPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) throw error;
       
