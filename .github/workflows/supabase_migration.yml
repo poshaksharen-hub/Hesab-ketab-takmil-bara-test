@@ -1,4 +1,3 @@
-
 name: 'Supabase DB Push'
 
 on:
@@ -43,25 +42,3 @@ jobs:
         with:
           name: migration-log
           path: migration_output.log
-          
-      - name: 'Create Pull Request with Migration Log'
-        if: steps.check_file.outputs.file_exists == 'true' && steps.db_push.outcome == 'success'
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GH_PAT_TOKEN }}
-          commit-message: 'chore: Add migration output log'
-          title: 'CI - Database Migration Output'
-          body: |
-            This PR was automatically created by the `Supabase DB Push` workflow.
-            It contains the output of the latest database migration.
-            
-            **Action:** Please review the attached `migration_output.log` file.
-            - If the migration was successful and the log is correct, merge this PR.
-            - If there are errors, investigate the log and address the issues.
-            
-            This file will be deleted automatically upon merging.
-          branch: 'ci/migration-log'
-          delete-branch: true
-          add-paths: |
-            migration_output.log
-
