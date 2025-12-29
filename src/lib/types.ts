@@ -24,6 +24,7 @@ export type Income = {
   createdAt: any;
   updatedAt?: any;
   balanceAfter?: number;
+  attachment_path?: string;
 }
 
 export type Expense = {
@@ -47,6 +48,7 @@ export type Expense = {
   updatedAt?: any;
   balanceBefore?: number;
   balanceAfter?: number;
+  attachment_path?: string;
 };
 
 
@@ -103,6 +105,8 @@ export type Check = {
     sayadId: string;
     checkSerialNumber: string;
     signatureDataUrl?: string; // Changed from signatureUrl
+    image_path?: string;
+    clearance_receipt_path?: string;
 }
 
 export type FinancialGoalContribution = {
@@ -125,6 +129,7 @@ export type FinancialGoal = {
     isAchieved: boolean;
     priority: 'low' | 'medium' | 'high';
     contributions: FinancialGoalContribution[];
+    image_path?: string;
 }
 
 
@@ -144,6 +149,7 @@ export type Loan = {
     depositOnCreate: boolean;
     depositToAccountId?: string;
     paymentDay?: number;
+    attachment_path?: string;
 }
 
 export type LoanPayment = {
@@ -153,6 +159,7 @@ export type LoanPayment = {
     bankAccountId: string;
     amount: number;
     paymentDate: string;
+    attachment_path?: string;
 }
 
 export type PreviousDebt = {
@@ -170,6 +177,7 @@ export type PreviousDebt = {
     numberOfInstallments?: number;
     installmentAmount?: number;
     paidInstallments: number;
+    attachment_path?: string;
 }
 
 export type DebtPayment = {
@@ -179,6 +187,7 @@ export type DebtPayment = {
     bankAccountId: string;
     amount: number;
     paymentDate: string;
+    attachment_path?: string;
 }
 
 export type Transfer = {

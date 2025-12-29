@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
@@ -17,7 +18,7 @@ import { supabase } from '@/lib/supabase-client';
 import type { User } from '@supabase/supabase-js';
 
 // Define a more specific type for the form values we expect
-type ExpenseSubmissionValues = Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'> & { receipt_path?: string };
+type ExpenseSubmissionValues = Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'> & { attachment_path?: string };
 
 export default function ExpensesPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -26,6 +27,7 @@ export default function ExpensesPage() {
   const { isLoading: isDashboardLoading, allData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   useEffect(() => {
     const getSession = async () => {
@@ -59,16 +61,19 @@ export default function ExpensesPage() {
         toast({ variant: "destructive", title: "خطا", description: "سرویس‌های مورد نیاز بارگذاری نشده‌اند." });
         return;
     }
+    setIsSubmitting(true);
     
     const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
     if (!account) {
         toast({ variant: "destructive", title: "خطا", description: "کارت بانکی یافت نشد." });
+        setIsSubmitting(false);
         return;
     }
 
     const availableBalance = account.balance - (account.blockedBalance || 0);
     if (availableBalance < values.amount) {
         toast({ variant: "destructive", title: "خطای موجودی", description: "موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست." });
+        setIsSubmitting(false);
         return;
     }
 
@@ -84,7 +89,7 @@ export default function ExpensesPage() {
 
         if (accountError) throw accountError;
 
-        // 2. Insert new expense record, now with receipt_path
+        // 2. Insert new expense record, now with attachment_path
         const newExpenseData = {
             description: values.description,
             amount: values.amount,
@@ -95,7 +100,7 @@ export default function ExpensesPage() {
             expense_for: values.expenseFor,
             owner_id: account.ownerId,
             registered_by_user_id: user.uid,
-            receipt_path: values.receipt_path, // <<< THE MAGIC HAPPENS HERE
+            attachment_path: values.attachment_path, // <<< THE MAGIC HAPPENS HERE
         };
 
         const { error: expenseError } = await supabase.from('expenses').insert([newExpenseData]);
@@ -142,6 +147,8 @@ export default function ExpensesPage() {
             title: "خطا در ثبت هزینه",
             description: error.message || "مشکلی در ثبت اطلاعات پیش آمد. لطفا دوباره تلاش کنید.",
         });
+    } finally {
+      setIsSubmitting(false);
     }
   }, [user, allBankAccounts, allCategories, allPayees, users, toast]);
 
@@ -214,7 +221,7 @@ export default function ExpensesPage() {
         </div>
         {!isFormOpen && (
             <div className="hidden md:block">
-                <Button onClick={handleAddNew} data-testid="add-new-expense-desktop">
+                <Button onClick={handleAddNew} data-testid="add-new-expense-desktop" disabled={isSubmitting}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     ثبت هزینه جدید
                 </Button>
@@ -231,6 +238,7 @@ export default function ExpensesPage() {
             categories={allCategories || []}
             payees={allPayees || []}
             user={user}
+            isSubmitting={isSubmitting}
         />
 
       {isLoading ? (
@@ -257,6 +265,7 @@ export default function ExpensesPage() {
                 size="icon"
                 className="h-14 w-14 rounded-full shadow-lg"
                 aria-label="ثبت هزینه جدید"
+                disabled={isSubmitting}
               >
                 <Plus className="h-6 w-6" />
               </Button>
