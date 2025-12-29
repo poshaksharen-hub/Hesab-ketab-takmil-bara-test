@@ -1,4 +1,3 @@
-
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -17,18 +16,13 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-      } catch (error) {
-        console.error('Error fetching user session:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setIsLoading(false);
     };
 
-    getSession();
+    getInitialSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -36,7 +30,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      authListener?.subscription.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, []);
 

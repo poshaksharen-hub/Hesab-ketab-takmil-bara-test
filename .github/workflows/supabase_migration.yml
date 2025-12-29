@@ -1,3 +1,4 @@
+
 name: 'Supabase DB Push'
 
 on:
@@ -21,12 +22,13 @@ jobs:
         with:
           version: latest
           
-      - name: 'Push Migrations and Capture Output'
-        id: db_push
+      - name: 'Push Migrations to Supabase'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          supabase db push --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --db-password ${{ secrets.SUPABASE_DB_PASSWORD }} > migration_output.log 2>&1
-        continue-on-error: true
-
+          supabase db push --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          
       - name: 'Check for migration_output.log'
         id: check_file
         run: |
@@ -38,7 +40,7 @@ jobs:
           
       - name: 'Upload Migration Log as Artifact'
         if: steps.check_file.outputs.file_exists == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: migration-log
-          path: migration_output.log 
+          path: migration_output.log

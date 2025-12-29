@@ -94,7 +94,8 @@ CREATE TABLE IF NOT EXISTS public.expenses (
     registered_by_user_id uuid,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    owner_id text
+    owner_id text,
+    attachment_path text
 );
 COMMENT ON TABLE public.expenses IS 'Expense transactions.';
 
@@ -112,7 +113,8 @@ CREATE TABLE IF NOT EXISTS public.incomes (
     description text,
     registered_by_user_id uuid,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    attachment_path text
 );
 COMMENT ON TABLE public.incomes IS 'Income transactions.';
 
@@ -155,7 +157,9 @@ CREATE TABLE IF NOT EXISTS public.cheques (
     signature_data_url text,
     registered_by_user_id uuid,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    image_path text,
+    clearance_receipt_path text
 );
 COMMENT ON TABLE public.cheques IS 'Manages outgoing cheques as future liabilities.';
 
@@ -174,7 +178,8 @@ CREATE TABLE IF NOT EXISTS public.financial_goals (
     owner_id text,
     registered_by_user_id uuid,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    image_path text
 );
 COMMENT ON TABLE public.financial_goals IS 'Financial goals for users.';
 
@@ -198,7 +203,8 @@ CREATE TABLE IF NOT EXISTS public.loans (
     owner_id text,
     registered_by_user_id uuid,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    attachment_path text
 );
 COMMENT ON TABLE public.loans IS 'Loans taken (money borrowed), typically structured with installments.';
 
@@ -212,7 +218,8 @@ CREATE TABLE IF NOT EXISTS public.loan_payments (
     amount numeric,
     payment_date timestamp with time zone,
     registered_by_user_id uuid,
-    created_at timestamp with time zone DEFAULT now()
+    created_at timestamp with time zone DEFAULT now(),
+    attachment_path text
 );
 COMMENT ON TABLE public.loan_payments IS 'Records of loan installment payments. Each payment is also an expense.';
 
@@ -235,7 +242,8 @@ CREATE TABLE IF NOT EXISTS public.debts (
     registered_by_user_id uuid,
     start_date timestamptz,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    attachment_path text
 );
 COMMENT ON TABLE public.debts IS 'Debts owed to others, can be single payment or informal installments.';
 
@@ -249,7 +257,8 @@ CREATE TABLE IF NOT EXISTS public.debt_payments (
     amount numeric,
     payment_date timestamp with time zone,
     registered_by_user_id uuid,
-    created_at timestamp with time zone DEFAULT now()
+    created_at timestamp with time zone DEFAULT now(),
+    attachment_path text
 );
 COMMENT ON TABLE public.debt_payments IS 'Records payments made towards a debt. Each payment is also an expense.';
 
@@ -296,46 +305,46 @@ ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 -- Create Policies: Allow full access for any authenticated user
 -- --------------------------------------------------------------------
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.users;
-CREATE POLICY "Allow all access to authenticated users" ON public.users FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.users FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.bank_accounts;
-CREATE POLICY "Allow all access to authenticated users" ON public.bank_accounts FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.bank_accounts FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.categories;
-CREATE POLICY "Allow all access to authenticated users" ON public.categories FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.categories FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.payees;
-CREATE POLICY "Allow all access to authenticated users" ON public.payees FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.payees FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.expenses;
-CREATE POLICY "Allow all access to authenticated users" ON public.expenses FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.expenses FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.incomes;
-CREATE POLICY "Allow all access to authenticated users" ON public.incomes FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.incomes FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.transfers;
-CREATE POLICY "Allow all access to authenticated users" ON public.transfers FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.transfers FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.cheques;
-CREATE POLICY "Allow all access to authenticated users" ON public.cheques FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.cheques FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.financial_goals;
-CREATE POLICY "Allow all access to authenticated users" ON public.financial_goals FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.financial_goals FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.loans;
-CREATE POLICY "Allow all access to authenticated users" ON public.loans FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.loans FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.loan_payments;
-CREATE POLICY "Allow all access to authenticated users" ON public.loan_payments FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.loan_payments FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.debts;
-CREATE POLICY "Allow all access to authenticated users" ON public.debts FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.debts FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.debt_payments;
-CREATE POLICY "Allow all access to authenticated users" ON public.debt_payments FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.debt_payments FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all access to authenticated users" ON public.chat_messages;
-CREATE POLICY "Allow all access to authenticated users" ON public.chat_messages FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow all access to authenticated users" ON public.chat_messages FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 
 -- ====================================================================
@@ -377,13 +386,14 @@ COMMENT ON FUNCTION public.handle_new_user IS 'Automatically creates a user prof
 -- --------------------------------------------------------------------
 -- Function 2: Create a Check
 -- --------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.create_check(p_sayad_id text, p_serial_number text, p_amount numeric, p_issue_date timestamptz, p_due_date timestamptz, p_bank_account_id uuid, p_payee_id uuid, p_category_id uuid, p_description text, p_expense_for text, p_signature_data_url text, p_registered_by_user_id uuid)
+CREATE OR REPLACE FUNCTION public.create_check(p_sayad_id text, p_serial_number text, p_amount numeric, p_issue_date timestamptz, p_due_date timestamptz, p_bank_account_id uuid, p_payee_id uuid, p_category_id uuid, p_description text, p_expense_for text, p_signature_data_url text, p_registered_by_user_id uuid, p_image_path text)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
-  INSERT INTO public.cheques (sayad_id, serial_number, amount, issue_date, due_date, bank_account_id, payee_id, category_id, description, expense_for, signature_data_url, registered_by_user_id, status)
-  VALUES (p_sayad_id, p_serial_number, p_amount, p_issue_date, p_due_date, p_bank_account_id, p_payee_id, p_category_id, p_description, p_expense_for, p_signature_data_url, p_registered_by_user_id, 'pending');
+  INSERT INTO public.cheques (sayad_id, serial_number, amount, issue_date, due_date, bank_account_id, payee_id, category_id, description, expense_for, signature_data_url, registered_by_user_id, status, image_path)
+  VALUES (p_sayad_id, p_serial_number, p_amount, p_issue_date, p_due_date, p_bank_account_id, p_payee_id, p_category_id, p_description, p_expense_for, p_signature_data_url, p_registered_by_user_id, 'pending', p_image_path);
   
   UPDATE public.bank_accounts
   SET blocked_balance = blocked_balance + p_amount
@@ -395,9 +405,10 @@ COMMENT ON FUNCTION public.create_check IS 'Creates a new cheque with "pending" 
 -- --------------------------------------------------------------------
 -- Function 3: Clear a Check
 -- --------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.clear_check(p_check_id uuid, p_user_id uuid)
+CREATE OR REPLACE FUNCTION public.clear_check(p_check_id uuid, p_user_id uuid, p_clearance_receipt_path text)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_check public.cheques;
@@ -419,11 +430,11 @@ BEGIN
     VALUES (v_check.bank_account_id, v_check.category_id, v_check.payee_id, v_check.amount, now(), v_check.description, v_check.expense_for, v_check.id, p_user_id, v_bank_account.owner_id);
 
     UPDATE public.cheques
-    SET status = 'cleared', cleared_date = now(), updated_at = now()
+    SET status = 'cleared', cleared_date = now(), updated_at = now(), clearance_receipt_path = p_clearance_receipt_path
     WHERE id = p_check_id;
 END;
 $$;
-COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense, and updates balances.';
+COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense, updates balances and stores the receipt path.';
 
 -- --------------------------------------------------------------------
 -- Function 4: Delete a Check
@@ -431,6 +442,7 @@ COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates a
 CREATE OR REPLACE FUNCTION public.delete_check(p_check_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_check public.cheques;
@@ -454,13 +466,14 @@ COMMENT ON FUNCTION public.delete_check IS 'Safely deletes a non-cleared cheque 
 -- --------------------------------------------------------------------
 -- Function 5: Create a Loan
 -- --------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.create_loan(p_title text, p_amount numeric, p_owner_id text, p_installment_amount numeric, p_number_of_installments integer, p_start_date timestamptz, p_first_installment_date timestamptz, p_payee_id uuid, p_deposit_on_create boolean, p_deposit_to_account_id uuid, p_registered_by_user_id uuid)
+CREATE OR REPLACE FUNCTION public.create_loan(p_title text, p_amount numeric, p_owner_id text, p_installment_amount numeric, p_number_of_installments integer, p_start_date timestamptz, p_first_installment_date timestamptz, p_payee_id uuid, p_deposit_on_create boolean, p_deposit_to_account_id uuid, p_registered_by_user_id uuid, p_attachment_path text)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
-  INSERT INTO public.loans (title, amount, remaining_amount, owner_id, installment_amount, number_of_installments, start_date, first_installment_date, payee_id, deposit_to_account_id, registered_by_user_id)
-  VALUES (p_title, p_amount, p_amount, p_owner_id, p_installment_amount, p_number_of_installments, p_start_date, p_first_installment_date, p_payee_id, p_deposit_to_account_id, p_registered_by_user_id);
+  INSERT INTO public.loans (title, amount, remaining_amount, owner_id, installment_amount, number_of_installments, start_date, first_installment_date, payee_id, deposit_to_account_id, registered_by_user_id, attachment_path)
+  VALUES (p_title, p_amount, p_amount, p_owner_id, p_installment_amount, p_number_of_installments, p_start_date, p_first_installment_date, p_payee_id, p_deposit_to_account_id, p_registered_by_user_id, p_attachment_path);
   
   IF p_deposit_on_create AND p_deposit_to_account_id IS NOT NULL THEN
     UPDATE public.bank_accounts SET balance = balance + p_amount WHERE id = p_deposit_to_account_id;
@@ -472,15 +485,17 @@ COMMENT ON FUNCTION public.create_loan IS 'Creates a new loan and optionally dep
 -- --------------------------------------------------------------------
 -- Function 6: Pay a Loan Installment
 -- --------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.pay_loan_installment(p_loan_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid)
+CREATE OR REPLACE FUNCTION public.pay_loan_installment(p_loan_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid, p_attachment_path text)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_loan public.loans;
     v_bank_account public.bank_accounts;
     v_expense_category public.categories;
     v_new_expense_id uuid;
+    v_new_loan_payment_id uuid;
 BEGIN
     SELECT * INTO v_loan FROM public.loans WHERE id = p_loan_id FOR UPDATE;
     IF v_loan IS NULL THEN RAISE EXCEPTION 'وام یافت نشد.'; END IF;
@@ -496,12 +511,14 @@ BEGIN
 
     UPDATE public.bank_accounts SET balance = balance - p_amount WHERE id = p_bank_account_id;
 
-    INSERT INTO public.expenses (bank_account_id, category_id, payee_id, amount, date, description, expense_for, sub_type, registered_by_user_id, owner_id)
-    VALUES (p_bank_account_id, v_expense_category.id, v_loan.payee_id, p_amount, now(), 'پرداخت قسط وام: ' || v_loan.title, v_loan.owner_id, 'loan_payment', p_user_id, v_bank_account.owner_id)
+    INSERT INTO public.loan_payments (loan_id, amount, payment_date, registered_by_user_id, attachment_path)
+    VALUES (p_loan_id, p_amount, now(), p_user_id, p_attachment_path) RETURNING id INTO v_new_loan_payment_id;
+
+    INSERT INTO public.expenses (bank_account_id, category_id, payee_id, amount, date, description, expense_for, sub_type, registered_by_user_id, owner_id, loan_payment_id, attachment_path)
+    VALUES (p_bank_account_id, v_expense_category.id, v_loan.payee_id, p_amount, now(), 'پرداخت قسط وام: ' || v_loan.title, v_loan.owner_id, 'loan_payment', p_user_id, v_bank_account.owner_id, v_new_loan_payment_id, p_attachment_path)
     RETURNING id INTO v_new_expense_id;
 
-    INSERT INTO public.loan_payments (loan_id, expense_id, amount, payment_date, registered_by_user_id)
-    VALUES (p_loan_id, v_new_expense_id, p_amount, now(), p_user_id);
+    UPDATE public.loan_payments SET expense_id = v_new_expense_id WHERE id = v_new_loan_payment_id;
 
     UPDATE public.loans
     SET remaining_amount = remaining_amount - p_amount,
@@ -518,6 +535,7 @@ COMMENT ON FUNCTION public.pay_loan_installment IS 'Atomically pays a loan insta
 CREATE OR REPLACE FUNCTION public.delete_loan(p_loan_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     payment_count integer;
@@ -542,15 +560,17 @@ COMMENT ON FUNCTION public.delete_loan IS 'Safely deletes a loan only if no paym
 -- --------------------------------------------------------------------
 -- Functions 8 & 9: Pay and Delete a Debt
 -- --------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.pay_debt_installment(p_debt_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid)
+CREATE OR REPLACE FUNCTION public.pay_debt_installment(p_debt_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid, p_attachment_path text)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_debt public.debts;
     v_bank_account public.bank_accounts;
     v_expense_category public.categories;
     v_new_expense_id uuid;
+    v_new_debt_payment_id uuid;
 BEGIN
     SELECT * INTO v_debt FROM public.debts WHERE id = p_debt_id FOR UPDATE;
     IF v_debt IS NULL THEN RAISE EXCEPTION 'بدهی یافت نشد.'; END IF;
@@ -565,13 +585,15 @@ BEGIN
     END IF;
 
     UPDATE public.bank_accounts SET balance = balance - p_amount WHERE id = p_bank_account_id;
+    
+    INSERT INTO public.debt_payments (debt_id, amount, payment_date, registered_by_user_id, attachment_path)
+    VALUES (p_debt_id, p_amount, now(), p_user_id, p_attachment_path) RETURNING id INTO v_new_debt_payment_id;
 
-    INSERT INTO public.expenses (bank_account_id, category_id, payee_id, amount, date, description, expense_for, sub_type, registered_by_user_id, owner_id)
-    VALUES (p_bank_account_id, v_expense_category.id, v_debt.payee_id, p_amount, now(), 'پرداخت بدهی: ' || v_debt.description, v_debt.owner_id, 'debt_payment', p_user_id, v_bank_account.owner_id)
+    INSERT INTO public.expenses (bank_account_id, category_id, payee_id, amount, date, description, expense_for, sub_type, registered_by_user_id, owner_id, debt_payment_id, attachment_path)
+    VALUES (p_bank_account_id, v_expense_category.id, v_debt.payee_id, p_amount, now(), 'پرداخت بدهی: ' || v_debt.description, v_debt.owner_id, 'debt_payment', p_user_id, v_bank_account.owner_id, v_new_debt_payment_id, p_attachment_path)
     RETURNING id INTO v_new_expense_id;
-
-    INSERT INTO public.debt_payments (debt_id, expense_id, amount, payment_date, registered_by_user_id)
-    VALUES (p_debt_id, v_new_expense_id, p_amount, now(), p_user_id);
+    
+    UPDATE public.debt_payments SET expense_id = v_new_expense_id WHERE id = v_new_debt_payment_id;
 
     UPDATE public.debts
     SET remaining_amount = remaining_amount - p_amount,
@@ -586,6 +608,7 @@ COMMENT ON FUNCTION public.pay_debt_installment IS 'Atomically pays a debt insta
 CREATE OR REPLACE FUNCTION public.delete_debt(p_debt_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     payment_count integer;
@@ -604,6 +627,7 @@ COMMENT ON FUNCTION public.delete_debt IS 'Safely deletes a debt only if no paym
 CREATE OR REPLACE FUNCTION public.create_transfer(p_from_account_id uuid, p_to_account_id uuid, p_amount numeric, p_description text, p_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_from_balance_before numeric;
@@ -637,6 +661,7 @@ COMMENT ON FUNCTION public.create_transfer IS 'Atomically creates an internal tr
 CREATE OR REPLACE FUNCTION public.delete_transfer(p_transfer_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_transfer public.transfers;
@@ -660,6 +685,7 @@ COMMENT ON FUNCTION public.delete_transfer IS 'Atomically deletes a transfer and
 CREATE OR REPLACE FUNCTION public.achieve_financial_goal(p_goal_id uuid, p_actual_cost numeric, p_user_id uuid, p_payment_card_id uuid DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_goal public.financial_goals;
@@ -710,6 +736,7 @@ COMMENT ON FUNCTION public.achieve_financial_goal IS 'Handles the logic for achi
 CREATE OR REPLACE FUNCTION public.revert_financial_goal(p_goal_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_goal public.financial_goals;
@@ -749,6 +776,7 @@ COMMENT ON FUNCTION public.revert_financial_goal IS 'Reverts an achieved financi
 CREATE OR REPLACE FUNCTION public.delete_financial_goal(p_goal_id uuid)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
     v_goal public.financial_goals;
