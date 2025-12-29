@@ -5,7 +5,7 @@ import './globals.css';
 import React from 'react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from "@/components/ui/toaster"
-import { SupabaseAuthProvider } from '@/hooks/use-auth';
+import { SupabaseAuthProvider } from '@/hooks/use-auth.tsx';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

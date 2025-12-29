@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/lib/supabase-client';
 import type { User } from '@supabase/supabase-js';
+import { Card, CardHeader, CardFooter, CardContent, CardTitle } from '@/components/ui/card';
 
 
 const expiryDateRegex = /^(0[1-9]|1[0-2])\/?([0-9]{2})$/;
