@@ -2,6 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from 'date-fns-jalali';
+import { supabase } from './supabase-client';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -96,3 +97,8 @@ export function amountToWords(amount: number): string {
     return result.reverse().join(" و ").trim();
 }
 
+export function getPublicUrl(bucket: string, path: string) {
+  if (!bucket || !path) return null;
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return data?.publicUrl || null;
+}

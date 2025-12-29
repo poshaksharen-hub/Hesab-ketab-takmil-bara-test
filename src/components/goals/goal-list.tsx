@@ -1,103 +1,115 @@
 
 'use client';
-
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import type { FinancialGoal, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, CheckCircle, RotateCcw, Target, PlusCircle, User, Users, History, MoreVertical, PenSquare } from 'lucide-react';
-import type { FinancialGoal, OwnerId, UserProfile } from '@/lib/types';
-import { formatCurrency, formatJalaliDate, getPublicUrl } from '@/lib/utils';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-
-import { Badge } from '../ui/badge';
-import { cn } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate, getRelativeTime } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
-import Link from 'next/link';
-import Image from 'next/image'; // <-- Import Next.js Image component
+import Image from 'next/image';
+import { getPublicUrl } from '@/lib/storage';
+import { Edit, Trash2, CheckCircle, RotateCcw, Plus, Gift } from 'lucide-react';
 
 interface GoalListProps {
   goals: FinancialGoal[];
+  users: UserProfile[];
   onContribute: (goal: FinancialGoal) => void;
   onAchieve: (goal: FinancialGoal) => void;
   onRevert: (goal: FinancialGoal) => void;
-  onDelete: (goalId: string) => void;
-  users: UserProfile[];
+  onDelete: (id: string) => void;
+  onEdit: (goal: FinancialGoal) => void;
   isSubmitting: boolean;
 }
 
-export function GoalList({ goals, onContribute, onAchieve, onRevert, onDelete, users, isSubmitting }: GoalListProps) {
-  
+export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDelete, onEdit, isSubmitting }: GoalListProps) {
+  const findUser = (id: string) => users.find(u => u.id === id);
+
   if (goals.length === 0) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">لیست اهداف مالی</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className='text-center text-muted-foreground py-8'>هیچ هدفی برای نمایش وجود ندارد.</p>
-            </CardContent>
-        </Card>
-    )
+      <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 p-12 text-center mt-6">
+        <h3 className="text-xl font-bold tracking-tight">هنوز هیچ هدفی تعریف نشده.</h3>
+        <p className="text-sm text-muted-foreground mt-2">یک هدف جدید برای شروع پس‌انداز اضافه کنید.</p>
+      </div>
+    );
   }
 
-  // ... (helper functions like getPriorityBadge, getOwnerDetails remain the same)
-
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        {goals.sort(/* ... */).map((goal) => {
-            const progress = (goal.targetAmount > 0) ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
-            const isAchieved = goal.isAchieved;
-            const imageUrl = goal.image_path ? getPublicUrl(goal.image_path) : null; // <-- Get the public URL
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+      {goals.map(goal => {
+        const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+        const registeredBy = findUser(goal.registeredByUserId);
+        const ownerName = USER_DETAILS[goal.ownerId as keyof typeof USER_DETAILS]?.firstName || 'مشترک';
+        const imageUrl = getPublicUrl(goal.image_path);
 
-            return (
-            <div key={goal.id} className="relative group">
-                 <Link href={`/goals/${goal.id}`} className="block h-full cursor-pointer" aria-label={`View details for goal ${goal.name}`}>
-                    <Card className={cn("flex flex-col justify-between shadow-lg h-full transition-shadow duration-300 group-hover:shadow-xl overflow-hidden", isAchieved && "bg-muted/50")}>
-                        <div> {/* Wrapper for top part of the card */}
-                            {/* --- NEW IMAGE DISPLAY --- */}
-                            {imageUrl && (
-                                <div className="relative w-full h-40"> 
-                                    <Image 
-                                        src={imageUrl} 
-                                        alt={`Image for ${goal.name}`} 
-                                        layout="fill" 
-                                        objectFit="cover" 
-                                        className="transition-transform duration-300 group-hover:scale-105"
-                                    />
-                                </div>
-                            )}
-                            <CardHeader>
-                                {/* ... (CardHeader content remains the same) ... */}
-                            </CardHeader>
-                            <CardContent>
-                                {/* ... (CardContent content remains the same) ... */}
-                            </CardContent>
-                        </div>
-                        <CardFooter className="grid grid-cols-2 gap-2 mt-auto">
-                           {/* ... (CardFooter content remains the same) ... */}
-                        </CardFooter>
-                    </Card>
-                 </Link>
-            </div>
-        )})}
+        return (
+          <Card key={goal.id} className="flex flex-col overflow-hidden group">
+            <CardHeader className="relative p-0">
+                {imageUrl ? (
+                    <div className="relative h-48 w-full">
+                        <Image src={imageUrl} alt={goal.name} layout="fill" objectFit="cover" />
+                        <div className="absolute inset-0 bg-black/20" />
+                    </div>
+                ) : (
+                    <div className="h-24 w-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-700" />
+                )}
+                 <div className="absolute top-2 right-2 flex gap-2">
+                    {!goal.isAchieved && (
+                        <Button variant="outline" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onEdit(goal)} disabled={isSubmitting}>
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                    )}
+                    <Button variant="destructive" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(goal.id)} disabled={isSubmitting}>
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow p-4">
+              <CardTitle className="font-headline text-lg">{goal.name}</CardTitle>
+              <div className="text-sm text-muted-foreground mt-1">
+                <span>برای: {ownerName}</span> &bull; <span>ثبت توسط: {registeredBy?.firstName}</span>
+              </div>
+              <div className="my-4">
+                <div className="flex justify-between items-end mb-1">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">پس‌انداز شده</span>
+                    <span className="text-xs text-muted-foreground">هدف: {formatCurrency(goal.targetAmount)}</span>
+                </div>
+                <Progress value={progress} />
+                <div className="flex justify-between items-end mt-1">
+                    <span className="text-lg font-bold text-primary">{formatCurrency(goal.currentAmount)}</span>
+                    <span className="text-xs font-mono">%{Math.round(progress)}</span>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                  <p>تاریخ هدف: {formatJalaliDate(goal.targetDate)} ({getRelativeTime(goal.targetDate)})</p>
+                  <p>اولویت: {goal.priority}</p>
+              </div>
+            </CardContent>
+            <CardFooter className="p-2 border-t">
+                {goal.isAchieved ? (
+                    <Button variant="ghost" className="w-full" onClick={() => onRevert(goal)} disabled={isSubmitting}>
+                        <RotateCcw className="ml-2 h-4 w-4"/>بازگردانی هدف
+                    </EButton>
+                ) : (
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                        <Button variant="secondary" onClick={() => onContribute(goal)} disabled={isSubmitting}>
+                            <Plus className="ml-2 h-4 w-4"/>افزایش پس‌انداز
+                        </Button>
+                        <Button onClick={() => onAchieve(goal)} disabled={isSubmitting}>
+                           <Gift className="ml-2 h-4 w-4"/>تحقق هدف
+                        </Button>
+                    </div>
+                )}
+            </CardFooter>
+          </Card>
+        );
+      })}
     </div>
   );
 }
