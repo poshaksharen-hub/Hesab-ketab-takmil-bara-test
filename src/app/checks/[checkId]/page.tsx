@@ -11,7 +11,7 @@ import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
 import { HesabKetabLogo } from '@/components/icons';
-import { useUser } from '@/firebase';
+import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
