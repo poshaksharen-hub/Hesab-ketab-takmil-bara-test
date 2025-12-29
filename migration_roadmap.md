@@ -722,7 +722,7 @@ BEGIN
         END IF;
 
         INSERT INTO public.expenses (description, amount, date, bank_account_id, category_id, expense_for, registered_by_user_id, owner_id)
-        VALUES ('پرداخت نقدی برای تحقق هدف: ' || v_goal.name, v_cash_payment_needed, now(), p_payment_card_id, v_expense_category.id, v_goal.owner_id, p_user_id, v_account.owner_id);
+        VALUES ('پرداخت نقدی برای تحقق هدف: ' || v_goal.name, v_cash_payment_needed, now(), p_payment_card_id, v_goal.owner_id, p_user_id, v_account.owner_id);
     END IF;
 
     UPDATE public.financial_goals
