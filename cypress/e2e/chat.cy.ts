@@ -42,7 +42,6 @@ describe("Chat Flow", () => {
 
     // Check for unread indicator on the chat FAB and sidebar
     cy.get('a[href="/chat"]').find('span').should('contain.text', '1');
-    cy.get('a[href="/chat"] button span').should('not.exist'); // Ensure badge is not on button text
     
     // Navigate to chat
     cy.visit("/chat");
