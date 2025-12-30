@@ -114,7 +114,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
 
         for (const res of responses) {
           if (res.error) {
-            console.error(`Error fetching data:`, res.error);
+            console.error(`Error fetching table:`, res.error);
             throw new Error(`Failed to fetch data: ${res.error.message}`);
           }
         }
@@ -139,6 +139,26 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
             return { ...goal, contributions, currentAmount };
         });
 
+        // Special handling for chat messages to build the replyTo object
+        const rawChatMessages = transformData(chatMessagesRes.data) as (ChatMessage & { replyToMessageId?: string })[];
+        const enrichedChatMessages = rawChatMessages.map(msg => {
+            if (msg.replyToMessageId) {
+                const originalMessage = rawChatMessages.find(m => m.id === msg.replyToMessageId);
+                if (originalMessage) {
+                    return {
+                        ...msg,
+                        replyTo: {
+                            messageId: originalMessage.id,
+                            text: originalMessage.text,
+                            senderName: originalMessage.senderName,
+                        }
+                    };
+                }
+            }
+            return msg;
+        });
+
+
         setAllData({
           users: transformData(usersRes.data) as UserProfile[],
           bankAccounts: transformData(bankAccountsRes.data) as BankAccount[],
@@ -153,7 +173,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           loanPayments: transformData(loanPaymentsRes.data) as LoanPayment[],
           previousDebts: transformData(debtsRes.data) as PreviousDebt[],
           debtPayments: transformData(debtPaymentsRes.data) as DebtPayment[],
-          chatMessages: transformData(chatMessagesRes.data) as ChatMessage[],
+          chatMessages: enrichedChatMessages as ChatMessage[],
         });
 
       } catch (e: any) {

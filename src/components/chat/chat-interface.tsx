@@ -10,8 +10,6 @@ import { USER_DETAILS } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 
-const FAMILY_DATA_DOC_PATH = 'family-data/shared-data';
-
 export function ChatInterface({ currentUser, allData }: { currentUser: User, allData: any }) {
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
 
@@ -26,7 +24,7 @@ export function ChatInterface({ currentUser, allData }: { currentUser: User, all
     );
 
     if (unreadMessages.length > 0) {
-      const updates = unreadMessages.map(message => ({
+      const updates = unreadMessages.map((message: ChatMessage) => ({
         id: message.id,
         read_by: [...(message.readBy || []), currentUser.uid]
       }));
@@ -43,7 +41,7 @@ export function ChatInterface({ currentUser, allData }: { currentUser: User, all
     const senderKey = currentUser.email?.startsWith('ali') ? 'ali' : 'fatemeh';
     const senderName = USER_DETAILS[senderKey].firstName;
 
-    const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+    const newMessage: Partial<ChatMessage> = {
       text,
       senderId: currentUser.uid,
       senderName: senderName,
@@ -52,53 +50,32 @@ export function ChatInterface({ currentUser, allData }: { currentUser: User, all
     };
 
     if (replyingToMessage) {
-      newMessage.replyTo = {
-        messageId: replyingToMessage.id,
-        text: replyingToMessage.text,
-        senderName: replyingToMessage.senderName,
-      };
+        newMessage.replyTo = { // This is for client-side optimistic update, will be overwritten by DB call
+            messageId: replyingToMessage.id,
+            text: replyingToMessage.text,
+            senderName: replyingToMessage.senderName,
+        };
     }
     
-    const dataToSend = {
+    const dataToSend: any = {
       sender_id: newMessage.senderId,
       sender_name: newMessage.senderName,
       text: newMessage.text,
       type: newMessage.type,
       read_by: newMessage.readBy,
-      reply_to_message_id: newMessage.replyTo?.messageId, // Store only the ID
+      reply_to_message_id: replyingToMessage ? replyingToMessage.id : null,
       timestamp: new Date().toISOString(),
-      transaction_details: null, // User messages don't have transaction details
+      transaction_details: null,
     };
 
     const { error } = await supabase.from('chat_messages').insert([dataToSend]);
 
     if (error) {
       console.error("Error sending message:", error);
-      // Optionally show a toast to the user
     } else {
       setReplyingToMessage(null);
     }
   };
-
-  const enrichedMessages = useMemo(() => {
-      if (!messages) return [];
-      return messages.map((msg: ChatMessage) => {
-          if (msg.replyTo) {
-            const originalMessage = messages.find((m: ChatMessage) => m.id === (msg.replyTo as any).messageId);
-            if (originalMessage) {
-                return {
-                    ...msg,
-                    replyTo: {
-                        messageId: originalMessage.id,
-                        text: originalMessage.text,
-                        senderName: originalMessage.senderName,
-                    }
-                }
-            }
-          }
-          return msg;
-      });
-  }, [messages]);
 
 
   return (
@@ -112,7 +89,7 @@ export function ChatInterface({ currentUser, allData }: { currentUser: User, all
           </div>
         ) : (
           <MessageList
-            messages={enrichedMessages || []}
+            messages={messages || []}
             currentUserId={currentUser.uid}
             onReply={setReplyingToMessage}
             allUsers={allUsers}

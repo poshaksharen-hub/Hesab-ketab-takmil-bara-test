@@ -122,29 +122,15 @@ export default function GoalsPage() {
     if (!user) return;
     setIsSubmitting(true);
     
-    // This now mimics an expense creation
-    // A proper implementation would call a dedicated DB function `add_contribution_to_goal`
     try {
-      const { error: expenseError } = await supabase.from('expenses').insert([{
-        description: `پس‌انداز برای هدف: ${goal.name}`,
-        amount,
-        date: new Date().toISOString(),
-        bank_account_id: bankAccountId,
-        category_id: 'c8a3f8b0-9e6a-4d2c-8b8b-9e6f9e6a4d2c', // Dummy "Savings" category ID, should be dynamic
-        expense_for: goal.ownerId,
-        sub_type: 'goal_contribution',
-        goal_id: goal.id,
-        registered_by_user_id: user.id,
-        owner_id: bankAccounts.find(b => b.id === bankAccountId)?.ownerId
-      }]);
+      const { error } = await supabase.rpc('add_contribution_to_goal', {
+        p_goal_id: goal.id,
+        p_bank_account_id: bankAccountId,
+        p_amount: amount,
+        p_user_id: user.id,
+      });
 
-      if (expenseError) throw expenseError;
-
-      // The backend should handle this, but for now we mimic
-      await supabase.from('bank_accounts').update({ 
-        balance: supabase.sql(`balance - ${amount}`),
-        blocked_balance: supabase.sql(`blocked_balance + ${amount}`)
-      }).eq('id', bankAccountId);
+      if (error) throw error;
       
       toast({ title: "موفقیت!", description: "مبلغ با موفقیت به پس‌انداز اضافه و از حساب شما مسدود شد."});
       await refreshData();
@@ -155,7 +141,7 @@ export default function GoalsPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, toast, refreshData, bankAccounts]);
+  }, [user, toast, refreshData]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 

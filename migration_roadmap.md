@@ -683,6 +683,48 @@ COMMENT ON FUNCTION public.delete_transfer IS 'Atomically deletes a transfer and
 -- --------------------------------------------------------------------
 -- Functions 12, 13, 14: Financial Goal Management
 -- --------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.add_contribution_to_goal(p_goal_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_goal public.financial_goals;
+    v_bank_account public.bank_accounts;
+    v_expense_category public.categories;
+BEGIN
+    SELECT * INTO v_goal FROM public.financial_goals WHERE id = p_goal_id FOR UPDATE;
+    IF v_goal IS NULL THEN RAISE EXCEPTION 'هدف مالی یافت نشد.'; END IF;
+    
+    SELECT * INTO v_bank_account FROM public.bank_accounts WHERE id = p_bank_account_id FOR UPDATE;
+    IF v_bank_account IS NULL THEN RAISE EXCEPTION 'حساب بانکی یافت نشد.'; END IF;
+    
+    IF (v_bank_account.balance - v_bank_account.blocked_balance) < p_amount THEN
+        RAISE EXCEPTION 'موجودی قابل استفاده حساب کافی نیست.';
+    END IF;
+
+    SELECT * INTO v_expense_category FROM public.categories WHERE name LIKE '%پس‌انداز%' LIMIT 1;
+    IF v_expense_category IS NULL THEN 
+      INSERT INTO public.categories(name, description) VALUES ('پس‌انداز برای اهداف', 'دسته‌بندی خودکار برای کمک به اهداف مالی') RETURNING * INTO v_expense_category;
+    END IF;
+
+    UPDATE public.bank_accounts 
+    SET balance = balance - p_amount,
+        blocked_balance = blocked_balance + p_amount
+    WHERE id = p_bank_account_id;
+    
+    UPDATE public.financial_goals
+    SET current_amount = current_amount + p_amount,
+        updated_at = now()
+    WHERE id = p_goal_id;
+
+    INSERT INTO public.expenses (description, amount, date, bank_account_id, category_id, expense_for, sub_type, goal_id, registered_by_user_id, owner_id)
+    VALUES ('پس‌انداز برای هدف: ' || v_goal.name, p_amount, now(), p_bank_account_id, v_expense_category.id, v_goal.owner_id, 'goal_contribution', p_goal_id, p_user_id, v_bank_account.owner_id);
+
+END;
+$$;
+COMMENT ON FUNCTION public.add_contribution_to_goal IS 'Atomically adds a contribution to a goal, creating an expense and managing balances.';
+
 CREATE OR REPLACE FUNCTION public.achieve_financial_goal(p_goal_id uuid, p_actual_cost numeric, p_user_id uuid, p_payment_card_id uuid DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
@@ -800,6 +842,9 @@ BEGIN
         -- Delete the contribution expense
         DELETE FROM public.expenses WHERE id = v_contribution.expense_id;
     END LOOP;
+    
+    -- Also update the goal's current amount to 0
+    UPDATE public.financial_goals SET current_amount = 0 WHERE id = p_goal_id;
 
     -- Finally, delete the goal itself
     DELETE FROM public.financial_goals WHERE id = p_goal_id;
