@@ -434,7 +434,7 @@ BEGIN
     WHERE id = p_check_id;
 END;
 $$;
-COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creating an expense, updates balances and stores the receipt path.';
+COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense, updates balances and stores the receipt path.';
 
 -- --------------------------------------------------------------------
 -- Function 4: Delete a Check
@@ -970,5 +970,10 @@ GRANT EXECUTE ON FUNCTION public.delete_income(uuid) TO authenticated;
 -- ====================================================================
 -- END OF SCRIPT
 -- ====================================================================
-
--- Test comment for triggering the action.
+-- Triggering deployment again.
+-- Triggering deployment for the final time.
+-- Final test trigger.
+-- Triggering for the IPv6 fix.
+-- Another trigger for testing.
+-- Final test.
+-- Trigger test after IPv6 deactivation.
