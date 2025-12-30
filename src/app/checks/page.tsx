@@ -20,10 +20,10 @@ import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 type CheckFormData = Omit<Check, 'id' | 'registeredByUserId' | 'status'> & { signatureDataUrl?: string; image_path?: string };
 
 export default function ChecksPage() {
-  const { user, isUserLoading } = useAuth();
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
   
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCheck, setEditingCheck] = React.useState<Check | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -52,7 +52,8 @@ export default function ChecksPage() {
         });
 
         if (error) throw new Error(error.message);
-
+        
+        await refreshData();
         setIsFormOpen(false);
         setEditingCheck(null);
         toast({ title: 'موفقیت', description: 'چک جدید با موفقیت ثبت و مبلغ آن در حساب مسدود شد.' });
@@ -65,7 +66,7 @@ export default function ChecksPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, toast, bankAccounts, payees, categories, users]);
+  }, [user, toast, bankAccounts, payees, categories, users, refreshData]);
   
   const handleClearCheck = useCallback(async (data: { check: Check; receiptPath?: string }) => {
     const { check, receiptPath } = data;
@@ -79,6 +80,7 @@ export default function ChecksPage() {
         });
         if (error) throw new Error(error.message);
 
+        await refreshData();
         toast({ title: 'موفقیت!', description: `چک به مبلغ ${formatCurrency(check.amount, 'IRT')} با موفقیت پاس و هزینه آن ثبت شد.` });
         
         // Notification Logic remains the same
@@ -89,21 +91,25 @@ export default function ChecksPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, bankAccounts, payees, categories, users, toast]);
+  }, [user, bankAccounts, payees, categories, users, toast, refreshData]);
   
   const handleDeleteCheck = useCallback(async (check: Check) => {
     if (!user) return;
     setIsSubmitting(true);
     try {
+        if (check.image_path) {
+            await supabase.storage.from('hesabketabsatl').remove([check.image_path]);
+        }
         const { error } = await supabase.rpc('delete_check', { p_check_id: check.id });
         if (error) throw new Error(error.message);
+        await refreshData();
         toast({ title: 'موفقیت', description: 'چک با موفقیت حذف شد.' });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در حذف چک', description: error.message });
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, toast]);
+  }, [user, toast, refreshData]);
 
   const handleAddNew = useCallback(() => {
     setEditingCheck(null);
@@ -111,16 +117,34 @@ export default function ChecksPage() {
   }, []);
   
   const handleEdit = useCallback((check: Check) => {
-    setEditingCheck(check);
-    setIsFormOpen(true);
-  }, []);
+    toast({ variant: "destructive", title: "غیرفعال", description: "ویرایش چک پس از ثبت امکان‌پذیر نیست. لطفا چک فعلی را حذف و یک چک جدید ثبت کنید."})
+    // setEditingCheck(check);
+    // setIsFormOpen(true);
+  }, [toast]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        {/* ... Header ... */}
+        <div className="flex items-center gap-2">
+            <Link href="/" passHref>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                  <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
+          <h1 className="font-headline text-3xl font-bold tracking-tight">
+            مدیریت چک‌ها
+          </h1>
+        </div>
+        {!isFormOpen && (
+            <div className="hidden md:block">
+                <Button onClick={handleAddNew}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    ثبت چک جدید
+                </Button>
+            </div>
+        )}
       </div>
 
       {isFormOpen && (
@@ -137,10 +161,9 @@ export default function ChecksPage() {
       )}
 
       {isLoading ? (
-          <div className="space-y-4 mt-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+          <div className="space-y-4 mt-4 grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <Skeleton className="h-72 w-full" />
+              <Skeleton className="h-72 w-full" />
           </div>
       ) : !isFormOpen && (
         <CheckList
@@ -158,7 +181,14 @@ export default function ChecksPage() {
 
       {!isFormOpen && (
         <div className="md:hidden fixed bottom-20 right-4 z-50">
-            {/* ... Floating Action Button ... */}
+            <Button
+                onClick={handleAddNew}
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg"
+                aria-label="ثبت چک جدید"
+            >
+                <Plus className="h-6 w-6" />
+            </Button>
         </div>
       )}
     </div>

@@ -32,7 +32,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 interface IncomeListProps {
   incomes: Income[];
   bankAccounts: BankAccount[];
-  onDelete: (incomeId: string) => void;
+  onDelete: (income: Income) => void;
   onEdit: (income: Income) => void; // Added for editing
   users: UserProfile[];
 }
@@ -143,7 +143,7 @@ export function IncomeList({ incomes, bankAccounts, onDelete, onEdit, users }: I
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(income.id)}>بله، حذف کن</AlertDialogAction>
+                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(income)}>بله، حذف کن</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>

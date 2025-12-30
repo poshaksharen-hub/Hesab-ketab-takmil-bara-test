@@ -24,7 +24,7 @@ export default function LoansPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
@@ -61,6 +61,7 @@ export default function LoansPage() {
 
         if (error) throw new Error(error.message);
         
+        await refreshData();
         toast({ title: "موفقیت", description: "وام جدید با موفقیت ثبت شد." });
         setIsFormOpen(false);
         setEditingLoan(null);
@@ -70,7 +71,7 @@ export default function LoansPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, editingLoan, bankAccounts, payees, users, toast]);
+  }, [user, editingLoan, bankAccounts, payees, users, toast, refreshData]);
 
 
   const handlePayInstallment = useCallback(async ({ loan, paymentBankAccountId, installmentAmount, attachment_path }: { loan: Loan, paymentBankAccountId: string, installmentAmount: number, attachment_path?: string }) => {
@@ -92,7 +93,8 @@ export default function LoansPage() {
         });
 
         if (error) throw new Error(error.message);
-
+        
+        await refreshData();
         toast({ title: "موفقیت", description: "قسط با موفقیت پرداخت و به عنوان هزینه ثبت شد." });
         setPayingLoan(null);
 
@@ -101,25 +103,31 @@ export default function LoansPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, bankAccounts, categories, payees, users, toast]);
+  }, [user, bankAccounts, categories, payees, users, toast, refreshData]);
 
-  const handleDelete = useCallback(async (loanId: string) => {
+  const handleDelete = useCallback(async (loan: Loan) => {
     if (!user) return;
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.rpc('delete_loan', { p_loan_id: loanId });
+      if (loan.attachment_path) {
+          await supabase.storage.from('hesabketabsatl').remove([loan.attachment_path]);
+      }
+      const { error } = await supabase.rpc('delete_loan', { p_loan_id: loan.id });
       if (error) throw new Error(error.message);
+      await refreshData();
       toast({ title: "موفقیت", description: "وام با موفقیت حذف شد."});
     } catch(e: any) {
       toast({ variant: 'destructive', title: 'خطا در حذف وام', description: e.message });
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, toast]);
+  }, [user, toast, refreshData]);
 
   const handleAddNew = () => { setEditingLoan(null); setIsFormOpen(true); };
   const handleCancelForm = () => { setEditingLoan(null); setIsFormOpen(false); }
-  const handleEdit = useCallback((loan: Loan) => { setEditingLoan(loan); setIsFormOpen(true); }, []);
+  const handleEdit = useCallback((loan: Loan) => { 
+    toast({ variant: "destructive", title: "غیرفعال", description: "ویرایش وام پس از ثبت امکان‌پذیر نیست. لطفا وام فعلی را حذف و یک وام جدید ثبت کنید."})
+  }, [toast]);
   
   const isLoading = isUserLoading || isDashboardLoading;
   
@@ -127,7 +135,7 @@ export default function LoansPage() {
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
          <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت وام‌ها</h1>
-         <Button onClick={handleAddNew} disabled={isSubmitting}><PlusCircle className="mr-2 h-4 w-4" />ثبت وام جدید</Button>
+         <Button onClick={handleAddNew} disabled={isSubmitting} className="hidden md:inline-flex"><PlusCircle className="mr-2 h-4 w-4" />ثبت وام جدید</Button>
       </div>
       
       {isLoading ? (

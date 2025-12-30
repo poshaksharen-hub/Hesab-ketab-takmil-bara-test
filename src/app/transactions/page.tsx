@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
@@ -134,10 +133,10 @@ export default function ExpensesPage() {
     }
   }, [user, allBankAccounts, allCategories, allPayees, users, toast, refreshData]);
 
-   const handleDelete = useCallback(async (expenseId: string) => {
+   const handleDelete = useCallback(async (expense: Expense) => {
     if (!allExpenses || !allBankAccounts) return;
     
-    const expenseToDelete = allExpenses.find(exp => exp.id === expenseId);
+    const expenseToDelete = allExpenses.find(exp => exp.id === expense.id);
     if (!expenseToDelete) {
         toast({ variant: "destructive", title: "خطا", description: "تراکنش هزینه مورد نظر یافت نشد." });
         return;
@@ -150,9 +149,15 @@ export default function ExpensesPage() {
     }
 
     try {
+        if (expense.attachment_path) {
+            const { error: storageError } = await supabase.storage.from('hesabketabsatl').remove([expense.attachment_path]);
+            if (storageError) {
+                console.warn(`Failed to delete attachment ${expense.attachment_path}:`, storageError.message);
+            }
+        }
+
         const newBalance = account.balance + expenseToDelete.amount;
 
-        // 1. Restore bank balance
         const { error: accountError } = await supabase
             .from('bank_accounts')
             .update({ balance: newBalance })
@@ -160,11 +165,9 @@ export default function ExpensesPage() {
 
         if (accountError) throw accountError;
 
-        // 2. Delete the expense record
-        const { error: deleteError } = await supabase.from('expenses').delete().eq('id', expenseId);
+        const { error: deleteError } = await supabase.from('expenses').delete().eq('id', expense.id);
 
         if (deleteError) {
-            // Attempt to revert balance change
             await supabase.from('bank_accounts').update({ balance: account.balance }).eq('id', account.id);
             throw deleteError;
         }
@@ -179,7 +182,6 @@ export default function ExpensesPage() {
           description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
         });
     }
-    // TODO: Delete the associated receipt file from storage
   }, [allExpenses, allBankAccounts, toast, refreshData]);
 
   

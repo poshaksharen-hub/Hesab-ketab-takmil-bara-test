@@ -35,7 +35,7 @@ interface ExpenseListProps {
   bankAccounts: BankAccount[];
   categories: Category[];
   payees: Payee[];
-  onDelete: (expenseId: string) => void;
+  onDelete: (expense: Expense) => void;
   users: UserProfile[];
 }
 
@@ -118,21 +118,19 @@ export function ExpenseList({ expenses, bankAccounts, categories, payees, onDele
                        <DetailItem icon={PenSquare} label="ثبت توسط" value={registeredByName} />
                     </div>
                 </CardContent>
-                <CardFooter className="grid grid-cols-2 p-2 bg-muted/50 gap-2">
-                  {receiptUrl ? (
-                    <Link href={receiptUrl} target="_blank" rel="noopener noreferrer" className="w-full">
-                      <Button variant="outline" className="w-full text-xs">
+                <CardFooter className="p-2 bg-muted/50 flex items-center justify-end gap-2">
+                  {receiptUrl && (
+                    <Link href={receiptUrl} target="_blank" rel="noopener noreferrer" className="mr-auto">
+                      <Button variant="outline" className="text-xs">
                         <Receipt className="ml-2 h-4 w-4" />
                         مشاهده رسید
                       </Button>
                     </Link>
-                  ) : (
-                    <div />
                   )}
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="w-full text-xs text-destructive" aria-label="حذف هزینه">
+                      <Button variant="ghost" className="text-xs text-destructive" aria-label="حذف هزینه">
                         <Trash2 className="ml-2 h-4 w-4" />
                         حذف تراکنش
                       </Button>
@@ -144,7 +142,7 @@ export function ExpenseList({ expenses, bankAccounts, categories, payees, onDele
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>انصراف</AlertDialogCancel>
-                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(expense.id)}>بله، حذف کن</AlertDialogAction>
+                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(expense)}>بله، حذف کن</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

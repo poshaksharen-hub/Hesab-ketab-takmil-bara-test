@@ -166,7 +166,18 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                 )}
                 
                 <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
-                    <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="absolute top-2 left-2 z-20">
+                     <div className="text-left w-1/3 space-y-1">
+                        <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
+                     </div>
+                    <div className="text-center w-1/3">
+                        <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
+                        <p className="font-bold font-body text-sm">{bankAccount?.bankName}</p>
+                    </div>
+                    <div className="text-right w-1/3 flex flex-col items-end">
+                         <p className="text-xs text-muted-foreground font-body">سررسید:</p>
+                         <p className="font-handwriting font-bold text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
+                    </div>
+                     <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="absolute top-2 left-2 z-20">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Actions" disabled={isSubmitting}>
@@ -220,6 +231,41 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                         </DropdownMenu>
                     </div>
                 </div>
+                
+                 <Link href={`/checks/${check.id}`} className="block p-4 space-y-2 flex-grow flex flex-col text-sm">
+                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
+                        <span className="shrink-0">در وجه:</span>
+                         <span className="font-handwriting font-bold text-base">{payee}</span>
+                     </div>
+                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
+                         <span className="shrink-0">مبلغ:</span>
+                         <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
+                            {amountToWords(check.amount)} تومان
+                        </span>
+                     </div>
+                     <div className="flex-grow"></div>
+                    <div className="flex justify-between items-end pt-4">
+                        <div className="text-left">
+                            <span className="text-xs text-muted-foreground font-body">مبلغ عددی</span>
+                            <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
+                        </div>
+                        <div className="text-right relative">
+                            <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
+                            <p className="font-body text-sm font-semibold h-6">{ownerName}</p>
+                            {signatureImage && (
+                                <div className="absolute -bottom-5 right-0 w-28 h-14 pointer-events-none">
+                                    <Image 
+                                        src={signatureImage}
+                                        alt={`امضای ${ownerName}`} 
+                                        width={112} 
+                                        height={56}
+                                        style={{ objectFit: 'contain'}}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Link>
             </div>
         </div>
     );

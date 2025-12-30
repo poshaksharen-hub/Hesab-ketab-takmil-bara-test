@@ -21,7 +21,7 @@ import { supabase } from '@/lib/supabase-client';
 export default function DebtsPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [payingDebt, setPayingDebt] = useState<PreviousDebt | null>(null);
@@ -49,6 +49,7 @@ export default function DebtsPage() {
 
         if (error) throw new Error(error.message);
         
+        await refreshData();
         toast({ title: "موفقیت", description: "بدهی جدید با موفقیت ثبت شد." });
         setIsFormOpen(false);
 
@@ -57,7 +58,7 @@ export default function DebtsPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, toast, payees, users]);
+  }, [user, toast, payees, users, refreshData]);
 
 
   const handlePayDebt = useCallback(async ({ debt, paymentBankAccountId, amount, attachment_path }: { debt: PreviousDebt, paymentBankAccountId: string, amount: number, attachment_path?: string }) => {
@@ -80,6 +81,7 @@ export default function DebtsPage() {
 
         if (error) throw new Error(error.message);
 
+        await refreshData();
         toast({ title: "موفقیت", description: "پرداخت با موفقیت ثبت و به عنوان هزینه در سیستم منظور شد." });
         setPayingDebt(null);
     
@@ -92,21 +94,25 @@ export default function DebtsPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, categories, bankAccounts, toast, payees, users]);
+  }, [user, categories, bankAccounts, toast, payees, users, refreshData]);
 
-  const handleDeleteDebt = useCallback(async (debtId: string) => {
+  const handleDeleteDebt = useCallback(async (debt: PreviousDebt) => {
     if (!user) return;
     setIsSubmitting(true);
     try {
-        const { error } = await supabase.rpc('delete_debt', { p_debt_id: debtId });
+        if (debt.attachment_path) {
+            await supabase.storage.from('hesabketabsatl').remove([debt.attachment_path]);
+        }
+        const { error } = await supabase.rpc('delete_debt', { p_debt_id: debt.id });
         if (error) throw new Error(error.message);
+        await refreshData();
         toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
     } catch(e: any) {
         toast({ variant: "destructive", title: "خطا در حذف", description: e.message });
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, toast]);
+  }, [user, toast, refreshData]);
 
   const handleAddNew = () => setIsFormOpen(true);
   const handleCancel = () => setIsFormOpen(false);

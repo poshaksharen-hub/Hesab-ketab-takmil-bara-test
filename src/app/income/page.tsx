@@ -22,7 +22,7 @@ type IncomeFormData = Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registere
 export default function IncomePage() {
   const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData, error } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData, error } = useDashboardData();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,6 +91,7 @@ export default function IncomePage() {
         // Notification logic for new income can be added here...
       }
 
+      await refreshData();
       setIsFormOpen(false);
       setEditingIncome(null);
 
@@ -103,11 +104,55 @@ export default function IncomePage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, allBankAccounts, users, toast, editingIncome]);
+  }, [user, allBankAccounts, users, toast, editingIncome, refreshData]);
 
-  const handleDelete = useCallback(async (incomeId: string) => {
-     // ... (delete logic remains the same)
-  }, [allIncomes, allBankAccounts, toast]);
+  const handleDelete = useCallback(async (income: Income) => {
+     if (!allIncomes || !allBankAccounts) return;
+    
+    const incomeToDelete = allIncomes.find(inc => inc.id === income.id);
+    if (!incomeToDelete) {
+        toast({ variant: "destructive", title: "خطا", description: "تراکنش درآمد مورد نظر یافت نشد." });
+        return;
+    }
+    
+    const account = allBankAccounts.find(acc => acc.id === incomeToDelete.bankAccountId);
+    if (!account) {
+        toast({ variant: "destructive", title: "خطا", description: "حساب بانکی مرتبط یافت نشد." });
+        return;
+    }
+
+    try {
+        if (income.attachment_path) {
+          await supabase.storage.from('hesabketabsatl').remove([income.attachment_path]);
+        }
+        
+        const newBalance = account.balance - incomeToDelete.amount;
+
+        const { error: accountError } = await supabase
+            .from('bank_accounts')
+            .update({ balance: newBalance })
+            .eq('id', account.id);
+
+        if (accountError) throw accountError;
+
+        const { error: deleteError } = await supabase.from('incomes').delete().eq('id', income.id);
+
+        if (deleteError) {
+            await supabase.from('bank_accounts').update({ balance: account.balance }).eq('id', account.id);
+            throw deleteError;
+        }
+        
+        await refreshData();
+        toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ از حساب کسر شد." });
+
+    } catch (error: any) {
+         toast({
+            variant: "destructive",
+            title: "خطا در حذف درآمد",
+            description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
+          });
+    }
+  }, [allIncomes, allBankAccounts, toast, refreshData]);
 
   const handleAddNew = useCallback(() => {
     setEditingIncome(null);
@@ -124,9 +169,15 @@ export default function IncomePage() {
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between">
-        {/* ... Header ... */}
-         <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت درآمدها</h1>
-          <Button onClick={handleAddNew} disabled={isSubmitting}><PlusCircle className="mr-2 h-4 w-4" />ثبت درآمد جدید</Button>
+        <div className="flex items-center gap-2">
+            <Link href="/" passHref>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                  <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
+             <h1 className="font-headline text-3xl font-bold tracking-tight">مدیریت درآمدها</h1>
+        </div>
+          <Button onClick={handleAddNew} disabled={isSubmitting} className="hidden md:inline-flex"><PlusCircle className="mr-2 h-4 w-4" />ثبت درآمد جدید</Button>
       </div>
 
        <IncomeForm
@@ -144,7 +195,7 @@ export default function IncomePage() {
               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-24 w-full" />
           </div>
-      ) : (
+      ) : !isFormOpen && (
         <IncomeList
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}
@@ -154,11 +205,13 @@ export default function IncomePage() {
         />
       )}
 
+      {!isFormOpen && (
       <div className="md:hidden fixed bottom-20 right-4 z-50">
           <Button onClick={handleAddNew} size="icon" className="h-14 w-14 rounded-full shadow-lg" aria-label="ثبت درآمد جدید" disabled={isSubmitting}>
             <Plus className="h-6 w-6" />
           </Button>
       </div>
+      )}
     </div>
   );
 }
