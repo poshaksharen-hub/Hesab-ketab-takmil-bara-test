@@ -1,24 +1,46 @@
+
 name: Deploy Supabase Schema
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'migration_roadmap.md'
 
 jobs:
   deploy-schema:
     runs-on: ubuntu-latest
+    # Add a concurrency group to ensure only one deployment runs at a time.
+    concurrency: 
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          # Fetch the commit history to compare changes
+          fetch-depth: 2
+
+      - name: Check for changes in migration_roadmap.md
+        id: check_changes
+        run: |
+          # Compare the last commit with the one before it to see if the file changed.
+          # The `|| true` ensures the command doesn't fail if there's only one commit (e.g., first push).
+          git diff --name-only HEAD~1 HEAD | grep -q "migration_roadmap.md" || true
+          if git diff --name-only HEAD~1 HEAD | grep -q "migration_roadmap.md"; then
+            echo "Changes detected in migration_roadmap.md. Proceeding with deployment."
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes in migration_roadmap.md. Skipping deployment."
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install PostgreSQL client
+        if: steps.check_changes.outputs.changed == 'true'
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
       - name: Check for Secrets
+        if: steps.check_changes.outputs.changed == 'true'
         run: |
           if [ -z "${{ secrets.SUPABASE_DB_PASSWORD }}" ]; then
             echo "::error::SUPABASE_DB_PASSWORD secret is not set."
@@ -30,6 +52,7 @@ jobs:
           fi
 
       - name: Apply SQL from Roadmap
+        if: steps.check_changes.outputs.changed == 'true'
         env:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -46,6 +69,10 @@ jobs:
           
           echo "Connecting to database and applying schema..."
           PGPASSWORD="$SUPABASE_DB_PASSWORD" psql \
-            "postgresql://postgres@db.$SUPABASE_PROJECT_REF.supabase.co:5432/postgres?options=--ipv4" \
-            -a -c "$SQL_SCRIPT"
+            --host="db.$SUPABASE_PROJECT_REF.supabase.co" \
+            --port=5432 \
+            --username=postgres \
+            --dbname=postgres \
+            -a \
+            -c "$SQL_SCRIPT"
           echo "Schema applied successfully."
