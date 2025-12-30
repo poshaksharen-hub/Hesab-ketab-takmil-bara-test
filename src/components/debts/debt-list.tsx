@@ -11,7 +11,6 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import {
   Accordion,
   AccordionContent,
@@ -57,7 +56,7 @@ export function DebtList({ debts, payees, debtPayments, onPay, onDelete, users, 
       {debts.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((debt) => {
         const progress = debt.amount > 0 ? 100 - (debt.remainingAmount / debt.amount) * 100 : 0;
         const isCompleted = debt.remainingAmount <= 0;
-        const paymentsForDebt = debtPayments.filter(p => p.debt_id === debt.id).sort((a,b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
+        const paymentsForDebt = debtPayments.filter(p => p.debtId === debt.id).sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
 
         return (
           <AccordionItem key={debt.id} value={debt.id} className="border-none">
@@ -87,7 +86,7 @@ export function DebtList({ debts, payees, debtPayments, onPay, onDelete, users, 
                         <li key={payment.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
                           <div className="flex flex-col">
                              <span className="font-semibold">{formatCurrency(payment.amount, 'IRT')}</span>
-                             <span className="text-xs text-muted-foreground">{formatJalaliDate(new Date(payment.payment_date))}</span>
+                             <span className="text-xs text-muted-foreground">{formatJalaliDate(new Date(payment.paymentDate))}</span>
                           </div>
                           {attachmentUrl && (
                             <Button asChild variant="outline" size="sm">

@@ -36,8 +36,27 @@ export default function DebtsPage() {
     debtPayments
   } = allData;
 
- const handleFormSubmit = useCallback(async (values: any) => {
-    // ... (omitted for brevity, no changes here)
+ const handleFormSubmit = useCallback(async (values: Omit<PreviousDebt, 'id'|'remainingAmount'>) => {
+    if (!user) return;
+    setIsSubmitting(true);
+    
+    try {
+        const { error } = await supabase.from('debts').insert([{
+            ...values,
+            remaining_amount: values.amount,
+            registered_by_user_id: user.id
+        }]);
+
+        if (error) throw new Error(error.message);
+        
+        toast({ title: "موفقیت", description: "بدهی جدید با موفقیت ثبت شد." });
+        setIsFormOpen(false);
+
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'خطا در ثبت بدهی', description: error.message });
+    } finally {
+        setIsSubmitting(false);
+    }
   }, [user, toast, payees, users]);
 
 
@@ -56,15 +75,13 @@ export default function DebtsPage() {
             p_bank_account_id: paymentBankAccountId,
             p_amount: amount,
             p_user_id: user.id,
-            p_attachment_path: attachment_path // Pass the new parameter
+            p_attachment_path: attachment_path
         });
 
         if (error) throw new Error(error.message);
 
         toast({ title: "موفقیت", description: "پرداخت با موفقیت ثبت و به عنوان هزینه در سیستم منظور شد." });
         setPayingDebt(null);
-
-        // ... (notification logic remains the same)
     
     } catch (error: any) {
         toast({
@@ -78,8 +95,18 @@ export default function DebtsPage() {
   }, [user, categories, bankAccounts, toast, payees, users]);
 
   const handleDeleteDebt = useCallback(async (debtId: string) => {
-    // ... (omitted for brevity, no changes here)
-  }, [user, previousDebts, toast]);
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+        const { error } = await supabase.rpc('delete_debt', { p_debt_id: debtId });
+        if (error) throw new Error(error.message);
+        toast({ title: "موفقیت", description: "بدهی با موفقیت حذف شد." });
+    } catch(e: any) {
+        toast({ variant: "destructive", title: "خطا در حذف", description: e.message });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }, [user, toast]);
 
   const handleAddNew = () => setIsFormOpen(true);
   const handleCancel = () => setIsFormOpen(false);
@@ -107,7 +134,7 @@ export default function DebtsPage() {
             <DebtList
                 debts={previousDebts || []}
                 payees={payees || []}
-                debtPayments={debtPayments || []} // Pass debt payments
+                debtPayments={debtPayments || []}
                 onPay={setPayingDebt}
                 onDelete={handleDeleteDebt}
                 users={users || []}

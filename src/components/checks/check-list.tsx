@@ -48,7 +48,7 @@ interface CheckListProps {
   bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
-  onClear: (data: { check: Check; receiptPath?: string }) => void; // Updated signature
+  onClear: (data: { check: Check; receiptPath?: string }) => void;
   onDelete: (check: Check) => void;
   onEdit: (check: Check) => void;
   users: UserProfile[];
@@ -113,7 +113,7 @@ const ClearCheckDialog = ({ check, onClear, isSubmitting, children }: { check: C
                          {uploadStatus === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
                          {uploadStatus === 'error' && <AlertCircle className="h-5 w-5 text-red-500" />}
                     </div>
-                    {fileName && <p className="text-sm text-muted-foreground">فایل انتخاب شده: {fileName}</p>}
+                    {fileName && <p className="text-sm text-muted-foreground">فایل: {fileName}</p>}
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsOpen(false)}>انصراف</Button>
@@ -126,6 +126,17 @@ const ClearCheckDialog = ({ check, onClear, isSubmitting, children }: { check: C
     );
 };
 
+const getDetails = (item: Check, payees: Payee[], categories: Category[], bankAccounts: BankAccount[], users: UserProfile[]) => {
+    const payee = payees.find(p => p.id === item.payeeId)?.name || 'نامشخص';
+    const category = categories.find(c => c.id === item.categoryId)?.name || 'نامشخص';
+    const bankAccount = bankAccounts.find(b => b.id === item.bankAccountId);
+    const ownerId = bankAccount?.ownerId;
+    const signatureImage = item.signatureDataUrl || (ownerId ? (USER_DETAILS[ownerId as 'ali' | 'fatemeh']?.signatureImage) : undefined);
+    const ownerName = ownerId === 'shared_account' ? 'علی و فاطمه' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName} ${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].lastName}` : 'ناشناس');
+    const expenseForName = item.expenseFor && USER_DETAILS[item.expenseFor] ? USER_DETAILS[item.expenseFor].firstName : 'مشترک';
+    const registeredByName = users.find(u => u.id === item.registeredByUserId)?.firstName || 'سیستم';
+    return { payee, category, bankAccount, ownerId, ownerName, expenseForName, signatureImage, registeredByName };
+};
 
 const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete, onEdit, users, isSubmitting }: {
     check: Check;
@@ -155,7 +166,6 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                 )}
                 
                 <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
-                    {/* IDs and Dropdown Menu */}
                     <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="absolute top-2 left-2 z-20">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -167,27 +177,23 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                 {!isCleared && (
                                      <ClearCheckDialog check={check} onClear={onClear} isSubmitting={isSubmitting}>
                                         <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", "text-emerald-600 focus:text-emerald-700")}>
-                                            <CheckCircle className="ml-2 h-4 w-4" />
-                                            پاس کردن چک
+                                            <CheckCircle className="ml-2 h-4 w-4" /> پاس کردن چک
                                         </div>
                                     </ClearCheckDialog>
                                 )}
                                 <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared || isSubmitting}>
-                                    <Edit className="ml-2 h-4 w-4" />
-                                    ویرایش چک
+                                    <Edit className="ml-2 h-4 w-4" /> ویرایش چک
                                 </DropdownMenuItem>
                                 
                                 {imageUrl && (
                                     <DropdownMenuItem onSelect={() => window.open(imageUrl, '_blank')}>
-                                        <Camera className="ml-2 h-4 w-4" />
-                                        مشاهده عکس چک
+                                        <Camera className="ml-2 h-4 w-4" /> مشاهده عکس چک
                                     </DropdownMenuItem>
                                 )}
                                 
                                 {clearanceReceiptUrl && (
                                     <DropdownMenuItem onSelect={() => window.open(clearanceReceiptUrl, '_blank')}>
-                                        <FileText className="ml-2 h-4 w-4" />
-                                        مشاهده رسید پاس شدن
+                                        <FileText className="ml-2 h-4 w-4" /> مشاهده رسید پاس شدن
                                     </DropdownMenuItem>
                                 )}
 
@@ -195,8 +201,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground cursor-not-allowed" : "text-destructive focus:text-destructive")}>
-                                            <Trash2 className="ml-2 h-4 w-4" />
-                                            حذف چک
+                                            <Trash2 className="ml-2 h-4 w-4" /> حذف چک
                                         </div>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
@@ -205,11 +210,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                            <AlertDialogAction 
-                                                className="bg-destructive hover:bg-destructive/90" 
-                                                onClick={() => onDelete(check)}
-                                                disabled={isDeleteDisabled}
-                                            >
+                                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(check)} disabled={isDeleteDisabled}>
                                                  {isSubmitting ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : 'بله، حذف کن'}
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
@@ -218,28 +219,11 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
-                     {/* Rest of header content */}
                 </div>
-                {/* Body */}
-                 <CardContent className="p-4 space-y-2 flex-grow flex flex-col text-sm">
-                    {/* ... content ... */}
-                 </CardContent>
             </div>
         </div>
     );
 };
-
-const getDetails = (item: Check, payees: Payee[], categories: Category[], bankAccounts: BankAccount[], users: UserProfile[]) => {
-    const payee = payees.find(p => p.id === item.payeeId)?.name || 'نامشخص';
-    const category = categories.find(c => c.id === item.categoryId)?.name || 'نامشخص';
-    const bankAccount = bankAccounts.find(b => b.id === item.bankAccountId);
-    const ownerId = bankAccount?.ownerId;
-    const signatureImage = item.signatureDataUrl || (ownerId ? (USER_DETAILS[ownerId as 'ali' | 'fatemeh']?.signatureImage) : undefined);
-    const ownerName = ownerId === 'shared_account' ? 'علی و فاطمه' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName} ${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].lastName}` : 'ناشناس');
-    const expenseForName = item.expenseFor && USER_DETAILS[item.expenseFor] ? USER_DETAILS[item.expenseFor].firstName : 'مشترک';
-    const registeredByName = users.find(u => u.id === item.registeredByUserId)?.firstName || 'سیستم';
-    return { payee, category, bankAccount, ownerId, ownerName, expenseForName, signatureImage, registeredByName };
-}
 
 export function CheckList({ checks, bankAccounts, payees, categories, onClear, onDelete, onEdit, users, isSubmitting }: CheckListProps) {
   

@@ -24,7 +24,6 @@ import type { User } from '@supabase/supabase-js';
 import { Loader2, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 
-// 1. Add image_path to the schema
 const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
   bankAccountId: z.string().min(1, { message: 'لطفا حساب بانکی را انتخاب کنید.' }),
@@ -37,7 +36,7 @@ const formSchema = z.object({
   sayadId: z.string().min(1, { message: 'شماره صیادی الزامی است.' }),
   checkSerialNumber: z.string().min(1, { message: 'شماره سری چک الزامی است.' }),
   signatureDataUrl: z.string().optional(),
-  image_path: z.string().optional(), // <-- New field
+  image_path: z.string().optional(),
 }).refine(data => data.dueDate >= data.issueDate, {
     message: "تاریخ سررسید نمی‌تواند قبل از تاریخ صدور باشد.",
     path: ["dueDate"],
@@ -70,7 +69,6 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
     // Logic to reset form and preview URL
   }, [initialData, form]);
 
-  // 2. Add file handling logic
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
@@ -98,7 +96,6 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
       setUploadStatus('idle');
   };
 
-  // 3. Modify submission logic
   const handleFormSubmit = (data: CheckFormValues) => {
       setIsSignatureDialogOpen(true);
   };
@@ -110,8 +107,6 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
     setIsSignatureDialogOpen(false);
   };
 
-  // ... (getOwnerName and other helpers)
-
   return (
       <>
         <Card>
@@ -119,9 +114,6 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
             <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>
                 <CardContent className="space-y-4">
-                    {/* ... other form fields ... */}
-
-                    {/* 4. Add the upload component to the UI */}
                     <FormField
                         control={form.control}
                         name="image_path"
@@ -132,7 +124,10 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
                                     <div className='flex items-center gap-4'>
                                         <Input id='check-image-upload' type='file' accept='image/*' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
                                         <label htmlFor='check-image-upload' className={cn('flex-1 cursor-pointer rounded-md border-2 border-dashed border-gray-300 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-primary', (uploadStatus === 'uploading' || isSubmitting) && 'cursor-not-allowed opacity-50')}>
-                                            {/* ... Upload status icons and text ... */}
+                                           {uploadStatus === 'idle' && !previewUrl && <><Upload className='mx-auto mb-2 h-6 w-6' /><span>برای آپلود کلیک کنید</span></>}
+                                           {uploadStatus === 'uploading' && <><Loader2 className='mx-auto mb-2 h-6 w-6 animate-spin' /><span>در حال آپلود...</span></>}
+                                           {(uploadStatus === 'success' || (previewUrl && uploadStatus === 'idle')) && <><CheckCircle className='mx-auto mb-2 h-6 w-6 text-green-500' /><span>برای تغییر کلیک کنید</span></>}
+                                           {uploadStatus === 'error' && <><AlertCircle className='mx-auto mb-2 h-6 w-6 text-red-500' /><span>خطا! دوباره تلاش کنید.</span></>}
                                         </label>
                                         {previewUrl && (
                                             <div className='relative h-24 w-24 flex-shrink-0 rounded-md border'>
@@ -148,8 +143,6 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
                             </FormItem>
                         )}
                     />
-
-                    {/* ... rest of the form fields ... */}
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || uploadStatus === 'uploading'}>لغو</Button>
@@ -161,8 +154,6 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
             </form>
             </Form>
         </Card>
-
-        {/* ... Dialogs ... */}
       </>
   );
 }

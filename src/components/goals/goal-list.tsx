@@ -11,11 +11,22 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { formatCurrency, formatJalaliDate, getRelativeTime } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import Image from 'next/image';
 import { getPublicUrl } from '@/lib/storage';
 import { Edit, Trash2, CheckCircle, RotateCcw, Plus, Gift } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface GoalListProps {
   goals: FinancialGoal[];
@@ -46,7 +57,9 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
         const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
         const registeredBy = findUser(goal.registeredByUserId);
         const ownerName = USER_DETAILS[goal.ownerId as keyof typeof USER_DETAILS]?.firstName || 'مشترک';
-        const imageUrl = getPublicUrl(goal.image_path);
+        const imageUrl = goal.image_path ? getPublicUrl(goal.image_path) : null;
+        
+        const isDeleteDisabled = isSubmitting || goal.isAchieved || (goal.contributions && goal.contributions.length > 0);
 
         return (
           <Card key={goal.id} className="flex flex-col overflow-hidden group">
@@ -65,9 +78,25 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
                             <Edit className="h-4 w-4" />
                         </Button>
                     )}
-                    <Button variant="destructive" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(goal.id)} disabled={isSubmitting}>
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" disabled={isDeleteDisabled}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {isDeleteDisabled ? "این هدف قابل حذف نیست زیرا دارای سابقه پرداخت است یا قبلاً محقق شده است." : "این عمل غیرقابل بازگشت است. هدف مالی برای همیشه حذف خواهد شد."}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>انصراف</AlertDialogCancel>
+                                {!isDeleteDisabled && <AlertDialogAction onClick={() => onDelete(goal.id)}>بله، حذف کن</AlertDialogAction>}
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </CardHeader>
             <CardContent className="flex-grow p-4">
@@ -78,16 +107,16 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
               <div className="my-4">
                 <div className="flex justify-between items-end mb-1">
                     <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">پس‌انداز شده</span>
-                    <span className="text-xs text-muted-foreground">هدف: {formatCurrency(goal.targetAmount)}</span>
+                    <span className="text-xs text-muted-foreground">هدف: {formatCurrency(goal.targetAmount, 'IRT')}</span>
                 </div>
                 <Progress value={progress} />
                 <div className="flex justify-between items-end mt-1">
-                    <span className="text-lg font-bold text-primary">{formatCurrency(goal.currentAmount)}</span>
+                    <span className="text-lg font-bold text-primary">{formatCurrency(goal.currentAmount, 'IRT')}</span>
                     <span className="text-xs font-mono">%{Math.round(progress)}</span>
                 </div>
               </div>
               <div className="text-xs text-muted-foreground space-y-1">
-                  <p>تاریخ هدف: {formatJalaliDate(goal.targetDate)} ({getRelativeTime(goal.targetDate)})</p>
+                  <p>تاریخ هدف: {formatJalaliDate(new Date(goal.targetDate))}</p>
                   <p>اولویت: {goal.priority}</p>
               </div>
             </CardContent>
@@ -95,7 +124,7 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
                 {goal.isAchieved ? (
                     <Button variant="ghost" className="w-full" onClick={() => onRevert(goal)} disabled={isSubmitting}>
                         <RotateCcw className="ml-2 h-4 w-4"/>بازگردانی هدف
-                    </EButton>
+                    </Button>
                 ) : (
                     <div className="grid grid-cols-2 gap-2 w-full">
                         <Button variant="secondary" onClick={() => onContribute(goal)} disabled={isSubmitting}>

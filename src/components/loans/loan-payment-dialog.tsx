@@ -32,12 +32,13 @@ import {
 import type { Loan, BankAccount } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Info, Loader2, CheckCircle, AlertCircle, Upload, Trash2 } from 'lucide-react';
 import { CurrencyInput, Input } from '../ui/input';
 import { USER_DETAILS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth'; 
 import { uploadLoanReceipt } from '@/lib/storage';
+import { cn } from '@/lib/utils';
 
 const createFormSchema = (remainingAmount: number) => z.object({
   paymentBankAccountId: z.string().min(1, { message: 'لطفا یک کارت برای پرداخت انتخاب کنید.' }),
@@ -135,16 +136,15 @@ export function LoanPaymentDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-            {/* ... Other Fields ... */}
             <FormField control={form.control} name="installmentAmount" render={({ field }) => (<FormItem><FormLabel>مبلغ پرداخت (تومان)</FormLabel><FormControl><CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="paymentBankAccountId" render={({ field }) => (<FormItem><FormLabel>پرداخت از کارت</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="یک کارت بانکی انتخاب کنید" /></SelectTrigger></FormControl><SelectContent>{sortedBankAccounts.map((account) => (<SelectItem key={account.id} value={account.id}>{`${account.bankName} ${getOwnerName(account)} (قابل استفاده: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
             
-            {/* --- Attachment Field --- */}
             <FormItem>
               <FormLabel>پیوست رسید (اختیاری)</FormLabel>
               <div className="flex items-center gap-2">
                 <FormControl>
                   <Input
+                    id="loan-receipt-upload"
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={handleFileChange}

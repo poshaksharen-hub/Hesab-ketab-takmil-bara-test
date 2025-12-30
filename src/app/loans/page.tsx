@@ -39,8 +39,37 @@ export default function LoansPage() {
     users,
   } = allData;
 
- const handleFormSubmit = useCallback(async (loanValues: any) => {
-    // ... (omitted for brevity, no changes here)
+ const handleFormSubmit = useCallback(async (loanValues: Omit<Loan, 'id'|'remainingAmount'|'paidInstallments'>) => {
+    if (!user) return;
+    setIsSubmitting(true);
+    
+    try {
+        const { error } = await supabase.rpc('create_loan', {
+            p_title: loanValues.title,
+            p_amount: loanValues.amount,
+            p_owner_id: loanValues.ownerId,
+            p_installment_amount: loanValues.installmentAmount,
+            p_number_of_installments: loanValues.numberOfInstallments,
+            p_start_date: loanValues.startDate,
+            p_first_installment_date: loanValues.firstInstallmentDate,
+            p_payee_id: loanValues.payeeId,
+            p_deposit_on_create: loanValues.depositOnCreate,
+            p_deposit_to_account_id: loanValues.depositToAccountId,
+            p_registered_by_user_id: user.id,
+            p_attachment_path: loanValues.attachment_path
+        });
+
+        if (error) throw new Error(error.message);
+        
+        toast({ title: "موفقیت", description: "وام جدید با موفقیت ثبت شد." });
+        setIsFormOpen(false);
+        setEditingLoan(null);
+
+    } catch(e: any) {
+        toast({ variant: 'destructive', title: 'خطا در ثبت وام', description: e.message });
+    } finally {
+        setIsSubmitting(false);
+    }
   }, [user, editingLoan, bankAccounts, payees, users, toast]);
 
 
@@ -59,15 +88,13 @@ export default function LoansPage() {
             p_bank_account_id: paymentBankAccountId,
             p_amount: installmentAmount,
             p_user_id: user.id,
-            p_attachment_path: attachment_path // Pass the new parameter
+            p_attachment_path: attachment_path
         });
 
         if (error) throw new Error(error.message);
 
         toast({ title: "موفقیت", description: "قسط با موفقیت پرداخت و به عنوان هزینه ثبت شد." });
         setPayingLoan(null);
-        
-        // ... (notification logic remains the same)
 
     } catch (error: any) {
         toast({ variant: "destructive", title: "خطا در پرداخت قسط", description: error.message });
@@ -77,10 +104,19 @@ export default function LoansPage() {
   }, [user, bankAccounts, categories, payees, users, toast]);
 
   const handleDelete = useCallback(async (loanId: string) => {
-    // ... (omitted for brevity, no changes here)
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.rpc('delete_loan', { p_loan_id: loanId });
+      if (error) throw new Error(error.message);
+      toast({ title: "موفقیت", description: "وام با موفقیت حذف شد."});
+    } catch(e: any) {
+      toast({ variant: 'destructive', title: 'خطا در حذف وام', description: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
   }, [user, toast]);
 
-  // ... (other handlers remain the same)
   const handleAddNew = () => { setEditingLoan(null); setIsFormOpen(true); };
   const handleCancelForm = () => { setEditingLoan(null); setIsFormOpen(false); }
   const handleEdit = useCallback((loan: Loan) => { setEditingLoan(loan); setIsFormOpen(true); }, []);
@@ -96,13 +132,23 @@ export default function LoansPage() {
       
       {isLoading ? (
          <Skeleton className="h-48 w-full rounded-xl" />
+      ) : isFormOpen ? (
+        <LoanForm
+            onCancel={handleCancelForm}
+            onSubmit={handleFormSubmit}
+            initialData={editingLoan}
+            bankAccounts={bankAccounts || []}
+            payees={payees || []}
+            user={user}
+            isSubmitting={isSubmitting}
+        />
       ) : (
         <>
             <LoanList
                 loans={loans || []}
                 payees={payees || []}
                 users={users || []}
-                loanPayments={allData.loanPayments || []} // Pass loan payments
+                loanPayments={allData.loanPayments || []}
                 onDelete={handleDelete}
                 onPay={setPayingLoan}
                 onEdit={handleEdit}

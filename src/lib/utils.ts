@@ -1,7 +1,9 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format } from 'date-fns-jalali';
+import { format as formatJalali } from 'date-fns-jalali';
+import { formatDistanceToNow } from 'date-fns';
+import { faIR } from 'date-fns/locale';
 import { supabase } from './supabase-client';
 
 export function cn(...inputs: ClassValue[]) {
@@ -25,7 +27,7 @@ export function toPersianDigits(str: string | number): string {
   return String(str).replace(/\d/g, (d) => persianNumbers[parseInt(d)]);
 }
 
-export function formatCurrency(amount: number, currency: 'USD' | 'IRT' = 'USD') {
+export function formatCurrency(amount?: number, currency: 'USD' | 'IRT' = 'IRT') {
     const numericAmount = (typeof amount !== 'number' || isNaN(amount)) ? 0 : amount;
     if (currency === 'IRT') {
         return new Intl.NumberFormat('fa-IR').format(numericAmount) + ' تومان';
@@ -37,12 +39,18 @@ export function formatCurrency(amount: number, currency: 'USD' | 'IRT' = 'USD') 
   }).format(numericAmount);
 }
 
-export function formatJalaliDate(date: Date) {
+export function formatJalaliDate(date: Date | string) {
     if (!date) return '';
-    // Ensure we have a valid date object
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return '';
-    return format(dateObj, 'yyyy/MM/dd');
+    return formatJalali(dateObj, 'yyyy/MM/dd');
+}
+
+export function getRelativeTime(date: Date | string) {
+    if (!date) return '';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return '';
+    return formatDistanceToNow(dateObj, { addSuffix: true, locale: faIR });
 }
 
 
@@ -74,7 +82,7 @@ function convertThreeDigits(num: number): string {
     } else if (num > 0) {
         str += units[num];
     }
-    return str.replace(/ و $/, ""); // Remove trailing " و "
+    return str.replace(/ و $/, "");
 }
 
 export function amountToWords(amount: number): string {
@@ -97,8 +105,14 @@ export function amountToWords(amount: number): string {
     return result.reverse().join(" و ").trim();
 }
 
-export function getPublicUrl(bucket: string, path: string) {
-  if (!bucket || !path) return null;
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+const BUCKET_NAME = 'hesabketabsatl';
+
+export const getPublicUrl = (path: string | undefined): string | null => {
+  if (!path) return null;
+  
+  const { data } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(path);
+
   return data?.publicUrl || null;
 }

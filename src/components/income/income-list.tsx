@@ -110,7 +110,6 @@ export function IncomeList({ incomes, bankAccounts, onDelete, onEdit, users }: I
                     <DetailItem icon={Landmark} label="واریز به" value={bankAccount?.bankName || 'نامشخص'} />
                     <DetailItem icon={Calendar} label="تاریخ ثبت" value={formatJalaliDate(new Date(income.date))} />
                     <DetailItem icon={PenSquare} label="ثبت توسط" value={getRegisteredByName(income.registeredByUserId)} />
-                    <DetailItem icon={Wallet} label="موجودی مقصد پس از تراکنش" value={income.balanceAfter !== undefined ? formatCurrency(income.balanceAfter, 'IRT') : 'نامشخص'} className="text-primary font-mono" />
                   </div>
                 </CardContent>
                  <CardFooter className="p-2 bg-muted/50 flex items-center justify-start gap-1">

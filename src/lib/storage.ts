@@ -61,20 +61,14 @@ export const uploadLoanReceipt = (user: User, loanId: string, file: File) => {
   return uploadAttachment(file, pathPrefix, user);
 };
 
-/**
- * Uploads a debt payment receipt.
- * @param user The authenticated user.
- * @param debtId The ID of the debt for which the receipt is being uploaded.
- * @param file The receipt file.
- * @returns The storage path of the uploaded file.
- */
+
 export const uploadDebtReceipt = (user: User, debtId: string, file: File) => {
   const pathPrefix = `debt-receipts/${debtId}`;
   return uploadAttachment(file, pathPrefix, user);
 };
 
 
-export const getPublicUrl = (path: string): string | null => {
+export const getPublicUrl = (path: string | undefined): string | null => {
   if (!path) return null;
   
   const { data } = supabase.storage

@@ -20,13 +20,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
-import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -73,7 +66,7 @@ export function LoanList({ loans, payees, users, loanPayments, onDelete, onPay, 
       {loans.sort((a, b) => (a.remainingAmount > 0 ? -1 : 1) - (b.remainingAmount > 0 ? -1 : 1) || new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map((loan) => {
         const progress = loan.amount > 0 ? 100 - (loan.remainingAmount / loan.amount) * 100 : 0;
         const isCompleted = loan.remainingAmount <= 0;
-        const paymentsForLoan = loanPayments.filter(p => p.loan_id === loan.id).sort((a,b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
+        const paymentsForLoan = loanPayments.filter(p => p.loanId === loan.id).sort((a,b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
 
         return (
           <AccordionItem key={loan.id} value={loan.id} className="border-none">
@@ -103,7 +96,7 @@ export function LoanList({ loans, payees, users, loanPayments, onDelete, onPay, 
                         <li key={payment.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
                           <div className="flex flex-col">
                              <span className="font-semibold">{formatCurrency(payment.amount, 'IRT')}</span>
-                             <span className="text-xs text-muted-foreground">{formatJalaliDate(new Date(payment.payment_date))}</span>
+                             <span className="text-xs text-muted-foreground">{formatJalaliDate(new Date(payment.paymentDate))}</span>
                           </div>
                           {attachmentUrl && (
                             <Button asChild variant="outline" size="sm">
