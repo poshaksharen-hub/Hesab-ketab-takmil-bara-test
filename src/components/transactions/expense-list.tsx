@@ -27,7 +27,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import Link from 'next/link';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -119,17 +118,15 @@ export function ExpenseList({ expenses, bankAccounts, categories, payees, onDele
                 </CardContent>
                 <CardFooter className="p-2 bg-muted/50 flex items-center justify-end gap-2">
                   {receiptUrl && (
-                    <Link href={receiptUrl} target="_blank" rel="noopener noreferrer" className="mr-auto">
-                      <Button variant="outline" className="text-xs">
+                      <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className={`${buttonVariants({ variant: 'outline' })} text-xs mr-auto`}>
                         <Receipt className="ml-2 h-4 w-4" />
                         مشاهده رسید
-                      </Button>
-                    </Link>
+                      </a>
                   )}
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="text-xs text-destructive" aria-label="حذف هزینه">
+                      <Button variant="ghost" className="h-8 text-xs text-destructive" aria-label="حذف هزینه">
                         <Trash2 className="ml-2 h-4 w-4" />
                         حذف تراکنش
                       </Button>

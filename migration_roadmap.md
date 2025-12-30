@@ -1,4 +1,3 @@
--- Force trigger: 2024-07-28 12:00:00 UTC
 -- ====================================================================
 -- HESAB KETAB: COMPLETE DATABASE SETUP SCRIPT
 -- ====================================================================
@@ -709,8 +708,7 @@ BEGIN
     END IF;
 
     UPDATE public.bank_accounts 
-    SET balance = balance - p_amount,
-        blocked_balance = blocked_balance + p_amount
+    SET blocked_balance = blocked_balance + p_amount
     WHERE id = p_bank_account_id;
     
     UPDATE public.financial_goals
@@ -741,12 +739,15 @@ BEGIN
     IF v_goal IS NULL THEN RAISE EXCEPTION 'هدف مالی یافت نشد.'; END IF;
     IF v_goal.is_achieved THEN RAISE EXCEPTION 'این هدف قبلاً محقق شده است.'; END IF;
 
-    -- Unblock the saved amount from all contributing accounts
+    -- Unblock the saved amount from all contributing accounts and deduct from main balance
     FOR v_contribution IN
         SELECT exp.amount, exp.bank_account_id
         FROM public.expenses AS exp WHERE exp.goal_id = p_goal_id AND exp.sub_type = 'goal_contribution'
     LOOP
-        UPDATE public.bank_accounts SET blocked_balance = blocked_balance - v_contribution.amount WHERE id = v_contribution.bank_account_id;
+        UPDATE public.bank_accounts 
+        SET balance = balance - v_contribution.amount,
+            blocked_balance = blocked_balance - v_contribution.amount 
+        WHERE id = v_contribution.bank_account_id;
     END LOOP;
 
     v_cash_payment_needed := p_actual_cost - v_goal.current_amount;
@@ -791,12 +792,15 @@ BEGIN
     IF v_goal IS NULL THEN RAISE EXCEPTION 'هدف مالی یافت نشد.'; END IF;
     IF NOT v_goal.is_achieved THEN RAISE EXCEPTION 'این هدف هنوز محقق نشده است که بازگردانی شود.'; END IF;
 
-    -- Re-block the contributed amounts
+    -- Re-block the contributed amounts and add back to main balance
     FOR v_contribution IN
         SELECT exp.amount, exp.bank_account_id
         FROM public.expenses AS exp WHERE exp.goal_id = p_goal_id AND exp.sub_type = 'goal_contribution'
     LOOP
-        UPDATE public.bank_accounts SET blocked_balance = blocked_balance + v_contribution.amount WHERE id = v_contribution.bank_account_id;
+        UPDATE public.bank_accounts 
+        SET balance = balance + v_contribution.amount,
+            blocked_balance = blocked_balance + v_contribution.amount 
+        WHERE id = v_contribution.bank_account_id;
     END LOOP;
     
     -- Revert the cash portion payment if it exists
@@ -834,9 +838,9 @@ BEGIN
         SELECT exp.id as expense_id, exp.amount, exp.bank_account_id
         FROM public.expenses AS exp WHERE exp.goal_id = p_goal_id AND exp.sub_type = 'goal_contribution'
     LOOP
-        -- Revert balances (add back to main balance, remove from blocked)
+        -- Revert balances (remove from blocked balance, balance itself is not changed as it's just a contribution)
         UPDATE public.bank_accounts 
-        SET balance = balance + v_contribution.amount, blocked_balance = blocked_balance - v_contribution.amount 
+        SET blocked_balance = blocked_balance - v_contribution.amount 
         WHERE id = v_contribution.bank_account_id;
         
         -- Delete the contribution expense
@@ -865,8 +869,84 @@ AS $$
 $$;
 COMMENT ON FUNCTION public.get_all_users() IS 'Securely fetches a list of all user profiles.';
 
-GRANT EXECUTE ON FUNCTION public.get_all_users() TO anon;
-GRANT EXECUTE ON FUNCTION public.get_all_users() TO authenticated;
+-- --------------------------------------------------------------------
+-- ATOMIC TRANSACTION FUNCTIONS
+-- --------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.create_expense(p_amount numeric, p_description text, p_date timestamptz, p_bank_account_id uuid, p_category_id uuid, p_payee_id uuid, p_expense_for text, p_owner_id text, p_registered_by_user_id uuid, p_attachment_path text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_account public.bank_accounts;
+BEGIN
+    SELECT * INTO v_account FROM public.bank_accounts WHERE id = p_bank_account_id FOR UPDATE;
+
+    IF (v_account.balance - v_account.blocked_balance) < p_amount THEN
+        RAISE EXCEPTION 'موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست.';
+    END IF;
+
+    UPDATE public.bank_accounts SET balance = balance - p_amount WHERE id = p_bank_account_id;
+
+    INSERT INTO public.expenses (amount, description, date, bank_account_id, category_id, payee_id, expense_for, owner_id, registered_by_user_id, attachment_path)
+    VALUES (p_amount, p_description, p_date, p_bank_account_id, p_category_id, p_payee_id, p_expense_for, p_owner_id, p_registered_by_user_id, p_attachment_path);
+END;
+$$;
+COMMENT ON FUNCTION public.create_expense IS 'Atomically creates an expense and deducts the amount from the bank account balance.';
+
+
+CREATE OR REPLACE FUNCTION public.delete_expense(p_expense_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_expense public.expenses;
+BEGIN
+    SELECT * INTO v_expense FROM public.expenses WHERE id = p_expense_id FOR UPDATE;
+    IF v_expense IS NULL THEN RAISE EXCEPTION 'هزینه یافت نشد.'; END IF;
+
+    UPDATE public.bank_accounts SET balance = balance + v_expense.amount WHERE id = v_expense.bank_account_id;
+    
+    DELETE FROM public.expenses WHERE id = p_expense_id;
+END;
+$$;
+COMMENT ON FUNCTION public.delete_expense IS 'Atomically deletes an expense and reverts the bank account balance.';
+
+
+CREATE OR REPLACE FUNCTION public.create_income(p_amount numeric, p_description text, p_date timestamptz, p_bank_account_id uuid, p_owner_id text, p_source_text text, p_registered_by_user_id uuid, p_attachment_path text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.bank_accounts SET balance = balance + p_amount WHERE id = p_bank_account_id;
+
+    INSERT INTO public.incomes (amount, description, date, bank_account_id, owner_id, source_text, category, registered_by_user_id, attachment_path)
+    VALUES (p_amount, p_description, p_date, p_bank_account_id, p_owner_id, p_source_text, 'درآمد', p_registered_by_user_id, p_attachment_path);
+END;
+$$;
+COMMENT ON FUNCTION public.create_income IS 'Atomically creates an income and adds the amount to the bank account balance.';
+
+
+CREATE OR REPLACE FUNCTION public.delete_income(p_income_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_income public.incomes;
+BEGIN
+    SELECT * INTO v_income FROM public.incomes WHERE id = p_income_id FOR UPDATE;
+    IF v_income IS NULL THEN RAISE EXCEPTION 'درآمد یافت نشد.'; END IF;
+
+    UPDATE public.bank_accounts SET balance = balance - v_income.amount WHERE id = v_income.bank_account_id;
+    
+    DELETE FROM public.incomes WHERE id = p_income_id;
+END;
+$$;
+COMMENT ON FUNCTION public.delete_income IS 'Atomically deletes an income and reverts the bank account balance.';
 
 
 -- ====================================================================
@@ -877,6 +957,15 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
+
+GRANT EXECUTE ON FUNCTION public.get_all_users() TO anon;
+GRANT EXECUTE ON FUNCTION public.get_all_users() TO authenticated;
+-- Grant execute permissions on new functions
+GRANT EXECUTE ON FUNCTION public.create_expense(numeric, text, timestamptz, uuid, uuid, uuid, text, text, uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_expense(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_income(numeric, text, timestamptz, uuid, text, text, uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_income(uuid) TO authenticated;
+
 
 -- ====================================================================
 -- END OF SCRIPT

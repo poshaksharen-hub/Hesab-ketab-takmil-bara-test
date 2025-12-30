@@ -10,9 +10,7 @@ import type { Income, BankAccount, UserProfile, TransactionDetails } from '@/lib
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
-import { sendSystemNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase-client';
 
 // Match the form values from income-form.tsx
@@ -21,7 +19,7 @@ type IncomeFormData = Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registere
 export default function IncomePage() {
   const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData, refreshData, error } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +63,7 @@ export default function IncomePage() {
           p_bank_account_id: values.bankAccountId,
           p_owner_id: values.ownerId,
           p_source_text: values.source || values.description,
-          p_registered_by_user_id: user.uid,
+          p_registered_by_user_id: user.id,
           p_attachment_path: values.attachment_path,
         });
 
@@ -92,10 +90,6 @@ export default function IncomePage() {
 
   const handleDelete = useCallback(async (income: Income) => {
     try {
-        if (income.attachment_path) {
-          await supabase.storage.from('hesabketabsatl').remove([income.attachment_path]);
-        }
-        
         const { error } = await supabase.rpc('delete_income', { p_income_id: income.id });
         if (error) throw error;
         
@@ -152,7 +146,7 @@ export default function IncomePage() {
               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-24 w-full" />
           </div>
-      ) : !isFormOpen && (
+      ) : (
         <IncomeList
           incomes={allIncomes || []}
           bankAccounts={allBankAccounts || []}

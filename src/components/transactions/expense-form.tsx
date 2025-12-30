@@ -115,12 +115,8 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
             setPreviewUrl(null);
             setUploadStatus('idle');
         }
-    } else {
-        form.reset({});
-        setPreviewUrl(null);
-        setUploadStatus('idle');
     }
-  }, [isOpen, initialData, form.reset]);
+  }, [isOpen, initialData, form]);
 
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,7 +213,7 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
                                 <FormLabel>عکس رسید (اختیاری)</FormLabel>
                                 <FormControl>
                                     <div className='flex items-center gap-4'>
-                                        <Input
+                                        <input
                                             id='receipt-upload'
                                             type='file'
                                             accept='image/*,application/pdf'

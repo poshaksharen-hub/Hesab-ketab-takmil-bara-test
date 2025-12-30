@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Upload, Trash2 } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -33,12 +33,13 @@ import {
 } from '@/components/ui/select';
 import type { Income, BankAccount } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
-import type { User as AuthUser } from 'firebase/auth';
+import type { User as AuthUser } from '@supabase/supabase-js';
 import { USER_DETAILS } from '@/lib/constants';
 import { Textarea } from '../ui/textarea';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getPublicUrl, cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { uploadIncomeDocument } from '@/lib/storage';
+import Image from 'next/image';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
@@ -67,7 +68,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
   const { toast } = useToast();
 
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [fileName, setFileName] = useState<string>('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(formSchema),
@@ -84,10 +85,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
 
   useEffect(() => {
     if (isOpen) {
-        // Reset upload state each time dialog opens
-        setUploadStatus('idle');
-        setFileName('');
-
         if (initialData) {
             form.reset({ 
                 ...initialData, 
@@ -95,8 +92,11 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 attachment_path: initialData.attachment_path || '',
             });
             if(initialData.attachment_path) {
+              setPreviewUrl(getPublicUrl(initialData.attachment_path));
               setUploadStatus('success');
-              setFileName(initialData.attachment_path.split('/').pop() || 'فایل پیوست شده');
+            } else {
+                setPreviewUrl(null);
+                setUploadStatus('idle');
             }
         } else {
             form.reset({
@@ -108,6 +108,8 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
                 source: '',
                 attachment_path: '',
             });
+            setPreviewUrl(null);
+            setUploadStatus('idle');
         }
     }
   }, [initialData, loggedInUserOwnerId, isOpen, form]);
@@ -117,7 +119,7 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
     if (!file || !user) return;
 
     setUploadStatus('uploading');
-    setFileName(file.name);
+    setPreviewUrl(URL.createObjectURL(file));
 
     try {
       const path = await uploadIncomeDocument(user, file);
@@ -126,10 +128,17 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
       toast({ title: 'موفقیت', description: 'پیوست با موفقیت آپلود شد.' });
     } catch (error) {
       setUploadStatus('error');
+      setPreviewUrl(null);
       form.setValue('attachment_path', '');
       toast({ variant: 'destructive', title: 'خطا', description: 'آپلود پیوست ناموفق بود.' });
       console.error(error);
     }
+  };
+  
+  const handleRemoveFile = () => {
+    form.setValue('attachment_path', '');
+    setPreviewUrl(null);
+    setUploadStatus('idle');
   };
 
   const selectedOwnerId = form.watch('ownerId');
@@ -173,7 +182,6 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-              {/* ... Other Fields ... */}
               <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>شرح درآمد</FormLabel><FormControl><Textarea placeholder="مثال: حقوق ماهانه، فروش پروژه" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="amount" render={({ field }) => (<FormItem><FormLabel>مبلغ (تومان)</FormLabel><FormControl><CurrencyInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="date" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ</FormLabel><JalaliDatePicker title="تاریخ درآمد" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
@@ -181,24 +189,27 @@ export function IncomeForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccou
               <FormField control={form.control} name="bankAccountId" render={({ field }) => (<FormItem><FormLabel>واریز به کارت</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!selectedOwnerId || availableAccounts.length === 0}><FormControl><SelectTrigger><SelectValue placeholder={!selectedOwnerId ? "ابتدا منبع درآمد را انتخاب کنید" : (availableAccounts.length === 0 ? "کارتی برای این منبع یافت نشد" : "یک کارت بانکی انتخاب کنید")} /></SelectTrigger></FormControl><SelectContent className="max-h-[250px]">{availableAccounts.map((account) => (<SelectItem key={account.id} value={account.id}>{`${account.bankName} (...${account.cardNumber.slice(-4)}) ${getOwnerName(account)} ${account.accountType === 'checking' ? '(جاری)' : ''} - (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="source" render={({ field }) => (<FormItem><FormLabel>نام واریز کننده (اختیاری)</FormLabel><FormControl><Input placeholder="مثال: شرکت راهیان کار" {...field} /></FormControl><FormMessage /></FormItem>)} />
 
-              {/* --- Attachment Field --- */}
               <FormItem>
                   <FormLabel>پیوست مستندات (اختیاری)</FormLabel>
-                  <div className="flex items-center gap-2">
-                      <FormControl>
-                          <Input
-                              type="file"
-                              accept="image/*,application/pdf,.xlsx,.xls,.doc,.docx"
-                              onChange={handleFileChange}
-                              disabled={uploadStatus === 'uploading'}
-                              className="flex-grow"
-                          />
-                      </FormControl>
-                      {uploadStatus === 'uploading' && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
-                      {uploadStatus === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                      {uploadStatus === 'error' && <AlertCircle className="h-5 w-5 text-red-500" />}
-                  </div>
-                  {fileName && <p className="text-sm text-muted-foreground pt-1">فایل: {fileName}</p>}
+                   <FormControl>
+                        <div className='flex items-center gap-4'>
+                            <input id='income-attachment-upload' type='file' accept='image/*,application/pdf,.xlsx,.xls,.doc,.docx' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting}/>
+                            <label htmlFor='income-attachment-upload' className={cn('flex-1 cursor-pointer rounded-md border-2 border-dashed border-gray-300 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-primary', (uploadStatus === 'uploading' || isSubmitting) && 'cursor-not-allowed opacity-50')}>
+                               {uploadStatus === 'idle' && !previewUrl && <><Upload className='mx-auto mb-2 h-6 w-6' /><span>برای آپلود کلیک کنید</span></>}
+                               {uploadStatus === 'uploading' && <><Loader2 className='mx-auto mb-2 h-6 w-6 animate-spin' /><span>در حال آپلود...</span></>}
+                               {(uploadStatus === 'success' || (previewUrl && uploadStatus === 'idle')) && <><CheckCircle className='mx-auto mb-2 h-6 w-6 text-green-500' /><span>برای تغییر کلیک کنید</span></>}
+                               {uploadStatus === 'error' && <><AlertCircle className='mx-auto mb-2 h-6 w-6 text-red-500' /><span>خطا! دوباره تلاش کنید.</span></>}
+                            </label>
+                            {previewUrl && (
+                                <div className='relative h-24 w-24 flex-shrink-0 rounded-md border'>
+                                    <Image src={previewUrl} alt='پیش‌نمایش' layout='fill' objectFit='cover' className='rounded-md' />
+                                    <Button type='button' variant='destructive' size='icon' className='absolute -top-2 -right-2 h-6 w-6 rounded-full' onClick={handleRemoveFile} disabled={isSubmitting}>
+                                        <Trash2 className='h-4 w-4' />
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </FormControl>
                   <FormMessage />
               </FormItem>
             

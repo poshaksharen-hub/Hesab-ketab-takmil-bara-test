@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
 import { ExpenseList } from '@/components/transactions/expense-list';
@@ -49,13 +49,6 @@ export default function ExpensesPage() {
         return;
     }
 
-    const availableBalance = account.balance - (account.blockedBalance || 0);
-    if (availableBalance < values.amount) {
-        toast({ variant: "destructive", title: "خطای موجودی", description: "موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست." });
-        setIsSubmitting(false);
-        return;
-    }
-
     try {
         // Create an expense and update balance atomically via RPC
         const { error } = await supabase.rpc('create_expense', {
@@ -67,7 +60,7 @@ export default function ExpensesPage() {
           p_payee_id: values.payeeId === 'none' ? null : values.payeeId,
           p_expense_for: values.expenseFor,
           p_owner_id: account.ownerId,
-          p_registered_by_user_id: user.uid,
+          p_registered_by_user_id: user.id,
           p_attachment_path: values.attachment_path,
         });
 
@@ -79,7 +72,7 @@ export default function ExpensesPage() {
 
         // 3. Send notification (non-critical)
         try {
-            const currentUserFirstName = users.find(u => u.id === user.uid)?.firstName || 'کاربر';
+            const currentUserFirstName = users.find(u => u.id === user.id)?.firstName || 'کاربر';
             const category = allCategories.find(c => c.id === values.categoryId);
             const payee = allPayees.find(p => p.id === values.payeeId);
             const bankAccountOwnerName = account?.ownerId === 'shared_account' ? 'مشترک' : (account?.ownerId && USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName);
@@ -99,7 +92,7 @@ export default function ExpensesPage() {
                 expenseFor: (values.expenseFor && USER_DETAILS[values.expenseFor as 'ali' | 'fatemeh']?.firstName) || 'مشترک',
             };
             
-            await sendSystemNotification(user.uid, notificationDetails);
+            await sendSystemNotification(user.id, notificationDetails);
         } catch (notificationError: any) {
             console.error("Failed to send notification:", notificationError.message);
         }
@@ -117,10 +110,6 @@ export default function ExpensesPage() {
 
    const handleDelete = useCallback(async (expense: Expense) => {
     try {
-        if (expense.attachment_path) {
-            await supabase.storage.from('hesabketabsatl').remove([expense.attachment_path]);
-        }
-
         const { error } = await supabase.rpc('delete_expense', { p_expense_id: expense.id });
         if (error) throw error;
         
@@ -128,11 +117,11 @@ export default function ExpensesPage() {
         toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ به حساب بازگردانده شد." });
 
     } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "خطا در حذف هزینه",
-          description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
-        });
+         toast({
+            variant: "destructive",
+            title: "خطا در حذف هزینه",
+            description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
+          });
     }
   }, [toast, refreshData]);
 

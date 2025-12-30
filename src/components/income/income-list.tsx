@@ -16,7 +16,6 @@ import {
   Calendar,
   PenSquare,
   Building,
-  Wallet,
   Trash2,
   Edit,
   FileText,
@@ -26,7 +25,7 @@ import { formatCurrency, formatJalaliDate, getPublicUrl } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface IncomeListProps {
@@ -131,7 +130,7 @@ export function IncomeList({ incomes, bankAccounts, onDelete, onEdit, users }: I
 
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                           <Button variant="ghost" className="text-xs text-destructive hover:text-destructive/90" aria-label="حذف درآمد">
+                           <Button variant="ghost" className="h-8 text-xs text-destructive" aria-label="حذف درآمد">
                                 <Trash2 className="ml-2 h-4 w-4" />
                                 حذف
                             </Button>
@@ -143,7 +142,7 @@ export function IncomeList({ incomes, bankAccounts, onDelete, onEdit, users }: I
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(income)}>بله، حذف کن</AlertDialogAction>
+                                <AlertDialogAction onClick={() => onDelete(income)} className={buttonVariants({ variant: "destructive" })}>بله، حذف کن</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
