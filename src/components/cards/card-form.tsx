@@ -63,7 +63,7 @@ interface CardFormProps {
 
 export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount, isSubmitting, user }: CardFormProps) {
   const isMobile = useIsMobile();
-  const [bankPopoverOpen, setBankPopoverOpen = useState(false);
+  const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
   
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),

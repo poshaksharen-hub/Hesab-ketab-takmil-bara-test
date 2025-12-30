@@ -44,5 +44,5 @@ CREATE TABLE IF NOT EXISTS public.bank_accounts (
 -- ... (rest of the schema remains the same)
 
 -- ====================================================================
--- END OF SCRIPT - FINAL ATTEMPT WITH ADVANCED DNS DEBUGGING
+-- END OF SCRIPT
 -- ====================================================================

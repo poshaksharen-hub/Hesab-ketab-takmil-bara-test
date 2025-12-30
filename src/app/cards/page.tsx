@@ -23,10 +23,10 @@ export default function CardsPage() {
   
   const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
-  const [isFormOpen, setIsFormOpen = React.useState(false);
-  const [editingCard, setEditingCard = React.useState<BankAccount | null>(null);
-  const [searchQuery, setSearchQuery = React.useState('');
-  const [isSubmitting, setIsSubmitting = React.useState(false);
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const { bankAccounts: allBankAccounts, users, expenses, incomes, transfers, checks, loanPayments, debtPayments } = allData;
 
