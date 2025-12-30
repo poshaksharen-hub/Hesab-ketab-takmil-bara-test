@@ -23,10 +23,10 @@ export default function CardsPage() {
   
   const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<BankAccount | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { bankAccounts: allBankAccounts, users, expenses, incomes, transfers, checks, loanPayments, debtPayments } = allData;
 
@@ -38,7 +38,7 @@ export default function CardsPage() {
     
     try {
         if (editingCard) {
-            // Update logic
+            // Update logic - Corrected column names
             const { error } = await supabase.from('bank_accounts').update({
                 bank_name: values.bankName,
                 account_number: values.accountNumber,
@@ -51,10 +51,18 @@ export default function CardsPage() {
             if (error) throw error;
             toast({ title: "موفقیت", description: "کارت با موفقیت ویرایش شد." });
         } else {
-            // Create logic
+            // Create logic - Corrected column names
             const { error } = await supabase.from('bank_accounts').insert([{
-                ...values,
+                bank_name: values.bankName,
+                account_number: values.accountNumber,
+                card_number: values.cardNumber,
+                expiry_date: values.expiryDate,
+                cvv2: values.cvv2,
+                theme: values.theme,
+                account_type: values.accountType,
+                owner_id: values.ownerId,
                 balance: values.initialBalance,
+                initial_balance: values.initialBalance,
                 registered_by_user_id: user.id,
             }]);
             if (error) throw error;
