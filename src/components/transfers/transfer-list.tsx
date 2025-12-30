@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -8,7 +7,7 @@ import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { ArrowDown, ArrowUp, ArrowRight, Banknote, Trash2, PenSquare } from 'lucide-react';
 import { USER_DETAILS } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 
 
@@ -144,7 +143,7 @@ export function TransferList({ transfers, bankAccounts, onDelete, users }: Trans
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                             <AlertDialogCancel>انصراف</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(transfer.id)}>
+                            <AlertDialogAction onClick={() => onDelete(transfer.id)} className={buttonVariants({ variant: "destructive" })}>
                                 بله، حذف کن
                             </AlertDialogAction>
                             </AlertDialogFooter>

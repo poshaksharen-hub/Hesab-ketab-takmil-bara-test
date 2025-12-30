@@ -7,8 +7,8 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Calendar, User, Users, PenSquare } from 'lucide-react';
-import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
+import { ArrowRight, BookCopy, HandCoins, Landmark, AlertCircle, Calendar, User, Users, PenSquare, FileText } from 'lucide-react';
+import { formatCurrency, formatJalaliDate, cn, getPublicUrl } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { USER_DETAILS } from '@/lib/constants';
@@ -175,13 +175,14 @@ export default function LoanDetailPage() {
                     <TableHead>تاریخ پرداخت</TableHead>
                     <TableHead>مبلغ قسط</TableHead>
                     <TableHead>برداشت از حساب</TableHead>
-                    <TableHead className="text-left">صاحب حساب</TableHead>
+                    <TableHead>صاحب حساب</TableHead>
+                    <TableHead className="text-left">رسید</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {paymentHistory.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center">
+                            <TableCell colSpan={5} className="h-24 text-center">
                                 هیچ قسطی برای این وام پرداخت نشده است.
                             </TableCell>
                         </TableRow>
@@ -191,7 +192,16 @@ export default function LoanDetailPage() {
                         <TableCell>{formatJalaliDate(new Date(payment.paymentDate))}</TableCell>
                         <TableCell className="font-medium font-mono">{formatCurrency(payment.amount, 'IRT')}</TableCell>
                         <TableCell>{payment.bankName}</TableCell>
-                        <TableCell className="text-left">{payment.ownerName}</TableCell>
+                        <TableCell>{payment.ownerName}</TableCell>
+                        <TableCell className="text-left">
+                            {payment.attachment_path ? (
+                                <Button asChild variant="outline" size="sm">
+                                  <a href={getPublicUrl(payment.attachment_path) || '#'} target="_blank" rel="noopener noreferrer">
+                                    <FileText className="ml-2 h-4 w-4"/> مشاهده
+                                  </a>
+                                </Button>
+                            ) : '-'}
+                        </TableCell>
                     </TableRow>
                     )))}
                 </TableBody>

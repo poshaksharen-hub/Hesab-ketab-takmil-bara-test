@@ -53,17 +53,17 @@ type CardFormValues = z.infer<typeof formSchema>;
 interface CardFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<CardFormValues, 'isShared' | 'owner'> & { ownerId: 'ali' | 'fatemeh' | 'shared_account' }) => void;
+  onSubmit: (data: CardFormValues) => void;
   initialData: BankAccount | null;
   users: UserProfile[];
   hasSharedAccount: boolean;
   isSubmitting: boolean;
+  user: any; // Passed from parent
 }
 
-export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount, isSubmitting }: CardFormProps) {
+export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount, isSubmitting, user }: CardFormProps) {
   const isMobile = useIsMobile();
-  const { user } = useAuth();
-  const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
+  const [bankPopoverOpen, setBankPopoverOpen = useState(false);
   
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),
@@ -80,14 +80,14 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
     },
   });
   
-  const loggedInUserOwnerId = users.find(u => u.id === user?.id)?.email.startsWith('ali') ? 'ali' : 'fatemeh';
+  const loggedInUserOwnerId = user?.email.startsWith('ali') ? 'ali' : 'fatemeh';
 
   React.useEffect(() => {
     if (isOpen) { // Only reset when opening
       if (initialData) {
         form.reset({
            ...initialData,
-           ownerId: initialData.ownerId, 
+           ownerId: initialData.ownerId as 'ali' | 'fatemeh' | 'shared_account', 
            theme: initialData.theme || (BANK_DATA.find(b => b.name === initialData.bankName)?.themes[0]?.id || 'blue'),
           } as CardFormValues);
       } else {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -39,6 +38,8 @@ export default function IncomePage() {
     try {
       if (editingIncome) {
         // --- UPDATE LOGIC ---
+        // Note: Atomic updates for edits are complex (reverting old amount, applying new). 
+        // For simplicity, we're not making this atomic. A more robust solution might involve a dedicated RPC function.
         const { error: updateError } = await supabase
           .from('incomes')
           .update({
@@ -53,39 +54,22 @@ export default function IncomePage() {
           .eq('id', editingIncome.id);
 
         if (updateError) throw updateError;
-        toast({ title: "موفقیت", description: "درآمد با موفقیت ویرایش شد." });
+        toast({ title: "موفقیت", description: "درآمد با موفقیت ویرایش شد. لطفاً موجودی حساب را به صورت دستی بررسی کنید." });
 
       } else {
         // --- CREATE LOGIC ---
-        const account = allBankAccounts.find(acc => acc.id === values.bankAccountId);
-        if (!account) throw new Error("کارت بانکی یافت نشد");
+        const { error } = await supabase.rpc('create_income', {
+          p_amount: values.amount,
+          p_description: values.description,
+          p_date: isoDate,
+          p_bank_account_id: values.bankAccountId,
+          p_owner_id: values.ownerId,
+          p_source_text: values.source || values.description,
+          p_registered_by_user_id: user.uid,
+          p_attachment_path: values.attachment_path,
+        });
 
-        const balanceBefore = account.balance;
-        const balanceAfter = balanceBefore + values.amount;
-
-        const { error: accountError } = await supabase
-          .from('bank_accounts')
-          .update({ balance: balanceAfter })
-          .eq('id', account.id);
-
-        if (accountError) throw accountError;
-
-        const { error: incomeError } = await supabase.from('incomes').insert([{
-            amount: values.amount,
-            description: values.description,
-            date: isoDate,
-            owner_id: values.ownerId,
-            bank_account_id: values.bankAccountId,
-            source_text: values.source || values.description,
-            category: 'درآمد',
-            registered_by_user_id: user.uid,
-            attachment_path: values.attachment_path, // Add attachment path
-        }]);
-      
-        if (incomeError) {
-          await supabase.from('bank_accounts').update({ balance: balanceBefore }).eq('id', account.id);
-          throw incomeError;
-        }
+        if (error) throw error;
 
         toast({ title: "موفقیت", description: "درآمد جدید با موفقیت ثبت شد." });
         // Notification logic for new income can be added here...
@@ -107,40 +91,13 @@ export default function IncomePage() {
   }, [user, allBankAccounts, users, toast, editingIncome, refreshData]);
 
   const handleDelete = useCallback(async (income: Income) => {
-     if (!allIncomes || !allBankAccounts) return;
-    
-    const incomeToDelete = allIncomes.find(inc => inc.id === income.id);
-    if (!incomeToDelete) {
-        toast({ variant: "destructive", title: "خطا", description: "تراکنش درآمد مورد نظر یافت نشد." });
-        return;
-    }
-    
-    const account = allBankAccounts.find(acc => acc.id === incomeToDelete.bankAccountId);
-    if (!account) {
-        toast({ variant: "destructive", title: "خطا", description: "حساب بانکی مرتبط یافت نشد." });
-        return;
-    }
-
     try {
         if (income.attachment_path) {
           await supabase.storage.from('hesabketabsatl').remove([income.attachment_path]);
         }
         
-        const newBalance = account.balance - incomeToDelete.amount;
-
-        const { error: accountError } = await supabase
-            .from('bank_accounts')
-            .update({ balance: newBalance })
-            .eq('id', account.id);
-
-        if (accountError) throw accountError;
-
-        const { error: deleteError } = await supabase.from('incomes').delete().eq('id', income.id);
-
-        if (deleteError) {
-            await supabase.from('bank_accounts').update({ balance: account.balance }).eq('id', account.id);
-            throw deleteError;
-        }
+        const { error } = await supabase.rpc('delete_income', { p_income_id: income.id });
+        if (error) throw error;
         
         await refreshData();
         toast({ title: "موفقیت", description: "تراکنش درآمد با موفقیت حذف و مبلغ از حساب کسر شد." });
@@ -152,7 +109,7 @@ export default function IncomePage() {
             description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
           });
     }
-  }, [allIncomes, allBankAccounts, toast, refreshData]);
+  }, [toast, refreshData]);
 
   const handleAddNew = useCallback(() => {
     setEditingIncome(null);

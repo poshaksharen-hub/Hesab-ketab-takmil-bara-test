@@ -1,9 +1,8 @@
-
 'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Handshake, FileText, CheckCircle, User, Users, Trash2, MoreVertical, PenSquare } from 'lucide-react';
 import type { PreviousDebt, Payee, OwnerId, UserProfile, DebtPayment } from '@/lib/types';
 import { formatCurrency, cn, getPublicUrl, formatJalaliDate } from '@/lib/utils';
@@ -114,10 +113,10 @@ export function DebtList({ debts, payees, debtPayments, onPay, onDelete, users, 
                     </Button>
                    )}
                    <AlertDialog>
-                      <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={isSubmitting || paymentsForDebt.length > 0}>حذف</Button></AlertDialogTrigger>
+                      <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={isSubmitting || paymentsForDebt.length > 0}>حذف</Button></AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>آیا مطمئنید؟</AlertDialogTitle><AlertDialogDescription>{paymentsForDebt.length > 0 ? 'این بدهی دارای سابقه پرداخت است و قابل حذف نیست.' : 'این بدهی برای همیشه حذف خواهد شد.'}</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>انصراف</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(debt)} disabled={paymentsForDebt.length > 0}>حذف</AlertDialogAction></AlertDialogFooter>
+                        <AlertDialogFooter><AlertDialogCancel>انصراف</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(debt)} disabled={paymentsForDebt.length > 0} className={buttonVariants({ variant: "destructive" })}>حذف</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
                    </AlertDialog>
                    <Button onClick={() => onPay(debt)} disabled={isCompleted || isSubmitting}><Handshake className="ml-2 h-4 w-4"/> پرداخت</Button>

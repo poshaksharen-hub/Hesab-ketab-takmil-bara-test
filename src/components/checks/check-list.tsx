@@ -1,10 +1,9 @@
-
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, MoreVertical, Edit, CheckCircle, Loader2, Camera, FileText, Upload, AlertCircle } from 'lucide-react';
+import { Trash2, MoreVertical, Edit, CheckCircle, Loader2, Camera, FileText } from 'lucide-react';
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn, amountToWords, getPublicUrl } from '@/lib/utils';
 import {
@@ -19,15 +18,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -38,10 +28,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { HesabKetabLogo } from '../icons';
 import Image from 'next/image';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
-import { uploadClearanceReceipt } from '@/lib/storage';
-import { Input } from '../ui/input';
+import { ClearCheckDialog } from './clear-check-dialog';
 
 interface CheckListProps {
   checks: Check[];
@@ -54,77 +41,6 @@ interface CheckListProps {
   users: UserProfile[];
   isSubmitting: boolean;
 }
-
-const ClearCheckDialog = ({ check, onClear, isSubmitting, children }: { check: Check, onClear: (data: { check: Check; receiptPath?: string }) => void, isSubmitting: boolean, children: React.ReactNode }) => {
-    const { user } = useAuth();
-    const { toast } = useToast();
-    const [isOpen, setIsOpen] = useState(false);
-    const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-    const [receiptPath, setReceiptPath] = useState<string | undefined>(undefined);
-    const [fileName, setFileName] = useState<string>('');
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file || !user) return;
-
-        setUploadStatus('uploading');
-        setFileName(file.name);
-
-        try {
-            const path = await uploadClearanceReceipt(user, file);
-            setReceiptPath(path);
-            setUploadStatus('success');
-            toast({ title: 'موفقیت', description: 'رسید با موفقیت آپلود شد.' });
-        } catch (error) {
-            setUploadStatus('error');
-            setReceiptPath(undefined);
-            toast({ variant: 'destructive', title: 'خطا', description: 'آپلود رسید ناموفق بود.' });
-            console.error(error);
-        }
-    };
-
-    const handleConfirm = () => {
-        onClear({ check, receiptPath });
-        setIsOpen(false);
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>پاس کردن چک</DialogTitle>
-                    <DialogDescription>
-                        مبلغ {formatCurrency(check.amount, 'IRT')} از حساب کسر خواهد شد. برای تکمیل فرآیند، می‌توانید رسید تراکنش را پیوست کنید (اختیاری).
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <label htmlFor="receipt-upload" className="block text-sm font-medium text-gray-700 dark:text-gray-300">پیوست رسید</label>
-                    <div className="flex items-center gap-2">
-                        <Input
-                            id="receipt-upload"
-                            type="file"
-                            accept="image/*,application/pdf"
-                            onChange={handleFileChange}
-                            disabled={uploadStatus === 'uploading'}
-                            className="flex-grow"
-                        />
-                         {uploadStatus === 'uploading' && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
-                         {uploadStatus === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                         {uploadStatus === 'error' && <AlertCircle className="h-5 w-5 text-red-500" />}
-                    </div>
-                    {fileName && <p className="text-sm text-muted-foreground">فایل: {fileName}</p>}
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsOpen(false)}>انصراف</Button>
-                    <Button onClick={handleConfirm} disabled={isSubmitting || uploadStatus === 'uploading'}>
-                        {isSubmitting ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : 'تایید و پاس کردن'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-};
 
 const getDetails = (item: Check, payees: Payee[], categories: Category[], bankAccounts: BankAccount[], users: UserProfile[]) => {
     const payee = payees.find(p => p.id === item.payeeId)?.name || 'نامشخص';
@@ -221,7 +137,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(check)} disabled={isDeleteDisabled}>
+                                            <AlertDialogAction onClick={() => onDelete(check)} disabled={isDeleteDisabled} className={buttonVariants({ variant: "destructive" })}>
                                                  {isSubmitting ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : 'بله، حذف کن'}
                                             </AlertDialogAction>
                                         </AlertDialogFooter>

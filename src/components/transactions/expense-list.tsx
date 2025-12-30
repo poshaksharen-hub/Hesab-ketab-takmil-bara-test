@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -26,7 +25,7 @@ import { formatCurrency, formatJalaliDate, getPublicUrl } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 
@@ -142,7 +141,7 @@ export function ExpenseList({ expenses, bankAccounts, categories, payees, onDele
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>انصراف</AlertDialogCancel>
-                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => onDelete(expense)}>بله، حذف کن</AlertDialogAction>
+                            <AlertDialogAction onClick={() => onDelete(expense)} className={buttonVariants({ variant: "destructive" })}>بله، حذف کن</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

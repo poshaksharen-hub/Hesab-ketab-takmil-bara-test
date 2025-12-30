@@ -78,8 +78,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     const { user } = useAuth();
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
     const { toast } = useToast();
-    const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [uploadStatus, setUploadStatus = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+    const [previewUrl, setPreviewUrl = useState<string | null>(null);
 
     const form = useForm<LoanFormValues>({
         resolver: zodResolver(formSchema),
@@ -128,7 +128,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
             setPreviewUrl(null);
             setUploadStatus('idle');
         }
-    }, [initialData, user, form]);
+    }, [initialData, form]);
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -159,6 +159,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
 
     const watchDepositOnCreate = form.watch('depositOnCreate');
     const watchLoanOwnerId = form.watch('ownerId');
+    
     const availableDepositAccounts = useMemo(() => {
         const targetOwnerIds: string[] = [];
         if (watchLoanOwnerId === 'ali') targetOwnerIds.push('ali');
@@ -167,6 +168,14 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         
         return bankAccounts.filter(acc => targetOwnerIds.includes(acc.ownerId));
     }, [watchLoanOwnerId, bankAccounts]);
+    
+    useEffect(() => {
+        const currentDepositAccountId = form.getValues('depositToAccountId');
+        const isCurrentAccountValid = availableDepositAccounts.some(acc => acc.id === currentDepositAccountId);
+        if (!isCurrentAccountValid) {
+            form.setValue('depositToAccountId', '');
+        }
+    }, [watchLoanOwnerId, availableDepositAccounts, form]);
     
     const handlePayeeSelection = (value: string) => {
         if (value === 'add_new') {
@@ -182,15 +191,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
         return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
     };
 
-    useEffect(() => {
-        const currentDepositAccountId = form.getValues('depositToAccountId');
-        const isCurrentAccountValid = availableDepositAccounts.some(acc => acc.id === currentDepositAccountId);
-        if (!isCurrentAccountValid) {
-            form.setValue('depositToAccountId', '');
-        }
-    }, [watchLoanOwnerId, availableDepositAccounts, form]);
-
-
     return (
         <>
             <Card>
@@ -200,6 +200,24 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
                         <CardContent className="space-y-4">
+                            <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>عنوان وام</FormLabel><FormControl><Input placeholder="مثال: وام خرید خودرو" {...field} disabled={isSubmitting}/></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="payeeId" render={({ field }) => (<FormItem><FormLabel>وام دهنده (اختیاری)</FormLabel><Select onValueChange={handlePayeeSelection} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="یک طرف حساب انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>{payees.map((payee) => (<SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="amount" render={({ field }) => (<FormItem><FormLabel>مبلغ کل وام (تومان)</FormLabel><FormControl><CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="ownerId" render={({ field }) => (<FormItem><FormLabel>وام برای</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="شخص مورد نظر را انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem><SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem><SelectItem value="shared">مشترک</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="installmentAmount" render={({ field }) => (<FormItem><FormLabel>مبلغ هر قسط</FormLabel><FormControl><CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="numberOfInstallments" render={({ field }) => (<FormItem><FormLabel>تعداد کل اقساط</FormLabel><FormControl><NumericInput {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="startDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ دریافت وام</FormLabel><JalaliDatePicker title="تاریخ دریافت وام" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="firstInstallmentDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ اولین قسط</FormLabel><JalaliDatePicker title="تاریخ اولین قسط" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
+                            </div>
+                            <FormField control={form.control} name="depositOnCreate" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><div className="space-y-0.5"><FormLabel>مبلغ وام به حساب واریز شود؟</FormLabel><FormDescription>در صورت فعال بودن، مبلغ وام به موجودی حساب انتخابی اضافه می‌شود.</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={isSubmitting} /></FormControl></FormItem>)} />
+                            {watchDepositOnCreate && (
+                                <FormField control={form.control} name="depositToAccountId" render={({ field }) => (<FormItem><FormLabel>واریز به حساب</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="یک حساب برای واریز مبلغ وام انتخاب کنید" /></SelectTrigger></FormControl><SelectContent>{availableDepositAccounts.map((account) => (<SelectItem key={account.id} value={account.id}>{`${account.bankName} ${getOwnerName(account)} (موجودی: ${formatCurrency(account.balance - (account.blockedBalance || 0), 'IRT')})`}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                            )}
                              <FormField
                                 control={form.control}
                                 name="attachment_path"
@@ -240,6 +258,11 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                     </form>
                 </Form>
             </Card>
+            {isAddPayeeOpen && (
+                <AddPayeeDialog isOpen={isAddPayeeOpen} onOpenChange={setIsAddPayeeOpen} onPayeeAdded={(newPayee) => {
+                    form.setValue('payeeId', newPayee.id);
+                }} />
+            )}
         </>
     );
 }

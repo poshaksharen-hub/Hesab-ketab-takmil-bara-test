@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
@@ -58,38 +57,21 @@ export default function ExpensesPage() {
     }
 
     try {
-        const balanceBefore = account.balance;
-        const balanceAfter = balanceBefore - values.amount;
+        // Create an expense and update balance atomically via RPC
+        const { error } = await supabase.rpc('create_expense', {
+          p_amount: values.amount,
+          p_description: values.description,
+          p_date: (values.date as any).toISOString(),
+          p_bank_account_id: values.bankAccountId,
+          p_category_id: values.categoryId,
+          p_payee_id: values.payeeId === 'none' ? null : values.payeeId,
+          p_expense_for: values.expenseFor,
+          p_owner_id: account.ownerId,
+          p_registered_by_user_id: user.uid,
+          p_attachment_path: values.attachment_path,
+        });
 
-        // 1. Update bank account balance
-        const { error: accountError } = await supabase
-            .from('bank_accounts')
-            .update({ balance: balanceAfter })
-            .eq('id', account.id);
-
-        if (accountError) throw accountError;
-
-        // 2. Insert new expense record, now with attachment_path
-        const newExpenseData = {
-            description: values.description,
-            amount: values.amount,
-            date: (values.date as any).toISOString(),
-            bank_account_id: values.bankAccountId,
-            category_id: values.categoryId,
-            payee_id: values.payeeId === 'none' ? null : values.payeeId,
-            expense_for: values.expenseFor,
-            owner_id: account.ownerId,
-            registered_by_user_id: user.uid,
-            attachment_path: values.attachment_path, // <<< THE MAGIC HAPPENS HERE
-        };
-
-        const { error: expenseError } = await supabase.from('expenses').insert([newExpenseData]);
-
-        if (expenseError) {
-            // Attempt to revert balance change
-            await supabase.from('bank_accounts').update({ balance: balanceBefore }).eq('id', account.id);
-            throw expenseError;
-        }
+        if (error) throw error;
         
         await refreshData();
         setIsFormOpen(false);
@@ -134,43 +116,13 @@ export default function ExpensesPage() {
   }, [user, allBankAccounts, allCategories, allPayees, users, toast, refreshData]);
 
    const handleDelete = useCallback(async (expense: Expense) => {
-    if (!allExpenses || !allBankAccounts) return;
-    
-    const expenseToDelete = allExpenses.find(exp => exp.id === expense.id);
-    if (!expenseToDelete) {
-        toast({ variant: "destructive", title: "خطا", description: "تراکنش هزینه مورد نظر یافت نشد." });
-        return;
-    }
-    
-    const account = allBankAccounts.find(acc => acc.id === expenseToDelete.bankAccountId);
-    if (!account) {
-        toast({ variant: "destructive", title: "خطا", description: "حساب بانکی مرتبط یافت نشد." });
-        return;
-    }
-
     try {
         if (expense.attachment_path) {
-            const { error: storageError } = await supabase.storage.from('hesabketabsatl').remove([expense.attachment_path]);
-            if (storageError) {
-                console.warn(`Failed to delete attachment ${expense.attachment_path}:`, storageError.message);
-            }
+            await supabase.storage.from('hesabketabsatl').remove([expense.attachment_path]);
         }
 
-        const newBalance = account.balance + expenseToDelete.amount;
-
-        const { error: accountError } = await supabase
-            .from('bank_accounts')
-            .update({ balance: newBalance })
-            .eq('id', account.id);
-
-        if (accountError) throw accountError;
-
-        const { error: deleteError } = await supabase.from('expenses').delete().eq('id', expense.id);
-
-        if (deleteError) {
-            await supabase.from('bank_accounts').update({ balance: account.balance }).eq('id', account.id);
-            throw deleteError;
-        }
+        const { error } = await supabase.rpc('delete_expense', { p_expense_id: expense.id });
+        if (error) throw error;
         
         await refreshData();
         toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ به حساب بازگردانده شد." });
@@ -182,7 +134,7 @@ export default function ExpensesPage() {
           description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
         });
     }
-  }, [allExpenses, allBankAccounts, toast, refreshData]);
+  }, [toast, refreshData]);
 
   
   const handleAddNew = useCallback(() => {

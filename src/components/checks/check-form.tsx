@@ -51,11 +51,11 @@ interface CheckFormProps {
   payees: Payee[];
   categories: Category[];
   onCancel: () => void;
+  user: User | null;
   isSubmitting: boolean;
 }
 
-export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categories, onCancel, isSubmitting }: CheckFormProps) {
-  const { user } = useAuth();
+export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categories, onCancel, user, isSubmitting }: CheckFormProps) {
   const { toast } = useToast();
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -149,36 +149,11 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
                         categories={categories}
                         setIsAddPayeeOpen={setIsAddPayeeOpen}
                         setIsAddCategoryOpen={setIsAddCategoryOpen}
+                        handleFileChange={handleFileChange}
+                        handleRemoveFile={handleRemoveFile}
+                        previewUrl={previewUrl}
+                        uploadStatus={uploadStatus}
                    />
-                    <FormField
-                        control={form.control}
-                        name="image_path"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>عکس برگه چک (اختیاری)</FormLabel>
-                                <FormControl>
-                                    <div className='flex items-center gap-4'>
-                                        <input id='check-image-upload' type='file' accept='image/*' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
-                                        <label htmlFor='check-image-upload' className={cn('flex-1 cursor-pointer rounded-md border-2 border-dashed border-gray-300 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-primary', (uploadStatus === 'uploading' || isSubmitting) && 'cursor-not-allowed opacity-50')}>
-                                           {uploadStatus === 'idle' && !previewUrl && <><Upload className='mx-auto mb-2 h-6 w-6' /><span>برای آپلود کلیک کنید</span></>}
-                                           {uploadStatus === 'uploading' && <><Loader2 className='mx-auto mb-2 h-6 w-6 animate-spin' /><span>در حال آپلود...</span></>}
-                                           {(uploadStatus === 'success' || (previewUrl && uploadStatus === 'idle')) && <><CheckCircle className='mx-auto mb-2 h-6 w-6 text-green-500' /><span>برای تغییر کلیک کنید</span></>}
-                                           {uploadStatus === 'error' && <><AlertCircle className='mx-auto mb-2 h-6 w-6 text-red-500' /><span>خطا! دوباره تلاش کنید.</span></>}
-                                        </label>
-                                        {previewUrl && (
-                                            <div className='relative h-24 w-24 flex-shrink-0 rounded-md border'>
-                                                <Image src={previewUrl} alt='پیش‌نمایش چک' layout='fill' objectFit='cover' className='rounded-md' />
-                                                <Button type='button' variant='destructive' size='icon' className='absolute -top-2 -right-2 h-6 w-6 rounded-full' onClick={handleRemoveFile} disabled={isSubmitting}>
-                                                    <Trash2 className='h-4 w-4' />
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || uploadStatus === 'uploading'}>لغو</Button>
@@ -222,9 +197,38 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
 
 
 // A new sub-component to hold the form fields for better readability
-const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories, setIsAddPayeeOpen, setIsAddCategoryOpen }: any) => {
+const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories, setIsAddPayeeOpen, setIsAddCategoryOpen, handleFileChange, handleRemoveFile, previewUrl, uploadStatus }: any) => {
     return (
         <div className="space-y-4">
+            <FormField
+                control={form.control}
+                name="image_path"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>عکس برگه چک (اختیاری)</FormLabel>
+                        <FormControl>
+                            <div className='flex items-center gap-4'>
+                                <input id='check-image-upload' type='file' accept='image/*' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
+                                <label htmlFor='check-image-upload' className={cn('flex-1 cursor-pointer rounded-md border-2 border-dashed border-gray-300 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-primary', (uploadStatus === 'uploading' || isSubmitting) && 'cursor-not-allowed opacity-50')}>
+                                   {uploadStatus === 'idle' && !previewUrl && <><Upload className='mx-auto mb-2 h-6 w-6' /><span>برای آپلود کلیک کنید</span></>}
+                                   {uploadStatus === 'uploading' && <><Loader2 className='mx-auto mb-2 h-6 w-6 animate-spin' /><span>در حال آپلود...</span></>}
+                                   {(uploadStatus === 'success' || (previewUrl && uploadStatus === 'idle')) && <><CheckCircle className='mx-auto mb-2 h-6 w-6 text-green-500' /><span>برای تغییر کلیک کنید</span></>}
+                                   {uploadStatus === 'error' && <><AlertCircle className='mx-auto mb-2 h-6 w-6 text-red-500' /><span>خطا! دوباره تلاش کنید.</span></>}
+                                </label>
+                                {previewUrl && (
+                                    <div className='relative h-24 w-24 flex-shrink-0 rounded-md border'>
+                                        <Image src={previewUrl} alt='پیش‌نمایش چک' layout='fill' objectFit='cover' className='rounded-md' />
+                                        <Button type='button' variant='destructive' size='icon' className='absolute -top-2 -right-2 h-6 w-6 rounded-full' onClick={handleRemoveFile} disabled={isSubmitting}>
+                                            <Trash2 className='h-4 w-4' />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="sayadId" render={({ field }) => (<FormItem><FormLabel>شناسه صیاد</FormLabel><FormControl><NumericInput {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="checkSerialNumber" render={({ field }) => (<FormItem><FormLabel>شماره سریال چک</FormLabel><FormControl><NumericInput {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
