@@ -1,0 +1,59 @@
+name: Deploy Supabase Schema via Web
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Tools
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client dnsutils
+
+      - name: Apply SQL Schema with Aggressive DNS Resolution
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -x 
+          
+          DB_HOST="db.${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co"
+          DB_IP=""
+
+          echo "--- STARTING DNS RESOLUTION ---"
+          
+          echo "Strategy 1: Standard 'dig'"
+          DB_IP=$(dig +short A $DB_HOST)
+          
+          if [ -z "$DB_IP" ]; then
+            echo "Strategy 1 FAILED. Trying Strategy 2: 'dig' via Google DNS"
+            DB_IP=$(dig +short A @8.8.8.8 $DB_HOST)
+          fi
+          
+          if [ -z "$DB_IP" ]; then
+            echo "Strategy 2 FAILED. Trying Strategy 3: 'nslookup'"
+            DB_IP=$(nslookup $DB_HOST | awk '/^Address: / { print $2 }' | tail -n 1)
+          fi
+
+          if [ -z "$DB_IP" ]; then
+            echo "::error::All DNS strategies failed. Cannot resolve $DB_HOST."
+            exit 1
+          fi
+          
+          echo "SUCCESS: Resolved $DB_HOST to IPv4 Address: $DB_IP"
+          
+          SQL_SCRIPT=$(cat supabase/migrations/20240720000000_initial_schema.sql)
+          
+          PGPASSWORD="$SUPABASE_DB_PASSWORD" psql \
+            --host="$DB_IP" \
+            --port=5432 \
+            --username=postgres \
+            --dbname=postgres \
+            -a \
+            -c "$SQL_SCRIPT"
+            
