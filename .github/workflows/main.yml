@@ -15,8 +15,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Install PostgreSQL client and dnsutils
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client dnsutils
 
       - name: Check for Secrets
         run: |
@@ -44,12 +44,23 @@ jobs:
             exit 1
           fi
           
-          echo "Connecting to database and applying schema..."
+          # Force IPv4 resolution by getting the IP address first
+          DB_HOST="db.$SUPABASE_PROJECT_REF.supabase.co"
+          DB_IP=$(dig +short A $DB_HOST)
+          
+          if [ -z "$DB_IP" ]; then
+            echo "::error::Could not resolve IPv4 address for $DB_HOST."
+            exit 1
+          fi
+          
+          echo "Resolved $DB_HOST to $DB_IP. Connecting to database and applying schema..."
+          
           PGPASSWORD="$SUPABASE_DB_PASSWORD" psql \
-            --host="db.$SUPABASE_PROJECT_REF.supabase.co" \
+            --host="$DB_IP" \
             --port=5432 \
             --username=postgres \
             --dbname=postgres \
             -a \
             -c "$SQL_SCRIPT"
+            
           echo "Schema applied successfully."
