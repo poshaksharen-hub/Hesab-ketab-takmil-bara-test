@@ -142,6 +142,46 @@ export default function GoalsPage() {
         setIsSubmitting(false);
     }
   }, [user, toast, refreshData]);
+  
+  const handleAchieveGoal = useCallback(async ({ goal, actualCost, paymentCardId }: { goal: FinancialGoal, actualCost: number, paymentCardId?: string }) => {
+      if (!user) return;
+      setIsSubmitting(true);
+      try {
+          const { error } = await supabase.rpc('achieve_financial_goal', {
+              p_goal_id: goal.id,
+              p_actual_cost: actualCost,
+              p_user_id: user.id,
+              p_payment_card_id: paymentCardId
+          });
+          if (error) throw error;
+          
+          toast({ title: "تبریک!", description: `هدف "${goal.name}" با موفقیت محقق شد.` });
+          await refreshData();
+          setAchievingGoal(null);
+
+      } catch (error: any) {
+          toast({ variant: 'destructive', title: 'خطا در تحقق هدف', description: error.message });
+      } finally {
+          setIsSubmitting(false);
+      }
+  }, [user, toast, refreshData]);
+
+  const handleRevertGoal = useCallback(async (goal: FinancialGoal) => {
+      if (!user) return;
+      setIsSubmitting(true);
+      try {
+          const { error } = await supabase.rpc('revert_financial_goal', { p_goal_id: goal.id });
+          if (error) throw error;
+          
+          toast({ title: "بازگردانی شد", description: `هدف "${goal.name}" به حالت "در حال انجام" بازگردانده شد.` });
+          await refreshData();
+
+      } catch (error: any) {
+          toast({ variant: 'destructive', title: 'خطا در بازگردانی هدف', description: error.message });
+      } finally {
+          setIsSubmitting(false);
+      }
+  }, [user, toast, refreshData]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -175,11 +215,11 @@ export default function GoalsPage() {
           <GoalList
             goals={goals || []}
             users={users || []}
-            onEdit={handleEdit} // Pass the edit handler
+            onEdit={handleEdit}
             onDelete={handleDeleteGoal}
             onContribute={setContributingGoal}
             onAchieve={setAchievingGoal}
-            onRevert={() => {}} // Placeholder
+            onRevert={handleRevertGoal}
             isSubmitting={isSubmitting}
           />
            {contributingGoal && (
@@ -189,6 +229,16 @@ export default function GoalsPage() {
                     isOpen={!!contributingGoal}
                     onOpenChange={() => setContributingGoal(null)}
                     onSubmit={handleContribute}
+                    isSubmitting={isSubmitting}
+                />
+            )}
+             {achievingGoal && (
+                <AchieveGoalDialog
+                    goal={achievingGoal}
+                    bankAccounts={bankAccounts || []}
+                    isOpen={!!achievingGoal}
+                    onOpenChange={() => setAchievingGoal(null)}
+                    onSubmit={handleAchieveGoal}
                     isSubmitting={isSubmitting}
                 />
             )}

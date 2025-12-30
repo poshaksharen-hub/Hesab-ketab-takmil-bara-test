@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import type { FinancialGoal, UserProfile } from '@/lib/types';
@@ -58,7 +57,7 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
         const ownerName = USER_DETAILS[goal.ownerId as keyof typeof USER_DETAILS]?.firstName || 'مشترک';
         const imageUrl = goal.image_path ? getPublicUrl(goal.image_path) : null;
         
-        const isDeleteDisabled = isSubmitting || goal.isAchieved || goal.currentAmount > 0;
+        const isDeleteDisabled = isSubmitting || goal.isAchieved;
 
         return (
           <Card key={goal.id} className="flex flex-col overflow-hidden group">
@@ -87,7 +86,7 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
                             <AlertDialogHeader>
                                 <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    {isDeleteDisabled ? "این هدف قابل حذف نیست زیرا برای آن پس‌انداز شده یا قبلاً محقق شده است." : "این عمل غیرقابل بازگشت است. هدف مالی برای همیشه حذف خواهد شد."}
+                                    {goal.isAchieved ? "این هدف قابل حذف نیست زیرا قبلاً محقق شده است. ابتدا آن را بازگردانی کنید." : "این عمل غیرقابل بازگشت است. تمام پس‌اندازهای این هدف به حساب‌ها بازگردانده و خود هدف حذف خواهد شد."}
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
