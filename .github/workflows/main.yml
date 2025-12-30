@@ -46,6 +46,10 @@ jobs:
           
           echo "Connecting to database and applying schema..."
           PGPASSWORD="$SUPABASE_DB_PASSWORD" psql \
-            "postgresql://postgres@db.$SUPABASE_PROJECT_REF.supabase.co:5432/postgres?options=--ipv4" \
-            -a -c "$SQL_SCRIPT"
+            --host="db.$SUPABASE_PROJECT_REF.supabase.co" \
+            --port=5432 \
+            --username=postgres \
+            --dbname=postgres \
+            -a \
+            -c "$SQL_SCRIPT"
           echo "Schema applied successfully."
