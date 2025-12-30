@@ -33,3 +33,5 @@ jobs:
         run: |
           echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
           psql "$SUPABASE_DATABASE_URL" < supabase/migrations/20240720000000_initial_schema.sql
+
+    
