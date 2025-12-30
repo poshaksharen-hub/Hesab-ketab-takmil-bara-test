@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -26,14 +25,12 @@ import {
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import type { BankAccount, UserProfile, BankTheme, OwnerId } from '@/lib/types';
+import type { BankAccount, UserProfile, BankTheme } from '@/lib/types';
 import { USER_DETAILS } from '@/lib/constants';
 import { BANK_DATA, type BankInfo } from '@/lib/bank-data';
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { supabase } from '@/lib/supabase-client';
-import type { User } from '@supabase/supabase-js';
 import { Card, CardHeader, CardFooter, CardContent, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
 

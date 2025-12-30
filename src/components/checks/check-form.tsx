@@ -88,6 +88,9 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
     if (initialData?.image_path) {
         setPreviewUrl(getPublicUrl(initialData.image_path));
         setUploadStatus('success');
+    } else {
+        setPreviewUrl(null);
+        setUploadStatus('idle');
     }
   }, [initialData]);
 
@@ -106,14 +109,14 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
     } catch (error) {
       setUploadStatus('error');
       setPreviewUrl(null);
-      form.setValue('image_path', '');
+      form.setValue('image_path', undefined);
       toast({ variant: 'destructive', title: 'خطا', description: 'آپلود عکس چک ناموفق بود.' });
       console.error(error);
     }
   };
 
   const handleRemoveFile = () => {
-      form.setValue('image_path', '');
+      form.setValue('image_path', undefined);
       setPreviewUrl(null);
       setUploadStatus('idle');
   };
@@ -138,7 +141,6 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
             <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>
                 <CardContent className="space-y-4">
-                  {/* Form fields are now in a separate component for readability */}
                    <CheckFormFields
                         form={form}
                         isSubmitting={isSubmitting}
