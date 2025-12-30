@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -86,9 +87,15 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
     if (isOpen) { // Only reset when opening
       if (initialData) {
         form.reset({
-           ...initialData,
+           bankName: initialData.bankName,
+           accountNumber: initialData.accountNumber,
+           cardNumber: initialData.cardNumber,
+           expiryDate: initialData.expiryDate,
+           cvv2: initialData.cvv2,
+           initialBalance: initialData.initialBalance,
            ownerId: initialData.ownerId as 'ali' | 'fatemeh' | 'shared_account', 
            theme: initialData.theme || (BANK_DATA.find(b => b.name === initialData.bankName)?.themes[0]?.id || 'blue'),
+           accountType: initialData.accountType,
           } as CardFormValues);
       } else {
         form.reset({
