@@ -1,4 +1,3 @@
-
 name: Deploy Supabase Schema
 
 on:
@@ -23,15 +22,16 @@ jobs:
       - name: Check for Secrets
         run: |
           if [ -z "${{ secrets.SUPABASE_DATABASE_URL }}" ]; then
-            echo "::error::SUPABASE_DATABASE_URL secret is not set."
+            echo "::error::SUPABASE_DATABASE_URL secret is not set. Please check repository settings."
             exit 1
           fi
       
       - name: Apply SQL Schema
         env:
-          SUPABASE_DATABASE_URL: "${{ secrets.SUPABASE_DATABASE_URL }}"
+          # Pass the full connection string directly from the secret
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
-          psql "$SUPABASE_DATABASE_URL" < supabase/migrations/20240720000000_initial_schema.sql
-
-    
+          # Use the connection URI directly with psql. This is the most reliable method.
+          psql "$SUPABASE_DATABASE_URL" -f "supabase/migrations/20240720000000_initial_schema.sql"
+          echo "Schema applied successfully."
