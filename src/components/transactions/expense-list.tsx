@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -26,7 +26,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
+import { ConfirmationDialog } from '../shared/confirmation-dialog';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -71,16 +71,13 @@ export function ExpenseList({ expenses, bankAccounts, categories, payees, onDele
             <CardHeader><CardTitle className="font-headline">لیست هزینه‌ها</CardTitle></CardHeader>
             <CardContent><p className="py-8 text-center text-muted-foreground">هیچ هزینه‌ای برای نمایش وجود ندارد.</p></CardContent>
         </Card>
-    )
+    );
   }
 
   return (
     <div className="space-y-4 mt-4">
       <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">لیست هزینه‌ها</CardTitle>
-          <CardDescription>هزینه‌های ثبت شده اخیر شما در اینجا نمایش داده می‌شود.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle className="font-headline">لیست هزینه‌ها</CardTitle><CardDescription>هزینه‌های ثبت شده اخیر شما در اینجا نمایش داده می‌شود.</CardDescription></CardHeader>
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -90,6 +87,7 @@ export function ExpenseList({ expenses, bankAccounts, categories, payees, onDele
             const bankAccount = getBankAccount(expense.bankAccountId);
             const registeredByName = getRegisteredByName(expense.registeredByUserId);
             const receiptUrl = expense.attachment_path ? getPublicUrl(expense.attachment_path) : null;
+            const [isConfirmOpen, setConfirmOpen] = useState(false);
 
             return (
               <Card key={expense.id} data-testid={`expense-item-${expense.id}`} className="flex flex-col">
@@ -97,13 +95,9 @@ export function ExpenseList({ expenses, bankAccounts, categories, payees, onDele
                   <div className="flex items-start justify-between">
                     <div>
                         <p className="text-lg font-bold">{expense.description}</p>
-                        <div className="flex items-center gap-2 pt-1">
-                            {getExpenseForBadge(expense.expenseFor)}
-                        </div>
+                        <div className="flex items-center gap-2 pt-1">{getExpenseForBadge(expense.expenseFor)}</div>
                     </div>
-                    <div className="text-left">
-                      <p className="text-2xl font-bold text-destructive">{`-${formatCurrency(expense.amount, 'IRT')}`}</p>
-                    </div>
+                    <div className="text-left"><p className="text-2xl font-bold text-destructive">{`-${formatCurrency(expense.amount, 'IRT')}`}</p></div>
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow space-y-4">
@@ -119,29 +113,19 @@ export function ExpenseList({ expenses, bankAccounts, categories, payees, onDele
                 <CardFooter className="p-2 bg-muted/50 flex items-center justify-end gap-2">
                   {receiptUrl && (
                       <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className={`${buttonVariants({ variant: 'outline' })} text-xs mr-auto`}>
-                        <Receipt className="ml-2 h-4 w-4" />
-                        مشاهده رسید
+                        <Receipt className="ml-2 h-4 w-4" />مشاهده رسید
                       </a>
                   )}
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="h-8 text-xs text-destructive" aria-label="حذف هزینه">
-                        <Trash2 className="ml-2 h-4 w-4" />
-                        حذف تراکنش
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                       <AlertDialogHeader>
-                            <AlertDialogTitle>آیا از حذف این هزینه مطمئن هستید؟</AlertDialogTitle>
-                            <AlertDialogDescription>این عمل قابل بازگشت نیست. مبلغ هزینه به حساب شما بازگردانده خواهد شد.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>انصراف</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(expense)} className={buttonVariants({ variant: "destructive" })}>بله، حذف کن</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <Button variant="ghost" className="h-8 text-xs text-destructive" aria-label="حذف هزینه" onClick={() => setConfirmOpen(true)}>
+                    <Trash2 className="ml-2 h-4 w-4" />حذف تراکنش
+                  </Button>
+                   <ConfirmationDialog
+                    isOpen={isConfirmOpen}
+                    onOpenChange={setConfirmOpen}
+                    onConfirm={() => { onDelete(expense); setConfirmOpen(false); }}
+                    title="آیا از حذف این هزینه مطمئن هستید؟"
+                    description="این عمل قابل بازگشت نیست. مبلغ هزینه به حساب شما بازگردانده خواهد شد."
+                  />
                 </CardFooter>
               </Card>
             );

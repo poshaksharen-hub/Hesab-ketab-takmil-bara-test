@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.7",
-    "@hassanmojab/react-modern-calendar-datepicker": "^3.1.7",
     "@hookform/resolvers": "^3.6.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -60,8 +59,6 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.5.1",
-    "@testing-library/jest-dom": "^6.4.6",
-    "@testing-library/react": "^16.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

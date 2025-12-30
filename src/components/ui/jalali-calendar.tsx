@@ -2,93 +2,38 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-import DatePicker from "@hassanmojab/react-modern-calendar-datepicker";
-import "@hassanmojab/react-modern-calendar-datepicker/lib/DatePicker.css";
+import { format as formatJalali, parse as parseJalali } from 'date-fns-jalali';
+import { DayPicker } from "react-day-picker";
 import 'react-day-picker/dist/style.css';
 
 import {
   Dialog,
   DialogContent,
   DialogTrigger,
-  DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { parse, format } from 'date-fns-jalali';
-
-// The library exports DatePicker as default, and Calendar is a property on it.
-const Calendar = DatePicker;
-
-// Define the 'Day' type locally to resolve the namespace conflict.
-type Day = {
-  year: number;
-  month: number;
-  day: number;
-};
+import { faIR } from 'date-fns/locale';
 
 interface JalaliDatePickerProps {
-  value: Date | null;
+  value: Date | null | undefined;
   onChange: (date: Date | null) => void;
   className?: string;
   placeholder?: string;
   title?: string;
 }
 
-const toDateObject = (date: Date | null): Day | null => {
-    if (!date) return null;
-    try {
-        // Ensure date is a valid Date object before formatting
-        const d = date instanceof Date ? date : new Date(date);
-        if (isNaN(d.getTime())) return null;
-        
-        const jalaliDate = format(d, 'yyyy/MM/dd').split('/');
-        return {
-            year: parseInt(jalaliDate[0], 10),
-            month: parseInt(jalaliDate[1], 10),
-            day: parseInt(jalaliDate[2], 10)
-        };
-    } catch {
-        return null;
-    }
-};
-
-const fromDateObject = (day: Day | null): Date | null => {
-    if (!day) return null;
-    try {
-        const dateStr = `${day.year}/${String(day.month).padStart(2, '0')}/${String(day.day).padStart(2, '0')}`;
-        // The third argument (new Date()) is crucial as a reference for parsing non-complete dates.
-        return parse(dateStr, 'yyyy/MM/dd', new Date());
-    } catch {
-        return null;
-    }
-};
-
-
 export function JalaliDatePicker({ value, onChange, className, placeholder = "یک تاریخ انتخاب کنید", title = "انتخاب تاریخ" }: JalaliDatePickerProps) {
-  const [selectedDay, setSelectedDay] = useState<Day | null>(toDateObject(value));
   const [isOpen, setIsOpen] = useState(false);
-  
-  useEffect(() => {
-    setSelectedDay(toDateObject(value));
-  }, [value]);
-  
-  const handleDayChange = (day: Day | null) => {
-      if(day) {
-        setSelectedDay(day);
-        onChange(fromDateObject(day));
-      } else {
-        setSelectedDay(null);
-        onChange(null);
-      }
-      setIsOpen(false); // Close the dialog on selection
-  }
 
-  const formatInputValue = () => {
-    if (!selectedDay) return "";
-    return `${selectedDay.year}/${String(selectedDay.month).padStart(2, '0')}/${String(selectedDay.day).padStart(2, '0')}`;
+  const handleSelect = (date: Date | undefined) => {
+    if (date) {
+      onChange(date);
+    }
+    setIsOpen(false);
   };
-
+  
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -101,21 +46,47 @@ export function JalaliDatePicker({ value, onChange, className, placeholder = "ی
           )}
         >
           <CalendarIcon className="ml-2 h-4 w-4" />
-          {value ? formatInputValue() : <span>{placeholder}</span>}
+          {value ? formatJalali(value, 'yyyy/MM/dd') : <span>{placeholder}</span>}
         </Button>
       </DialogTrigger>
       <DialogContent className="w-auto p-0 border-none bg-transparent shadow-none flex items-center justify-center">
-         <DialogTitle className="sr-only">{title}</DialogTitle>
-         <div className="bg-background rounded-lg">
-            <Calendar
-                value={selectedDay}
-                onChange={handleDayChange}
-                shouldHighlightWeekends
-                locale="fa" // This enables the Persian calendar
-                calendarClassName="responsive-calendar" // for custom styling
-            />
-         </div>
+        <div className="bg-background rounded-lg">
+          <DayPicker
+            mode="single"
+            selected={value || undefined}
+            onSelect={handleSelect}
+            locale={faIR}
+            dir="rtl"
+            showOutsideDays
+            classNames={{
+                months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                month: "space-y-4",
+                caption: "flex justify-center pt-1 relative items-center",
+                caption_label: "text-sm font-medium",
+                nav: "space-x-1 flex items-center",
+                nav_button: cn("h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"),
+                nav_button_previous: "absolute right-1",
+                nav_button_next: "absolute left-1",
+                table: "w-full border-collapse space-y-1",
+                head_row: "flex",
+                head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                row: "flex w-full mt-2",
+                cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-r-md last:[&:has([aria-selected])]:rounded-l-md focus-within:relative focus-within:z-20",
+                day: cn("h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground rounded-md"),
+                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                day_today: "bg-accent text-accent-foreground",
+                day_outside: "text-muted-foreground opacity-50",
+                day_disabled: "text-muted-foreground opacity-50",
+                day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                day_hidden: "invisible",
+            }}
+            components={{
+              IconLeft: () => <ChevronRight className="h-4 w-4" />,
+              IconRight: () => <ChevronLeft className="h-4 w-4" />,
+            }}
+          />
+        </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

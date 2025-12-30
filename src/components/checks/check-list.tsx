@@ -7,17 +7,6 @@ import { Trash2, MoreVertical, Edit, CheckCircle, Loader2, Camera, FileText } fr
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn, amountToWords, getPublicUrl } from '@/lib/utils';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,6 +18,7 @@ import Link from 'next/link';
 import { HesabKetabLogo } from '../icons';
 import Image from 'next/image';
 import { ClearCheckDialog } from './clear-check-dialog';
+import { ConfirmationDialog } from '../shared/confirmation-dialog';
 
 interface CheckListProps {
   checks: Check[];
@@ -66,11 +56,12 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
     isSubmitting: boolean;
 }) => {
 
-    const { payee, bankAccount, ownerName, expenseForName, category, signatureImage, registeredByName } = getDetails(check, payees, categories, bankAccounts, users);
+    const { payee, bankAccount, ownerName, signatureImage } = getDetails(check, payees, categories, bankAccounts, users);
     const isCleared = check.status === 'cleared';
     const isDeleteDisabled = isCleared || isSubmitting;
     const imageUrl = check.image_path ? getPublicUrl(check.image_path) : null;
     const clearanceReceiptUrl = check.clearance_receipt_path ? getPublicUrl(check.clearance_receipt_path) : null;
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
     return (
         <div className="relative group" data-testid={`check-item-${check.id}`}>
@@ -95,11 +86,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                     </div>
                      <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="absolute top-2 left-2 z-20">
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Actions" disabled={isSubmitting}>
-                                    <MoreVertical className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Actions" disabled={isSubmitting}><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                                 {!isCleared && (
                                      <ClearCheckDialog check={check} onClear={onClear} isSubmitting={isSubmitting}>
@@ -108,81 +95,39 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                         </div>
                                     </ClearCheckDialog>
                                 )}
-                                <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared || isSubmitting}>
-                                    <Edit className="ml-2 h-4 w-4" /> ویرایش چک
-                                </DropdownMenuItem>
-                                
-                                {imageUrl && (
-                                    <DropdownMenuItem onSelect={() => window.open(imageUrl, '_blank')}>
-                                        <Camera className="ml-2 h-4 w-4" /> مشاهده عکس چک
-                                    </DropdownMenuItem>
-                                )}
-                                
-                                {clearanceReceiptUrl && (
-                                    <DropdownMenuItem onSelect={() => window.open(clearanceReceiptUrl, '_blank')}>
-                                        <FileText className="ml-2 h-4 w-4" /> مشاهده رسید پاس شدن
-                                    </DropdownMenuItem>
-                                )}
-
+                                <DropdownMenuItem onSelect={() => onEdit(check)} disabled={isCleared || isSubmitting}><Edit className="ml-2 h-4 w-4" /> ویرایش چک</DropdownMenuItem>
+                                {imageUrl && (<DropdownMenuItem onSelect={() => window.open(imageUrl, '_blank')}><Camera className="ml-2 h-4 w-4" /> مشاهده عکس چک</DropdownMenuItem>)}
+                                {clearanceReceiptUrl && (<DropdownMenuItem onSelect={() => window.open(clearanceReceiptUrl, '_blank')}><FileText className="ml-2 h-4 w-4" /> مشاهده رسید پاس شدن</DropdownMenuItem>)}
                                 <DropdownMenuSeparator />
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <div className={cn("relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", isDeleteDisabled ? "text-muted-foreground cursor-not-allowed" : "text-destructive focus:text-destructive")}>
-                                            <Trash2 className="ml-2 h-4 w-4" /> حذف چک
-                                        </div>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>آیا از حذف این چک مطمئن هستید؟</AlertDialogTitle>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => onDelete(check)} disabled={isDeleteDisabled} className={buttonVariants({ variant: "destructive" })}>
-                                                 {isSubmitting ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : 'بله، حذف کن'}
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                                <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} disabled={isDeleteDisabled} className="text-destructive focus:text-destructive"><Trash2 className="ml-2 h-4 w-4" /> حذف چک</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
                 </div>
                 
                  <Link href={`/checks/${check.id}`} className="block p-4 space-y-2 flex-grow flex flex-col text-sm">
-                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
-                        <span className="shrink-0">در وجه:</span>
-                         <span className="font-handwriting font-bold text-base">{payee}</span>
-                     </div>
-                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
-                         <span className="shrink-0">مبلغ:</span>
-                         <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
-                            {amountToWords(check.amount)} تومان
-                        </span>
-                     </div>
+                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body"><span className="shrink-0">در وجه:</span><span className="font-handwriting font-bold text-base">{payee}</span></div>
+                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body"><span className="shrink-0">مبلغ:</span><span className="font-handwriting font-bold text-base text-center flex-grow px-1">{amountToWords(check.amount)} تومان</span></div>
                      <div className="flex-grow"></div>
                     <div className="flex justify-between items-end pt-4">
-                        <div className="text-left">
-                            <span className="text-xs text-muted-foreground font-body">مبلغ عددی</span>
-                            <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
-                        </div>
+                        <div className="text-left"><span className="text-xs text-muted-foreground font-body">مبلغ عددی</span><p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p></div>
                         <div className="text-right relative">
-                            <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
-                            <p className="font-body text-sm font-semibold h-6">{ownerName}</p>
-                            {signatureImage && (
-                                <div className="absolute -bottom-5 right-0 w-28 h-14 pointer-events-none">
-                                    <Image 
-                                        src={signatureImage}
-                                        alt={`امضای ${ownerName}`} 
-                                        width={112} 
-                                        height={56}
-                                        style={{ objectFit: 'contain'}}
-                                    />
-                                </div>
-                            )}
+                            <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span><p className="font-body text-sm font-semibold h-6">{ownerName}</p>
+                            {signatureImage && (<div className="absolute -bottom-5 right-0 w-28 h-14 pointer-events-none"><Image src={signatureImage} alt={`امضای ${ownerName}`} width={112} height={56} style={{ objectFit: 'contain'}}/></div>)}
                         </div>
                     </div>
                 </Link>
             </div>
+            <ConfirmationDialog 
+              isOpen={isDeleteDialogOpen} 
+              onOpenChange={setIsDeleteDialogOpen}
+              onConfirm={() => onDelete(check)}
+              title="آیا از حذف این چک مطمئن هستید؟"
+              description={isCleared ? "امکان حذف چک پاس شده وجود ندارد." : "این عمل چک را برای همیشه حذف می‌کند."}
+              isSubmitting={isSubmitting}
+              disabled={isDeleteDisabled}
+              disabledReason={isCleared ? "چک‌های پاس شده قابل حذف نیستند." : undefined}
+            />
         </div>
     );
 };
@@ -192,14 +137,10 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
   if (checks.length === 0) {
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">لیست چک‌ها</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className='text-center text-muted-foreground py-8'>هیچ چکی برای نمایش وجود ندارد.</p>
-            </CardContent>
+            <CardHeader><CardTitle className="font-headline">لیست چک‌ها</CardTitle></CardHeader>
+            <CardContent><p className='text-center text-muted-foreground py-8'>هیچ چکی برای نمایش وجود ندارد.</p></CardContent>
         </Card>
-    )
+    );
   }
 
   return (
