@@ -14,36 +14,16 @@ import { ArrowRight, PlusCircle, Plus, Loader2 } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 import { sendSystemNotification } from '@/lib/notifications';
-import type { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function TransfersPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    };
-
-    getSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
   const { bankAccounts: allBankAccounts, transfers, users } = allData;
 
   const handleTransferSubmit = useCallback(async (values: Omit<Transfer, 'id' | 'registeredByUserId' | 'transferDate' | 'fromAccountBalanceBefore' | 'fromAccountBalanceAfter' | 'toAccountBalanceBefore' | 'toAccountBalanceAfter'>) => {
@@ -73,6 +53,7 @@ export default function TransfersPage() {
              throw new Error(error.message);
         }
         
+        await refreshData();
         setIsFormOpen(false);
         toast({
             title: "موفقیت",
@@ -112,12 +93,12 @@ export default function TransfersPage() {
     } finally {
         setIsSubmitting(false);
     }
-  }, [user, allBankAccounts, users, toast]);
+  }, [user, allBankAccounts, users, toast, refreshData]);
 
   const handleDeleteTransfer = useCallback(async (transferId: string) => {
     if (!transfers) return;
 
-    const transferToDelete = transfers.find(t => t.id === transferId);
+    const transferToDelete = transfers.find((t: any) => t.id === transferId);
     if (!transferToDelete) {
       toast({ variant: "destructive", title: "خطا", description: "تراکنش انتقال مورد نظر یافت نشد." });
       return;
@@ -127,6 +108,7 @@ export default function TransfersPage() {
        const { error } = await supabase.rpc('delete_transfer', { p_transfer_id: transferId });
        if (error) throw new Error(error.message);
 
+       await refreshData();
        toast({ title: "موفقیت", description: "تراکنش انتقال با موفقیت حذف و مبالغ به حساب‌ها بازگردانده شد." });
 
     } catch (error: any) {
@@ -136,7 +118,7 @@ export default function TransfersPage() {
             description: error.message || "مشکلی در حذف تراکنش پیش آمد.",
           });
     }
-  }, [transfers, toast]);
+  }, [transfers, toast, refreshData]);
 
   const handleAddNew = useCallback(() => {
     setIsFormOpen(true);

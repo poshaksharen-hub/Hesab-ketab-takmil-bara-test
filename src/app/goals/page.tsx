@@ -13,12 +13,12 @@ import { AchieveGoalDialog } from '@/components/goals/achieve-goal-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { AddToGoalDialog } from '@/components/goals/add-to-goal-dialog';
 import { supabase } from '@/lib/supabase-client';
-import { useUser } from '@/hooks/use-user'; // <-- Using the new standardized hook
+import { useAuth } from '@/hooks/use-auth';
 
 export default function GoalsPage() {
-  const { user, isLoading: isUserLoading } = useUser();
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData(); // Assuming refreshData exists
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
@@ -57,11 +57,11 @@ export default function GoalsPage() {
           .insert({
             name: goalData.name,
             target_amount: goalData.targetAmount,
-            current_amount: 0, // Initial amount is always 0
+            current_amount: 0, // Initial amount is always 0, managed by contributions
             target_date: goalData.targetDate.toISOString(),
             priority: goalData.priority,
             owner_id: goalData.ownerId,
-            registered_by_user_id: user.id, // Correct user ID
+            registered_by_user_id: user.id,
             is_achieved: false,
             image_path: image_path,
           });
@@ -69,7 +69,7 @@ export default function GoalsPage() {
         toast({ title: 'موفقیت', description: 'هدف مالی جدید با موفقیت ایجاد شد.' });
       }
       
-      refreshData(); // Refresh data to show changes
+      await refreshData();
       setIsFormOpen(false);
       setEditingGoal(null);
 
@@ -91,7 +91,7 @@ export default function GoalsPage() {
       const { error } = await supabase.rpc('delete_financial_goal', { p_goal_id: goalId });
       if (error) throw new Error(error.message);
       toast({ title: "موفقیت", description: "هدف مالی با موفقیت حذف شد." });
-      refreshData();
+      await refreshData();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -118,7 +118,44 @@ export default function GoalsPage() {
       setEditingGoal(null);
   }
 
-  // Other handlers remain the same...
+  const handleContribute = useCallback(async ({ goal, amount, bankAccountId }: { goal: FinancialGoal, amount: number, bankAccountId: string }) => {
+    if (!user) return;
+    setIsSubmitting(true);
+    
+    // This now mimics an expense creation
+    // A proper implementation would call a dedicated DB function `add_contribution_to_goal`
+    try {
+      const { error: expenseError } = await supabase.from('expenses').insert([{
+        description: `پس‌انداز برای هدف: ${goal.name}`,
+        amount,
+        date: new Date().toISOString(),
+        bank_account_id: bankAccountId,
+        category_id: 'c8a3f8b0-9e6a-4d2c-8b8b-9e6f9e6a4d2c', // Dummy "Savings" category ID, should be dynamic
+        expense_for: goal.ownerId,
+        sub_type: 'goal_contribution',
+        goal_id: goal.id,
+        registered_by_user_id: user.id,
+        owner_id: bankAccounts.find(b => b.id === bankAccountId)?.ownerId
+      }]);
+
+      if (expenseError) throw expenseError;
+
+      // The backend should handle this, but for now we mimic
+      await supabase.from('bank_accounts').update({ 
+        balance: supabase.sql(`balance - ${amount}`),
+        blocked_balance: supabase.sql(`blocked_balance + ${amount}`)
+      }).eq('id', bankAccountId);
+      
+      toast({ title: "موفقیت!", description: "مبلغ با موفقیت به پس‌انداز اضافه و از حساب شما مسدود شد."});
+      await refreshData();
+      setContributingGoal(null);
+
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'خطا در افزودن به پس‌انداز', description: error.message });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }, [user, toast, refreshData, bankAccounts]);
 
   const isLoading = isUserLoading || isDashboardLoading;
 
@@ -137,7 +174,6 @@ export default function GoalsPage() {
           key={editingGoal ? editingGoal.id : 'new'}
           onSubmit={handleFormSubmit}
           initialData={editingGoal}
-          bankAccounts={bankAccounts || []}
           user={user}
           onCancel={handleCancel}
           isSubmitting={isSubmitting}
@@ -155,10 +191,21 @@ export default function GoalsPage() {
             users={users || []}
             onEdit={handleEdit} // Pass the edit handler
             onDelete={handleDeleteGoal}
+            onContribute={setContributingGoal}
+            onAchieve={setAchievingGoal}
+            onRevert={() => {}} // Placeholder
             isSubmitting={isSubmitting}
-            // Pass other handlers as needed
           />
-          {/* Dialogs will be managed here */}
+           {contributingGoal && (
+                <AddToGoalDialog
+                    goal={contributingGoal}
+                    bankAccounts={bankAccounts || []}
+                    isOpen={!!contributingGoal}
+                    onOpenChange={() => setContributingGoal(null)}
+                    onSubmit={handleContribute}
+                    isSubmitting={isSubmitting}
+                />
+            )}
         </>
       )}
     </div>

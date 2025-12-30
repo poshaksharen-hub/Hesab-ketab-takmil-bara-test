@@ -12,27 +12,17 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
-import type { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function CategoriesPage() {
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
+  const { user, isLoading: isUserLoading } = useAuth();
   
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    };
-    getSession();
-  }, []);
 
   const { categories, expenses, checks } = allData;
 
@@ -40,7 +30,8 @@ export default function CategoriesPage() {
     if (!user) return;
     setIsSubmitting(true);
 
-    const onComplete = () => {
+    const onComplete = async () => {
+        await refreshData();
         setIsSubmitting(false);
         setIsFormOpen(false);
         setEditingCategory(null);
@@ -57,7 +48,7 @@ export default function CategoriesPage() {
             setIsSubmitting(false);
         } else {
             toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت ویرایش شد." });
-            onComplete();
+            await onComplete();
         }
     } else {
         const { error } = await supabase
@@ -69,10 +60,10 @@ export default function CategoriesPage() {
             setIsSubmitting(false);
         } else {
             toast({ title: "موفقیت", description: "دسته‌بندی جدید با موفقیت اضافه شد." });
-            onComplete();
+            await onComplete();
         }
     }
-  }, [user, editingCategory, toast]);
+  }, [user, editingCategory, toast, refreshData]);
 
   const handleDelete = useCallback(async (categoryId: string) => {
     if (!user) return;
@@ -95,6 +86,7 @@ export default function CategoriesPage() {
         if (error) throw error;
         
         toast({ title: "موفقیت", description: "دسته‌بندی با موفقیت بایگانی (حذف) شد." });
+        await refreshData();
 
     } catch (error: any) {
         toast({
@@ -105,7 +97,7 @@ export default function CategoriesPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, toast, expenses, checks]);
+  }, [user, toast, expenses, checks, refreshData]);
 
   const handleEdit = useCallback((category: Category) => {
     setEditingCategory(category);

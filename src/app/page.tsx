@@ -30,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
-import type { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/use-auth';
 
 function DashboardSkeleton() {
   const router = useRouter();
@@ -105,8 +105,7 @@ function QuickAccess() {
 
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
+  const { user, isLoading: isUserLoading } = useAuth();
   const [ownerFilter, setOwnerFilter] = useState<DashboardFilter>('all');
   const [date, setDate] = useState<DateRange | undefined>(() => getDateRange('thisMonth').range);
   const [activePreset, setActivePreset] = useState<ReturnType<typeof getDateRange>['preset']>('thisMonth');
@@ -125,30 +124,6 @@ export default function DashboardPage() {
     goals,
   } = allData;
 
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error getting session:', error);
-        setIsUserLoading(false);
-        return;
-      }
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    };
-
-    getSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-  
   useEffect(() => {
     if (user && !isUserLoading) {
       const defaultFilter = user.email?.startsWith('ali') ? 'ali' : 'fatemeh';
@@ -267,7 +242,7 @@ export default function DashboardPage() {
         <AccountBalanceCards 
             aliBalance={globalSummary.aliBalance}
             fatemehBalance={globalSummary.fatemehBalance}
-            sharedBalance={global.sharedBalance}
+            sharedBalance={globalSummary.sharedBalance}
             currentUser={user}
         />
       </div>

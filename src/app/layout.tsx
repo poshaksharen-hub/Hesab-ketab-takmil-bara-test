@@ -5,7 +5,8 @@ import './globals.css';
 import React from 'react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from "@/components/ui/toaster"
-import { SupabaseAuthProvider } from '@/hooks/use-auth.tsx';
+import { SupabaseAuthProvider } from '@/hooks/use-auth';
+import { DashboardDataProvider } from '@/hooks/use-dashboard-data';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -22,7 +23,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <SupabaseAuthProvider>
-          <AppLayout>{children}</AppLayout>
+          <DashboardDataProvider>
+            <AppLayout>{children}</AppLayout>
+          </DashboardDataProvider>
         </SupabaseAuthProvider>
         <Toaster />
       </body>

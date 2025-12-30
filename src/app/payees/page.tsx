@@ -15,9 +15,9 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 
 export default function PayeesPage() {
-  const { user, isUserLoading } = useAuth();
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingPayee, setEditingPayee] = React.useState<Payee | null>(null);
@@ -29,11 +29,11 @@ export default function PayeesPage() {
     if (!user) return;
     setIsSubmitting(true);
 
-    const onComplete = () => {
+    const onComplete = async () => {
+        await refreshData();
         setIsSubmitting(false);
         setIsFormOpen(false);
         setEditingPayee(null);
-        // We rely on the dashboard data hook to re-fetch, but can trigger it manually if needed.
     };
 
     if (editingPayee) {
@@ -47,7 +47,7 @@ export default function PayeesPage() {
             setIsSubmitting(false);
         } else {
             toast({ title: "موفقیت", description: "طرف حساب با موفقیت ویرایش شد." });
-            onComplete();
+            await onComplete();
         }
     } else {
         const { data, error } = await supabase
@@ -61,20 +61,21 @@ export default function PayeesPage() {
             setIsSubmitting(false);
         } else {
             toast({ title: "موفقیت", description: "طرف حساب جدید با موفقیت اضافه شد." });
-            onComplete();
+            await onComplete();
         }
     }
-  }, [user, editingPayee, toast]);
+  }, [user, editingPayee, toast, refreshData]);
 
   const handleDelete = useCallback(async (payeeId: string) => {
     if (!user) return;
+    setIsSubmitting(true);
 
     try {
         const usedIn = [];
-        if ((checks || []).some(c => c.payeeId === payeeId)) usedIn.push('چک');
-        if ((expenses || []).some(e => e.payeeId === payeeId)) usedIn.push('هزینه');
-        if ((loans || []).some(l => l.payeeId === payeeId)) usedIn.push('وام');
-        if ((previousDebts || []).some(d => d.payeeId === payeeId)) usedIn.push('بدهی');
+        if ((checks || []).some((c: any) => c.payeeId === payeeId)) usedIn.push('چک');
+        if ((expenses || []).some((e: any) => e.payeeId === payeeId)) usedIn.push('هزینه');
+        if ((loans || []).some((l: any) => l.payeeId === payeeId)) usedIn.push('وام');
+        if ((previousDebts || []).some((d: any) => d.payeeId === payeeId)) usedIn.push('بدهی');
         
         if (usedIn.length > 0) {
             throw new Error(`امکان حذف وجود ندارد. این طرف حساب در یک یا چند تراکنش (${usedIn.join(', ')}) استفاده شده است.`);
@@ -85,6 +86,7 @@ export default function PayeesPage() {
         if (error) throw error;
         
         toast({ title: "موفقیت", description: "طرف حساب با موفقیت حذف شد." });
+        await refreshData();
 
     } catch (error: any) {
         toast({
@@ -92,8 +94,10 @@ export default function PayeesPage() {
             title: "خطا در حذف",
             description: error.message || "مشکلی در حذف طرف حساب پیش آمد.",
         });
+    } finally {
+        setIsSubmitting(false);
     }
-  }, [user, toast, checks, expenses, loans, previousDebts]);
+  }, [user, toast, checks, expenses, loans, previousDebts, refreshData]);
 
   const handleEdit = useCallback((payee: Payee) => {
     setEditingPayee(payee);
@@ -153,16 +157,19 @@ export default function PayeesPage() {
       )}
 
       {/* Floating Action Button for Mobile */}
-      <div className="md:hidden fixed bottom-20 right-4 z-50">
-          <Button
-            onClick={handleAddNew}
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg"
-            aria-label="افزودن طرف حساب"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-      </div>
+       {!isFormOpen && (
+          <div className="md:hidden fixed bottom-20 right-4 z-50">
+              <Button
+                onClick={handleAddNew}
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg"
+                aria-label="افزودن طرف حساب"
+                disabled={isSubmitting}
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+          </div>
+       )}
     </div>
   );
 }

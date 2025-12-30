@@ -15,63 +15,91 @@ import { Input } from '@/components/ui/input';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 import type { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function CardsPage() {
   const { toast } = useToast();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
-
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { user, isLoading: isUserLoading } = useAuth();
+  
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingCard, setEditingCard] = React.useState<BankAccount | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setCurrentUser(session?.user ?? null);
-      setIsUserLoading(false);
-    };
-
-    getSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setCurrentUser(session?.user ?? null);
-      setIsUserLoading(false);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  const { bankAccounts: allBankAccounts, incomes, expenses, transfers, checks, loanPayments, debtPayments, users } = allData;
+  const { bankAccounts: allBankAccounts, users, expenses, incomes, transfers, checks, loanPayments, debtPayments } = allData;
 
   const hasSharedAccount = useMemo(() => (allBankAccounts || []).some(acc => acc.ownerId === 'shared_account'), [allBankAccounts]);
 
-  const handleFormSubmit = useCallback(async (values: Omit<BankAccount, 'id' | 'balance' | 'registeredByUserId' | 'blockedBalance'>) => {
-    if (!currentUser) return;
+  const handleFormSubmit = useCallback(async (values: any) => {
+    if (!user) return;
     setIsSubmitting(true);
     
-    const cardData = {
-        ...values,
-        registered_by_user_id: currentUser.uid,
-        balance: values.initialBalance,
-    };
-    
-    // TODO: Implement Supabase logic for add/edit
-    toast({ title: "در حال توسعه", description: "عملیات ثبت کارت هنوز پیاده‌سازی نشده است."});
-    
-    setIsSubmitting(false);
-    setIsFormOpen(false);
-  }, [currentUser, toast, editingCard]);
+    try {
+        if (editingCard) {
+            // Update logic
+            const { error } = await supabase.from('bank_accounts').update({
+                bank_name: values.bankName,
+                account_number: values.accountNumber,
+                card_number: values.cardNumber,
+                expiry_date: values.expiryDate,
+                cvv2: values.cvv2,
+                theme: values.theme,
+                account_type: values.accountType
+            }).eq('id', editingCard.id);
+            if (error) throw error;
+            toast({ title: "موفقیت", description: "کارت با موفقیت ویرایش شد." });
+        } else {
+            // Create logic
+            const { error } = await supabase.from('bank_accounts').insert([{
+                ...values,
+                balance: values.initialBalance,
+                registered_by_user_id: user.uid,
+            }]);
+            if (error) throw error;
+            toast({ title: "موفقیت", description: "کارت جدید با موفقیت اضافه شد." });
+        }
+        await refreshData();
+        setIsSubmitting(false);
+        setIsFormOpen(false);
+        setEditingCard(null);
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "خطا در عملیات", description: error.message });
+        setIsSubmitting(false);
+    }
+  }, [user, toast, editingCard, refreshData]);
 
   const handleDelete = useCallback(async (cardId: string) => {
-    // TODO: Implement Supabase logic
-    toast({ title: "در حال توسعه", description: "عملیات حذف کارت هنوز پیاده‌سازی نشده است."});
-  }, [currentUser, allBankAccounts, toast, expenses, incomes, transfers, checks, loanPayments, debtPayments]);
+     if (!user) return;
+     setIsSubmitting(true);
+
+     const isUsed = [
+        ...(expenses || []),
+        ...(incomes || []),
+        ...(transfers || []),
+        ...(checks || []),
+        ...(loanPayments || []),
+        ...(debtPayments || [])
+     ].some(item => ('bankAccountId' in item && item.bankAccountId === cardId) || ('fromBankAccountId' in item && item.fromBankAccountId === cardId) || ('toBankAccountId' in item && item.toBankAccountId === cardId));
+
+    if (isUsed) {
+        toast({ variant: "destructive", title: "خطا", description: "امکان حذف این کارت وجود ندارد زیرا در تراکنش‌ها استفاده شده است."});
+        setIsSubmitting(false);
+        return;
+    }
+
+     try {
+        const { error } = await supabase.from('bank_accounts').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', cardId);
+        if (error) throw error;
+        toast({ title: "موفقیت", description: "کارت با موفقیت حذف شد." });
+        await refreshData();
+     } catch (error: any) {
+        toast({ variant: "destructive", title: "خطا در حذف", description: error.message });
+     } finally {
+        setIsSubmitting(false);
+     }
+  }, [user, toast, expenses, incomes, transfers, checks, loanPayments, debtPayments, refreshData]);
 
 
   const handleEdit = useCallback((card: BankAccount) => {
@@ -94,7 +122,7 @@ export default function CardsPage() {
     const query = toEnglishDigits(searchQuery).toLowerCase();
     return allBankAccounts.filter(card => 
       card.bankName.toLowerCase().includes(query) ||
-      card.cardNumber.includes(query) ||
+      (card.cardNumber && card.cardNumber.includes(query)) ||
       (card.accountNumber && card.accountNumber.includes(query))
     );
   }, [searchQuery, allBankAccounts]);
@@ -138,7 +166,7 @@ export default function CardsPage() {
               setIsOpen={setIsFormOpen}
               onSubmit={handleFormSubmit}
               initialData={editingCard}
-              users={users}
+              users={users || []}
               hasSharedAccount={hasSharedAccount}
               isSubmitting={isSubmitting}
             />

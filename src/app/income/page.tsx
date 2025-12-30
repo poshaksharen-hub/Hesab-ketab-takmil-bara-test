@@ -20,7 +20,7 @@ import { supabase } from '@/lib/supabase-client';
 type IncomeFormData = Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'registeredByUserId' | 'type' | 'category'> & { attachment_path?: string };
 
 export default function IncomePage() {
-  const { user, isUserLoading } = useAuth();
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData, error } = useDashboardData();
   

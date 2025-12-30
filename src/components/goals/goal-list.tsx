@@ -11,10 +11,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { formatCurrency, formatJalaliDate } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate, getPublicUrl } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import Image from 'next/image';
-import { getPublicUrl } from '@/lib/storage';
 import { Edit, Trash2, CheckCircle, RotateCcw, Plus, Gift } from 'lucide-react';
 import {
   AlertDialog,
@@ -59,7 +58,7 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
         const ownerName = USER_DETAILS[goal.ownerId as keyof typeof USER_DETAILS]?.firstName || 'مشترک';
         const imageUrl = goal.image_path ? getPublicUrl(goal.image_path) : null;
         
-        const isDeleteDisabled = isSubmitting || goal.isAchieved || (goal.contributions && goal.contributions.length > 0);
+        const isDeleteDisabled = isSubmitting || goal.isAchieved || goal.currentAmount > 0;
 
         return (
           <Card key={goal.id} className="flex flex-col overflow-hidden group">
@@ -88,7 +87,7 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
                             <AlertDialogHeader>
                                 <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    {isDeleteDisabled ? "این هدف قابل حذف نیست زیرا دارای سابقه پرداخت است یا قبلاً محقق شده است." : "این عمل غیرقابل بازگشت است. هدف مالی برای همیشه حذف خواهد شد."}
+                                    {isDeleteDisabled ? "این هدف قابل حذف نیست زیرا برای آن پس‌انداز شده یا قبلاً محقق شده است." : "این عمل غیرقابل بازگشت است. هدف مالی برای همیشه حذف خواهد شد."}
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

@@ -15,37 +15,18 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase-client';
-import type { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/use-auth';
 
 // Define a more specific type for the form values we expect
 type ExpenseSubmissionValues = Omit<Expense, 'id' | 'createdAt' | 'type' | 'ownerId' | 'registeredByUserId'> & { attachment_path?: string };
 
 export default function ExpensesPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    };
-    getSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setIsUserLoading(false);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
 
   const {
     expenses: allExpenses,
@@ -110,7 +91,8 @@ export default function ExpensesPage() {
             await supabase.from('bank_accounts').update({ balance: balanceBefore }).eq('id', account.id);
             throw expenseError;
         }
-
+        
+        await refreshData();
         setIsFormOpen(false);
         toast({ title: "موفقیت", description: "هزینه جدید با موفقیت ثبت شد." });
 
@@ -150,7 +132,7 @@ export default function ExpensesPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, allBankAccounts, allCategories, allPayees, users, toast]);
+  }, [user, allBankAccounts, allCategories, allPayees, users, toast, refreshData]);
 
    const handleDelete = useCallback(async (expenseId: string) => {
     if (!allExpenses || !allBankAccounts) return;
@@ -186,7 +168,8 @@ export default function ExpensesPage() {
             await supabase.from('bank_accounts').update({ balance: account.balance }).eq('id', account.id);
             throw deleteError;
         }
-
+        
+        await refreshData();
         toast({ title: "موفقیت", description: "تراکنش هزینه با موفقیت حذف و مبلغ به حساب بازگردانده شد." });
 
     } catch (error: any) {
@@ -197,7 +180,7 @@ export default function ExpensesPage() {
         });
     }
     // TODO: Delete the associated receipt file from storage
-  }, [allExpenses, allBankAccounts, toast]);
+  }, [allExpenses, allBankAccounts, toast, refreshData]);
 
   
   const handleAddNew = useCallback(() => {
