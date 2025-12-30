@@ -38,7 +38,7 @@ export default function CardsPage() {
     
     try {
         if (editingCard) {
-            // Update logic - Corrected column names
+            // Update logic
             const { error } = await supabase.from('bank_accounts').update({
                 bank_name: values.bankName,
                 account_number: values.accountNumber,
@@ -51,7 +51,7 @@ export default function CardsPage() {
             if (error) throw error;
             toast({ title: "موفقیت", description: "کارت با موفقیت ویرایش شد." });
         } else {
-            // Create logic - Corrected column names
+            // Create logic
             const { error } = await supabase.from('bank_accounts').insert([{
                 bank_name: values.bankName,
                 account_number: values.accountNumber,
