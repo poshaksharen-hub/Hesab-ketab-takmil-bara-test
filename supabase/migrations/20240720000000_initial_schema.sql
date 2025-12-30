@@ -968,5 +968,5 @@ GRANT EXECUTE ON FUNCTION public.delete_income(uuid) TO authenticated;
 
 
 -- ====================================================================
--- END OF SCRIPT
+-- END OF SCRIPT - FINAL TEST COMMENT
 -- ====================================================================
