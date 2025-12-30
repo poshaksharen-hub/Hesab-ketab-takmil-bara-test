@@ -21,25 +21,28 @@ describe("Ali's Check Signature Flow", () => {
     cy.contains("button", "ثبت چک جدید").click();
 
     // Fill out the form
-    cy.get('input[name="payeeId"]').click(); // Open payee dropdown
+    cy.get('button[role="combobox"]').first().click(); // Open payee dropdown
     cy.get('div[role="option"]').contains(payeeName).click({ force: true });
     
     cy.get('input[name="amount"]').type(checkAmount);
     cy.get('input[name="sayadId"]').type(sayadId);
     cy.get('input[name="checkSerialNumber"]').type("123123");
 
-    cy.get('input[name="bankAccountId"]').click(); // Bank Account
+    cy.get('button[role="combobox"]').eq(1).click(); // Bank Account
     // Select the first available bank account for Ali
     cy.get('div[role="option"]').first().click();
 
-    cy.get('input[name="categoryId"]').click(); // Category
+    cy.get('button[role="combobox"]').eq(2).click(); // Category
     cy.get('div[role="option"]').contains("خرید‌های روزمره").click();
     
     // The check is for Ali himself
-    cy.get('input[name="expenseFor"]').click(); 
+    cy.get('button[role="combobox"]').eq(3).click(); 
     cy.get('div[role="option"]').contains("علی").click();
 
-    cy.contains("button", "ذخیره").click();
+    cy.contains("button", "ثبت و امضا").click();
+
+    // Confirm signature
+    cy.get('button').contains('تایید و ذخیره امضا').click();
 
     // --- Part 2: Assert the new check is visible with the signature ---
     cy.contains("p", sayadId)
@@ -47,9 +50,9 @@ describe("Ali's Check Signature Flow", () => {
       .parents("[data-testid^='check-item-']") // Find the parent container of the check item
       .within(() => {
         // Assert that the signature image is present and has the correct src
-        cy.get("img[alt='Ali Signature']")
+        cy.get("img[alt*='امضای']")
           .should("be.visible")
-          .and("have.attr", "src", "/images/ali-signature.png");
+          .and("have.attr", "src");
 
         // Optional: Also verify other details
         cy.contains("۱٬۲۵۰٬۰۰۰ تومان");

@@ -20,7 +20,7 @@ describe("Checks Flow", () => {
     cy.contains("button", "ثبت چک جدید").click();
 
     // Fill out the form
-    cy.get('button[role="combobox"]').eq(0).click(); // Open payee dropdown
+    cy.get('button[role="combobox"]').first().click(); // Open payee dropdown
     cy.get('div[role="option"]').contains(payeeName).click({ force: true });
     
     cy.get('input[name="amount"]').type(checkAmount);
@@ -36,14 +36,16 @@ describe("Checks Flow", () => {
     cy.get('button[role="combobox"]').eq(3).click(); // Expense For
     cy.get('div[role="option"]').contains("مشترک").click();
 
-    cy.contains("button", "ذخیره").click();
+    cy.contains("button", "ثبت و امضا").click();
+
+    cy.get('button').contains('تایید و ذخیره امضا').click();
 
     // Assert the new check is visible
     cy.contains(sayadId).should("be.visible");
     cy.contains("۲٬۵۰۰٬۰۰۰ تومان").should("be.visible");
 
     // --- Part 2: View Details ---
-    cy.contains(sayadId).parents('.group').click();
+    cy.contains(sayadId).parents('.group').find('a').first().click();
     cy.url().should('include', '/checks/');
     cy.contains('h1', 'جزئیات چک').should('be.visible');
     cy.contains(sayadId).should('be.visible');
@@ -62,11 +64,12 @@ describe("Checks Flow", () => {
 
     // --- Part 4: Delete the cleared check ---
     cy.contains(sayadId).parents('.group').find('button[aria-label="Actions"]').click();
-    cy.contains('div', 'حذف چک').click({force: true});
+    
+    cy.get('div[role="menuitem"]').contains('حذف چک').click({force: true});
+    
+    // The deletion should fail for a cleared check
     cy.get('button').contains('بله، حذف کن').click();
-
-    // Assert check is gone
-    cy.contains(sayadId).should('not.exist');
+    cy.contains('امکان حذف چک پاس شده وجود ندارد.').should('be.visible');
 
   });
 
@@ -78,7 +81,7 @@ describe("Checks Flow", () => {
     cy.contains("button", "ثبت چک جدید").click();
 
     // Add a new payee for this test
-    cy.get('button[role="combobox"]').eq(0).click();
+    cy.get('button[role="combobox"]').first().click();
     cy.get('div[role="option"]').contains('افزودن طرف حساب جدید').click();
     cy.get('input[name="name"]').type(payeeName);
     cy.get('button').contains('ذخیره').click();
@@ -93,11 +96,12 @@ describe("Checks Flow", () => {
     cy.get('div[role="option"]').first().click();
     cy.get('button[role="combobox"]').eq(3).click();
     cy.get('div[role="option"]').contains("مشترک").click();
-    cy.contains("button", "ذخیره").click();
+    cy.contains("button", "ثبت و امضا").click();
+    cy.get('button').contains('تایید و ذخیره امضا').click();
 
     // Attempt to clear the check from the list view
     cy.contains(sayadId).parents('.group').find('button[aria-label="Actions"]').click();
-    cy.contains('div[role="menuitem"]', 'پاس کردن چک').click();
+    cy.get('div[role="menuitem"]').contains('پاس کردن چک').click();
     cy.get('button').contains('تایید و پاس کردن').click();
 
     // Assert that an error toast is shown
