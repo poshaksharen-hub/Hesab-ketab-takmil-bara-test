@@ -1,0 +1,39 @@
+name: Deploy with Connection Pooler (Final)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply SQL Schema via Connection Pooler
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_POOL_HOST: ${{ secrets.SUPABASE_POOL_HOST }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          echo "Connecting to the Supabase connection pooler at ${{ secrets.SUPABASE_POOL_HOST }}..."
+          
+          SQL_SCRIPT=$(cat supabase/migrations/20240720000000_initial_schema.sql)
+
+          # Using the correct username format and port for the Session Pooler
+          POOLER_USERNAME="postgres.${{ secrets.SUPABASE_PROJECT_REF }}"
+          
+          PGPASSWORD="$SUPABASE_DB_PASSWORD" psql \
+            --host="${{ secrets.SUPABASE_POOL_HOST }}" \
+            --port=5432 \
+            --username="$POOLER_USERNAME" \
+            --dbname=postgres \
+            -a \
+            -c "$SQL_SCRIPT"
+
+          echo "Schema applied successfully via Connection Pooler!"
