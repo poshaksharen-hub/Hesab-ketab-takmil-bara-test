@@ -3,7 +3,6 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/hooks/use-user';
 import type { PreviousDebt, BankAccount, Category, Payee, Expense, UserProfile, TransactionDetails } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -16,10 +15,11 @@ import Link from 'next/link';
 import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
 import { supabase } from '@/lib/supabase-client';
+import { useAuth } from '@/hooks/use-auth';
 
 
 export default function DebtsPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
 

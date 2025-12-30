@@ -75,12 +75,12 @@ const quickAccessItems = [
     { href: '/chat', label: 'گفتگو', icon: MessageSquare, color: 'text-lime-500' },
     { href: '/goals', label: 'اهداف', icon: Target, color: 'text-teal-500' },
     { href: '/due-dates', label: 'سررسیدها', icon: Bell, color: 'text-rose-500' },
+    { href: '/insights', label: 'آمار', icon: BrainCircuit, color: 'text-purple-500' },
     { href: '/payees', label: 'طرف حساب‌ها', icon: BookUser, color: 'text-pink-500' },
     { href: '/checks', label: 'چک‌ها', icon: BookCopy, color: 'text-amber-500' },
     { href: '/loans', label: 'وام‌ها', icon: Landmark, color: 'text-violet-500' },
     { href: '/debts', label: 'بدهی‌ها', icon: Handshake, color: 'text-indigo-500' },
     { href: '/categories', label: 'دسته‌بندی‌ها', icon: FolderKanban, color: 'text-orange-500' },
-    { href: '/insights', label: 'آمار و گزارشات', icon: BrainCircuit, color: 'text-purple-500' },
 ];
 
 function QuickAccess() {

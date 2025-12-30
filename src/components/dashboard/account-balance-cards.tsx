@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/utils';
 import { User, Users, Wallet } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { USER_DETAILS } from '@/lib/constants';
-import type { User as AuthUser } from 'firebase/auth';
+import type { User as AuthUser } from '@supabase/supabase-js';
 
 type AccountBalanceCardsProps = {
   aliBalance: number;

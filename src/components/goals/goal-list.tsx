@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import Link from 'next/link';
 
 interface GoalListProps {
   goals: FinancialGoal[];
@@ -61,63 +62,39 @@ export function GoalList({ goals, users, onContribute, onAchieve, onRevert, onDe
 
         return (
           <Card key={goal.id} className="flex flex-col overflow-hidden group">
-            <CardHeader className="relative p-0">
-                {imageUrl ? (
-                    <div className="relative h-48 w-full">
-                        <Image src={imageUrl} alt={goal.name} layout="fill" objectFit="cover" />
-                        <div className="absolute inset-0 bg-black/20" />
-                    </div>
-                ) : (
-                    <div className="h-24 w-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-700" />
-                )}
-                 <div className="absolute top-2 right-2 flex gap-2">
-                    {!goal.isAchieved && (
-                        <Button variant="outline" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onEdit(goal)} disabled={isSubmitting}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                    )}
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" disabled={isDeleteDisabled}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>آیا از حذف این هدف مطمئن هستید؟</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    {goal.isAchieved ? "این هدف قابل حذف نیست زیرا قبلاً محقق شده است. ابتدا آن را بازگردانی کنید." : "این عمل غیرقابل بازگشت است. تمام پس‌اندازهای این هدف به حساب‌ها بازگردانده و خود هدف حذف خواهد شد."}
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                {!isDeleteDisabled && <AlertDialogAction onClick={() => onDelete(goal.id)}>بله، حذف کن</AlertDialogAction>}
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+            <Link href={`/goals/${goal.id}`} className="block">
+              <CardHeader className="relative p-0">
+                  {imageUrl ? (
+                      <div className="relative h-48 w-full">
+                          <Image src={imageUrl} alt={goal.name} layout="fill" objectFit="cover" />
+                          <div className="absolute inset-0 bg-black/20" />
+                      </div>
+                  ) : (
+                      <div className="h-24 w-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-700" />
+                  )}
+              </CardHeader>
+              <CardContent className="flex-grow p-4">
+                <CardTitle className="font-headline text-lg">{goal.name}</CardTitle>
+                <div className="text-sm text-muted-foreground mt-1">
+                  <span>برای: {ownerName}</span> &bull; <span>ثبت توسط: {registeredBy?.firstName}</span>
                 </div>
-            </CardHeader>
-            <CardContent className="flex-grow p-4">
-              <CardTitle className="font-headline text-lg">{goal.name}</CardTitle>
-              <div className="text-sm text-muted-foreground mt-1">
-                <span>برای: {ownerName}</span> &bull; <span>ثبت توسط: {registeredBy?.firstName}</span>
-              </div>
-              <div className="my-4">
-                <div className="flex justify-between items-end mb-1">
-                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">پس‌انداز شده</span>
-                    <span className="text-xs text-muted-foreground">هدف: {formatCurrency(goal.targetAmount, 'IRT')}</span>
+                <div className="my-4">
+                  <div className="flex justify-between items-end mb-1">
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">پس‌انداز شده</span>
+                      <span className="text-xs text-muted-foreground">هدف: {formatCurrency(goal.targetAmount, 'IRT')}</span>
+                  </div>
+                  <Progress value={progress} />
+                  <div className="flex justify-between items-end mt-1">
+                      <span className="text-lg font-bold text-primary">{formatCurrency(goal.currentAmount, 'IRT')}</span>
+                      <span className="text-xs font-mono">%{Math.round(progress)}</span>
+                  </div>
                 </div>
-                <Progress value={progress} />
-                <div className="flex justify-between items-end mt-1">
-                    <span className="text-lg font-bold text-primary">{formatCurrency(goal.currentAmount, 'IRT')}</span>
-                    <span className="text-xs font-mono">%{Math.round(progress)}</span>
+                <div className="text-xs text-muted-foreground space-y-1">
+                    <p>تاریخ هدف: {formatJalaliDate(new Date(goal.targetDate))}</p>
+                    <p>اولویت: {goal.priority}</p>
                 </div>
-              </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                  <p>تاریخ هدف: {formatJalaliDate(new Date(goal.targetDate))}</p>
-                  <p>اولویت: {goal.priority}</p>
-              </div>
-            </CardContent>
+              </CardContent>
+            </Link>
             <CardFooter className="p-2 border-t">
                 {goal.isAchieved ? (
                     <Button variant="ghost" className="w-full" onClick={() => onRevert(goal)} disabled={isSubmitting}>

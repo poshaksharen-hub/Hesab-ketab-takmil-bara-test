@@ -1,6 +1,5 @@
-
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -86,6 +85,13 @@ export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormP
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const form = useForm<DebtFormValues>({ resolver: zodResolver(formSchema), defaultValues: { isInstallment: false } });
+  
+  useEffect(() => {
+    // Reset form and upload state when it becomes visible
+    form.reset({ isInstallment: false });
+    setPreviewUrl(null);
+    setUploadStatus('idle');
+  }, []);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -122,7 +128,23 @@ export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormP
           <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <CardContent className="space-y-4">
-                  {/* ... other form fields ... */}
+                   <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>شرح بدهی</FormLabel><FormControl><Textarea placeholder="مثال: قرض از دوست برای خرید..." {...field} disabled={isSubmitting}/></FormControl><FormMessage /></FormItem>)} />
+                   <FormField control={form.control} name="amount" render={({ field }) => (<FormItem><FormLabel>مبلغ کل بدهی (تومان)</FormLabel><FormControl><CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="payeeId" render={({ field }) => (<FormItem><FormLabel>طرف حساب (بستانکار)</FormLabel><Select onValueChange={(value) => value === 'add_new' ? setIsAddPayeeOpen(true) : field.onChange(value)} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="یک طرف حساب انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>{payees.map((payee) => (<SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="ownerId" render={({ field }) => (<FormItem><FormLabel>بدهی برای</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="شخص مورد نظر را انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem><SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem><SelectItem value="shared">مشترک</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="startDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ ایجاد بدهی</FormLabel><JalaliDatePicker title="تاریخ ایجاد بدهی" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
+                   </div>
+                   <FormField control={form.control} name="isInstallment" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><div className="space-y-0.5"><FormLabel>آیا بدهی قسطی است؟</FormLabel><FormDescription>در غیر این صورت، یک بدهی با پرداخت یکجا ثبت می‌شود.</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
+                    {isInstallment ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <FormField control={form.control} name="installmentAmount" render={({ field }) => (<FormItem><FormLabel>مبلغ هر قسط</FormLabel><FormControl><CurrencyInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                           <FormField control={form.control} name="numberOfInstallments" render={({ field }) => (<FormItem><FormLabel>تعداد اقساط</FormLabel><FormControl><NumericInput {...field} /></FormControl><FormMessage /></FormItem>)} />
+                           <FormField control={form.control} name="firstInstallmentDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ اولین قسط</FormLabel><JalaliDatePicker title="تاریخ اولین قسط" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
+                        </div>
+                    ) : (
+                         <FormField control={form.control} name="dueDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ سررسید</FormLabel><JalaliDatePicker title="تاریخ سررسید" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
+                    )}
                    <FormField
                         control={form.control}
                         name="attachment_path"
@@ -131,7 +153,7 @@ export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormP
                                 <FormLabel>پیوست مستندات (اختیاری)</FormLabel>
                                 <FormControl>
                                     <div className='flex items-center gap-4'>
-                                        <Input id='debt-attachment-upload' type='file' accept='image/*,application/pdf' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
+                                        <input id='debt-attachment-upload' type='file' accept='image/*,application/pdf' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
                                         <label htmlFor='debt-attachment-upload' className={cn('flex-1 cursor-pointer rounded-md border-2 border-dashed border-gray-300 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-primary', (uploadStatus === 'uploading' || isSubmitting) && 'cursor-not-allowed opacity-50')}>
                                             {uploadStatus === 'idle' && !previewUrl && <><Upload className='mx-auto mb-2 h-6 w-6' /><span>برای آپلود کلیک کنید</span></>}
                                             {uploadStatus === 'uploading' && <><Loader2 className='mx-auto mb-2 h-6 w-6 animate-spin' /><span>در حال آپلود...</span></>}
@@ -163,6 +185,12 @@ export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormP
               </form>
           </Form>
       </Card>
+
+      {isAddPayeeOpen && (
+          <AddPayeeDialog isOpen={isAddPayeeOpen} onOpenChange={setIsAddPayeeOpen} onPayeeAdded={(newPayee) => {
+              form.setValue('payeeId', newPayee.id);
+          }} />
+      )}
     </>
   );
 }

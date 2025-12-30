@@ -4,7 +4,6 @@
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowRight, Plus } from 'lucide-react';
-import { useUser } from '@/hooks/use-user';
 import type { Loan, BankAccount, Category, TransactionDetails, LoanPayment, Expense, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -18,10 +17,11 @@ import { useRouter } from 'next/navigation';
 import { sendSystemNotification } from '@/lib/notifications';
 import { USER_DETAILS } from '@/lib/constants';
 import { supabase } from '@/lib/supabase-client';
+import { useAuth } from '@/hooks/use-auth';
 
 
 export default function LoansPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
@@ -147,7 +147,6 @@ export default function LoansPage() {
             initialData={editingLoan}
             bankAccounts={bankAccounts || []}
             payees={payees || []}
-            user={user}
             isSubmitting={isSubmitting}
         />
       ) : (

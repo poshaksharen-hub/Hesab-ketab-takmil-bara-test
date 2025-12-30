@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { z } from 'zod';
@@ -34,6 +33,7 @@ import { Loader2, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react'
 import { uploadLoanDocument } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/use-auth';
 
 const baseSchema = z.object({
   title: z.string().min(2, { message: 'عنوان وام باید حداقل ۲ حرف داشته باشد.' }),
@@ -71,11 +71,11 @@ interface LoanFormProps {
   initialData: Loan | null;
   bankAccounts: BankAccount[];
   payees: Payee[];
-  user: AuthUser | null;
   isSubmitting: boolean;
 }
 
-export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, user, isSubmitting }: LoanFormProps) {
+export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, isSubmitting }: LoanFormProps) {
+    const { user } = useAuth();
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
     const { toast } = useToast();
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -208,7 +208,7 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                                         <FormLabel>پیوست مستندات (اختیاری)</FormLabel>
                                         <FormControl>
                                             <div className='flex items-center gap-4'>
-                                                <Input id='loan-attachment-upload' type='file' accept='image/*,application/pdf' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
+                                                <input id='loan-attachment-upload' type='file' accept='image/*,application/pdf' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
                                                 <label htmlFor='loan-attachment-upload' className={cn('flex-1 cursor-pointer rounded-md border-2 border-dashed border-gray-300 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-primary', (uploadStatus === 'uploading' || isSubmitting) && 'cursor-not-allowed opacity-50')}>
                                                     {uploadStatus === 'idle' && !previewUrl && <><Upload className='mx-auto mb-2 h-6 w-6' /><span>برای آپلود کلیک کنید</span></>}
                                                     {uploadStatus === 'uploading' && <><Loader2 className='mx-auto mb-2 h-6 w-6 animate-spin' /><span>در حال آپلود...</span></>}

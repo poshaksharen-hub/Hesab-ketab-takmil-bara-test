@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -7,13 +6,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { CurrencyInput, NumericInput, Input } from '@/components/ui/input';
+import { CurrencyInput, NumericInput } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Check, BankAccount, Payee, Category } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
 import { USER_DETAILS } from '@/lib/constants';
-import { formatCurrency, cn, getPublicUrl } from '@/lib/utils';
+import { cn, getPublicUrl } from '@/lib/utils';
 import { Textarea } from '../ui/textarea';
 import { AddPayeeDialog } from '../payees/add-payee-dialog';
 import { AddCategoryDialog } from '../categories/add-category-dialog';
@@ -23,6 +22,7 @@ import { uploadCheckImage } from '@/lib/storage';
 import type { User } from '@supabase/supabase-js';
 import { Loader2, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/use-auth';
 
 const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
@@ -50,12 +50,12 @@ interface CheckFormProps {
   bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
-  user: User | null;
   onCancel: () => void;
   isSubmitting: boolean;
 }
 
-export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categories, user, onCancel, isSubmitting }: CheckFormProps) {
+export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categories, onCancel, isSubmitting }: CheckFormProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -138,6 +138,16 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
             <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>
                 <CardContent className="space-y-4">
+                  {/* Form fields are now in a separate component for readability */}
+                   <CheckFormFields
+                        form={form}
+                        isSubmitting={isSubmitting}
+                        bankAccounts={bankAccounts}
+                        payees={payees}
+                        categories={categories}
+                        setIsAddPayeeOpen={setIsAddPayeeOpen}
+                        setIsAddCategoryOpen={setIsAddCategoryOpen}
+                   />
                     <FormField
                         control={form.control}
                         name="image_path"
@@ -146,7 +156,7 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
                                 <FormLabel>عکس برگه چک (اختیاری)</FormLabel>
                                 <FormControl>
                                     <div className='flex items-center gap-4'>
-                                        <Input id='check-image-upload' type='file' accept='image/*' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
+                                        <input id='check-image-upload' type='file' accept='image/*' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting} />
                                         <label htmlFor='check-image-upload' className={cn('flex-1 cursor-pointer rounded-md border-2 border-dashed border-gray-300 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-primary', (uploadStatus === 'uploading' || isSubmitting) && 'cursor-not-allowed opacity-50')}>
                                            {uploadStatus === 'idle' && !previewUrl && <><Upload className='mx-auto mb-2 h-6 w-6' /><span>برای آپلود کلیک کنید</span></>}
                                            {uploadStatus === 'uploading' && <><Loader2 className='mx-auto mb-2 h-6 w-6 animate-spin' /><span>در حال آپلود...</span></>}
@@ -178,6 +188,62 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
             </form>
             </Form>
         </Card>
+
+        {isAddPayeeOpen && (
+            <AddPayeeDialog
+                isOpen={isAddPayeeOpen}
+                onOpenChange={setIsAddPayeeOpen}
+                onPayeeAdded={(newPayee) => {
+                    form.setValue('payeeId', newPayee.id);
+                }}
+            />
+        )}
+        
+        {isAddCategoryOpen && (
+            <AddCategoryDialog
+                isOpen={isAddCategoryOpen}
+                onOpenChange={setIsAddCategoryOpen}
+                onCategoryAdded={(newCategory) => {
+                    form.setValue('categoryId', newCategory.id);
+                }}
+            />
+        )}
+        
+        <SignatureDialog
+          open={isSignatureDialogOpen}
+          onOpenChange={setIsSignatureDialogOpen}
+          onConfirm={handleSignatureConfirm}
+        />
       </>
   );
+}
+
+
+// A new sub-component to hold the form fields for better readability
+const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories, setIsAddPayeeOpen, setIsAddCategoryOpen }: any) => {
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="sayadId" render={({ field }) => (<FormItem><FormLabel>شناسه صیاد</FormLabel><FormControl><NumericInput {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="checkSerialNumber" render={({ field }) => (<FormItem><FormLabel>شماره سریال چک</FormLabel><FormControl><NumericInput {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
+            </div>
+
+            <FormField control={form.control} name="amount" render={({ field }) => (<FormItem><FormLabel>مبلغ چک (تومان)</FormLabel><FormControl><CurrencyInput value={field.value} onChange={field.onChange} disabled={isSubmitting}/></FormControl><FormMessage /></FormItem>)} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="issueDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ صدور</FormLabel><JalaliDatePicker title="تاریخ صدور" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="dueDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ سررسید</FormLabel><JalaliDatePicker title="تاریخ سررسید" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
+            </div>
+
+             <FormField control={form.control} name="bankAccountId" render={({ field }) => (<FormItem><FormLabel>از حساب</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="یک حساب بانکی انتخاب کنید" /></SelectTrigger></FormControl><SelectContent>{bankAccounts.map((account: BankAccount) => (<SelectItem key={account.id} value={account.id}>{account.bankName} ({(account.ownerId && USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک'})</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="payeeId" render={({ field }) => (<FormItem><FormLabel>در وجه</FormLabel><Select onValueChange={(value) => value === 'add_new' ? setIsAddPayeeOpen(true) : field.onChange(value)} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="یک طرف حساب انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>{payees.map((payee: Payee) => (<SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="categoryId" render={({ field }) => (<FormItem><FormLabel>دسته‌بندی</FormLabel><Select onValueChange={(value) => value === 'add_new' ? setIsAddCategoryOpen(true) : field.onChange(value)} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="یک دسته‌بندی انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن دسته‌بندی جدید...</SelectItem>{categories.map((cat: Category) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+            </div>
+             <FormField control={form.control} name="expenseFor" render={({ field }) => (<FormItem><FormLabel>این چک برای کیست؟</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="شخص مورد نظر را انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="shared">مشترک</SelectItem><SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem><SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+
+            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>توضیحات (اختیاری)</FormLabel><FormControl><Textarea placeholder="شرح مختصری در مورد این چک..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+        </div>
+    )
 }

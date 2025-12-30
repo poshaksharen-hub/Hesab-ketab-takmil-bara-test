@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
@@ -39,6 +38,7 @@ import { Loader2, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react'
 import { uploadGoalImage } from '@/lib/storage';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'نام هدف باید حداقل ۲ حرف داشته باشد.' }),
@@ -54,12 +54,12 @@ type GoalFormValues = z.infer<typeof formSchema>;
 interface GoalFormProps {
   onSubmit: (data: GoalFormValues) => void;
   initialData: FinancialGoal | null;
-  user: User | null;
   onCancel: () => void;
   isSubmitting: boolean;
 }
 
-export function GoalForm({ onSubmit, initialData, user, onCancel, isSubmitting }: GoalFormProps) {
+export function GoalForm({ onSubmit, initialData, onCancel, isSubmitting }: GoalFormProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const loggedInUserOwnerId = user?.email?.startsWith('ali') ? 'ali' : 'fatemeh';
 
@@ -142,7 +142,7 @@ export function GoalForm({ onSubmit, initialData, user, onCancel, isSubmitting }
                                 <FormLabel>عکس هدف (اختیاری)</FormLabel>
                                 <FormControl>
                                     <div className='flex items-center gap-4'>
-                                        <Input id='goal-image-upload' type='file' accept='image/*' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting}/>
+                                        <input id='goal-image-upload' type='file' accept='image/*' onChange={handleFileChange} className='hidden' disabled={uploadStatus === 'uploading' || isSubmitting}/>
                                         <label htmlFor='goal-image-upload' className={cn('flex-1 cursor-pointer rounded-md border-2 border-dashed border-gray-300 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-primary', (uploadStatus === 'uploading' || isSubmitting) && 'cursor-not-allowed opacity-50')}>
                                            {uploadStatus === 'idle' && !previewUrl && <><Upload className='mx-auto mb-2 h-6 w-6' /><span>برای آپلود کلیک کنید یا عکس را بکشید</span></>}
                                            {uploadStatus === 'uploading' && <><Loader2 className='mx-auto mb-2 h-6 w-6 animate-spin' /><span>در حال آپلود...</span></>}

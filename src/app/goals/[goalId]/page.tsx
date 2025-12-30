@@ -12,7 +12,7 @@ import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { USER_DETAILS } from '@/lib/constants';
-import type { FinancialGoal, FinancialGoalContribution, BankAccount, OwnerId } from '@/lib/types';
+import type { FinancialGoal, Expense, BankAccount, OwnerId } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
@@ -50,17 +50,18 @@ export default function GoalDetailPage() {
   const goalId = params.goalId as string;
 
   const { isLoading, allData } = useDashboardData();
-  const { goals, bankAccounts, users } = allData;
+  const { goals, expenses, bankAccounts, users } = allData;
 
   const { goal, contributionsWithDetails } = useMemo(() => {
-    if (isLoading || !goalId || !goals || !bankAccounts || !users) {
+    if (isLoading || !goalId || !goals || !expenses || !bankAccounts || !users) {
       return { goal: null, contributionsWithDetails: [] };
     }
 
     const currentGoal = goals.find((g) => g.id === goalId);
     if (!currentGoal) return { goal: null, contributionsWithDetails: [] };
 
-    const detailedContributions = (currentGoal.contributions || [])
+    const detailedContributions = expenses
+        .filter(exp => exp.goalId === goalId && exp.subType === 'goal_contribution')
         .map(c => {
             const bankAccount = bankAccounts.find(b => b.id === c.bankAccountId);
             const ownerId = bankAccount?.ownerId;
@@ -79,7 +80,7 @@ export default function GoalDetailPage() {
       goal: currentGoal,
       contributionsWithDetails: detailedContributions,
     };
-  }, [isLoading, goalId, goals, bankAccounts, users]);
+  }, [isLoading, goalId, goals, expenses, bankAccounts, users]);
 
   if (isLoading) {
     return <GoalDetailSkeleton />;
