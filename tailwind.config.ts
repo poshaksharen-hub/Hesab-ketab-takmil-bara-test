@@ -8,32 +8,6 @@ export default {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  safelist: [
-    // Bank card theme gradients
-    'from-blue-500', 'to-blue-700',
-    'from-emerald-500', 'to-green-700',
-    'from-violet-500', 'to-purple-700',
-    'from-orange-500', 'to-amber-700',
-    'from-slate-600', 'to-gray-800',
-    'from-red-500', 'to-rose-700',
-    'from-teal-500', 'to-cyan-600',
-    'from-cyan-400', 'to-sky-500',
-    'from-pink-500', 'to-fuchsia-600',
-    'from-indigo-500', 'to-violet-600',
-    // Quick Access Icon backgrounds
-    'bg-emerald-500',
-    'bg-red-500',
-    'bg-sky-500',
-    'bg-blue-500',
-    'bg-lime-500',
-    'bg-teal-500',
-    'bg-rose-500',
-    'bg-pink-500',
-    'bg-amber-500',
-    'bg-violet-500',
-    'bg-indigo-500',
-    'bg-orange-500',
-  ],
   theme: {
     extend: {
       fontFamily: {
