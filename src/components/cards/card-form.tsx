@@ -35,7 +35,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/lib/supabase-client';
 import type { User } from '@supabase/supabase-js';
 import { Card, CardHeader, CardFooter, CardContent, CardTitle } from '@/components/ui/card';
-
+import { useAuth } from '@/hooks/use-auth';
 
 const expiryDateRegex = /^(0[1-9]|1[0-2])\/?([0-9]{2})$/;
 
@@ -63,207 +63,10 @@ interface CardFormProps {
   isSubmitting: boolean;
 }
 
-const CardFormContent = ({ form, initialData, hasSharedAccount, isSubmitting, users }: { form: any, initialData: BankAccount | null, hasSharedAccount: boolean, isSubmitting: boolean, users: UserProfile[] }) => {
-    const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-    useEffect(() => {
-        const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setCurrentUser(session?.user ?? null);
-        };
-        getSession();
-    }, []);
-
-    const selectedBankName = form.watch('bankName');
-    const selectedBankInfo = BANK_DATA.find(b => b.name === selectedBankName);
-    const loggedInUserOwnerId = users.find(u => u.id === currentUser?.id)?.email.startsWith('ali') ? 'ali' : 'fatemeh';
-
-    return (
-        <div className="space-y-6">
-            <FormField
-                control={form.control}
-                name="ownerId"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>صاحب حساب</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData || isSubmitting}>
-                    <FormControl>
-                        <SelectTrigger>
-                        <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
-                        </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        <SelectItem value="ali">{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>
-                        <SelectItem value="fatemeh">{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>
-                        <SelectItem value="shared_account" disabled={hasSharedAccount && !(initialData && initialData.ownerId === 'shared_account')}>حساب مشترک</SelectItem>
-                    </SelectContent>
-                    </Select>
-                    <FormDescription>
-                    مالکیت حساب را مشخص کنید. امکان ایجاد فقط یک حساب مشترک وجود دارد و مالکیت قابل ویرایش نیست.
-                    </FormDescription>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            <FormField
-            control={form.control}
-            name="bankName"
-            render={({ field }) => (
-            <FormItem className="flex flex-col">
-                <FormLabel>نام بانک</FormLabel>
-                <Popover open={bankPopoverOpen} onOpenChange={setBankPopoverOpen}>
-                    <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button
-                            variant="outline"
-                            role="combobox"
-                            disabled={isSubmitting}
-                            className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
-                            >
-                            {field.value ? BANK_DATA.find(b => b.name === field.value)?.name : "یک بانک را انتخاب کنید"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
-                        <Command>
-                            <CommandInput placeholder="جستجوی بانک..." />
-                            <CommandList>
-                            <CommandEmpty>بانکی یافت نشد.</CommandEmpty>
-                            <CommandGroup>
-                                {BANK_DATA.map((bank) => (
-                                <CommandItem
-                                    value={bank.name}
-                                    key={bank.name}
-                                    onSelect={() => {
-                                    form.setValue("bankName", bank.name);
-                                    form.setValue("theme", bank.themes[0].id); // Set default theme
-                                    setBankPopoverOpen(false);
-                                    }}
-                                >
-                                    <Check className={cn("mr-2 h-4 w-4", bank.name === field.value ? "opacity-100" : "opacity-0")} />
-                                    {bank.name}
-                                </CommandItem>
-                                ))}
-                            </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-        {selectedBankInfo && (
-            <FormField
-            control={form.control}
-            name="theme"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>طرح کارت</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="یک طرح برای کارت انتخاب کنید" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    {selectedBankInfo.themes.map((theme) => (
-                        <SelectItem key={theme.id} value={theme.id}>
-                        {theme.name}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        )}
-        <FormField
-            control={form.control}
-            name="accountNumber"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>شماره حساب</FormLabel>
-                <FormControl>
-                <NumericInput dir="ltr" placeholder="شماره حساب بانکی" {...field} disabled={isSubmitting}/>
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-        <FormField
-            control={form.control}
-            name="cardNumber"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>شماره کارت</FormLabel>
-                <FormControl>
-                <NumericInput dir="ltr" maxLength={16} placeholder="---- ---- ---- ----" {...field} disabled={isSubmitting}/>
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-            <FormField
-                control={form.control}
-                name="expiryDate"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>تاریخ انقضا</FormLabel>
-                    <FormControl>
-                    <ExpiryDateInput dir="ltr" placeholder="MM/YY" {...field} disabled={isSubmitting}/>
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="cvv2"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>CVV2</FormLabel>
-                    <FormControl>
-                    <NumericInput dir="ltr" maxLength={4} placeholder="---" {...field} disabled={isSubmitting}/>
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-        </div>
-        <FormField
-            control={form.control}
-            name="initialBalance"
-            render={({ field }) => (
-            <FormItem>
-                <FormLabel>موجودی اولیه (تومان)</FormLabel>
-                <FormControl>
-                <CurrencyInput value={field.value} onChange={field.onChange} disabled={!!initialData || isSubmitting} />
-                </FormControl>
-                {!initialData && <FormDescription>این مبلغ فقط یکبار در زمان ایجاد کارت ثبت می‌شود.</FormDescription>}
-                <FormMessage />
-            </FormItem>
-            )}
-        />
-    </div>
-    )
-}
-
 export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasSharedAccount, isSubmitting }: CardFormProps) {
   const isMobile = useIsMobile();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const getSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        setCurrentUser(session?.user ?? null);
-    };
-    getSession();
-  }, []);
+  const { user } = useAuth();
+  const [bankPopoverOpen, setBankPopoverOpen] = useState(false);
   
   const form = useForm<CardFormValues>({
     resolver: zodResolver(formSchema),
@@ -280,7 +83,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
     },
   });
   
-  const loggedInUserOwnerId = users.find(u => u.id === currentUser?.id)?.email.startsWith('ali') ? 'ali' : 'fatemeh';
+  const loggedInUserOwnerId = users.find(u => u.id === user?.id)?.email.startsWith('ali') ? 'ali' : 'fatemeh';
 
   React.useEffect(() => {
     if (isOpen) { // Only reset when opening
@@ -312,7 +115,181 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
     onSubmit({ ...data, expiryDate: formattedExpiry });
   }
 
-  const commonProps = { form, initialData, hasSharedAccount, isSubmitting, users };
+  const selectedBankName = form.watch('bankName');
+  const selectedBankInfo = BANK_DATA.find(b => b.name === selectedBankName);
+
+  const CardFormFields = (
+     <div className="space-y-6">
+        <FormField
+            control={form.control}
+            name="ownerId"
+            render={({ field }) => (
+            <FormItem>
+                <FormLabel>صاحب حساب</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value} disabled={!!initialData || isSubmitting}>
+                <FormControl>
+                    <SelectTrigger>
+                    <SelectValue placeholder="صاحب حساب را انتخاب کنید" />
+                    </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                    <SelectItem value="ali">{`${USER_DETAILS.ali.firstName} ${USER_DETAILS.ali.lastName}`}</SelectItem>
+                    <SelectItem value="fatemeh">{`${USER_DETAILS.fatemeh.firstName} ${USER_DETAILS.fatemeh.lastName}`}</SelectItem>
+                    <SelectItem value="shared_account" disabled={hasSharedAccount && !(initialData && initialData.ownerId === 'shared_account')}>حساب مشترک</SelectItem>
+                </SelectContent>
+                </Select>
+                <FormDescription>
+                مالکیت حساب را مشخص کنید. امکان ایجاد فقط یک حساب مشترک وجود دارد و مالکیت قابل ویرایش نیست.
+                </FormDescription>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
+        <FormField
+        control={form.control}
+        name="bankName"
+        render={({ field }) => (
+        <FormItem className="flex flex-col">
+            <FormLabel>نام بانک</FormLabel>
+            <Popover open={bankPopoverOpen} onOpenChange={setBankPopoverOpen}>
+                <PopoverTrigger asChild>
+                    <FormControl>
+                        <Button
+                        variant="outline"
+                        role="combobox"
+                        disabled={isSubmitting}
+                        className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                        >
+                        {field.value ? BANK_DATA.find(b => b.name === field.value)?.name : "یک بانک را انتخاب کنید"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
+                    <Command>
+                        <CommandInput placeholder="جستجوی بانک..." />
+                        <CommandList>
+                        <CommandEmpty>بانکی یافت نشد.</CommandEmpty>
+                        <CommandGroup>
+                            {BANK_DATA.map((bank) => (
+                            <CommandItem
+                                value={bank.name}
+                                key={bank.name}
+                                onSelect={() => {
+                                form.setValue("bankName", bank.name);
+                                form.setValue("theme", bank.themes[0].id); // Set default theme
+                                setBankPopoverOpen(false);
+                                }}
+                            >
+                                <Check className={cn("mr-2 h-4 w-4", bank.name === field.value ? "opacity-100" : "opacity-0")} />
+                                {bank.name}
+                            </CommandItem>
+                            ))}
+                        </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+            <FormMessage />
+        </FormItem>
+        )}
+    />
+    {selectedBankInfo && (
+        <FormField
+        control={form.control}
+        name="theme"
+        render={({ field }) => (
+            <FormItem>
+            <FormLabel>طرح کارت</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                <FormControl>
+                <SelectTrigger>
+                    <SelectValue placeholder="یک طرح برای کارت انتخاب کنید" />
+                </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                {selectedBankInfo.themes.map((theme) => (
+                    <SelectItem key={theme.id} value={theme.id}>
+                    {theme.name}
+                    </SelectItem>
+                ))}
+                </SelectContent>
+            </Select>
+            <FormMessage />
+            </FormItem>
+        )}
+        />
+    )}
+    <FormField
+        control={form.control}
+        name="accountNumber"
+        render={({ field }) => (
+        <FormItem>
+            <FormLabel>شماره حساب</FormLabel>
+            <FormControl>
+            <NumericInput dir="ltr" placeholder="شماره حساب بانکی" {...field} disabled={isSubmitting}/>
+            </FormControl>
+            <FormMessage />
+        </FormItem>
+        )}
+    />
+    <FormField
+        control={form.control}
+        name="cardNumber"
+        render={({ field }) => (
+        <FormItem>
+            <FormLabel>شماره کارت</FormLabel>
+            <FormControl>
+            <NumericInput dir="ltr" maxLength={16} placeholder="---- ---- ---- ----" {...field} disabled={isSubmitting}/>
+            </FormControl>
+            <FormMessage />
+        </FormItem>
+        )}
+    />
+    <div className="grid grid-cols-2 gap-4">
+        <FormField
+            control={form.control}
+            name="expiryDate"
+            render={({ field }) => (
+            <FormItem>
+                <FormLabel>تاریخ انقضا</FormLabel>
+                <FormControl>
+                <ExpiryDateInput dir="ltr" placeholder="MM/YY" {...field} disabled={isSubmitting}/>
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
+        <FormField
+            control={form.control}
+            name="cvv2"
+            render={({ field }) => (
+            <FormItem>
+                <FormLabel>CVV2</FormLabel>
+                <FormControl>
+                <NumericInput dir="ltr" maxLength={4} placeholder="---" {...field} disabled={isSubmitting}/>
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
+    </div>
+    <FormField
+        control={form.control}
+        name="initialBalance"
+        render={({ field }) => (
+        <FormItem>
+            <FormLabel>موجودی اولیه (تومان)</FormLabel>
+            <FormControl>
+            <CurrencyInput value={field.value} onChange={field.onChange} disabled={!!initialData || isSubmitting} />
+            </FormControl>
+            {!initialData && <FormDescription>این مبلغ فقط یکبار در زمان ایجاد کارت ثبت می‌شود.</FormDescription>}
+            <FormMessage />
+        </FormItem>
+        )}
+    />
+</div>
+  )
 
   if (isMobile) {
     return (
@@ -329,7 +306,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>
               <div className="max-h-[80vh] overflow-y-auto p-1">
-                 <CardFormContent {...commonProps} />
+                 {CardFormFields}
               </div>
               <DialogFooter className="flex-row justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>لغو</Button>
@@ -355,7 +332,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
        <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)}>
           <CardContent>
-             <CardFormContent {...commonProps} />
+             {CardFormFields}
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>لغو</Button>

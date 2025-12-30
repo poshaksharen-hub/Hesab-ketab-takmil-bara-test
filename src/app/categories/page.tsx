@@ -75,7 +75,10 @@ export default function CategoriesPage() {
         const isUsedInCheck = (checks || []).some((c: any) => c.categoryId === categoryId);
 
         if (isUsedInExpense || isUsedInCheck) {
-            throw new Error("امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند هزینه یا چک استفاده شده است.");
+            const usedIn = [];
+            if(isUsedInExpense) usedIn.push("هزینه");
+            if(isUsedInCheck) usedIn.push("چک");
+            throw new Error(`امکان حذف وجود ندارد. این دسته‌بندی در یک یا چند ${usedIn.join(' یا ')} استفاده شده است.`);
         }
 
         const { error } = await supabase

@@ -39,7 +39,7 @@ import { Loader2, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { uploadDebtDocument } from '@/lib/storage';
-import { cn } from '@/lib/utils';
+import { cn, getPublicUrl } from '@/lib/utils';
 import Image from 'next/image';
 
 const formSchema = z.object({
@@ -85,7 +85,7 @@ export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormP
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const form = useForm<DebtFormValues>({ resolver: zodResolver(formSchema), defaultValues: { /* ... */ } });
+  const form = useForm<DebtFormValues>({ resolver: zodResolver(formSchema), defaultValues: { isInstallment: false } });
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -163,7 +163,6 @@ export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormP
               </form>
           </Form>
       </Card>
-      {/* ... AddPayeeDialog ... */}
     </>
   );
 }

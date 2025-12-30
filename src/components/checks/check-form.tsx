@@ -63,11 +63,33 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
-  const form = useForm<CheckFormValues>({ /* ... */ });
+  const form = useForm<CheckFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          issueDate: new Date(initialData.issueDate),
+          dueDate: new Date(initialData.dueDate),
+        }
+      : {
+          payeeId: '',
+          bankAccountId: '',
+          categoryId: '',
+          amount: 0,
+          issueDate: new Date(),
+          dueDate: new Date(),
+          description: '',
+          sayadId: '',
+          checkSerialNumber: '',
+        },
+  });
 
   useEffect(() => {
-    // Logic to reset form and preview URL
-  }, [initialData, form]);
+    if (initialData?.image_path) {
+        setPreviewUrl(getPublicUrl(initialData.image_path));
+        setUploadStatus('success');
+    }
+  }, [initialData]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -110,7 +132,9 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
   return (
       <>
         <Card>
-            <CardHeader>{/* ... */}</CardHeader>
+            <CardHeader>
+                <CardTitle className="font-headline">{initialData ? 'ویرایش چک' : 'ثبت چک جدید'}</CardTitle>
+            </CardHeader>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>
                 <CardContent className="space-y-4">

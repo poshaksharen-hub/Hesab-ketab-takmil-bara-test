@@ -25,7 +25,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Loan, BankAccount, Payee, OwnerId } from '@/lib/types';
 import { JalaliDatePicker } from '@/components/ui/jalali-calendar';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, getPublicUrl } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { USER_DETAILS } from '@/lib/constants';
 import { AddPayeeDialog } from '@/components/payees/add-payee-dialog';
@@ -81,9 +81,54 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    const form = useForm<LoanFormValues>({ /* ... */ });
+    const form = useForm<LoanFormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            title: '',
+            payeeId: '',
+            amount: 0,
+            ownerId: 'shared',
+            installmentAmount: 0,
+            numberOfInstallments: 0,
+            startDate: new Date(),
+            firstInstallmentDate: new Date(),
+            paymentDay: undefined,
+            depositOnCreate: false,
+            depositToAccountId: '',
+            attachment_path: '',
+        }
+    });
 
-    useEffect(() => { /* ... */ }, [initialData, user, form]);
+    useEffect(() => {
+        if(initialData) {
+            form.reset({
+                ...initialData,
+                startDate: new Date(initialData.startDate),
+                firstInstallmentDate: new Date(initialData.firstInstallmentDate),
+            });
+            if (initialData.attachment_path) {
+                setPreviewUrl(getPublicUrl(initialData.attachment_path));
+                setUploadStatus('success');
+            }
+        } else {
+            form.reset({
+                title: '',
+                payeeId: '',
+                amount: 0,
+                ownerId: 'shared',
+                installmentAmount: 0,
+                numberOfInstallments: 0,
+                startDate: new Date(),
+                firstInstallmentDate: new Date(),
+                paymentDay: undefined,
+                depositOnCreate: false,
+                depositToAccountId: '',
+                attachment_path: '',
+            });
+            setPreviewUrl(null);
+            setUploadStatus('idle');
+        }
+    }, [initialData, user, form]);
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -114,8 +159,37 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
 
     const watchDepositOnCreate = form.watch('depositOnCreate');
     const watchLoanOwnerId = form.watch('ownerId');
+    const availableDepositAccounts = useMemo(() => {
+        const targetOwnerIds: string[] = [];
+        if (watchLoanOwnerId === 'ali') targetOwnerIds.push('ali');
+        if (watchLoanOwnerId === 'fatemeh') targetOwnerIds.push('fatemeh');
+        if (watchLoanOwnerId === 'shared') targetOwnerIds.push('ali', 'fatemeh', 'shared_account');
+        
+        return bankAccounts.filter(acc => targetOwnerIds.includes(acc.ownerId));
+    }, [watchLoanOwnerId, bankAccounts]);
+    
+    const handlePayeeSelection = (value: string) => {
+        if (value === 'add_new') {
+            setIsAddPayeeOpen(true);
+        } else {
+            form.setValue('payeeId', value);
+        }
+    };
 
-    // ... (other handlers and effects)
+    const getOwnerName = (account: BankAccount) => {
+        if (account.ownerId === 'shared_account') return "(مشترک)";
+        const userDetail = USER_DETAILS[account.ownerId as 'ali' | 'fatemeh'];
+        return userDetail ? `(${userDetail.firstName})` : "(ناشناس)";
+    };
+
+    useEffect(() => {
+        const currentDepositAccountId = form.getValues('depositToAccountId');
+        const isCurrentAccountValid = availableDepositAccounts.some(acc => acc.id === currentDepositAccountId);
+        if (!isCurrentAccountValid) {
+            form.setValue('depositToAccountId', '');
+        }
+    }, [watchLoanOwnerId, availableDepositAccounts, form]);
+
 
     return (
         <>
@@ -126,7 +200,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
                         <CardContent className="space-y-4">
-                            {/* All other form fields... */}
                              <FormField
                                 control={form.control}
                                 name="attachment_path"
@@ -167,7 +240,6 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                     </form>
                 </Form>
             </Card>
-            {/* ... AddPayeeDialog ... */}
         </>
     );
 }
