@@ -4,23 +4,20 @@
 import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, TrendingDown, TrendingUp, ArrowRightLeft, User, Users } from 'lucide-react';
-import type { Income, Expense, BankAccount, Transfer, UserProfile, Category } from '@/lib/types';
+import type { Income, Expense, BankAccount, Transfer, Category } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { USER_DETAILS } from '@/lib/constants';
-import Link from 'next/link';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 type Transaction = (Income | Expense | Transfer) & {
   type: 'income' | 'expense' | 'transfer';
-  date: string; // Unified date field
-  balanceBefore?: number;
-  balanceAfter?: number;
+  date: string;
 };
-
 
 function TransactionLedgerSkeleton() {
   return (
@@ -44,7 +41,6 @@ function TransactionLedgerSkeleton() {
                 </div>
                 <div className="space-y-2 text-left">
                   <Skeleton className="h-5 w-24" />
-                  <Skeleton className="h-3 w-20" />
                 </div>
               </div>
             </CardContent>
@@ -59,10 +55,30 @@ export default function CardTransactionsPage() {
   const router = useRouter();
   const params = useParams();
   const cardId = params.cardId as string;
-  // TODO: Replace with Supabase data fetching
-  const isLoading = true;
-  const card: BankAccount | null = null;
-  const ledger: Transaction[] = [];
+  const { isLoading, allData } = useDashboardData();
+  const { bankAccounts, incomes, expenses, transfers, categories } = allData;
+
+  const { card, ledger } = useMemo(() => {
+    if (isLoading || !cardId || !bankAccounts) {
+      return { card: null, ledger: [] };
+    }
+    
+    const currentCard = bankAccounts.find((c) => c.id === cardId);
+    if (!currentCard) {
+      return { card: null, ledger: [] };
+    }
+
+    const relatedIncomes = (incomes || []).filter(i => i.bankAccountId === cardId).map(i => ({...i, type: 'income' as const, date: i.date}));
+    const relatedExpenses = (expenses || []).filter(e => e.bankAccountId === cardId).map(e => ({...e, type: 'expense' as const, date: e.date}));
+    const relatedTransfers = (transfers || [])
+      .filter(t => t.fromBankAccountId === cardId || t.toBankAccountId === cardId)
+      .map(t => ({...t, type: 'transfer' as const, date: t.transferDate}));
+
+    const combinedLedger = [...relatedIncomes, ...relatedExpenses, ...relatedTransfers]
+        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return { card: currentCard, ledger: combinedLedger };
+  }, [isLoading, cardId, bankAccounts, incomes, expenses, transfers]);
 
   if (isLoading) {
     return <TransactionLedgerSkeleton />;
@@ -87,12 +103,14 @@ export default function CardTransactionsPage() {
   }
   
   const getCategoryName = (tx: Transaction) => {
-    // TODO: Replace with Supabase data fetching
-    return 'متفرقه';
+    if (tx.type === 'income') return 'درآمد';
+    if (tx.type === 'transfer') return 'انتقال داخلی';
+    const expense = tx as Expense;
+    return categories?.find(c => c.id === expense.categoryId)?.name || 'متفرقه';
   }
 
   const getExpenseForBadge = (tx: Expense) => {
-    if (!tx.expenseFor || tx.expenseFor === 'shared' || card.ownerId !== 'shared_account') return null;
+    if (tx.type !== 'expense' || !tx.expenseFor || tx.expenseFor === 'shared' || card.ownerId !== 'shared_account') return null;
 
     let text: string;
     let Icon: React.ElementType;
@@ -111,7 +129,7 @@ export default function CardTransactionsPage() {
   const getTransactionIcon = (tx: Transaction) => {
       let isDebit = false;
       if (tx.type === 'expense') isDebit = true;
-      if (tx.type === 'transfer') isDebit = tx.fromBankAccountId === cardId;
+      if (tx.type === 'transfer') isDebit = (tx as Transfer).fromBankAccountId === cardId;
       
       if (tx.type === 'transfer') {
         return <div className="p-2 rounded-full bg-opacity-10 bg-blue-500"><ArrowRightLeft className="h-5 w-5 text-blue-500" /></div>;
@@ -126,9 +144,12 @@ export default function CardTransactionsPage() {
   const getTransactionAmountClass = (tx: Transaction) => {
       let isDebit = false;
       if (tx.type === 'expense') isDebit = true;
-      if (tx.type === 'transfer') isDebit = tx.fromBankAccountId === cardId;
+      if (tx.type === 'transfer') isDebit = (tx as Transfer).fromBankAccountId === cardId;
       
-      if (tx.type === 'transfer') return 'text-blue-600';
+      if (tx.type === 'transfer') {
+        if (isDebit) return 'text-red-600';
+        return 'text-emerald-600';
+      }
       if (isDebit) return 'text-red-600';
       return 'text-emerald-600';
   }
@@ -136,12 +157,25 @@ export default function CardTransactionsPage() {
   const getTransactionAmountPrefix = (tx: Transaction) => {
       let isDebit = false;
       if (tx.type === 'expense') isDebit = true;
-      if (tx.type === 'transfer') isDebit = tx.fromBankAccountId === cardId;
+      if (tx.type === 'transfer') isDebit = (tx as Transfer).fromBankAccountId === cardId;
 
       if (isDebit) return '-';
       return '+';
   }
 
+  const getTransactionDescription = (tx: Transaction): string => {
+      if (tx.type === 'transfer') {
+        const transfer = tx as Transfer;
+        const isOutgoing = transfer.fromBankAccountId === cardId;
+        const otherAccount = isOutgoing 
+            ? bankAccounts.find(b => b.id === transfer.toBankAccountId) 
+            : bankAccounts.find(b => b.id === transfer.fromBankAccountId);
+        
+        if (isOutgoing) return `انتقال به ${otherAccount?.bankName || 'حساب دیگر'}`;
+        return `انتقال از ${otherAccount?.bankName || 'حساب دیگر'}`;
+      }
+      return tx.description;
+  }
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -170,12 +204,11 @@ export default function CardTransactionsPage() {
           <Card key={`${tx.id}-${tx.type}`} className="overflow-hidden relative">
             <div className={cn("border-l-4 h-full absolute left-0 top-0", getTransactionAmountClass(tx))}></div>
             <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4">
-                {/* Transaction Details */}
                 <div className="flex items-center gap-4 flex-grow">
                      {getTransactionIcon(tx)}
                      <div className="flex-grow">
                         <p className="font-bold flex items-center gap-2">
-                          {tx.description}
+                          {getTransactionDescription(tx)}
                           {tx.type === 'expense' && getExpenseForBadge(tx as Expense)}
                         </p>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
@@ -186,24 +219,11 @@ export default function CardTransactionsPage() {
                      </div>
                 </div>
 
-                {/* Amounts */}
-                <div className="grid grid-cols-3 gap-2 text-center md:text-left text-sm md:w-auto w-full pt-2 md:pt-0">
-                    <div className="space-y-1 p-2 rounded-md bg-muted/50">
-                        <p className="text-xs text-muted-foreground">موجودی قبل</p>
-                        <p className="font-mono font-semibold">{tx.balanceBefore !== undefined ? formatCurrency(tx.balanceBefore, 'IRT').replace(' تومان', '') : '---'}</p>
-                    </div>
-                     <div className="space-y-1 p-2 rounded-md bg-muted/50">
-                        <p className={cn("text-xs font-bold", getTransactionAmountClass(tx))}>مبلغ تراکنش</p>
-                        <p className={cn("font-mono font-semibold", getTransactionAmountClass(tx))}>
-                            {getTransactionAmountPrefix(tx)} {formatCurrency(tx.amount, 'IRT').replace(' تومان', '')}
-                        </p>
-                    </div>
-                     <div className="space-y-1 p-2 rounded-md bg-muted/50">
-                        <p className="text-xs text-muted-foreground">موجودی بعد</p>
-                        <p className="font-mono font-semibold">{tx.balanceAfter !== undefined ? formatCurrency(tx.balanceAfter, 'IRT').replace(' تومان', '') : '---'}</p>
-                    </div>
+                <div className="font-mono font-semibold text-lg md:text-xl" dir="ltr">
+                    <span className={getTransactionAmountClass(tx)}>
+                        {getTransactionAmountPrefix(tx)}{formatCurrency(tx.amount, 'IRT')}
+                    </span>
                 </div>
-
             </CardContent>
           </Card>
         )))}

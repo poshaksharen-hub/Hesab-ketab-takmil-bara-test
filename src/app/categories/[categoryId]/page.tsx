@@ -4,15 +4,16 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, User, Users, FolderKanban, TrendingDown, Wallet } from 'lucide-react';
-import type { Expense, ExpenseFor, UserProfile, Category, BankAccount, Payee } from '@/lib/types';
-import { formatCurrency, formatJalaliDate, cn } from '@/lib/utils';
+import { User, Users, FolderKanban, TrendingDown, Wallet } from 'lucide-react';
+import type { Expense, ExpenseFor } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 import { USER_DETAILS } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExpenseList } from '@/components/transactions/expense-list';
-import Link from 'next/link';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { supabase } from '@/lib/supabase-client';
 
 type FilterType = 'all' | ExpenseFor;
 
@@ -45,16 +46,7 @@ export default function CategoryDetailPage() {
   const categoryId = params.categoryId as string;
   const [filter, setFilter] = useState<FilterType>('all');
   
-  // TODO: Replace with Supabase data fetching
-  const isLoading = true;
-  const allData = {
-    expenses: [],
-    categories: [],
-    bankAccounts: [],
-    payees: [],
-    users: [],
-  };
-
+  const { isLoading, allData, refreshData } = useDashboardData();
   const { expenses, categories, bankAccounts, payees, users } = allData;
 
   const { category, filteredExpenses, totalAmount } = useMemo(() => {
@@ -100,10 +92,25 @@ export default function CategoryDetailPage() {
     );
   }
   
-  const handleDelete = (expenseId: string) => {
-      // In a real app, you'd call the delete logic from a Supabase hook or function.
-      console.log(`Deletion requested for expense ${expenseId}, but not implemented in detail view.`);
-  }
+  const handleDelete = async (expense: Expense) => {
+    if (!allData.bankAccounts) return;
+    
+    const account = allData.bankAccounts.find(acc => acc.id === expense.bankAccountId);
+    if (!account) return;
+
+    try {
+        if (expense.attachment_path) {
+            await supabase.storage.from('hesabketabsatl').remove([expense.attachment_path]);
+        }
+        
+        await supabase.from('bank_accounts').update({ balance: account.balance + expense.amount }).eq('id', account.id);
+        await supabase.from('expenses').delete().eq('id', expense.id);
+        
+        await refreshData();
+    } catch (error) {
+        console.error("Error deleting expense from category page:", error);
+    }
+  };
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
