@@ -1,0 +1,41 @@
+name: Deploy Supabase Schema
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/migrations/**.sql'
+
+jobs:
+  deploy-schema:
+    name: Deploy Schema
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Disable IPv6
+        run: |
+          echo "net.ipv6.conf.all.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.default.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
+          sudo sysctl -p
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Check for Secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DATABASE_URL }}" ]; then
+            echo "::error::SUPABASE_DATABASE_URL secret is not set. Please check repository settings."
+            exit 1
+          fi
+      
+      - name: Apply SQL Schema
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
+          psql "$SUPABASE_DATABASE_URL" -f "supabase/migrations/20240720000000_initial_schema.sql"
+          echo "Schema applied successfully."
