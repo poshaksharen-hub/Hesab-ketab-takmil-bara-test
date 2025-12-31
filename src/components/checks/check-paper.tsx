@@ -61,18 +61,18 @@ export function CheckPaper({
             
             <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
                 <div className="text-left w-1/3 space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground block">{check.sayadId}</span></p>
-                    <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground block">{check.checkSerialNumber}</span></p>
+                    <p className="text-[9px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-handwriting font-bold tracking-wider text-foreground block">{check.sayadId}</span></p>
+                    <p className="text-[9px] text-muted-foreground font-sans">سریال چک: <span className="font-handwriting font-bold tracking-tight text-foreground block">{check.checkSerialNumber}</span></p>
                 </div>
 
                 <div className="text-center w-1/3">
-                    <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
-                    <p className="font-bold font-body text-sm">{bankAccount?.bankName}</p>
+                    <HesabKetabLogo className="w-5 h-5 mx-auto text-primary/70" />
+                    <p className="font-bold font-body text-xs">{bankAccount?.bankName}</p>
                 </div>
                 
                 <div className="text-right w-1/3 flex flex-col items-end pl-2 pt-1">
-                     <p className="text-xs text-muted-foreground font-body">سررسید:</p>
-                     <p className="font-handwriting font-bold text-base md:text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
+                     <p className="text-[10px] text-muted-foreground font-body">سررسید:</p>
+                     <p className="font-handwriting font-bold text-base">{formatJalaliDate(new Date(check.dueDate))}</p>
                 </div>
                 
                  {showActions && (
@@ -104,13 +104,13 @@ export function CheckPaper({
             </div>
             
             <div className="p-4 space-y-2 flex-grow flex flex-col text-sm">
-                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
+                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
                     <span className="shrink-0">مبلغ:</span>
-                     <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
+                     <span className="font-handwriting font-bold text-sm text-center flex-grow px-1">
                         {amountToWords(check.amount)} تومان
                     </span>
                 </div>
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
+                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
                     <span className="shrink-0">در وجه:</span>
                     <span className="font-handwriting font-bold text-sm flex-grow">{payeeName}</span>
                     <span className="shrink-0 ml-4">هزینه برای:</span>
@@ -121,15 +121,15 @@ export function CheckPaper({
                 <div className="flex-grow"></div>
                 <div className="flex justify-between items-end pt-4">
                     <div className="text-left">
-                        <p className="font-handwriting font-bold text-lg md:text-xl">{formatCurrency(check.amount, 'IRT')}</p>
+                        <p className="font-handwriting font-bold text-lg">{formatCurrency(check.amount, 'IRT')}</p>
                     </div>
                      <div className="text-center">
                         <span className="text-xs text-muted-foreground font-body">دسته‌بندی</span>
-                        <p className="font-handwriting font-bold text-sm">{categoryName}</p>
+                        <p className="font-handwriting font-bold text-xs">{categoryName}</p>
                     </div>
                     <div className="text-right relative">
                         <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
-                        <p className="font-body text-sm font-semibold h-6">{ownerName}</p>
+                        <p className="font-body text-xs font-semibold h-6">{ownerName}</p>
                         {signatureImage && (
                             <div className="absolute -bottom-2 -right-2 w-24 h-12 pointer-events-none">
                                 <Image 
