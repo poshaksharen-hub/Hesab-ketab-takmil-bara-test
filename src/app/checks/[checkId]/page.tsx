@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
+import type { Check } from '@/lib/types';
 
 function CheckDetailSkeleton() {
   return (
@@ -40,10 +41,42 @@ export default function CheckDetailPage() {
 
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
-  const { checks, bankAccounts, payees, categories, users } = allData;
+  const { allData, refreshData } = useDashboardData();
+  const { bankAccounts, payees, categories, users } = allData;
+  const [check, setCheck] = useState<Check | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const check = useMemo(() => checks?.find((c: any) => c.id === checkId), [checks, checkId]);
+  const fetchCheckDetails = useCallback(async () => {
+    if (!checkId) return;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('cheques')
+        .select('*')
+        .eq('id', checkId)
+        .single();
+      
+      if (error) throw error;
+      
+      const camelCaseData: {[key:string]: any} = {};
+      for(const key in data) {
+          const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+          camelCaseData[camelKey] = data[key];
+      }
+      setCheck(camelCaseData as Check);
+
+    } catch (error) {
+      console.error("Failed to fetch check details:", error);
+      setCheck(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [checkId]);
+
+  useEffect(() => {
+    fetchCheckDetails();
+  }, [fetchCheckDetails]);
+
 
   const handleClearCheck = useCallback(async (checkToClear: any) => {
     if (!user) return;
@@ -55,13 +88,14 @@ export default function CheckDetailPage() {
         });
         if (error) throw new Error(error.message);
         await refreshData();
+        await fetchCheckDetails(); // Re-fetch this specific check's details
         toast({ title: 'موفقیت!', description: `چک به مبلغ ${formatCurrency(checkToClear.amount, 'IRT')} پاس شد.` });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در پاس کردن چک', description: error.message });
     }
-  }, [user, refreshData, toast]);
+  }, [user, refreshData, toast, fetchCheckDetails]);
   
-  if (isDashboardLoading) {
+  if (isLoading) {
     return <CheckDetailSkeleton />;
   }
 
@@ -84,17 +118,17 @@ export default function CheckDetailPage() {
   }
   
   const getPayeeName = (payeeId?: string) => {
-    if (!payeeId) return 'نامشخص';
+    if (!payeeId || !payees) return 'نامشخص';
     return payees.find((p: any) => p.id === payeeId)?.name || 'نامشخص';
   };
   
   const getCategoryName = (categoryId?: string) => {
-    if (!categoryId) return 'نامشخص';
+    if (!categoryId || !categories) return 'نامشخص';
     return categories.find((c: any) => c.id === categoryId)?.name || 'نامشخص';
   }
 
   const getBankAccount = (bankAccountId?: string) => {
-    if (!bankAccountId) return null;
+    if (!bankAccountId || !bankAccounts) return null;
     return bankAccounts.find((b: any) => b.id === bankAccountId);
   }
 
@@ -112,7 +146,7 @@ export default function CheckDetailPage() {
     return USER_DETAILS[expenseFor]?.firstName || 'نامشخص';
   };
 
-  const registeredByName = users.find((u: any) => u.id === check.registeredByUserId)?.firstName || 'سیستم';
+  const registeredByName = users?.find((u: any) => u.id === check.registeredByUserId)?.firstName || 'سیستم';
   const bankAccount = getBankAccount(check.bankAccountId);
   const { name: ownerName } = getOwnerDetails(bankAccount);
   const expenseForName = getExpenseForName(check.expenseFor);
@@ -183,7 +217,6 @@ export default function CheckDetailPage() {
                  <div className="flex-grow"></div>
                 <div className="flex justify-between items-end pt-4">
                     <div className="text-left">
-                        <span className="text-xs text-muted-foreground font-body">مبلغ</span>
                         <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
                     </div>
                      <div className="text-center">
