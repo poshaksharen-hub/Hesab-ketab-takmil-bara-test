@@ -58,12 +58,26 @@ export default function CheckDetailPage() {
       
       if (error) throw error;
       
-      const camelCaseData: {[key:string]: any} = {};
-      for(const key in data) {
-          const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
-          camelCaseData[camelKey] = data[key];
-      }
-      setCheck(camelCaseData as Check);
+      // Manual mapping from snake_case to camelCase to ensure correctness
+      setCheck({
+          id: data.id,
+          sayadId: data.sayad_id,
+          checkSerialNumber: data.serial_number,
+          amount: data.amount,
+          issueDate: data.issue_date,
+          dueDate: data.due_date,
+          status: data.status,
+          bankAccountId: data.bank_account_id,
+          payeeId: data.payee_id,
+          categoryId: data.category_id,
+          description: data.description,
+          expenseFor: data.expense_for,
+          clearedDate: data.cleared_date,
+          signatureDataUrl: data.signature_data_url,
+          registeredByUserId: data.registered_by_user_id,
+          image_path: data.image_path,
+          clearance_receipt_path: data.clearance_receipt_path,
+      });
 
     } catch (error) {
       console.error("Failed to fetch check details:", error);
