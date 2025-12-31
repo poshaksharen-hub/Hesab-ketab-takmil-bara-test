@@ -17,6 +17,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CheckCircle, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 function CheckDetailSkeleton() {
   return (
@@ -57,13 +58,13 @@ export default function CheckDetailPage() {
       const transformedData: { [key: string]: any } = {};
       for (const key in data) {
         const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-        transformedData[camelKey] = data[key as keyof typeof data];
+        newItem[camelKey] = data[key as keyof typeof data];
       }
        if (data.serial_number) {
-            transformedData.checkSerialNumber = data.serial_number;
+            newItem.checkSerialNumber = data.serial_number;
         }
 
-      setCheckDetails(transformedData as Check);
+      setCheckDetails(newItem as Check);
 
     } catch (error: any) {
       console.error("Error fetching check details:", error);
@@ -139,7 +140,7 @@ export default function CheckDetailPage() {
   const registeredByName = users?.find((u: any) => u.id === checkDetails.registeredByUserId)?.firstName || 'سیستم';
 
   const isCleared = checkDetails.status === 'cleared';
-  const hasSufficientFunds = bankAccount ? (bankAccount.balance - bankAccount.blockedBalance) >= checkDetails.amount : false;
+  const hasSufficientFunds = bankAccount ? (bankAccount.balance - (bankAccount.blockedBalance ?? 0)) >= checkDetails.amount : false;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -213,7 +214,7 @@ export default function CheckDetailPage() {
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>آیا از پاس کردن این چک مطمئن هستید؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    با تایید این عملیات، مبلغ {formatJalaliDate(checkDetails.amount)} از حساب شما کسر و یک هزینه در سیستم ثبت خواهد شد. این عمل قابل بازگشت نیست.
+                                    با تایید این عملیات، مبلغ {formatCurrency(checkDetails.amount, 'IRT')} از حساب شما کسر و یک هزینه در سیستم ثبت خواهد شد. این عمل قابل بازگشت نیست.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
