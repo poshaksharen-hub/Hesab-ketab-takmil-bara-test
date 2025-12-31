@@ -40,54 +40,15 @@ export default function CheckDetailPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { allData, refreshData, isLoading: isDashboardLoading } = useDashboardData();
-  const { bankAccounts, payees, categories, users } = allData;
+  const { bankAccounts, payees, categories, users, checks } = allData;
   const [check, setCheck] = useState<Check | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchCheckDetails = useCallback(async () => {
-    if (!checkId) return;
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('cheques')
-        .select('*')
-        .eq('id', checkId)
-        .single();
-      
-      if (error) throw error;
-      
-      const transformedData: Check = {
-        id: data.id,
-        sayadId: data.sayad_id,
-        checkSerialNumber: data.serial_number,
-        amount: data.amount,
-        issueDate: data.issue_date,
-        dueDate: data.due_date,
-        status: data.status,
-        bankAccountId: data.bank_account_id,
-        payeeId: data.payee_id,
-        categoryId: data.category_id,
-        description: data.description,
-        expenseFor: data.expense_for,
-        clearedDate: data.cleared_date,
-        signatureDataUrl: data.signature_data_url,
-        registeredByUserId: data.registered_by_user_id,
-        image_path: data.image_path,
-        clearance_receipt_path: data.clearance_receipt_path,
-      };
-      setCheck(transformedData);
-
-    } catch (error) {
-      console.error("Failed to fetch check details:", error);
-      setCheck(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [checkId]);
-
+  
   useEffect(() => {
-    fetchCheckDetails();
-  }, [fetchCheckDetails]);
+    if (checks && checkId) {
+      const foundCheck = checks.find(c => c.id === checkId);
+      setCheck(foundCheck || null);
+    }
+  }, [checks, checkId]);
 
 
   const handleClearCheck = useCallback(async (checkToClear: any) => {
@@ -100,16 +61,13 @@ export default function CheckDetailPage() {
         });
         if (error) throw new Error(error.message);
         await refreshData();
-        await fetchCheckDetails(); // Re-fetch this specific check's details
         toast({ title: 'موفقیت!', description: `چک به مبلغ ${formatCurrency(checkToClear.amount, 'IRT')} پاس شد.` });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در پاس کردن چک', description: error.message });
     }
-  }, [user, refreshData, toast, fetchCheckDetails]);
+  }, [user, refreshData, toast]);
   
-  const totalLoading = isLoading || isDashboardLoading;
-  
-  if (totalLoading) {
+  if (isDashboardLoading) {
     return <CheckDetailSkeleton />;
   }
 

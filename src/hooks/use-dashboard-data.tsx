@@ -30,6 +30,10 @@ const transformData = (data: any[] | null): any[] => {
             const camelCaseKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
             newItem[camelCaseKey] = item[key];
         }
+        // Manual fix for multi-word keys that regex doesn't handle well
+        if ('serial_number' in item) {
+            newItem.checkSerialNumber = item.serial_number;
+        }
         return newItem;
     });
 };
