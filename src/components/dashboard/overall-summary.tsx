@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
@@ -33,7 +32,7 @@ export function OverallSummary({ filteredSummary }: OverallSummaryProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.netWorth, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">دارایی‌ها منهای بدهی‌ها (فیلتر شده)</p>
+            <p className="text-xs text-muted-foreground">دارایی‌ها منهای بدهی‌ها</p>
           </CardContent>
         </Card>
         <Card>
@@ -43,7 +42,7 @@ export function OverallSummary({ filteredSummary }: OverallSummaryProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.totalAssets, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">موجودی حساب‌ها (فیلتر شده)</p>
+            <p className="text-xs text-muted-foreground">موجودی کل حساب‌ها</p>
           </CardContent>
         </Card>
         <Card>
@@ -75,7 +74,7 @@ export function OverallSummary({ filteredSummary }: OverallSummaryProps) {
             </CardHeader>
             <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.remainingLoanAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">باقیمانده وام‌ها (فیلتر شده)</p>
+            <p className="text-xs text-muted-foreground">باقیمانده کل وام‌ها</p>
             </CardContent>
         </Card>
         <Card>
@@ -85,7 +84,7 @@ export function OverallSummary({ filteredSummary }: OverallSummaryProps) {
             </CardHeader>
             <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.pendingChecksAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">چک‌های پاس نشده (فیلتر شده)</p>
+            <p className="text-xs text-muted-foreground">چک‌های پاس نشده</p>
             </CardContent>
         </Card>
         <Card>
@@ -95,7 +94,7 @@ export function OverallSummary({ filteredSummary }: OverallSummaryProps) {
             </CardHeader>
             <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(filteredSummary.remainingDebtsAmount, 'IRT')}</div>
-            <p className="text-xs text-muted-foreground">بدهی به افراد (فیلتر شده)</p>
+            <p className="text-xs text-muted-foreground">بدهی به افراد و شرکت‌ها</p>
             </CardContent>
         </Card>
        </div>

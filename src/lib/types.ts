@@ -111,6 +111,7 @@ export type Check = {
 
 export type FinancialGoalContribution = {
   id: string; // The ID of the corresponding 'goal_contribution' expense
+  goalId: string;
   bankAccountId: string;
   amount: number;
   date: string;

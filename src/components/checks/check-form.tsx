@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { CurrencyInput, NumericInput } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -28,7 +28,7 @@ const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
   bankAccountId: z.string().min(1, { message: 'لطفا حساب بانکی را انتخاب کنید.' }),
   categoryId: z.string().min(1, { message: 'لطفا دسته‌بندی را انتخاب کنید.' }),
-  expenseFor: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این چک برای کیست.'}),
+  expenseFor: z.enum(['ali', 'fatemeh', 'shared'], { required_error: 'لطفا مشخص کنید این هزینه برای کیست.'}),
   amount: z.coerce.number().positive({ message: 'مبلغ باید یک عدد مثبت باشد.' }),
   issueDate: z.date({ required_error: 'لطفا تاریخ صدور را انتخاب کنید.' }),
   dueDate: z.date({ required_error: 'لطفا تاریخ سررسید را انتخاب کنید.' }),
@@ -47,7 +47,7 @@ type CheckFormValues = z.infer<typeof formSchema>;
 interface CheckFormProps {
   onSubmit: (data: CheckFormValues) => void;
   initialData: Check | null;
-  bankAccounts: BankAccount[];
+  bankAccounts: BankAccount[]; // Should only receive checking accounts
   payees: Payee[];
   categories: Category[];
   onCancel: () => void;
@@ -132,6 +132,15 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
     setIsSignatureDialogOpen(false);
   };
 
+  const selectedBankAccountId = form.watch('bankAccountId');
+  const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
+
+  useEffect(() => {
+    if (selectedBankAccount) {
+      form.setValue('ownerId', selectedBankAccount.ownerId);
+    }
+  }, [selectedBankAccount, form]);
+
   return (
       <>
         <Card>
@@ -153,6 +162,7 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
                         handleRemoveFile={handleRemoveFile}
                         previewUrl={previewUrl}
                         uploadStatus={uploadStatus}
+                        selectedBankAccount={selectedBankAccount}
                    />
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
@@ -197,7 +207,14 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
 
 
 // A new sub-component to hold the form fields for better readability
-const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories, setIsAddPayeeOpen, setIsAddCategoryOpen, handleFileChange, handleRemoveFile, previewUrl, uploadStatus }: any) => {
+const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories, setIsAddPayeeOpen, setIsAddCategoryOpen, handleFileChange, handleRemoveFile, previewUrl, uploadStatus, selectedBankAccount }: any) => {
+    
+    const getOwnerName = (ownerId: 'ali' | 'fatemeh' | 'shared_account') => {
+        if (!ownerId) return '';
+        if (ownerId === 'shared_account') return `(مشترک)`;
+        return `(${USER_DETAILS[ownerId]?.firstName || ''})`;
+    };
+    
     return (
         <div className="space-y-4">
             <FormField
@@ -241,13 +258,13 @@ const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories,
                 <FormField control={form.control} name="dueDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ سررسید</FormLabel><JalaliDatePicker title="تاریخ سررسید" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
             </div>
 
-             <FormField control={form.control} name="bankAccountId" render={({ field }) => (<FormItem><FormLabel>از حساب</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="یک حساب بانکی انتخاب کنید" /></SelectTrigger></FormControl><SelectContent>{bankAccounts.map((account: BankAccount) => (<SelectItem key={account.id} value={account.id}>{account.bankName} ({(account.ownerId && USER_DETAILS[account.ownerId as 'ali' | 'fatemeh']?.firstName) || 'مشترک'})</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="bankAccountId" render={({ field }) => (<FormItem><FormLabel>از حساب جاری</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="یک حساب جاری انتخاب کنید" /></SelectTrigger></FormControl><SelectContent>{bankAccounts.map((account: BankAccount) => (<SelectItem key={account.id} value={account.id}>{`${account.bankName} ${getOwnerName(account.ownerId)}`}</SelectItem>))}</SelectContent></Select><FormDescription>{selectedBankAccount ? `صاحب این حساب ${getOwnerName(selectedBankAccount.ownerId)} است.` : 'فقط حساب‌های جاری نمایش داده می‌شوند.'}</FormDescription><FormMessage /></FormItem>)} />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="payeeId" render={({ field }) => (<FormItem><FormLabel>در وجه</FormLabel><Select onValueChange={(value) => value === 'add_new' ? setIsAddPayeeOpen(true) : field.onChange(value)} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="یک طرف حساب انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>{payees.map((payee: Payee) => (<SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="categoryId" render={({ field }) => (<FormItem><FormLabel>دسته‌بندی</FormLabel><Select onValueChange={(value) => value === 'add_new' ? setIsAddCategoryOpen(true) : field.onChange(value)} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="یک دسته‌بندی انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن دسته‌بندی جدید...</SelectItem>{categories.map((cat: Category) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
-             <FormField control={form.control} name="expenseFor" render={({ field }) => (<FormItem><FormLabel>این چک برای کیست؟</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="شخص مورد نظر را انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="shared">مشترک</SelectItem><SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem><SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+             <FormField control={form.control} name="expenseFor" render={({ field }) => (<FormItem><FormLabel>هزینه برای</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="شخص مورد نظر را انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="shared">مشترک</SelectItem><SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem><SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem></SelectContent></Select><FormDescription>این هزینه در آمار کدام شخص محاسبه شود؟</FormDescription><FormMessage /></FormItem>)} />
 
             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>توضیحات (اختیاری)</FormLabel><FormControl><Textarea placeholder="شرح مختصری در مورد این چک..." {...field} /></FormControl><FormMessage /></FormItem>)} />
         </div>

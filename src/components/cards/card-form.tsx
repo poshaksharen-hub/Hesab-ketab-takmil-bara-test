@@ -46,7 +46,7 @@ const formSchema = z.object({
   initialBalance: z.coerce.number().min(0, { message: 'موجودی اولیه نمی‌تواند منفی باشد.' }),
   ownerId: z.enum(['ali', 'fatemeh', 'shared_account'], { required_error: 'لطفا صاحب حساب را مشخص کنید.' }),
   theme: z.string().min(1, { message: 'لطفا یک طرح برای کارت انتخاب کنید.' }),
-  accountType: z.enum(['checking', 'savings']),
+  accountType: z.enum(['checking', 'savings'], { required_error: 'لطفا نوع حساب را مشخص کنید.' }),
 });
 
 type CardFormValues = z.infer<typeof formSchema>;
@@ -95,7 +95,7 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
            initialBalance: initialData.initialBalance,
            ownerId: initialData.ownerId as 'ali' | 'fatemeh' | 'shared_account', 
            theme: initialData.theme || (BANK_DATA.find(b => b.name === initialData.bankName)?.themes[0]?.id || 'blue'),
-           accountType: initialData.accountType,
+           accountType: initialData.accountType || 'savings',
           } as CardFormValues);
       } else {
         form.reset({
@@ -198,32 +198,55 @@ export function CardForm({ isOpen, setIsOpen, onSubmit, initialData, users, hasS
         </FormItem>
         )}
     />
-    {selectedBankInfo && (
-        <FormField
-        control={form.control}
-        name="theme"
-        render={({ field }) => (
-            <FormItem>
-            <FormLabel>طرح کارت</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                <FormControl>
-                <SelectTrigger>
-                    <SelectValue placeholder="یک طرح برای کارت انتخاب کنید" />
-                </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                {selectedBankInfo.themes.map((theme) => (
-                    <SelectItem key={theme.id} value={theme.id}>
-                    {theme.name}
-                    </SelectItem>
-                ))}
-                </SelectContent>
-            </Select>
-            <FormMessage />
-            </FormItem>
-        )}
-        />
-    )}
+    <div className="grid grid-cols-2 gap-4">
+      <FormField
+          control={form.control}
+          name="accountType"
+          render={({ field }) => (
+              <FormItem>
+              <FormLabel>نوع حساب</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                  <FormControl>
+                  <SelectTrigger>
+                      <SelectValue placeholder="نوع حساب را انتخاب کنید" />
+                  </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="savings">پس‌انداز</SelectItem>
+                    <SelectItem value="checking">جاری</SelectItem>
+                  </SelectContent>
+              </Select>
+              <FormMessage />
+              </FormItem>
+          )}
+      />
+      {selectedBankInfo && (
+          <FormField
+          control={form.control}
+          name="theme"
+          render={({ field }) => (
+              <FormItem>
+              <FormLabel>طرح کارت</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                  <FormControl>
+                  <SelectTrigger>
+                      <SelectValue placeholder="یک طرح برای کارت انتخاب کنید" />
+                  </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                  {selectedBankInfo.themes.map((theme) => (
+                      <SelectItem key={theme.id} value={theme.id}>
+                      {theme.name}
+                      </SelectItem>
+                  ))}
+                  </SelectContent>
+              </Select>
+              <FormMessage />
+              </FormItem>
+          )}
+          />
+      )}
+    </div>
     <FormField
         control={form.control}
         name="accountNumber"

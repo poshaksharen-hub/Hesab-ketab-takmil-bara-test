@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useCallback } from 'react';
@@ -56,7 +55,7 @@ export default function ChecksPage() {
         await refreshData();
         setIsFormOpen(false);
         setEditingCheck(null);
-        toast({ title: 'موفقیت', description: 'چک جدید با موفقیت ثبت و مبلغ آن در حساب مسدود شد.' });
+        toast({ title: 'موفقیت', description: 'چک جدید با موفقیت ثبت شد.' });
 
         // Notification Logic remains largely the same
         // ...
@@ -123,6 +122,9 @@ export default function ChecksPage() {
   }, [toast]);
 
   const isLoading = isUserLoading || isDashboardLoading;
+  
+  const checkingAccounts = useMemo(() => (bankAccounts || []).filter(acc => acc.accountType === 'checking'), [bankAccounts]);
+
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -151,7 +153,7 @@ export default function ChecksPage() {
           <CheckForm
             onSubmit={handleFormSubmit}
             initialData={editingCheck}
-            bankAccounts={bankAccounts || []}
+            bankAccounts={checkingAccounts}
             payees={payees || []}
             categories={categories || []}
             onCancel={() => { setIsFormOpen(false); setEditingCheck(null); }}

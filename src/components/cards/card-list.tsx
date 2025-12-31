@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, MoreVertical, Wifi, Users, User, History, Copy, PiggyBank } from 'lucide-react';
-import type { BankAccount, UserProfile, FinancialGoal, OwnerId } from '@/lib/types';
+import type { BankAccount, UserProfile, FinancialGoal, OwnerId, BankTheme } from '@/lib/types';
 import { formatCurrency, cn, formatCardNumber } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { USER_DETAILS } from '@/lib/constants';
@@ -37,7 +36,7 @@ const OWNER_DETAILS_CARDS: Record<'ali' | 'fatemeh' | 'shared_account', { name: 
 function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card: BankAccount) => void; onDelete: (cardId: string) => void; }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
-    const availableBalance = card.balance - (card.blockedBalance || 0);
+    const availableBalance = card.balance; // No longer subtracting blockedBalance
 
     const handleCopy = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
@@ -45,7 +44,7 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
     };
 
     const { name: ownerName, Icon: OwnerIcon } = OWNER_DETAILS_CARDS[card.ownerId];
-    const themeClasses = getBankTheme(card.theme as any);
+    const themeClasses = getBankTheme(card.theme as BankTheme | null);
 
     return (
         <>
@@ -87,15 +86,6 @@ function CardItem({ card, onEdit, onDelete }: { card: BankAccount; onEdit: (card
                     </div>
                 </div>
                 <div className="bg-muted p-2 rounded-b-xl border-t">
-                    {(card.blockedBalance || 0) > 0 && (
-                         <>
-                            <div className='px-2 py-1 text-xs'>
-                                <div className="flex justify-between items-center text-muted-foreground"><span className="flex items-center gap-1"><PiggyBank className="w-3 h-3" /> مسدود برای اهداف</span><span>{formatCurrency(card.blockedBalance || 0, 'IRT')}</span></div>
-                                <div className="flex justify-between items-center font-bold mt-1"><span>موجودی قابل استفاده</span><span>{formatCurrency(availableBalance, 'IRT')}</span></div>
-                            </div>
-                            <Separator className='my-1' />
-                        </>
-                    )}
                     <div className="flex gap-2">
                         <Button size="sm" variant="ghost" className="w-full text-xs" onClick={() => handleCopy(card.cardNumber, 'شماره کارت')}><Copy className="ml-2 h-4 w-4" />کپی شماره کارت</Button>
                         <Button size="sm" variant="ghost" className="w-full text-xs" asChild><Link href={`/cards/${card.id}`}><History className="ml-2 h-4 w-4" />تاریخچه</Link></Button>

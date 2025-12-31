@@ -1,18 +1,20 @@
 
 import type { BankTheme } from './types';
 
-export interface BankThemeInfo {
-    id: BankTheme;
-    name: string;
-    gradient: string;
+// This interface defines the structure for a single theme available for a bank card.
+interface BankThemeInfo {
+    id: BankTheme;      // Unique identifier for the theme (e.g., 'blue', 'red')
+    name: string;       // Display name for the theme (e.g., 'آبی کلاسیک', 'قرمز ملت')
 }
 
+// This interface defines the structure for a bank, including its name and available themes.
 export interface BankInfo {
     name: string;
     themes: BankThemeInfo[];
 }
 
-const THEMES: Record<BankTheme, string> = {
+// A mapping from theme IDs (BankTheme) to their corresponding Tailwind CSS gradient classes.
+const THEME_GRADIENTS: Record<BankTheme, string> = {
     blue: 'from-blue-500 to-blue-700',
     green: 'from-emerald-500 to-green-700',
     purple: 'from-violet-500 to-purple-700',
@@ -25,10 +27,16 @@ const THEMES: Record<BankTheme, string> = {
     indigo: 'from-indigo-500 to-violet-600',
 };
 
+/**
+ * Retrieves the Tailwind CSS gradient classes for a given theme ID.
+ * @param themeId The ID of the theme (e.g., 'blue', 'red').
+ * @returns A string of Tailwind CSS classes for the gradient, or a default gray gradient if the theme is not found.
+ */
 export const getBankTheme = (themeId: BankTheme): string => {
-    return THEMES[themeId] || THEMES['gray'];
+    return THEME_GRADIENTS[themeId] || THEME_GRADIENTS['gray'];
 };
 
+// The single source of truth for all bank information and their available themes.
 export const BANK_DATA: BankInfo[] = [
     { name: 'بانک ملی ایران', themes: [{id: 'blue', name: 'آبی کلاسیک'}, {id: 'gray', name: 'خاکستری'}]},
     { name: 'بانک ملت', themes: [{id: 'red', name: 'قرمز ملت'}, {id: 'gray', name: 'خاکستری'}]},
