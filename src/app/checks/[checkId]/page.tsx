@@ -11,7 +11,7 @@ import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
 import { HesabKetabLogo } from '@/components/icons';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
@@ -38,7 +38,7 @@ export default function CheckDetailPage() {
   const params = useParams();
   const checkId = params.checkId as string;
 
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
   const { checks, bankAccounts, payees, categories, users } = allData;
