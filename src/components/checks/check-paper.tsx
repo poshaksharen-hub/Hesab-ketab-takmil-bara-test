@@ -30,14 +30,14 @@ export function CheckPaper({
     const isCleared = check.status === 'cleared';
 
     return (
-        <div className={cn("overflow-hidden shadow-lg h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
+        <div className={cn("overflow-hidden rounded-lg shadow-lg h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
             {isCleared && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform -rotate-12 border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-3xl md:text-4xl font-black uppercase opacity-60 select-none z-20">
                     پاس شد
                 </div>
             )}
             
-            <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
+            <div className="p-3 pt-4 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
                 <div className="text-left w-1/3 space-y-1">
                     <p className="text-[10px] md:text-xs text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground block">{check.sayadId}</span></p>
                     <p className="text-[10px] md:text-xs text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground block">{check.checkSerialNumber}</span></p>
