@@ -89,18 +89,16 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                 </DropdownMenu>
             </div>
             
-            <Link href={`/checks/${check.id}`} passHref>
-                <a className="block h-full">
-                    <CheckPaper 
-                        check={check}
-                        bankAccount={bankAccount}
-                        payeeName={payeeName}
-                        ownerName={ownerName}
-                        expenseForName={expenseForName}
-                        categoryName={categoryName}
-                        signatureImage={signatureImage}
-                    />
-                </a>
+            <Link href={`/checks/${check.id}`} className="block h-full">
+                <CheckPaper 
+                    check={check}
+                    bankAccount={bankAccount}
+                    payeeName={payeeName}
+                    ownerName={ownerName}
+                    expenseForName={expenseForName}
+                    categoryName={categoryName}
+                    signatureImage={signatureImage}
+                />
             </Link>
 
 
