@@ -2,9 +2,8 @@
 'use client';
 
 import React from 'react';
-import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
+import type { Check, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
-import { USER_DETAILS } from '@/lib/constants';
 import { HesabKetabLogo } from '../icons';
 import Image from 'next/image';
 

@@ -18,7 +18,7 @@ import { USER_DETAILS } from '@/lib/constants';
 import Link from 'next/link';
 import { ClearCheckDialog } from './clear-check-dialog';
 import { ConfirmationDialog } from '../shared/confirmation-dialog';
-import { CheckPaper } from './check-paper'; // Import the new shared component
+import { CheckPaper } from './check-paper'; 
 
 interface CheckListProps {
   checks: Check[];
@@ -88,16 +88,21 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+            
+            <Link href={`/checks/${check.id}`} passHref>
+                <a className="block h-full">
+                    <CheckPaper 
+                        check={check}
+                        bankAccount={bankAccount}
+                        payeeName={payeeName}
+                        ownerName={ownerName}
+                        expenseForName={expenseForName}
+                        categoryName={categoryName}
+                        signatureImage={signatureImage}
+                    />
+                </a>
+            </Link>
 
-            <CheckPaper 
-                check={check}
-                bankAccount={bankAccount}
-                payeeName={payeeName}
-                ownerName={ownerName}
-                expenseForName={expenseForName}
-                categoryName={categoryName}
-                signatureImage={signatureImage}
-            />
 
             <ConfirmationDialog 
               isOpen={isDeleteDialogOpen} 
