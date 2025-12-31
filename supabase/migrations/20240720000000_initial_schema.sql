@@ -41,7 +41,33 @@ CREATE TABLE IF NOT EXISTS public.bank_accounts (
     deleted_at timestamp with time zone
 );
 
--- ... (rest of the schema remains the same)
+-- ====================================================================
+-- PART 2: ROW LEVEL SECURITY (RLS)
+-- ====================================================================
+
+-- 1. Enable RLS for the bank_accounts table
+ALTER TABLE public.bank_accounts ENABLE ROW LEVEL SECURITY;
+
+-- 2. Drop existing policies to ensure a clean slate
+DROP POLICY IF EXISTS "Allow users to read their own bank accounts" ON public.bank_accounts;
+DROP POLICY IF EXISTS "Allow users to create their own bank accounts" ON public.bank_accounts;
+
+-- 3. Create new policies
+
+--    POLICY: Allow users to read their own bank accounts
+--    This allows a logged-in user to SELECT rows from bank_accounts
+--    only if their user ID matches the registered_by_user_id column.
+CREATE POLICY "Allow users to read their own bank accounts"
+    ON public.bank_accounts FOR SELECT
+    USING (auth.uid() = registered_by_user_id);
+
+--    POLICY: Allow users to create bank accounts for themselves
+--    This allows a logged-in user to INSERT rows into bank_accounts
+--    and sets the user ID automatically.
+CREATE POLICY "Allow users to create their own bank accounts"
+    ON public.bank_accounts FOR INSERT
+    WITH CHECK (auth.uid() = registered_by_user_id);
+
 
 -- ====================================================================
 -- END OF SCRIPT
