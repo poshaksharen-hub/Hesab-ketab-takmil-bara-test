@@ -60,7 +60,7 @@ export function CheckPaper({
             )}
             
             <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
-                <div className="text-left w-1/3 space-y-1">
+                <div className="text-left w-1/3 space-y-1 text-xs">
                     <p className="text-[9px] text-muted-foreground font-body">شناسه صیاد: <span className="font-handwriting tracking-wider text-foreground block">{toPersianDigits(check.sayadId)}</span></p>
                     <p className="text-[9px] text-muted-foreground font-body">سریال چک: <span className="font-handwriting tracking-tight text-foreground block">{toPersianDigits(check.checkSerialNumber)}</span></p>
                 </div>
@@ -103,17 +103,17 @@ export function CheckPaper({
                 )}
             </div>
             
-            <div className="p-4 space-y-2 flex-grow flex flex-col text-sm">
+            <div className="p-4 space-y-2 flex-grow flex flex-col text-xs">
                  <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                    <span className="shrink-0 font-body text-xs">مبلغ:</span>
+                    <span className="shrink-0 font-body">مبلغ:</span>
                      <span className="font-handwriting text-sm text-center flex-grow px-1">
                         {amountToWords(check.amount)} تومان
                     </span>
                 </div>
                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
-                    <span className="shrink-0 font-body text-xs">در وجه:</span>
+                    <span className="shrink-0 font-body">در وجه:</span>
                     <span className="font-handwriting text-sm flex-grow">{payeeName}</span>
-                    <span className="shrink-0 ml-4 font-body text-xs">هزینه برای:</span>
+                    <span className="shrink-0 ml-4 font-body">هزینه برای:</span>
                     <span className="font-handwriting text-sm shrink-0">
                       {expenseForName}
                     </span>
@@ -129,7 +129,7 @@ export function CheckPaper({
                     </div>
                     <div className="text-right relative">
                         <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
-                        <p className="font-body text-xs font-semibold h-6">{ownerName}</p>
+                        <p className="font-handwriting text-xs h-6">{ownerName}</p>
                         {signatureImage && (
                             <div className="absolute -bottom-2 -right-2 w-24 h-12 pointer-events-none">
                                 <Image 
