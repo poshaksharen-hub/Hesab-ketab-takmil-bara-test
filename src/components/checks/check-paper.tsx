@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Check, BankAccount, UserProfile, Payee, Category } from '@/lib/types';
+import type { Check, BankAccount } from '@/lib/types';
 import { formatCurrency, formatJalaliDate, cn, amountToWords, getPublicUrl } from '@/lib/utils';
 import { HesabKetabLogo } from '../icons';
 import Image from 'next/image';
@@ -104,6 +104,12 @@ export function CheckPaper({
             </div>
             
             <div className="p-4 space-y-2 flex-grow flex flex-col text-sm">
+                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
+                    <span className="shrink-0">مبلغ:</span>
+                     <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
+                        {amountToWords(check.amount)} تومان
+                    </span>
+                </div>
                  <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
                     <span className="shrink-0">در وجه:</span>
                     <span className="font-handwriting font-bold text-sm flex-grow">{payeeName}</span>
@@ -112,13 +118,7 @@ export function CheckPaper({
                       {expenseForName}
                     </span>
                 </div>
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
-                    <span className="shrink-0">مبلغ:</span>
-                     <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
-                        {amountToWords(check.amount)} تومان
-                    </span>
-                </div>
-                 <div className="flex-grow"></div>
+                <div className="flex-grow"></div>
                 <div className="flex justify-between items-end pt-4">
                     <div className="text-left">
                         <p className="font-handwriting font-bold text-lg md:text-xl">{formatCurrency(check.amount, 'IRT')}</p>
