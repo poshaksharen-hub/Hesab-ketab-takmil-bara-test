@@ -41,7 +41,7 @@ export default function CheckDetailPage() {
 
   const { user } = useAuth();
   const { toast } = useToast();
-  const { allData, refreshData } = useDashboardData();
+  const { allData, refreshData, isLoading: isDashboardLoading } = useDashboardData();
   const { bankAccounts, payees, categories, users } = allData;
   const [check, setCheck] = useState<Check | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +95,7 @@ export default function CheckDetailPage() {
     }
   }, [user, refreshData, toast, fetchCheckDetails]);
   
-  if (isLoading) {
+  if (isLoading || isDashboardLoading) {
     return <CheckDetailSkeleton />;
   }
 
@@ -209,7 +209,7 @@ export default function CheckDetailPage() {
                  <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
                     <span className="shrink-0">در وجه:</span>
                      <span className="font-handwriting font-bold text-base">{getPayeeName(check.payeeId)}</span>
-                    <span className="shrink-0 ml-4">برای:</span>
+                    <span className="shrink-0 ml-4">هزینه برای:</span>
                      <span className="font-handwriting font-bold text-base flex-grow">
                        {expenseForName}
                     </span>
