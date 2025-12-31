@@ -42,7 +42,9 @@ const getDetails = (item: Check, payees: Payee[], categories: Category[], bankAc
     const ownerName = ownerId === 'shared_account' ? 'علی و فاطمه' : (ownerId && USER_DETAILS[ownerId as 'ali' | 'fatemeh'] ? `${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].firstName} ${USER_DETAILS[ownerId as 'ali' | 'fatemeh'].lastName}` : 'ناشناس');
     const expenseForName = item.expenseFor && USER_DETAILS[item.expenseFor] ? USER_DETAILS[item.expenseFor].firstName : 'مشترک';
     const registeredByName = users.find(u => u.id === item.registeredByUserId)?.firstName || 'سیستم';
-    return { payee, category, bankAccount, ownerId, ownerName, expenseForName, signatureImage, registeredByName };
+    // Manually map snake_case to camelCase
+    const checkSerialNumber = (item as any).serial_number || item.checkSerialNumber;
+    return { payee, category, bankAccount, ownerId, ownerName, expenseForName, signatureImage, registeredByName, checkSerialNumber };
 };
 
 const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete, onEdit, users, isSubmitting }: {
@@ -57,7 +59,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
     isSubmitting: boolean;
 }) => {
 
-    const { payee, category, bankAccount, ownerName, expenseForName, signatureImage } = getDetails(check, payees, categories, bankAccounts, users);
+    const { payee, category, bankAccount, ownerName, expenseForName, signatureImage, checkSerialNumber } = getDetails(check, payees, categories, bankAccounts, users);
     const isCleared = check.status === 'cleared';
     const isDeleteDisabled = isCleared || isSubmitting;
     const imageUrl = check.image_path ? getPublicUrl(check.image_path) : null;
@@ -76,7 +78,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                 <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
                      <div className="text-left w-1/3 space-y-1">
                         <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
-                        <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
+                        <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{checkSerialNumber}</span></p>
                      </div>
                     <div className="text-center w-1/3">
                         <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
@@ -109,16 +111,20 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                 
                  <Link href={`/checks/${check.id}`} className="block p-4 space-y-2 flex-grow flex flex-col text-sm">
                      <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
-                        <span className="shrink-0">مبلغ</span>
-                        <span className="font-handwriting font-bold text-base text-center flex-grow px-1">{amountToWords(check.amount)} تومان</span>
-                        <span className="shrink-0">به موجب این چک پرداخت شود.</span>
+                        <span className="shrink-0">به موجب این چک مبلغ</span>
+                        <span className="font-handwriting font-bold text-base text-center flex-grow px-1">
+                            {amountToWords(check.amount)}
+                        </span>
+                        <span className="shrink-0">تومان</span>
                      </div>
                      <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
                          <span className="shrink-0">در وجه:</span>
                          <span className="font-handwriting font-bold text-base flex-grow">{payee}</span>
-                         <span className="shrink-0 ml-2">برای:</span>
-                         <span className="font-handwriting font-bold text-base">{expenseForName}</span>
-                     </div>
+                         <span className="shrink-0 ml-4">هزینه برای:</span>
+                         <span className="font-handwriting font-bold text-base flex-grow">
+                           {expenseForName}
+                        </span>
+                    </div>
                      <div className="flex-grow"></div>
                     <div className="flex justify-between items-end pt-4">
                         <div className="text-left">
@@ -136,8 +142,9 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                                     <Image 
                                         src={signatureImage} 
                                         alt={`امضای ${ownerName}`} 
-                                        layout="fill"
-                                        objectFit="contain"
+                                        width={112} 
+                                        height={56}
+                                        style={{ objectFit: 'contain'}}
                                     />
                                 </div>
                             )}
