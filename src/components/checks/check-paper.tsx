@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { Check, BankAccount } from '@/lib/types';
-import { formatCurrency, formatJalaliDate, cn, amountToWords, getPublicUrl } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate, cn, amountToWords, getPublicUrl, toPersianDigits } from '@/lib/utils';
 import { HesabKetabLogo } from '../icons';
 import Image from 'next/image';
 import { Button } from '../ui/button';
@@ -61,8 +61,8 @@ export function CheckPaper({
             
             <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
                 <div className="text-left w-1/3 space-y-1">
-                    <p className="text-[9px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-handwriting font-bold tracking-wider text-foreground block">{check.sayadId}</span></p>
-                    <p className="text-[9px] text-muted-foreground font-sans">سریال چک: <span className="font-handwriting font-bold tracking-tight text-foreground block">{check.checkSerialNumber}</span></p>
+                    <p className="text-[9px] text-muted-foreground font-body">شناسه صیاد: <span className="font-handwriting tracking-wider text-foreground block">{toPersianDigits(check.sayadId)}</span></p>
+                    <p className="text-[9px] text-muted-foreground font-body">سریال چک: <span className="font-handwriting tracking-tight text-foreground block">{toPersianDigits(check.checkSerialNumber)}</span></p>
                 </div>
 
                 <div className="text-center w-1/3">
@@ -72,7 +72,7 @@ export function CheckPaper({
                 
                 <div className="text-right w-1/3 flex flex-col items-end pl-2 pt-1">
                      <p className="text-[10px] text-muted-foreground font-body">سررسید:</p>
-                     <p className="font-handwriting font-bold text-base">{formatJalaliDate(new Date(check.dueDate))}</p>
+                     <p className="font-handwriting font-bold text-base">{toPersianDigits(formatJalaliDate(new Date(check.dueDate)))}</p>
                 </div>
                 
                  {showActions && (
@@ -104,28 +104,28 @@ export function CheckPaper({
             </div>
             
             <div className="p-4 space-y-2 flex-grow flex flex-col text-sm">
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
-                    <span className="shrink-0">مبلغ:</span>
-                     <span className="font-handwriting font-bold text-sm text-center flex-grow px-1">
+                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                    <span className="shrink-0 font-body text-xs">مبلغ:</span>
+                     <span className="font-handwriting text-sm text-center flex-grow px-1">
                         {amountToWords(check.amount)} تومان
                     </span>
                 </div>
-                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs">
-                    <span className="shrink-0">در وجه:</span>
-                    <span className="font-handwriting font-bold text-sm flex-grow">{payeeName}</span>
-                    <span className="shrink-0 ml-4">هزینه برای:</span>
-                    <span className="font-handwriting font-bold text-sm shrink-0">
+                <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1">
+                    <span className="shrink-0 font-body text-xs">در وجه:</span>
+                    <span className="font-handwriting text-sm flex-grow">{payeeName}</span>
+                    <span className="shrink-0 ml-4 font-body text-xs">هزینه برای:</span>
+                    <span className="font-handwriting text-sm shrink-0">
                       {expenseForName}
                     </span>
                 </div>
                 <div className="flex-grow"></div>
                 <div className="flex justify-between items-end pt-4">
                     <div className="text-left">
-                        <p className="font-handwriting font-bold text-lg">{formatCurrency(check.amount, 'IRT')}</p>
+                        <p className="font-handwriting text-lg">{formatCurrency(check.amount, 'IRT')}</p>
                     </div>
                      <div className="text-center">
                         <span className="text-xs text-muted-foreground font-body">دسته‌بندی</span>
-                        <p className="font-handwriting font-bold text-xs">{categoryName}</p>
+                        <p className="font-handwriting text-xs">{categoryName}</p>
                     </div>
                     <div className="text-right relative">
                         <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
