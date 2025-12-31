@@ -4,21 +4,19 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, User, Users, Calendar, PenSquare, AlertCircle, CheckCircle } from 'lucide-react';
 import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { USER_DETAILS } from '@/lib/constants';
-import { HesabKetabLogo } from '@/components/icons';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import Link from 'next/link';
-import Image from 'next/image';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 import type { Check } from '@/lib/types';
+import { CheckPaper } from '@/components/checks/check-paper'; // Import the new shared component
 
 function CheckDetailSkeleton() {
   return (
@@ -58,7 +56,6 @@ export default function CheckDetailPage() {
       
       if (error) throw error;
       
-      // Manual mapping from snake_case to camelCase
       const transformedData: Check = {
         id: data.id,
         sayadId: data.sayad_id,
@@ -134,41 +131,25 @@ export default function CheckDetailPage() {
     );
   }
   
-  const getPayeeName = (payeeId?: string) => {
-    if (!payeeId || !payees) return 'نامشخص';
-    return payees.find((p: any) => p.id === payeeId)?.name || 'نامشخص';
-  };
+  const getPayeeName = (payeeId?: string) => payees?.find((p: any) => p.id === payeeId)?.name || 'نامشخص';
+  const getCategoryName = (categoryId?: string) => categories?.find((c: any) => c.id === categoryId)?.name || 'نامشخص';
+  const getBankAccount = (bankAccountId?: string) => bankAccounts?.find((b: any) => b.id === bankAccountId);
   
-  const getCategoryName = (categoryId?: string) => {
-    if (!categoryId || !categories) return 'نامشخص';
-    return categories.find((c: any) => c.id === categoryId)?.name || 'نامشخص';
-  }
+  const bankAccount = getBankAccount(check.bankAccountId);
 
-  const getBankAccount = (bankAccountId?: string) => {
-    if (!bankAccountId || !bankAccounts) return null;
-    return bankAccounts.find((b: any) => b.id === bankAccountId);
-  }
+  const ownerName = bankAccount?.ownerId === 'shared_account' 
+        ? 'علی و فاطمه' 
+        : (bankAccount?.ownerId && USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh'] 
+            ? `${USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh'].firstName} ${USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh'].lastName}` 
+            : 'ناشناس');
 
-  const getOwnerDetails = (bankAccount?: ReturnType<typeof getBankAccount>) => {
-    if (!bankAccount || !bankAccount.ownerId) return { name: "نامشخص" };
-    const ownerId = bankAccount.ownerId;
-    if (ownerId === 'shared_account') return { name: "علی کاکایی و فاطمه صالح" };
-    const userDetail = USER_DETAILS[ownerId as 'ali' | 'fatemeh'];
-    return { name: userDetail ? `${userDetail.firstName} ${userDetail.lastName}` : "نامشخص" };
-  };
+  const expenseForName = check.expenseFor && USER_DETAILS[check.expenseFor] ? USER_DETAILS[check.expenseFor].firstName : 'مشترک';
   
-  const getExpenseForName = (expenseFor?: 'ali' | 'fatemeh' | 'shared') => {
-    if (!expenseFor) return 'نامشخص';
-    if (expenseFor === 'shared') return 'مشترک';
-    return USER_DETAILS[expenseFor]?.firstName || 'نامشخص';
-  };
+  const signatureImage = check.signatureDataUrl || (bankAccount?.ownerId ? (USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.signatureImage) : undefined);
 
   const registeredByName = users?.find((u: any) => u.id === check.registeredByUserId)?.firstName || 'سیستم';
-  const bankAccount = getBankAccount(check.bankAccountId);
-  const { name: ownerName } = getOwnerDetails(bankAccount);
-  const expenseForName = getExpenseForName(check.expenseFor);
-  const isCleared = check.status === 'cleared';
 
+  const isCleared = check.status === 'cleared';
   const hasSufficientFunds = bankAccount ? bankAccount.balance >= check.amount : false;
 
   return (
@@ -191,73 +172,15 @@ export default function CheckDetailPage() {
       </div>
 
        <div className="max-w-2xl mx-auto space-y-4">
-         <Card className={cn("overflow-hidden shadow-2xl h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-700", isCleared && "opacity-60")}>
-            {isCleared && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform -rotate-12 border-4 border-emerald-500 text-emerald-500 rounded-lg p-2 text-3xl md:text-4xl font-black uppercase opacity-60 select-none z-20">
-                    پاس شد
-                </div>
-            )}
-            
-            {/* Header */}
-            <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
-                <div className="text-left w-1/3 space-y-1">
-                    <p className="text-[10px] md:text-xs text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground block">{check.sayadId}</span></p>
-                    <p className="text-[10px] md:text-xs text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground block">{check.checkSerialNumber}</span></p>
-                </div>
-                <div className="text-center w-1/3">
-                    <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
-                    <p className="font-bold font-body text-sm md:text-base">{bankAccount?.bankName}</p>
-                </div>
-                <div className="text-right w-1/3 flex flex-col items-end">
-                     <p className="text-xs md:text-sm text-muted-foreground font-body">تاریخ سررسید:</p>
-                     <p className="font-handwriting font-bold text-base md:text-lg">{formatJalaliDate(new Date(check.dueDate))}</p>
-                </div>
-            </div>
-
-            {/* Body */}
-            <div className="p-4 md:p-6 space-y-2 flex-grow flex flex-col text-sm">
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs md:text-sm">
-                    <span className="shrink-0">به موجب این چک مبلغ</span>
-                    <span className="font-handwriting font-bold text-sm md:text-base text-center flex-grow px-1">
-                        {amountToWords(check.amount)}
-                    </span>
-                    <span className="shrink-0">تومان</span>
-                 </div>
-                 <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body text-xs md:text-sm">
-                    <span className="shrink-0">در وجه:</span>
-                     <span className="font-handwriting font-bold text-sm md:text-base">{getPayeeName(check.payeeId)}</span>
-                    <span className="shrink-0 ml-4">هزینه برای:</span>
-                     <span className="font-handwriting font-bold text-sm md:text-base flex-grow">
-                       {expenseForName}
-                    </span>
-                </div>
-                 <div className="flex-grow"></div>
-                <div className="flex justify-between items-end pt-4">
-                    <div className="text-left">
-                        <p className="font-handwriting font-bold text-lg md:text-xl">{formatCurrency(check.amount, 'IRT')}</p>
-                    </div>
-                     <div className="text-center">
-                        <span className="text-xs text-muted-foreground font-body">دسته‌بندی</span>
-                        <p className="font-handwriting font-bold text-sm md:text-base">{getCategoryName(check.categoryId)}</p>
-                    </div>
-                    <div className="text-right relative">
-                        <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
-                        <p className="font-body text-xs sm:text-sm font-semibold h-6">{ownerName}</p>
-                        {check.signatureDataUrl && (
-                            <div className="absolute -bottom-4 -left-4 w-24 h-12 md:w-28 md:h-14 pointer-events-none">
-                                <Image 
-                                    src={check.signatureDataUrl} 
-                                    alt={`امضای ${ownerName}`} 
-                                    width={112} 
-                                    height={56}
-                                    style={{ objectFit: 'contain'}}
-                                />
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </Card>
+         <CheckPaper
+            check={check}
+            bankAccount={bankAccount}
+            payeeName={getPayeeName(check.payeeId)}
+            ownerName={ownerName}
+            expenseForName={expenseForName}
+            categoryName={getCategoryName(check.categoryId)}
+            signatureImage={signatureImage}
+         />
         
         <Card>
             <CardHeader>
