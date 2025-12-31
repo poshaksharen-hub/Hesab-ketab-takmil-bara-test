@@ -22,7 +22,6 @@ import { uploadCheckImage } from '@/lib/storage';
 import type { User } from '@supabase/supabase-js';
 import { Loader2, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { useAuth } from '@/hooks/use-auth';
 
 const formSchema = z.object({
   payeeId: z.string().min(1, { message: 'لطفا طرف حساب را انتخاب کنید.' }),
@@ -47,7 +46,7 @@ type CheckFormValues = z.infer<typeof formSchema>;
 interface CheckFormProps {
   onSubmit: (data: CheckFormValues) => void;
   initialData: Check | null;
-  bankAccounts: BankAccount[]; // Should only receive checking accounts
+  bankAccounts: BankAccount[];
   payees: Payee[];
   categories: Category[];
   onCancel: () => void;
@@ -134,12 +133,6 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
 
   const selectedBankAccountId = form.watch('bankAccountId');
   const selectedBankAccount = bankAccounts.find(acc => acc.id === selectedBankAccountId);
-
-  useEffect(() => {
-    if (selectedBankAccount) {
-      form.setValue('ownerId', selectedBankAccount.ownerId);
-    }
-  }, [selectedBankAccount, form]);
 
   return (
       <>
@@ -258,7 +251,23 @@ const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories,
                 <FormField control={form.control} name="dueDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>تاریخ سررسید</FormLabel><JalaliDatePicker title="تاریخ سررسید" value={field.value} onChange={field.onChange} /><FormMessage /></FormItem>)} />
             </div>
 
-            <FormField control={form.control} name="bankAccountId" render={({ field }) => (<FormItem><FormLabel>از حساب جاری</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="یک حساب جاری انتخاب کنید" /></SelectTrigger></FormControl><SelectContent>{bankAccounts.map((account: BankAccount) => (<SelectItem key={account.id} value={account.id}>{`${account.bankName} ${getOwnerName(account.ownerId)}`}</SelectItem>))}</SelectContent></Select><FormDescription>{selectedBankAccount ? `صاحب این حساب ${getOwnerName(selectedBankAccount.ownerId)} است.` : 'فقط حساب‌های جاری نمایش داده می‌شوند.'}</FormDescription><FormMessage /></FormItem>)} />
+            <FormField 
+                control={form.control} 
+                name="bankAccountId" 
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>از حساب جاری</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="یک حساب جاری انتخاب کنید" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {bankAccounts.map((account: BankAccount) => (<SelectItem key={account.id} value={account.id}>{`${account.bankName} ${getOwnerName(account.ownerId)}`}</SelectItem>))}
+                            </SelectContent>
+                        </Select>
+                        {selectedBankAccount && <FormDescription>صاحب این حساب: {getOwnerName(selectedBankAccount.ownerId)}</FormDescription>}
+                        <FormMessage />
+                    </FormItem>
+                )} 
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="payeeId" render={({ field }) => (<FormItem><FormLabel>در وجه</FormLabel><Select onValueChange={(value) => value === 'add_new' ? setIsAddPayeeOpen(true) : field.onChange(value)} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="یک طرف حساب انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>{payees.map((payee: Payee) => (<SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />

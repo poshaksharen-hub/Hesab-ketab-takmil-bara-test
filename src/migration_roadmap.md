@@ -428,7 +428,7 @@ BEGIN
     WHERE id = v_check.bank_account_id;
 
     INSERT INTO public.expenses (bank_account_id, category_id, payee_id, amount, date, description, expense_for, check_id, registered_by_user_id, owner_id)
-    VALUES (v_check.bank_account_id, v_check.category_id, v_check.payee_id, v_check.amount, now(), v_check.description, v_check.expense_for, v_check.id, p_user_id, v_bank_account.owner_id);
+    VALUES (v_check.bank_account_id, v_check.category_id, v_check.payee_id, v_check.amount, now(), v_check.description, v_check.expense_for, v_check.id, p_user_id, v_check.expense_for);
 
     UPDATE public.cheques
     SET status = 'cleared', cleared_date = now(), updated_at = now(), clearance_receipt_path = p_clearance_receipt_path
