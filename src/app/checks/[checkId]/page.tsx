@@ -1,22 +1,22 @@
 
 'use client';
 
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, User, Users, Calendar, PenSquare, AlertCircle, CheckCircle } from 'lucide-react';
-import { formatCurrency, formatJalaliDate, cn, amountToWords } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { USER_DETAILS } from '@/lib/constants';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Calendar, PenSquare } from 'lucide-react';
+import { formatJalaliDate } from '@/lib/utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 import type { Check } from '@/lib/types';
-import { CheckPaper } from '@/components/checks/check-paper'; // Import the new shared component
+import { CheckPaper } from '@/components/checks/check-paper';
+import { useToast } from '@/hooks/use-toast';
+import { USER_DETAILS } from '@/lib/constants';
+import { useAuth } from '@/hooks/use-auth';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 
 function CheckDetailSkeleton() {
   return (
@@ -31,25 +31,54 @@ function CheckDetailSkeleton() {
   );
 }
 
-
 export default function CheckDetailPage() {
   const router = useRouter();
   const params = useParams();
   const checkId = params.checkId as string;
-
   const { user } = useAuth();
   const { toast } = useToast();
-  const { allData, refreshData, isLoading: isDashboardLoading } = useDashboardData();
-  const { bankAccounts, payees, categories, users, checks } = allData;
-  const [check, setCheck] = useState<Check | null>(null);
-  
-  useEffect(() => {
-    if (checks && checkId) {
-      const foundCheck = checks.find(c => c.id === checkId);
-      setCheck(foundCheck || null);
-    }
-  }, [checks, checkId]);
 
+  const { allData, refreshData, isLoading: isDashboardLoading } = useDashboardData();
+  const [checkDetails, setCheckDetails] = useState<Check | null>(null);
+  const [isFetching, setIsFetching] = useState(true);
+
+  const fetchCheckDetails = useCallback(async () => {
+    if (!checkId) return;
+    setIsFetching(true);
+    try {
+      const { data, error } = await supabase
+        .from('cheques')
+        .select('*')
+        .eq('id', checkId)
+        .single();
+      
+      if (error) throw error;
+      
+      const transformedData: { [key: string]: any } = {};
+      for (const key in data) {
+        const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+        transformedData[camelKey] = data[key as keyof typeof data];
+      }
+       if (data.serial_number) {
+            transformedData.checkSerialNumber = data.serial_number;
+        }
+
+      setCheckDetails(transformedData as Check);
+
+    } catch (error: any) {
+      console.error("Error fetching check details:", error);
+      toast({ variant: 'destructive', title: 'خطا', description: 'اطلاعات چک یافت نشد.' });
+      setCheckDetails(null);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [checkId, toast]);
+
+  useEffect(() => {
+    fetchCheckDetails();
+  }, [fetchCheckDetails]);
+
+  const { bankAccounts, payees, categories, users } = allData;
 
   const handleClearCheck = useCallback(async (checkToClear: any) => {
     if (!user) return;
@@ -61,17 +90,19 @@ export default function CheckDetailPage() {
         });
         if (error) throw new Error(error.message);
         await refreshData();
-        toast({ title: 'موفقیت!', description: `چک به مبلغ ${formatCurrency(checkToClear.amount, 'IRT')} پاس شد.` });
+        toast({ title: 'موفقیت!', description: `چک به مبلغ ${formatJalaliDate(checkToClear.amount)} پاس شد.` });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در پاس کردن چک', description: error.message });
     }
   }, [user, refreshData, toast]);
-  
-  if (isDashboardLoading) {
+
+  const isLoading = isDashboardLoading || isFetching;
+
+  if (isLoading) {
     return <CheckDetailSkeleton />;
   }
 
-  if (!check) {
+  if (!checkDetails) {
     return (
       <main className="flex-1 p-4 pt-6 md:p-8">
         <Card>
@@ -93,7 +124,7 @@ export default function CheckDetailPage() {
   const getCategoryName = (categoryId?: string) => categories?.find((c: any) => c.id === categoryId)?.name || 'نامشخص';
   const getBankAccount = (bankAccountId?: string) => bankAccounts?.find((b: any) => b.id === bankAccountId);
   
-  const bankAccount = getBankAccount(check.bankAccountId);
+  const bankAccount = getBankAccount(checkDetails.bankAccountId);
 
   const ownerName = bankAccount?.ownerId === 'shared_account' 
         ? 'علی و فاطمه' 
@@ -101,14 +132,14 @@ export default function CheckDetailPage() {
             ? `${USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh'].firstName} ${USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh'].lastName}` 
             : 'ناشناس');
 
-  const expenseForName = check.expenseFor && USER_DETAILS[check.expenseFor] ? USER_DETAILS[check.expenseFor].firstName : 'مشترک';
+  const expenseForName = checkDetails.expenseFor && USER_DETAILS[checkDetails.expenseFor] ? USER_DETAILS[checkDetails.expenseFor].firstName : 'مشترک';
   
-  const signatureImage = check.signatureDataUrl || (bankAccount?.ownerId ? (USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.signatureImage) : undefined);
+  const signatureImage = checkDetails.signatureDataUrl || (bankAccount?.ownerId ? (USER_DETAILS[bankAccount.ownerId as 'ali' | 'fatemeh']?.signatureImage) : undefined);
 
-  const registeredByName = users?.find((u: any) => u.id === check.registeredByUserId)?.firstName || 'سیستم';
+  const registeredByName = users?.find((u: any) => u.id === checkDetails.registeredByUserId)?.firstName || 'سیستم';
 
-  const isCleared = check.status === 'cleared';
-  const hasSufficientFunds = bankAccount ? bankAccount.balance >= check.amount : false;
+  const isCleared = checkDetails.status === 'cleared';
+  const hasSufficientFunds = bankAccount ? (bankAccount.balance - bankAccount.blockedBalance) >= checkDetails.amount : false;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -119,7 +150,7 @@ export default function CheckDetailPage() {
                 جزئیات چک
               </h1>
               <div className="text-muted-foreground flex items-center gap-2">
-                <span>{check.description || `چک به ${getPayeeName(check.payeeId)}`}</span>
+                <span>{checkDetails.description || `چک به ${getPayeeName(checkDetails.payeeId)}`}</span>
                 {isCleared ? 
                     <Badge className="bg-emerald-500 text-white">پاس شده</Badge> : 
                     <Badge variant="destructive">در انتظار پاس</Badge>
@@ -131,12 +162,12 @@ export default function CheckDetailPage() {
 
        <div className="max-w-2xl mx-auto space-y-4">
          <CheckPaper
-            check={check}
+            check={checkDetails}
             bankAccount={bankAccount}
-            payeeName={getPayeeName(check.payeeId)}
+            payeeName={getPayeeName(checkDetails.payeeId)}
             ownerName={ownerName}
             expenseForName={expenseForName}
-            categoryName={getCategoryName(check.categoryId)}
+            categoryName={getCategoryName(checkDetails.categoryId)}
             signatureImage={signatureImage}
          />
         
@@ -149,7 +180,7 @@ export default function CheckDetailPage() {
                     <Calendar className="w-5 h-5 text-muted-foreground" />
                     <div>
                         <p className="text-sm text-muted-foreground">تاریخ صدور</p>
-                        <p className="font-semibold">{formatJalaliDate(new Date(check.issueDate))}</p>
+                        <p className="font-semibold">{formatJalaliDate(new Date(checkDetails.issueDate))}</p>
                     </div>
                 </div>
                  <div className="flex items-center gap-2">
@@ -182,12 +213,12 @@ export default function CheckDetailPage() {
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>آیا از پاس کردن این چک مطمئن هستید؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    با تایید این عملیات، مبلغ {formatCurrency(check.amount, 'IRT')} از حساب شما کسر و یک هزینه در سیستم ثبت خواهد شد. این عمل قابل بازگشت نیست.
+                                    با تایید این عملیات، مبلغ {formatJalaliDate(checkDetails.amount)} از حساب شما کسر و یک هزینه در سیستم ثبت خواهد شد. این عمل قابل بازگشت نیست.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                 <AlertDialogCancel>انصراف</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleClearCheck(check)}>
+                                <AlertDialogAction onClick={() => handleClearCheck(checkDetails)}>
                                     تایید و پاس کردن
                                 </AlertDialogAction>
                                 </AlertDialogFooter>
