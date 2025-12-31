@@ -159,8 +159,7 @@ CREATE TABLE IF NOT EXISTS public.cheques (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     image_path text,
-    clearance_receipt_path text,
-    owner_id text
+    clearance_receipt_path text
 );
 COMMENT ON TABLE public.cheques IS 'Manages outgoing cheques as future liabilities.';
 
@@ -392,17 +391,12 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARE
-    v_bank_account public.bank_accounts;
 BEGIN
-    SELECT * INTO v_bank_account FROM public.bank_accounts WHERE id = p_bank_account_id;
-    IF v_bank_account IS NULL THEN RAISE EXCEPTION 'حساب بانکی یافت نشد.'; END IF;
-
-    INSERT INTO public.cheques (sayad_id, serial_number, amount, issue_date, due_date, bank_account_id, payee_id, category_id, description, expense_for, signature_data_url, registered_by_user_id, status, image_path, owner_id)
-    VALUES (p_sayad_id, p_serial_number, p_amount, p_issue_date, p_due_date, p_bank_account_id, p_payee_id, p_category_id, p_description, p_expense_for, p_signature_data_url, p_registered_by_user_id, 'pending', p_image_path, v_bank_account.owner_id);
+  INSERT INTO public.cheques (sayad_id, serial_number, amount, issue_date, due_date, bank_account_id, payee_id, category_id, description, expense_for, signature_data_url, registered_by_user_id, status, image_path)
+  VALUES (p_sayad_id, p_serial_number, p_amount, p_issue_date, p_due_date, p_bank_account_id, p_payee_id, p_category_id, p_description, p_expense_for, p_signature_data_url, p_registered_by_user_id, 'pending', p_image_path);
 END;
 $$;
-COMMENT ON FUNCTION public.create_check IS 'Creates a new cheque with "pending" status.';
+COMMENT ON FUNCTION public.create_check IS 'Creates a new cheque with "pending" status. Does NOT block balance.';
 
 -- --------------------------------------------------------------------
 -- Function 3: Clear a Check
@@ -435,7 +429,7 @@ BEGIN
     WHERE id = p_check_id;
 END;
 $$;
-COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense, and updates balance.';
+COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense for the beneficiary (expense_for), and updates balance.';
 
 -- --------------------------------------------------------------------
 -- Function 4: Delete a Check
@@ -497,7 +491,7 @@ BEGIN
     IF v_loan.remaining_amount < p_amount THEN RAISE EXCEPTION 'مبلغ قسط از باقیمانده وام بیشتر است.'; END IF;
 
     SELECT * INTO v_bank_account FROM public.bank_accounts WHERE id = p_bank_account_id;
-    IF v_bank_account.balance < p_amount THEN RAISE EXCEPTION 'موجودی حساب کافی نیست.'; END IF;
+    IF (v_bank_account.balance - v_bank_account.blocked_balance) < p_amount THEN RAISE EXCEPTION 'موجودی قابل استفاده حساب کافی نیست.'; END IF;
 
     SELECT * INTO v_expense_category FROM public.categories WHERE name LIKE '%اقساط%' LIMIT 1;
     IF v_expense_category IS NULL THEN 
@@ -572,7 +566,7 @@ BEGIN
     IF v_debt.remaining_amount < p_amount THEN RAISE EXCEPTION 'مبلغ پرداختی از باقیمانده بدهی بیشتر است.'; END IF;
 
     SELECT * INTO v_bank_account FROM public.bank_accounts WHERE id = p_bank_account_id;
-    IF v_bank_account.balance < p_amount THEN RAISE EXCEPTION 'موجودی حساب کافی نیست.'; END IF;
+    IF (v_bank_account.balance - v_bank_account.blocked_balance) < p_amount THEN RAISE EXCEPTION 'موجودی قابل استفاده حساب کافی نیست.'; END IF;
     
     SELECT * INTO v_expense_category FROM public.categories WHERE name LIKE '%اقساط%' LIMIT 1;
     IF v_expense_category IS NULL THEN 
@@ -634,8 +628,8 @@ BEGIN
     SELECT * INTO v_from_account FROM public.bank_accounts WHERE id = p_from_account_id FOR UPDATE;
     SELECT balance INTO v_to_balance_before FROM public.bank_accounts WHERE id = p_to_account_id FOR UPDATE;
 
-    IF v_from_account.balance < p_amount THEN
-        RAISE EXCEPTION 'موجودی حساب مبدا کافی نیست.';
+    IF (v_from_account.balance - v_from_account.blocked_balance) < p_amount THEN
+        RAISE EXCEPTION 'موجودی قابل استفاده حساب مبدا کافی نیست.';
     END IF;
 
     UPDATE public.bank_accounts SET balance = balance - p_amount WHERE id = p_from_account_id;
@@ -693,8 +687,8 @@ BEGIN
     SELECT * INTO v_bank_account FROM public.bank_accounts WHERE id = p_bank_account_id FOR UPDATE;
     IF v_bank_account IS NULL THEN RAISE EXCEPTION 'حساب بانکی یافت نشد.'; END IF;
     
-    IF v_bank_account.balance < p_amount THEN
-        RAISE EXCEPTION 'موجودی حساب کافی نیست.';
+    IF (v_bank_account.balance - v_bank_account.blocked_balance) < p_amount THEN
+        RAISE EXCEPTION 'موجودی قابل استفاده حساب کافی نیست.';
     END IF;
 
     SELECT * INTO v_expense_category FROM public.categories WHERE name LIKE '%پس‌انداز%' LIMIT 1;
@@ -751,7 +745,7 @@ BEGIN
         IF p_payment_card_id IS NULL THEN RAISE EXCEPTION 'برای پرداخت مابقی هزینه، انتخاب کارت الزامی است.'; END IF;
         
         SELECT * INTO v_account FROM public.bank_accounts WHERE id = p_payment_card_id;
-        IF v_account.balance < v_cash_payment_needed THEN RAISE EXCEPTION 'موجودی کارت انتخابی برای پرداخت مابقی هزینه کافی نیست.'; END IF;
+        IF (v_account.balance - v_account.blocked_balance) < v_cash_payment_needed THEN RAISE EXCEPTION 'موجودی کارت انتخابی برای پرداخت مابقی هزینه کافی نیست.'; END IF;
         
         UPDATE public.bank_accounts SET balance = balance - v_cash_payment_needed WHERE id = p_payment_card_id;
         
@@ -878,8 +872,8 @@ DECLARE
 BEGIN
     SELECT * INTO v_account FROM public.bank_accounts WHERE id = p_bank_account_id FOR UPDATE;
 
-    IF v_account.balance < p_amount THEN
-        RAISE EXCEPTION 'موجودی حساب برای انجام این هزینه کافی نیست.';
+    IF (v_account.balance - v_account.blocked_balance) < p_amount THEN
+        RAISE EXCEPTION 'موجودی قابل استفاده حساب برای انجام این هزینه کافی نیست.';
     END IF;
 
     UPDATE public.bank_accounts SET balance = balance - p_amount WHERE id = p_bank_account_id;

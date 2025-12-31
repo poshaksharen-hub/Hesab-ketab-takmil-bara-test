@@ -17,6 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import Link from 'next/link';
 import Image from 'next/image';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { supabase } from '@/lib/supabase-client';
 
 function CheckDetailSkeleton() {
   return (
@@ -39,15 +40,26 @@ export default function CheckDetailPage() {
 
   const { user } = useUser();
   const { toast } = useToast();
-  const { isLoading: isDashboardLoading, allData } = useDashboardData();
+  const { isLoading: isDashboardLoading, allData, refreshData } = useDashboardData();
   const { checks, bankAccounts, payees, categories, users } = allData;
 
   const check = useMemo(() => checks?.find((c: any) => c.id === checkId), [checks, checkId]);
 
   const handleClearCheck = useCallback(async (checkToClear: any) => {
-    // TODO: Implement Supabase logic
-    toast({ title: "در حال توسعه", description: "عملیات پاس کردن چک هنوز پیاده‌سازی نشده است." });
-  }, [user, bankAccounts, payees, toast]);
+    if (!user) return;
+    try {
+        const { error } = await supabase.rpc('clear_check', {
+            p_check_id: checkToClear.id,
+            p_user_id: user.id,
+            p_clearance_receipt_path: null
+        });
+        if (error) throw new Error(error.message);
+        await refreshData();
+        toast({ title: 'موفقیت!', description: `چک به مبلغ ${formatCurrency(checkToClear.amount, 'IRT')} پاس شد.` });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'خطا در پاس کردن چک', description: error.message });
+    }
+  }, [user, refreshData, toast]);
   
   const isLoading = isDashboardLoading || !check;
 
@@ -108,7 +120,7 @@ export default function CheckDetailPage() {
   const expenseForName = getExpenseForName(check.expenseFor);
   const isCleared = check.status === 'cleared';
 
-  const hasSufficientFunds = bankAccount ? (bankAccount.balance - (bankAccount.blockedBalance || 0)) >= check.amount : false;
+  const hasSufficientFunds = bankAccount ? bankAccount.balance >= check.amount : false;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">

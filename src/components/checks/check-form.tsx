@@ -263,7 +263,7 @@ const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories,
                                 {bankAccounts.map((account: BankAccount) => (<SelectItem key={account.id} value={account.id}>{`${account.bankName} ${getOwnerName(account.ownerId)}`}</SelectItem>))}
                             </SelectContent>
                         </Select>
-                        {selectedBankAccount && <FormDescription>صاحب این حساب: {getOwnerName(selectedBankAccount.ownerId)}</FormDescription>}
+                        {selectedBankAccount && <FormDescription>صاحب این حساب: <span className="font-bold">{getOwnerName(selectedBankAccount.ownerId)}</span></FormDescription>}
                         <FormMessage />
                     </FormItem>
                 )} 
