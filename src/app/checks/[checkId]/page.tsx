@@ -61,9 +61,7 @@ export default function CheckDetailPage() {
     }
   }, [user, refreshData, toast]);
   
-  const isLoading = isDashboardLoading || !check;
-
-  if (isLoading) {
+  if (isDashboardLoading) {
     return <CheckDetailSkeleton />;
   }
 
@@ -75,7 +73,7 @@ export default function CheckDetailPage() {
             <CardTitle>چک یافت نشد</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>متاسفانه چکی با این مشخصات در سیستم وجود ندارد.</p>
+            <p>متاسفانه چکی با این مشخصات در سیستم وجود ندارد یا شما اجازه دسترسی به آن را ندارید.</p>
             <Button onClick={() => router.push('/checks')} className="mt-4">
               بازگشت به لیست چک‌ها
             </Button>
