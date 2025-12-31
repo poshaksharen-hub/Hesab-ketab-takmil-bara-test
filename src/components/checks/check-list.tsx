@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -56,7 +57,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
     isSubmitting: boolean;
 }) => {
 
-    const { payee, bankAccount, ownerName, signatureImage } = getDetails(check, payees, categories, bankAccounts, users);
+    const { payee, category, bankAccount, ownerName, expenseForName, signatureImage } = getDetails(check, payees, categories, bankAccounts, users);
     const isCleared = check.status === 'cleared';
     const isDeleteDisabled = isCleared || isSubmitting;
     const imageUrl = check.image_path ? getPublicUrl(check.image_path) : null;
@@ -75,6 +76,7 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                 <div className="p-3 relative bg-gray-100 dark:bg-gray-800/50 flex justify-between items-start">
                      <div className="text-left w-1/3 space-y-1">
                         <p className="text-[10px] text-muted-foreground font-sans">شناسه صیاد: <span className="font-mono font-bold tracking-wider text-foreground">{check.sayadId}</span></p>
+                        <p className="text-[10px] text-muted-foreground font-sans">سریال چک: <span className="font-mono font-bold tracking-tight text-foreground">{check.checkSerialNumber}</span></p>
                      </div>
                     <div className="text-center w-1/3">
                         <HesabKetabLogo className="w-6 h-6 mx-auto text-primary/70" />
@@ -106,14 +108,39 @@ const CheckCard = ({ check, bankAccounts, payees, categories, onClear, onDelete,
                 </div>
                 
                  <Link href={`/checks/${check.id}`} className="block p-4 space-y-2 flex-grow flex flex-col text-sm">
-                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body"><span className="shrink-0">در وجه:</span><span className="font-handwriting font-bold text-base">{payee}</span></div>
-                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body"><span className="shrink-0">مبلغ:</span><span className="font-handwriting font-bold text-base text-center flex-grow px-1">{amountToWords(check.amount)} تومان</span></div>
+                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
+                        <span className="shrink-0">مبلغ</span>
+                        <span className="font-handwriting font-bold text-base text-center flex-grow px-1">{amountToWords(check.amount)} تومان</span>
+                        <span className="shrink-0">به موجب این چک پرداخت شود.</span>
+                     </div>
+                     <div className="flex items-baseline gap-2 border-b-2 border-dotted border-gray-400 pb-1 font-body">
+                         <span className="shrink-0">در وجه:</span>
+                         <span className="font-handwriting font-bold text-base flex-grow">{payee}</span>
+                         <span className="shrink-0 ml-2">برای:</span>
+                         <span className="font-handwriting font-bold text-base">{expenseForName}</span>
+                     </div>
                      <div className="flex-grow"></div>
                     <div className="flex justify-between items-end pt-4">
-                        <div className="text-left"><span className="text-xs text-muted-foreground font-body">مبلغ عددی</span><p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p></div>
+                        <div className="text-left">
+                           <p className="font-handwriting font-bold text-xl">{formatCurrency(check.amount, 'IRT')}</p>
+                        </div>
+                        <div className="text-center">
+                            <span className="text-xs text-muted-foreground font-body">دسته‌بندی</span>
+                            <p className="font-handwriting font-bold text-base">{category}</p>
+                        </div>
                         <div className="text-right relative">
-                            <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span><p className="font-body text-sm font-semibold h-6">{ownerName}</p>
-                            {signatureImage && (<div className="absolute -bottom-5 right-0 w-28 h-14 pointer-events-none"><Image src={signatureImage} alt={`امضای ${ownerName}`} width={112} height={56} style={{ objectFit: 'contain'}}/></div>)}
+                            <span className="text-xs text-muted-foreground font-body">صاحب حساب:</span>
+                            <p className="font-body text-sm font-semibold h-6">{ownerName}</p>
+                            {signatureImage && (
+                                <div className="absolute -bottom-5 right-0 w-28 h-14 pointer-events-none">
+                                    <Image 
+                                        src={signatureImage} 
+                                        alt={`امضای ${ownerName}`} 
+                                        layout="fill"
+                                        objectFit="contain"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </Link>
