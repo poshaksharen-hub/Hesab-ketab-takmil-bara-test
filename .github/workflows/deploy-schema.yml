@@ -19,9 +19,6 @@ jobs:
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
-      - name: Disable IPv6
-        run: sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-
       - name: Check for Secrets
         run: |
           if [ -z "${{ secrets.SUPABASE_DATABASE_URL }}" ]; then
@@ -35,8 +32,8 @@ jobs:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
-          # Use the connection URI directly with psql. This is the most reliable method.
-          psql "$SUPABASE_DATABASE_URL" -f "supabase/migrations/20240720000000_initial_schema.sql"
+          # Explicitly set the host to force IPv4 resolution
+          psql "$SUPABASE_DATABASE_URL" -o "host=db.fptfuogzamsbwjokbhko.supabase.co" -f "supabase/migrations/20240720000000_initial_schema.sql"
           echo "Table schema applied successfully."
 
       - name: Apply SQL Storage Schema
@@ -44,5 +41,6 @@ jobs:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           echo "Applying SQL storage setup from supabase/migrations/20240720000000_storage_setup.sql..."
-          psql "$SUPABASE_DATABASE_URL" -f "supabase/migrations/20240720000000_storage_setup.sql"
+          # Explicitly set the host to force IPv4 resolution
+          psql "$SUPABASE_DATABASE_URL" -o "host=db.fptfuogzamsbwjokbhko.supabase.co" -f "supabase/migrations/20240720000000_storage_setup.sql"
           echo "Storage schema applied successfully."
