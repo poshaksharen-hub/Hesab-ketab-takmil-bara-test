@@ -38,16 +38,16 @@ export default function ChecksPage() {
             p_sayad_id: values.sayadId,
             p_serial_number: values.checkSerialNumber,
             p_amount: values.amount,
-            p_issue_date: values.issueDate,
-            p_due_date: values.dueDate,
+            p_issue_date: (values.issueDate as any).toISOString(),
+            p_due_date: (values.dueDate as any).toISOString(),
             p_bank_account_id: values.bankAccountId,
             p_payee_id: values.payeeId,
             p_category_id: values.categoryId,
             p_description: values.description,
             p_expense_for: values.expenseFor,
+            p_signature_data_url: values.signatureDataUrl,
             p_registered_by_user_id: user.id,
             p_image_path: values.image_path,
-            p_signature_data_url: values.signatureDataUrl
         });
 
         if (error) throw new Error(error.message);
@@ -112,6 +112,10 @@ export default function ChecksPage() {
   const handleEdit = useCallback((check: Check) => {
     toast({ variant: "destructive", title: "غیرفعال", description: "ویرایش چک پس از ثبت امکان‌پذیر نیست. لطفا چک فعلی را حذف و یک چک جدید ثبت کنید."})
   }, [toast]);
+  
+  const onQuickAdd = useCallback(async () => {
+    await refreshData();
+  }, [refreshData]);
 
   const isLoading = isUserLoading || isDashboardLoading;
   
@@ -151,7 +155,7 @@ export default function ChecksPage() {
             onCancel={() => { setIsFormOpen(false); setEditingCheck(null); }}
             user={user}
             isSubmitting={isSubmitting}
-            onQuickAdd={refreshData}
+            onQuickAdd={onQuickAdd}
         />
       )}
 
