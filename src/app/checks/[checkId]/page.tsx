@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, PenSquare } from 'lucide-react';
-import { formatJalaliDate } from '@/lib/utils';
+import { formatCurrency, formatJalaliDate } from '@/lib/utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 import type { Check } from '@/lib/types';
@@ -39,47 +39,15 @@ export default function CheckDetailPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { allData, refreshData, isLoading: isDashboardLoading } = useDashboardData();
-  const [checkDetails, setCheckDetails] = useState<Check | null>(null);
-  const [isFetching, setIsFetching] = useState(true);
+  const { allData, refreshData, isLoading } = useDashboardData();
 
-  const fetchCheckDetails = useCallback(async () => {
-    if (!checkId) return;
-    setIsFetching(true);
-    try {
-      const { data, error } = await supabase
-        .from('cheques')
-        .select('*')
-        .eq('id', checkId)
-        .single();
-      
-      if (error) throw error;
-      
-      const transformedData: { [key: string]: any } = {};
-      for (const key in data) {
-        const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-        newItem[camelKey] = data[key as keyof typeof data];
-      }
-       if (data.serial_number) {
-            newItem.checkSerialNumber = data.serial_number;
-        }
+  const { bankAccounts, payees, categories, users, checks } = allData;
 
-      setCheckDetails(newItem as Check);
+  const checkDetails = React.useMemo(() => {
+    if (!checkId || !checks) return null;
+    return checks.find((c: Check) => c.id === checkId) || null;
+  }, [checkId, checks]);
 
-    } catch (error: any) {
-      console.error("Error fetching check details:", error);
-      toast({ variant: 'destructive', title: 'خطا', description: 'اطلاعات چک یافت نشد.' });
-      setCheckDetails(null);
-    } finally {
-      setIsFetching(false);
-    }
-  }, [checkId, toast]);
-
-  useEffect(() => {
-    fetchCheckDetails();
-  }, [fetchCheckDetails]);
-
-  const { bankAccounts, payees, categories, users } = allData;
 
   const handleClearCheck = useCallback(async (checkToClear: any) => {
     if (!user) return;
@@ -91,13 +59,12 @@ export default function CheckDetailPage() {
         });
         if (error) throw new Error(error.message);
         await refreshData();
-        toast({ title: 'موفقیت!', description: `چک به مبلغ ${formatJalaliDate(checkToClear.amount)} پاس شد.` });
+        toast({ title: 'موفقیت!', description: `چک به مبلغ ${formatCurrency(checkToClear.amount, 'IRT')} پاس شد.` });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'خطا در پاس کردن چک', description: error.message });
     }
   }, [user, refreshData, toast]);
 
-  const isLoading = isDashboardLoading || isFetching;
 
   if (isLoading) {
     return <CheckDetailSkeleton />;
@@ -140,7 +107,7 @@ export default function CheckDetailPage() {
   const registeredByName = users?.find((u: any) => u.id === checkDetails.registeredByUserId)?.firstName || 'سیستم';
 
   const isCleared = checkDetails.status === 'cleared';
-  const hasSufficientFunds = bankAccount ? (bankAccount.balance - (bankAccount.blockedBalance ?? 0)) >= checkDetails.amount : false;
+  const hasSufficientFunds = bankAccount ? bankAccount.balance >= checkDetails.amount : false;
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
