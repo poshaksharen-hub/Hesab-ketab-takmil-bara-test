@@ -162,6 +162,8 @@ CREATE TABLE IF NOT EXISTS public.cheques (
     clearance_receipt_path text
 );
 COMMENT ON TABLE public.cheques IS 'Manages outgoing cheques as future liabilities.';
+ALTER TABLE public.cheques ADD COLUMN IF NOT EXISTS image_path text;
+
 
 -- --------------------------------------------------------------------
 -- Table: financial_goals
@@ -384,19 +386,70 @@ COMMENT ON FUNCTION public.handle_new_user IS 'Automatically creates a user prof
 
 
 -- --------------------------------------------------------------------
--- Function 2: Create a Check
+-- Cleanup and Creation of check-related functions
 -- --------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.create_check(p_sayad_id text, p_serial_number text, p_amount numeric, p_issue_date timestamptz, p_due_date timestamptz, p_bank_account_id uuid, p_payee_id uuid, p_category_id uuid, p_description text, p_expense_for text, p_signature_data_url text, p_registered_by_user_id uuid, p_image_path text)
+
+-- Drop all versions of create_check to resolve ambiguity
+DROP FUNCTION IF EXISTS public.create_check(text, text, numeric, timestamptz, timestamptz, uuid, uuid, uuid, text, text, text, uuid);
+DROP FUNCTION IF EXISTS public.create_check(text, text, numeric, timestamptz, timestamptz, uuid, uuid, uuid, text, text, text, uuid, text);
+
+-- Create the single, correct version of create_check
+CREATE OR REPLACE FUNCTION public.create_check(
+    p_sayad_id text,
+    p_serial_number text,
+    p_amount numeric,
+    p_issue_date timestamptz,
+    p_due_date timestamptz,
+    p_bank_account_id uuid,
+    p_payee_id uuid,
+    p_category_id uuid,
+    p_description text,
+    p_expense_for text,
+    p_signature_data_url text,
+    p_registered_by_user_id uuid,
+    p_image_path text
+)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  INSERT INTO public.cheques (sayad_id, serial_number, amount, issue_date, due_date, bank_account_id, payee_id, category_id, description, expense_for, signature_data_url, registered_by_user_id, status, image_path)
-  VALUES (p_sayad_id, p_serial_number, p_amount, p_issue_date, p_due_date, p_bank_account_id, p_payee_id, p_category_id, p_description, p_expense_for, p_signature_data_url, p_registered_by_user_id, 'pending', p_image_path);
+  INSERT INTO public.cheques (
+      sayad_id, 
+      serial_number, 
+      amount, 
+      issue_date, 
+      due_date, 
+      bank_account_id, 
+      payee_id, 
+      category_id, 
+      description, 
+      expense_for, 
+      signature_data_url, 
+      registered_by_user_id, 
+      status, 
+      image_path
+  )
+  VALUES (
+      p_sayad_id, 
+      p_serial_number, 
+      p_amount, 
+      p_issue_date, 
+      p_due_date, 
+      p_bank_account_id, 
+      p_payee_id, 
+      p_category_id, 
+      p_description, 
+      p_expense_for, 
+      p_signature_data_url, 
+      p_registered_by_user_id, 
+      'pending', 
+      p_image_path
+  );
 END;
 $$;
-COMMENT ON FUNCTION public.create_check IS 'Creates a new cheque with "pending" status. Does NOT block balance.';
+COMMENT ON FUNCTION public.create_check(text, text, numeric, timestamptz, timestamptz, uuid, uuid, uuid, text, text, text, uuid, text) IS 'Creates a new cheque with "pending" status. Handles optional image path.';
+
 
 -- --------------------------------------------------------------------
 -- Function 3: Clear a Check
@@ -415,21 +468,21 @@ BEGIN
     IF v_check.status = 'cleared' THEN RAISE EXCEPTION 'این چک قبلاً پاس شده است.'; END IF;
 
     SELECT * INTO v_bank_account FROM public.bank_accounts WHERE id = v_check.bank_account_id;
-    IF v_bank_account.balance < v_check.amount THEN RAISE EXCEPTION 'موجودی حساب برای پاس کردن چک کافی نیست.'; END IF;
+    IF (v_bank_account.balance - v_bank_account.blocked_balance) < v_check.amount THEN RAISE EXCEPTION 'موجودی قابل استفاده حساب برای پاس کردن چک کافی نیست.'; END IF;
 
     UPDATE public.bank_accounts
     SET balance = balance - v_check.amount
     WHERE id = v_check.bank_account_id;
 
     INSERT INTO public.expenses (bank_account_id, category_id, payee_id, amount, date, description, expense_for, check_id, registered_by_user_id, owner_id)
-    VALUES (v_check.bank_account_id, v_check.category_id, v_check.payee_id, v_check.amount, now(), v_check.description, v_check.expense_for, v_check.id, p_user_id, v_check.expense_for);
+    VALUES (v_check.bank_account_id, v_check.category_id, v_check.payee_id, v_check.amount, now(), v_check.description, v_check.expense_for, v_check.id, p_user_id, v_bank_account.owner_id);
 
     UPDATE public.cheques
     SET status = 'cleared', cleared_date = now(), updated_at = now(), clearance_receipt_path = p_clearance_receipt_path
     WHERE id = p_check_id;
 END;
 $$;
-COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense for the beneficiary (expense_for), and updates balance.';
+COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense, updates balances and stores the receipt path.';
 
 -- --------------------------------------------------------------------
 -- Function 4: Delete a Check
@@ -882,7 +935,7 @@ BEGIN
     VALUES (p_amount, p_description, p_date, p_bank_account_id, p_category_id, p_payee_id, p_expense_for, p_owner_id, p_registered_by_user_id, p_attachment_path);
 END;
 $$;
-COMMENT ON FUNCTION public.create_expense IS 'Atomically creates an expense and deducts the amount from the bank account balance.';
+COMMENT ON FUNCTION public.create_expense(numeric, text, timestamptz, uuid, uuid, uuid, text, text, uuid, text) IS 'Atomically creates an expense and deducts the amount from the bank account balance.';
 
 
 CREATE OR REPLACE FUNCTION public.delete_expense(p_expense_id uuid)
