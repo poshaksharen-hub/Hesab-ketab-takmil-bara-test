@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
@@ -75,9 +76,10 @@ interface DebtFormProps {
   onSubmit: (data: DebtFormValues) => void;
   payees: Payee[];
   isSubmitting: boolean;
+  onQuickAdd?: () => void;
 }
 
-export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormProps) {
+export function DebtForm({ onCancel, onSubmit, payees, isSubmitting, onQuickAdd }: DebtFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
@@ -187,7 +189,8 @@ export function DebtForm({ onCancel, onSubmit, payees, isSubmitting }: DebtFormP
       </Card>
 
       {isAddPayeeOpen && (
-          <AddPayeeDialog isOpen={isAddPayeeOpen} onOpenChange={setIsAddPayeeOpen} onPayeeAdded={(newPayee) => {
+          <AddPayeeDialog isOpen={isAddPayeeOpen} onOpenChange={setIsAddPayeeOpen} onPayeeAdded={async (newPayee) => {
+              if(onQuickAdd) await onQuickAdd();
               form.setValue('payeeId', newPayee.id);
           }} />
       )}

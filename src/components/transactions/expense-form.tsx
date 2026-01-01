@@ -68,9 +68,10 @@ interface ExpenseFormProps {
   payees: Payee[];
   user: User | null;
   isSubmitting: boolean;
+  onQuickAdd?: () => void;
 }
 
-export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees, user, isSubmitting }: ExpenseFormProps) {
+export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAccounts, categories, payees, user, isSubmitting, onQuickAdd }: ExpenseFormProps) {
   const { toast } = useToast();
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -388,7 +389,8 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
             <AddPayeeDialog
                 isOpen={isAddPayeeOpen}
                 onOpenChange={setIsAddPayeeOpen}
-                onPayeeAdded={(newPayee) => {
+                onPayeeAdded={async (newPayee) => {
+                    if(onQuickAdd) await onQuickAdd();
                     form.setValue('payeeId', newPayee.id);
                 }}
             />
@@ -398,7 +400,8 @@ export function ExpenseForm({ isOpen, setIsOpen, onSubmit, initialData, bankAcco
             <AddCategoryDialog
                 isOpen={isAddCategoryOpen}
                 onOpenChange={setIsAddCategoryOpen}
-                onCategoryAdded={(newCategory) => {
+                onCategoryAdded={async (newCategory) => {
+                    if(onQuickAdd) await onQuickAdd();
                     form.setValue('categoryId', newCategory.id);
                 }}
             />

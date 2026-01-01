@@ -134,6 +134,7 @@ export default function DebtsPage() {
             onSubmit={handleFormSubmit}
             payees={payees || []}
             isSubmitting={isSubmitting}
+            onQuickAdd={refreshData}
         />
       ) : (
         <>

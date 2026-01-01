@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -165,6 +166,7 @@ export default function ExpensesPage() {
             payees={allPayees || []}
             user={user}
             isSubmitting={isSubmitting}
+            onQuickAdd={refreshData}
         />
 
       {isLoading ? (

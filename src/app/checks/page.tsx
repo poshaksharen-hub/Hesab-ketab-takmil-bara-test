@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useCallback, useMemo } from 'react';
@@ -150,6 +151,7 @@ export default function ChecksPage() {
             onCancel={() => { setIsFormOpen(false); setEditingCheck(null); }}
             user={user}
             isSubmitting={isSubmitting}
+            onQuickAdd={refreshData}
         />
       )}
 

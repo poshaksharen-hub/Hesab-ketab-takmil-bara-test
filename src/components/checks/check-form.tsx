@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -52,9 +53,10 @@ interface CheckFormProps {
   onCancel: () => void;
   user: User | null;
   isSubmitting: boolean;
+  onQuickAdd?: () => void;
 }
 
-export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categories, onCancel, user, isSubmitting }: CheckFormProps) {
+export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categories, onCancel, user, isSubmitting, onQuickAdd }: CheckFormProps) {
   const { toast } = useToast();
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -173,7 +175,8 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
             <AddPayeeDialog
                 isOpen={isAddPayeeOpen}
                 onOpenChange={setIsAddPayeeOpen}
-                onPayeeAdded={(newPayee) => {
+                onPayeeAdded={async (newPayee) => {
+                    if(onQuickAdd) await onQuickAdd();
                     form.setValue('payeeId', newPayee.id);
                 }}
             />
@@ -183,7 +186,8 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
             <AddCategoryDialog
                 isOpen={isAddCategoryOpen}
                 onOpenChange={setIsAddCategoryOpen}
-                onCategoryAdded={(newCategory) => {
+                onCategoryAdded={async (newCategory) => {
+                    if(onQuickAdd) await onQuickAdd();
                     form.setValue('categoryId', newCategory.id);
                 }}
             />

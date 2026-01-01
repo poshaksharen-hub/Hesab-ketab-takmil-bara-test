@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { z } from 'zod';
@@ -72,14 +73,15 @@ interface LoanFormProps {
   bankAccounts: BankAccount[];
   payees: Payee[];
   isSubmitting: boolean;
+  onQuickAdd?: () => void;
 }
 
-export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, isSubmitting }: LoanFormProps) {
+export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees, isSubmitting, onQuickAdd }: LoanFormProps) {
     const { user } = useAuth();
     const [isAddPayeeOpen, setIsAddPayeeOpen] = useState(false);
     const { toast } = useToast();
-    const [uploadStatus, setUploadStatus = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-    const [previewUrl, setPreviewUrl = useState<string | null>(null);
+    const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     const form = useForm<LoanFormValues>({
         resolver: zodResolver(formSchema),
@@ -259,7 +261,8 @@ export function LoanForm({ onCancel, onSubmit, initialData, bankAccounts, payees
                 </Form>
             </Card>
             {isAddPayeeOpen && (
-                <AddPayeeDialog isOpen={isAddPayeeOpen} onOpenChange={setIsAddPayeeOpen} onPayeeAdded={(newPayee) => {
+                <AddPayeeDialog isOpen={isAddPayeeOpen} onOpenChange={setIsAddPayeeOpen} onPayeeAdded={async (newPayee) => {
+                    if(onQuickAdd) await onQuickAdd();
                     form.setValue('payeeId', newPayee.id);
                 }} />
             )}

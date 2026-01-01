@@ -148,6 +148,7 @@ export default function LoansPage() {
             bankAccounts={bankAccounts || []}
             payees={payees || []}
             isSubmitting={isSubmitting}
+            onQuickAdd={refreshData}
         />
       ) : (
         <>
