@@ -26,7 +26,7 @@ jobs:
             exit 1
           fi
       
-      - name: Apply SQL Schema
+      - name: Apply SQL Table Schema
         env:
           # Pass the full connection string directly from the secret
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
@@ -34,4 +34,12 @@ jobs:
           echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
           # Use the connection URI directly with psql. This is the most reliable method.
           psql "$SUPABASE_DATABASE_URL" -f "supabase/migrations/20240720000000_initial_schema.sql"
-          echo "Schema applied successfully."
+          echo "Table schema applied successfully."
+
+      - name: Apply SQL Storage Schema
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          echo "Applying SQL storage setup from supabase/migrations/20240720000000_storage_setup.sql..."
+          psql "$SUPABASE_DATABASE_URL" -f "supabase/migrations/20240720000000_storage_setup.sql"
+          echo "Storage schema applied successfully."
