@@ -46,7 +46,8 @@ export default function ChecksPage() {
             p_description: values.description,
             p_expense_for: values.expenseFor,
             p_signature_data_url: values.signatureDataUrl,
-            p_registered_by_user_id: user.id
+            p_registered_by_user_id: user.id,
+            p_image_path: values.image_path,
         });
 
         if (error) throw new Error(error.message);
