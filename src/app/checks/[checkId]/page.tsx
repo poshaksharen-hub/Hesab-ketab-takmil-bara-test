@@ -110,7 +110,7 @@ export default function CheckDetailPage() {
   const registeredByName = users?.find((u: any) => u.id === checkDetails.registeredByUserId)?.firstName || 'سیستم';
 
   const isCleared = checkDetails.status === 'cleared';
-  const hasSufficientFunds = bankAccount ? bankAccount.balance >= checkDetails.amount : false;
+  const hasSufficientFunds = bankAccount ? (bankAccount.balance - (bankAccount.blockedBalance || 0)) >= checkDetails.amount : false;
   const imageUrl = checkDetails.image_path ? getPublicUrl(checkDetails.image_path) : null;
 
 
@@ -136,7 +136,7 @@ export default function CheckDetailPage() {
        <div className="max-w-2xl mx-auto space-y-4">
          {imageUrl && (
             <Card className="overflow-hidden group relative">
-                <Link href={imageUrl} target="_blank" rel="noopener noreferrer">
+                <a href={imageUrl} target="_blank" rel="noopener noreferrer">
                     <CardContent className="p-0">
                         <Image 
                             src={imageUrl} 
@@ -152,7 +152,7 @@ export default function CheckDetailPage() {
                             </div>
                         </div>
                     </CardContent>
-                </Link>
+                </a>
             </Card>
           )}
          <CheckPaper
@@ -226,4 +226,3 @@ export default function CheckDetailPage() {
     </main>
   );
 }
-
