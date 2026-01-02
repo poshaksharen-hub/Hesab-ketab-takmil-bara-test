@@ -25,13 +25,14 @@ import type {
 const transformData = (data: any[] | null): any[] => {
     if (!data) return [];
     return data.map(item => {
+        if (item === null) return null;
         const newItem: { [key: string]: any } = {};
         for (const key in item) {
             const camelCaseKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
             newItem[camelCaseKey] = item[key];
         }
         return newItem;
-    });
+    }).filter(Boolean);
 };
 
 interface AllData {
