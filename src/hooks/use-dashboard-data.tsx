@@ -34,6 +34,10 @@ const transformData = (data: any[] | null): any[] => {
         if ('serial_number' in item) {
             newItem.checkSerialNumber = item.serial_number;
         }
+        // Explicitly map image_path to imagePath
+        if ('image_path' in item) {
+            newItem.imagePath = item.image_path;
+        }
         return newItem;
     });
 };
@@ -175,7 +179,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           goals: goalsWithContributions,
           loans: transformData(loansRes.data) as Loan[],
           loanPayments: transformData(loanPaymentsRes.data) as LoanPayment[],
-          previousDebts: transformData(debtsRes.data) as PreviousDebt[],
+          previousDebts: transformData(previousDebtsRes.data) as PreviousDebt[],
           debtPayments: transformData(debtPaymentsRes.data) as DebtPayment[],
           chatMessages: enrichedChatMessages as ChatMessage[],
         });

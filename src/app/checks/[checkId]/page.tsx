@@ -111,7 +111,9 @@ export default function CheckDetailPage() {
 
   const isCleared = checkDetails.status === 'cleared';
   const hasSufficientFunds = bankAccount ? (bankAccount.balance - (bankAccount.blockedBalance || 0)) >= checkDetails.amount : false;
-  const imageUrl = checkDetails.image_path ? getPublicUrl(checkDetails.image_path) : null;
+  
+  // Use 'imagePath' (camelCase) which is now correctly transformed by the hook
+  const imageUrl = checkDetails.imagePath ? getPublicUrl(checkDetails.imagePath) : null;
 
 
   return (
@@ -207,7 +209,7 @@ export default function CheckDetailPage() {
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>آیا از پاس کردن این چک مطمئن هستید؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    با تایید این عملیات، مبلغ {formatCurrency(checkDetails.amount, 'IRT')} از حساب شما کسر و یک هزینه در سیستم ثبت خواهد شد. این عمل قابل بازگشت نیست.
+                                    با تایید این عملیات، مبلغ ${formatCurrency(checkDetails.amount, 'IRT')} از حساب شما کسر و یک هزینه در سیستم ثبت خواهد شد. این عمل قابل بازگشت نیست.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
