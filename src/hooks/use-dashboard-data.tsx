@@ -26,20 +26,9 @@ const transformData = (data: any[] | null): any[] => {
     if (!data) return [];
     return data.map(item => {
         const newItem: { [key: string]: any } = {};
-        // First, convert all snake_case to camelCase
         for (const key in item) {
             const camelCaseKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
             newItem[camelCaseKey] = item[key];
-        }
-        // Then, handle specific multi-word keys or exceptions that the regex might miss.
-        if ('serial_number' in item) {
-            newItem.checkSerialNumber = item.serial_number;
-        }
-        if ('image_path' in item) {
-            newItem.imagePath = item.image_path;
-        }
-        if ('clearance_receipt_path' in item) {
-            newItem.clearanceReceiptPath = item.clearance_receipt_path;
         }
         return newItem;
     });
