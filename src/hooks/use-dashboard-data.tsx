@@ -24,7 +24,7 @@ import type {
 const transformData = (data: any[] | null): any[] => {
     if (!data) return [];
     return data.map(item => {
-        if (item === null) return null;
+        if (!item) return null;
         const newItem: { [key: string]: any } = {};
         for (const key in item) {
             const camelCaseKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
