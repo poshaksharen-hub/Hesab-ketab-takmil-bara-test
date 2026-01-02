@@ -34,11 +34,11 @@ const transformData = (data: any[] | null): any[] => {
         if ('serial_number' in item) {
             newItem.checkSerialNumber = item.serial_number;
         }
-        // Explicitly map image_path to imagePath, as it's a common pattern
+        // Explicitly map image_path to imagePath
         if ('image_path' in item) {
             newItem.imagePath = item.image_path;
         }
-        return newItem;
+        return newItem; // This return MUST be outside any conditional blocks
     });
 };
 
