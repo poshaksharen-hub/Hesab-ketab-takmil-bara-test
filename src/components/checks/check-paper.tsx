@@ -46,8 +46,8 @@ export function CheckPaper({
     
     const isCleared = check.status === 'cleared';
     const isDeleteDisabled = isCleared || isSubmitting;
-    const imageUrl = check.image_path ? getPublicUrl(check.image_path) : null;
-    const clearanceReceiptUrl = check.clearance_receipt_path ? getPublicUrl(check.clearance_receipt_path) : null;
+    const imageUrl = check.imagePath ? getPublicUrl(check.imagePath) : null;
+    const clearanceReceiptUrl = check.clearanceReceiptPath ? getPublicUrl(check.clearanceReceiptPath) : null;
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
 
