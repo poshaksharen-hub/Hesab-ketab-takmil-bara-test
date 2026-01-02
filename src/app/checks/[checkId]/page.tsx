@@ -6,8 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, PenSquare } from 'lucide-react';
-import { formatCurrency, formatJalaliDate } from '@/lib/utils';
+import { Calendar, PenSquare, ExternalLink } from 'lucide-react';
+import { formatCurrency, formatJalaliDate, getPublicUrl } from '@/lib/utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { supabase } from '@/lib/supabase-client';
 import type { Check } from '@/lib/types';
@@ -18,6 +18,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
+import Link from 'next/link';
+
 
 function CheckDetailSkeleton() {
   return (
@@ -108,6 +111,8 @@ export default function CheckDetailPage() {
 
   const isCleared = checkDetails.status === 'cleared';
   const hasSufficientFunds = bankAccount ? bankAccount.balance >= checkDetails.amount : false;
+  const imageUrl = checkDetails.image_path ? getPublicUrl(checkDetails.image_path) : null;
+
 
   return (
     <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
@@ -129,6 +134,27 @@ export default function CheckDetailPage() {
       </div>
 
        <div className="max-w-2xl mx-auto space-y-4">
+         {imageUrl && (
+            <Card className="overflow-hidden group relative">
+                <Link href={imageUrl} target="_blank" rel="noopener noreferrer">
+                    <CardContent className="p-0">
+                        <Image 
+                            src={imageUrl} 
+                            alt={`عکس چک ${checkDetails.sayadId}`}
+                            width={800}
+                            height={400}
+                            className="object-cover w-full h-auto max-h-80 transition-transform duration-300 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            <div className="text-white bg-black/50 p-2 rounded-md flex items-center gap-2">
+                                <ExternalLink className="h-4 w-4" />
+                                <span>مشاهده در اندازه کامل</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Link>
+            </Card>
+          )}
          <CheckPaper
             check={checkDetails}
             bankAccount={bankAccount}
@@ -200,3 +226,4 @@ export default function CheckDetailPage() {
     </main>
   );
 }
+
