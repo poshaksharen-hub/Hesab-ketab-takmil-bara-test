@@ -90,8 +90,8 @@ export default function ChecksPage() {
     if (!user) return;
     setIsSubmitting(true);
     try {
-        if (check.image_path) {
-            await supabase.storage.from('hesabketabsatl').remove([check.image_path]);
+        if (check.imagePath) {
+            await supabase.storage.from('hesabketabsatl').remove([check.imagePath]);
         }
         const { error } = await supabase.rpc('delete_check', { p_check_id: check.id });
         if (error) throw new Error(error.message);

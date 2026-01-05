@@ -105,8 +105,8 @@ export type Check = {
     sayadId: string;
     checkSerialNumber: string;
     signatureDataUrl?: string; // Changed from signatureUrl
-    image_path?: string;
-    clearance_receipt_path?: string;
+    imagePath?: string;
+    clearanceReceiptPath?: string;
 }
 
 export type FinancialGoalContribution = {
