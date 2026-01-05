@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -112,7 +111,7 @@ export default function CheckDetailPage() {
   const isCleared = checkDetails.status === 'cleared';
   const hasSufficientFunds = bankAccount ? bankAccount.balance >= checkDetails.amount : false;
   
-  const imageUrl = checkDetails.imagePath ? getPublicUrl(checkDetails.imagePath) : null;
+  const imageUrl = checkDetails.image_path ? getPublicUrl(checkDetails.image_path) : null;
 
 
   return (
