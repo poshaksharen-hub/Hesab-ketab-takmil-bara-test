@@ -1,14 +1,36 @@
 {
+  "IDX.aI.enableInlineCompletion": true,
   "IDX.aI.showChatInEditorTab": true,
-  "files.autoSave": "afterDelay",
-  "editor.wordWrap": "on",
+  "IDX.agenticWorkspace": true,
+  "IDX.corgiMode": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "deno.enablePaths": [
+    "supabase/functions"
+  ],
+  "deno.lint": true,
+  "deno.unstable": [
+    "bare-node-builtins",
+    "byonm",
+    "sloppy-imports",
+    "unsafe-proto",
+    "webgpu",
+    "broadcast-channel",
+    "worker-options",
+    "cron",
+    "kv",
+    "ffi",
+    "fs",
+    "http",
+    "net"
+  ],
   "editor.minimap.enabled": false,
-  "terminal.integrated.smoothScrolling": true,
+  "editor.wordWrap": "on",
+  "files.autoSave": "afterDelay",
   "terminal.integrated.copyOnSelection": true,
+  "terminal.integrated.smoothScrolling": true,
   "workbench.editor.autoLockGroups": {
     "default": true
-  },
-  "IDX.agenticWorkspace": true,
-  "IDX.aI.enableInlineCompletion": true,
-  "IDX.corgiMode": true
+  }
 }
