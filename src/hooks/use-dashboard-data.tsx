@@ -31,7 +31,7 @@ const transformData = (data: any[] | null): any[] => {
         const newItem: { [key: string]: any } = {};
         for (const key in item) {
             if (Object.prototype.hasOwnProperty.call(item, key)) {
-                const camelCaseKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+                const camelCaseKey = key.replace(/_([a-z0-9])/g, g => g[1].toUpperCase());
                 newItem[camelCaseKey] = item[key];
             }
         }
@@ -176,7 +176,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           goals: goalsWithContributions,
           loans: transformData(loansRes.data) as Loan[],
           loanPayments: transformData(loanPaymentsRes.data) as LoanPayment[],
-          previousDebts: transformData(previousDebtsRes.data) as PreviousDebt[],
+          previousDebts: transformData(debtsRes.data) as PreviousDebt[],
           debtPayments: transformData(debtPaymentsRes.data) as DebtPayment[],
           chatMessages: enrichedChatMessages as ChatMessage[],
         });
