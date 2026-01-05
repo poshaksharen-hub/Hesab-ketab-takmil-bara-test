@@ -30,8 +30,10 @@ const transformData = (data: any[] | null): any[] => {
         }
         const newItem: { [key: string]: any } = {};
         for (const key in item) {
-            const camelCaseKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
-            newItem[camelCaseKey] = item[key];
+            if (Object.prototype.hasOwnProperty.call(item, key)) {
+                const camelCaseKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+                newItem[camelCaseKey] = item[key];
+            }
         }
         return newItem;
     });
