@@ -391,12 +391,16 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+    v_bank_account public.bank_accounts;
 BEGIN
-  INSERT INTO public.cheques (sayad_id, serial_number, amount, issue_date, due_date, bank_account_id, payee_id, category_id, description, expense_for, signature_data_url, registered_by_user_id, status, image_path)
-  VALUES (p_sayad_id, p_serial_number, p_amount, p_issue_date, p_due_date, p_bank_account_id, p_payee_id, p_category_id, p_description, p_expense_for, p_signature_data_url, p_registered_by_user_id, 'pending', p_image_path);
+    SELECT * INTO v_bank_account FROM public.bank_accounts WHERE id = p_bank_account_id;
+    
+    INSERT INTO public.cheques (sayad_id, serial_number, amount, issue_date, due_date, bank_account_id, payee_id, category_id, description, expense_for, signature_data_url, registered_by_user_id, status, image_path, owner_id)
+    VALUES (p_sayad_id, p_serial_number, p_amount, p_issue_date, p_due_date, p_bank_account_id, p_payee_id, p_category_id, p_description, p_expense_for, p_signature_data_url, p_registered_by_user_id, 'pending', p_image_path, v_bank_account.owner_id);
 END;
 $$;
-COMMENT ON FUNCTION public.create_check IS 'Creates a new cheque with "pending" status. Does NOT block balance.';
+COMMENT ON FUNCTION public.create_check IS 'Creates a new cheque with "pending" status and sets the owner_id based on the bank account.';
 
 -- --------------------------------------------------------------------
 -- Function 3: Clear a Check
@@ -415,21 +419,21 @@ BEGIN
     IF v_check.status = 'cleared' THEN RAISE EXCEPTION 'این چک قبلاً پاس شده است.'; END IF;
 
     SELECT * INTO v_bank_account FROM public.bank_accounts WHERE id = v_check.bank_account_id;
-    IF v_bank_account.balance < v_check.amount THEN RAISE EXCEPTION 'موجودی حساب برای پاس کردن چک کافی نیست.'; END IF;
+    IF (v_bank_account.balance - v_bank_account.blocked_balance) < v_check.amount THEN RAISE EXCEPTION 'موجودی قابل استفاده حساب برای پاس کردن چک کافی نیست.'; END IF;
 
     UPDATE public.bank_accounts
     SET balance = balance - v_check.amount
     WHERE id = v_check.bank_account_id;
 
-    INSERT INTO public.expenses (bank_account_id, category_id, payee_id, amount, date, description, expense_for, check_id, registered_by_user_id, owner_id)
-    VALUES (v_check.bank_account_id, v_check.category_id, v_check.payee_id, v_check.amount, now(), v_check.description, v_check.expense_for, v_check.id, p_user_id, v_check.expense_for);
+    INSERT INTO public.expenses (bank_account_id, category_id, payee_id, amount, date, description, expense_for, check_id, registered_by_user_id, owner_id, attachment_path)
+    VALUES (v_check.bank_account_id, v_check.category_id, v_check.payee_id, v_check.amount, now(), 'پاس شدن چک: ' || v_check.description, v_check.expense_for, v_check.id, p_user_id, v_check.owner_id, p_clearance_receipt_path);
 
     UPDATE public.cheques
     SET status = 'cleared', cleared_date = now(), updated_at = now(), clearance_receipt_path = p_clearance_receipt_path
     WHERE id = p_check_id;
 END;
 $$;
-COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense for the beneficiary (expense_for), and updates balance.';
+COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense, updates balance, and stores the receipt path.';
 
 -- --------------------------------------------------------------------
 -- Function 4: Delete a Check
@@ -959,3 +963,4 @@ GRANT EXECUTE ON FUNCTION public.delete_income(uuid) TO authenticated;
 -- ====================================================================
 -- END OF SCRIPT
 -- ====================================================================
+

@@ -71,7 +71,7 @@ export default function ChecksPage() {
         const { error } = await supabase.rpc('clear_check', {
             p_check_id: check.id,
             p_user_id: user.id,
-            p_clearance_receipt_path: receiptPath
+            p_clearance_receipt_path: receiptPath || null
         });
         if (error) throw new Error(error.message);
 
