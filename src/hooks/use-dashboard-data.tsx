@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, createContext, useContext, ReactNode, useCallback } from 'react';
@@ -20,18 +21,20 @@ import type {
     ChatMessage
 } from '@/lib/types';
 
-// Maps Supabase snake_case columns to our camelCase types
+// A robust function to convert snake_case keys from Supabase to camelCase for the app
 const transformData = (data: any[] | null): any[] => {
     if (!data) return [];
     return data.map(item => {
-        if (!item) return null;
+        if (item === null || typeof item !== 'object') {
+            return item;
+        }
         const newItem: { [key: string]: any } = {};
         for (const key in item) {
             const camelCaseKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
             newItem[camelCaseKey] = item[key];
         }
         return newItem;
-    }).filter(Boolean);
+    });
 };
 
 interface AllData {
