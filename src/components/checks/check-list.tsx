@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import React from 'react';
 import type { Check, BankAccount, Payee, Category, UserProfile } from '@/lib/types';
@@ -52,25 +51,24 @@ export function CheckList({ checks, bankAccounts, payees, categories, onClear, o
             const { payeeName, categoryName, bankAccount, ownerName, expenseForName, signatureImage } = getDetails(check, payees, categories, bankAccounts);
             return (
                 <div key={check.id} className="relative group flex flex-col" data-testid={`check-item-${check.id}`}>
-                    <Link href={`/checks/${check.id}`} className="block h-full">
-                        <CheckPaper 
-                            check={check}
-                            bankAccount={bankAccount}
-                            payeeName={payeeName}
-                            ownerName={ownerName}
-                            expenseForName={expenseForName}
-                            categoryName={categoryName}
-                            signatureImage={signatureImage}
-                            showActions={true}
-                            onClear={onClear}
-                            onDelete={() => onDelete(check)}
-                            onEdit={() => onEdit(check)}
-                            isSubmitting={isSubmitting}
-                        />
-                    </Link>
+                    <CheckPaper 
+                        check={check}
+                        bankAccount={bankAccount}
+                        payeeName={payeeName}
+                        ownerName={ownerName}
+                        expenseForName={expenseForName}
+                        categoryName={categoryName}
+                        signatureImage={signatureImage}
+                        showActions={true}
+                        onClear={onClear}
+                        onDelete={() => onDelete(check)}
+                        onEdit={() => onEdit(check)}
+                        isSubmitting={isSubmitting}
+                    />
                 </div>
             )
         })}
       </div>
   );
 }
+    

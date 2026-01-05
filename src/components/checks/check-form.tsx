@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -33,8 +32,8 @@ const formSchema = z.object({
   issueDate: z.date({ required_error: 'لطفا تاریخ صدور را انتخاب کنید.' }),
   dueDate: z.date({ required_error: 'لطفا تاریخ سررسید را انتخاب کنید.' }),
   description: z.string().optional(),
-  sayadId: z.string().min(1, { message: 'شماره صیادی الزامی است.' }),
-  checkSerialNumber: z.string().min(1, { message: 'شماره سری چک الزامی است.' }),
+  sayadId: z.string().length(16, { message: 'شناسه صیاد باید ۱۶ رقم باشد.' }),
+  checkSerialNumber: z.string().min(1, { message: 'شماره سریال چک الزامی است.' }),
   signatureDataUrl: z.string().optional(),
   image_path: z.string().optional(),
 }).refine(data => data.dueDate >= data.issueDate, {
@@ -86,8 +85,8 @@ export function CheckForm({ onSubmit, initialData, bankAccounts, payees, categor
   });
 
   useEffect(() => {
-    if (initialData?.image_path) {
-        setPreviewUrl(getPublicUrl(initialData.image_path));
+    if (initialData?.imagePath) {
+        setPreviewUrl(getPublicUrl(initialData.imagePath));
         setUploadStatus('success');
     } else {
         setPreviewUrl(null);
@@ -244,7 +243,7 @@ const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories,
                 )}
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="sayadId" render={({ field }) => (<FormItem><FormLabel>شناسه صیاد</FormLabel><FormControl><NumericInput {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="sayadId" render={({ field }) => (<FormItem><FormLabel>شناسه صیاد (۱۶ رقم)</FormLabel><FormControl><NumericInput {...field} maxLength={16} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="checkSerialNumber" render={({ field }) => (<FormItem><FormLabel>شماره سریال چک</FormLabel><FormControl><NumericInput {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
             </div>
 
@@ -277,9 +276,10 @@ const CheckFormFields = ({ form, isSubmitting, bankAccounts, payees, categories,
                 <FormField control={form.control} name="payeeId" render={({ field }) => (<FormItem><FormLabel>در وجه</FormLabel><Select onValueChange={(value) => value === 'add_new' ? setIsAddPayeeOpen(true) : field.onChange(value)} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="یک طرف حساب انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن طرف حساب جدید...</SelectItem>{payees.map((payee: Payee) => (<SelectItem key={payee.id} value={payee.id}>{payee.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="categoryId" render={({ field }) => (<FormItem><FormLabel>دسته‌بندی</FormLabel><Select onValueChange={(value) => value === 'add_new' ? setIsAddCategoryOpen(true) : field.onChange(value)} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="یک دسته‌بندی انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="add_new" className="font-bold text-primary">افزودن دسته‌بندی جدید...</SelectItem>{categories.map((cat: Category) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
-             <FormField control={form.control} name="expenseFor" render={({ field }) => (<FormItem><FormLabel>هزینه برای</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="شخص مورد نظر را انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="shared">مشترک</SelectItem><SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem><SelectItem value="fatemeh">{USER_DETAILS.fatemeh.firstName}</SelectItem></SelectContent></Select><FormDescription>این هزینه در آمار کدام شخص محاسبه شود؟</FormDescription><FormMessage /></FormItem>)} />
+             <FormField control={form.control} name="expenseFor" render={({ field }) => (<FormItem><FormLabel>هزینه برای</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="شخص مورد نظر را انتخاب کنید" /></SelectTrigger></FormControl><SelectContent><SelectItem value="shared">مشترک</SelectItem><SelectItem value="ali">{USER_DETAILS.ali.firstName}</SelectItem><SelectItem value="fatemeh">{USER_DEtails.fatemeh.firstName}</SelectItem></SelectContent></Select><FormDescription>این هزینه در آمار کدام شخص محاسبه شود؟</FormDescription><FormMessage /></FormItem>)} />
 
             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>توضیحات (اختیاری)</FormLabel><FormControl><Textarea placeholder="شرح مختصری در مورد این چک..." {...field} /></FormControl><FormMessage /></FormItem>)} />
         </div>
     )
 }
+    

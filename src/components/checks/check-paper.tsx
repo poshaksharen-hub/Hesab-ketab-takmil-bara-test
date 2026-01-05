@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import React from 'react';
 import type { Check, BankAccount } from '@/lib/types';
@@ -96,7 +95,7 @@ export function CheckPaper({
                                 {imageUrl && (<DropdownMenuItem onSelect={() => window.open(imageUrl, '_blank')}><Camera className="ml-2 h-4 w-4" /> مشاهده عکس چک</DropdownMenuItem>)}
                                 {clearanceReceiptUrl && (<DropdownMenuItem onSelect={() => window.open(clearanceReceiptUrl, '_blank')}><FileText className="ml-2 h-4 w-4" /> مشاهده رسید پاس شدن</DropdownMenuItem>)}
                                 {onDelete && <DropdownMenuSeparator />}
-                                {onDelete && <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} disabled={isDeleteDisabled} className="text-destructive focus:text-destructive"><Trash2 className="ml-2 h-4 w-4" /> حذف چک</DropdownMenuItem>}
+                                {onDelete && <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} disabled={isDeleteDisabled} className="text-destructive focus:text-destructive"><Trash2 className="ml-2 h-4w-4" /> حذف چک</DropdownMenuItem>}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -157,3 +156,4 @@ export function CheckPaper({
         </div>
     );
 }
+    
