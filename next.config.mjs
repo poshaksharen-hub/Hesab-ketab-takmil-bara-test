@@ -1,21 +1,15 @@
 /** @type {import('next').NextConfig} */
-import withPWAInit from "@ducanh2912/next-pwa";
-
-const withPWA = withPWAInit({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-  // add your own strategies
-  // cacheOnFrontEndNav: true,
-  // aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  swcMinify: true,
-  workboxOptions: {
-    disableDevLogs: true,
-  },
-});
-
-
 const nextConfig = {
-    // your next config...
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'fptfuogzamsbwjokbhko.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
 };
-export default withPWA(nextConfig);
+
+export default nextConfig;
