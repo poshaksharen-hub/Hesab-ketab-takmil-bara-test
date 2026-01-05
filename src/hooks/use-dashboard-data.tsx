@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, createContext, useContext, ReactNode, useCallback } from 'react';
@@ -138,6 +139,16 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
             const currentAmount = contributions.reduce((sum, c) => sum + c.amount, 0);
             return { ...goal, contributions, currentAmount };
         });
+        
+        // This is a special transformation that snake_case to camelCase does not handle
+        const rawChecks = checksRes.data || [];
+        const transformedChecks = rawChecks.map(check => {
+            const camelCased = transformData([check])[0];
+            camelCased.imagePath = check.image_path;
+            camelCased.clearanceReceiptPath = check.clearance_receipt_path;
+            return camelCased;
+        }) as Check[];
+
 
         // Special handling for chat messages to build the replyTo object
         const rawChatMessages = transformData(chatMessagesRes.data) as (ChatMessage & { replyToMessageId?: string })[];
@@ -167,7 +178,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           expenses: expensesData,
           incomes: transformData(incomesRes.data) as Income[],
           transfers: transformData(transfersRes.data) as Transfer[],
-          checks: transformData(checksRes.data) as Check[],
+          checks: transformedChecks,
           goals: goalsWithContributions,
           loans: transformData(loansRes.data) as Loan[],
           loanPayments: transformData(loanPaymentsRes.data) as LoanPayment[],
