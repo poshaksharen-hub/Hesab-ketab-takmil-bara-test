@@ -1,4 +1,3 @@
-yml
 name: Deploy Supabase Schema
 
 on:
@@ -21,24 +20,28 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
       - name: Check for Secrets
+        id: check_secrets
         run: |
           if [ -z "${{ secrets.SUPABASE_DATABASE_URL }}" ]; then
             echo "::error::SUPABASE_DATABASE_URL secret is not set. Please check repository settings."
             exit 1
           fi
-      
-      - name: Apply SQL Table Schema
-        env:
-          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-        run: |
-          echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
-          psql "$SUPABASE_DATABASE_URL" -f "supabase/migrations/20240720000000_initial_schema.sql"
-          echo "Table schema applied successfully."
 
-      - name: Apply SQL Storage Schema
+      - name: Apply Main SQL Schema
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
-          echo "Applying SQL storage setup from supabase/migrations/20240720000000_storage_setup.sql..."
-          psql "$SUPABASE_DATABASE_URL" -f "supabase/migrations/20240720000000_storage_setup.sql"
-          echo "Storage schema applied successfully."
+          # This script runs the single, comprehensive schema file.
+          # The -v ON_ERROR_STOP=1 flag ensures that the script will exit immediately if any command fails.
+          echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
+          psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f "supabase/migrations/20240720000000_initial_schema.sql"
+          echo "Main schema script applied successfully."
+      
+      - name: Apply Column Patch Schema
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          # This script adds any missing columns to existing tables.
+          echo "Applying column patch from supabase/migrations/0001_add_missing_columns.sql..."
+          psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f "supabase/migrations/0001_add_missing_columns.sql"
+          echo "Column patch script applied successfully."
