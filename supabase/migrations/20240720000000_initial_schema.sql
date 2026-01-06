@@ -1,1 +1,1 @@
--- This file is intentionally left blank for the test. We will restore it later.
+-- Trivial change to trigger GitHub Action
