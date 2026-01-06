@@ -35,4 +35,13 @@ jobs:
           # The -v ON_ERROR_STOP=1 flag ensures that the script will exit immediately if any command fails.
           echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
           psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f "supabase/migrations/20240720000000_initial_schema.sql"
-          echo "Schema applied successfully."
+          echo "Main schema script applied successfully."
+
+      - name: Apply Column Patch Schema
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          # This script renames the check_id column to fix an inconsistency.
+          echo "Applying column rename patch from supabase/migrations/0001_rename_check_id_column.sql..."
+          psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f "supabase/migrations/0001_rename_check_id_column.sql"
+          echo "Column rename patch applied successfully."
