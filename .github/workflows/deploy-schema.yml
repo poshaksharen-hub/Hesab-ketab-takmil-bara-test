@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - 'supabase/migrations/**.sql'
-      - 'supabase/test-migrations/**.sql'
 
 jobs:
   deploy-schema:
@@ -21,6 +20,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
       - name: Check for Secrets
+        id: check_secrets
         run: |
           if [ -z "${{ secrets.SUPABASE_DATABASE_URL }}" ]; then
             echo "::error::SUPABASE_DATABASE_URL secret is not set. Please check repository settings."
@@ -31,29 +31,11 @@ jobs:
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
-          # Note: This is a simple implementation that runs all migrations.
-          # For a more advanced setup, one might track applied migrations.
-          # With 'CREATE OR REPLACE' and 'CREATE TABLE IF NOT EXISTS', this is safe.
-          for file in supabase/migrations/*.sql; do
+          # The -v ON_ERROR_STOP=1 flag ensures that the script will exit immediately if any command fails.
+          # We loop through and apply all migration files in order.
+          # With idempotent scripts (using IF NOT EXISTS, CREATE OR REPLACE), this is safe and ensures the schema is always up-to-date.
+          for file in $(ls supabase/migrations/*.sql | sort); do
             echo "Applying SQL schema from $file..."
-            psql "$SUPABASE_DATABASE_URL" -f "$file"
+            psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$file"
             echo "$file applied successfully."
           done
-
-      - name: Apply SQL RLS Test Schema
-        # This step only runs if a file in test-migrations was part of the push
-        if: steps.filter.outputs.test_migrations == 'true'
-        env:
-          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-        run: |
-          echo "Applying SQL schema from supabase/test-migrations/0000_disable_rls_for_read_test.sql..."
-          psql "$SUPABASE_DATABASE_URL" -f "supabase/test-migrations/0000_disable_rls_for_read_test.sql"
-          echo "Test schema applied successfully."
-        
-      - name: Identify changed files # This step is for the condition above
-        id: filter
-        uses: dorny/paths-filter@v2
-        with:
-          filters: |
-            test_migrations:
-              - 'supabase/test-migrations/**.sql'
