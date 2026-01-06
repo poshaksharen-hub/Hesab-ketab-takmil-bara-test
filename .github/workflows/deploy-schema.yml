@@ -31,11 +31,8 @@ jobs:
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
+          # This script runs the single, comprehensive schema file.
           # The -v ON_ERROR_STOP=1 flag ensures that the script will exit immediately if any command fails.
-          # We loop through and apply all migration files in order.
-          # With idempotent scripts (using IF NOT EXISTS, CREATE OR REPLACE), this is safe and ensures the schema is always up-to-date.
-          for file in $(ls supabase/migrations/*.sql | sort); do
-            echo "Applying SQL schema from $file..."
-            psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$file"
-            echo "$file applied successfully."
-          done
+          echo "Applying SQL schema from supabase/migrations/20240720000000_initial_schema.sql..."
+          psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f "supabase/migrations/20240720000000_initial_schema.sql"
+          echo "Schema applied successfully."
