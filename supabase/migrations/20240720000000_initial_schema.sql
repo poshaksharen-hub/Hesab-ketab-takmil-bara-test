@@ -3,8 +3,7 @@
 -- ====================================================================
 -- This script contains all necessary SQL commands to set up the 
 -- database from scratch, including tables, policies, functions, 
--- and triggers. It is designed to be idempotent, meaning it can be
--- run multiple times without causing errors.
+-- and triggers. Run this entire script once in the Supabase SQL Editor.
 -- ====================================================================
 
 
@@ -160,8 +159,7 @@ CREATE TABLE IF NOT EXISTS public.cheques (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     image_path text,
-    clearance_receipt_path text,
-    owner_id text -- Added owner_id based on check_form logic
+    clearance_receipt_path text
 );
 COMMENT ON TABLE public.cheques IS 'Manages outgoing cheques as future liabilities.';
 
@@ -354,9 +352,13 @@ CREATE POLICY "Allow all access to authenticated users" ON public.chat_messages 
 -- ====================================================================
 
 -- --------------------------------------------------------------------
--- Function: handle_new_user
+-- Function 1: Handle New User
 -- --------------------------------------------------------------------
+-- First, drop the trigger if it exists, to remove dependency
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- Then, drop the function if it exists
 DROP FUNCTION IF EXISTS public.handle_new_user();
+-- Now, create the function
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -385,8 +387,9 @@ END;
 $$;
 COMMENT ON FUNCTION public.handle_new_user IS 'Automatically creates a user profile upon new user registration in auth.users.';
 
+
 -- --------------------------------------------------------------------
--- Function: create_check
+-- Function 2: Create a Check
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.create_check(text, text, numeric, timestamptz, timestamptz, uuid, uuid, uuid, text, text, text, uuid, text);
 CREATE OR REPLACE FUNCTION public.create_check(p_sayad_id text, p_serial_number text, p_amount numeric, p_issue_date timestamptz, p_due_date timestamptz, p_bank_account_id uuid, p_payee_id uuid, p_category_id uuid, p_description text, p_expense_for text, p_signature_data_url text, p_registered_by_user_id uuid, p_image_path text)
@@ -406,7 +409,7 @@ $$;
 COMMENT ON FUNCTION public.create_check IS 'Creates a new cheque with "pending" status and sets the owner_id based on the bank account.';
 
 -- --------------------------------------------------------------------
--- Function: clear_check
+-- Function 3: Clear a Check
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.clear_check(uuid, uuid, text);
 CREATE OR REPLACE FUNCTION public.clear_check(p_check_id uuid, p_user_id uuid, p_clearance_receipt_path text)
@@ -440,7 +443,7 @@ $$;
 COMMENT ON FUNCTION public.clear_check IS 'Atomically clears a cheque, creates an expense, updates balance, and stores the receipt path.';
 
 -- --------------------------------------------------------------------
--- Function: delete_check
+-- Function 4: Delete a Check
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.delete_check(uuid);
 CREATE OR REPLACE FUNCTION public.delete_check(p_check_id uuid)
@@ -460,8 +463,9 @@ END;
 $$;
 COMMENT ON FUNCTION public.delete_check IS 'Safely deletes a non-cleared cheque.';
 
+
 -- --------------------------------------------------------------------
--- Function: create_loan
+-- Function 5: Create a Loan
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.create_loan(text, numeric, text, numeric, integer, timestamptz, timestamptz, uuid, boolean, uuid, uuid, text);
 CREATE OR REPLACE FUNCTION public.create_loan(p_title text, p_amount numeric, p_owner_id text, p_installment_amount numeric, p_number_of_installments integer, p_start_date timestamptz, p_first_installment_date timestamptz, p_payee_id uuid, p_deposit_on_create boolean, p_deposit_to_account_id uuid, p_registered_by_user_id uuid, p_attachment_path text)
@@ -481,7 +485,7 @@ $$;
 COMMENT ON FUNCTION public.create_loan IS 'Creates a new loan and optionally deposits the amount into a bank account.';
 
 -- --------------------------------------------------------------------
--- Function: pay_loan_installment
+-- Function 6: Pay a Loan Installment
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.pay_loan_installment(uuid, uuid, numeric, uuid, text);
 CREATE OR REPLACE FUNCTION public.pay_loan_installment(p_loan_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid, p_attachment_path text)
@@ -529,7 +533,7 @@ $$;
 COMMENT ON FUNCTION public.pay_loan_installment IS 'Atomically pays a loan installment, creating an expense and updating balances.';
 
 -- --------------------------------------------------------------------
--- Function: delete_loan
+-- Function 7: Delete a Loan
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.delete_loan(uuid);
 CREATE OR REPLACE FUNCTION public.delete_loan(p_loan_id uuid)
@@ -558,7 +562,7 @@ COMMENT ON FUNCTION public.delete_loan IS 'Safely deletes a loan only if no paym
 
 
 -- --------------------------------------------------------------------
--- Functions: Pay and Delete a Debt
+-- Functions 8 & 9: Pay and Delete a Debt
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.pay_debt_installment(uuid, uuid, numeric, uuid, text);
 CREATE OR REPLACE FUNCTION public.pay_debt_installment(p_debt_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid, p_attachment_path text)
@@ -605,6 +609,7 @@ END;
 $$;
 COMMENT ON FUNCTION public.pay_debt_installment IS 'Atomically pays a debt installment, creating an expense and updating balances.';
 
+
 DROP FUNCTION IF EXISTS public.delete_debt(uuid);
 CREATE OR REPLACE FUNCTION public.delete_debt(p_debt_id uuid)
 RETURNS void
@@ -621,8 +626,9 @@ END;
 $$;
 COMMENT ON FUNCTION public.delete_debt IS 'Safely deletes a debt only if no payments have been made.';
 
+
 -- --------------------------------------------------------------------
--- Functions: Create and Delete an Internal Transfer
+-- Functions 10 & 11: Create and Delete an Internal Transfer
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.create_transfer(uuid, uuid, numeric, text, uuid);
 CREATE OR REPLACE FUNCTION public.create_transfer(p_from_account_id uuid, p_to_account_id uuid, p_amount numeric, p_description text, p_user_id uuid)
@@ -658,6 +664,7 @@ END;
 $$;
 COMMENT ON FUNCTION public.create_transfer IS 'Atomically creates an internal transfer between two accounts.';
 
+
 DROP FUNCTION IF EXISTS public.delete_transfer(uuid);
 CREATE OR REPLACE FUNCTION public.delete_transfer(p_transfer_id uuid)
 RETURNS void
@@ -679,8 +686,9 @@ END;
 $$;
 COMMENT ON FUNCTION public.delete_transfer IS 'Atomically deletes a transfer and reverts the balance changes.';
 
+
 -- --------------------------------------------------------------------
--- Functions: Financial Goal Management
+-- Functions 12, 13, 14: Financial Goal Management
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.add_contribution_to_goal(uuid, uuid, numeric, uuid);
 CREATE OR REPLACE FUNCTION public.add_contribution_to_goal(p_goal_id uuid, p_bank_account_id uuid, p_amount numeric, p_user_id uuid)
@@ -778,6 +786,7 @@ END;
 $$;
 COMMENT ON FUNCTION public.achieve_financial_goal IS 'Handles the logic for achieving a financial goal.';
 
+
 DROP FUNCTION IF EXISTS public.revert_financial_goal(uuid);
 CREATE OR REPLACE FUNCTION public.revert_financial_goal(p_goal_id uuid)
 RETURNS void
@@ -821,6 +830,7 @@ END;
 $$;
 COMMENT ON FUNCTION public.revert_financial_goal IS 'Reverts an achieved financial goal to its previous state.';
 
+
 DROP FUNCTION IF EXISTS public.delete_financial_goal(uuid);
 CREATE OR REPLACE FUNCTION public.delete_financial_goal(p_goal_id uuid)
 RETURNS void
@@ -849,7 +859,7 @@ BEGIN
         DELETE FROM public.expenses WHERE id = v_contribution.expense_id;
     END LOOP;
     
-    -- Also update the goal's current amount to 0
+    -- Also update the goal''s current amount to 0
     UPDATE public.financial_goals SET current_amount = 0 WHERE id = p_goal_id;
 
     -- Finally, delete the goal itself
@@ -859,7 +869,7 @@ $$;
 COMMENT ON FUNCTION public.delete_financial_goal IS 'Safely deletes a goal and reverts all its financial contributions.';
 
 -- --------------------------------------------------------------------
--- Function: Get All Users
+-- Function 15: Get All Users
 -- --------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.get_all_users();
 CREATE OR REPLACE FUNCTION public.get_all_users()
@@ -898,6 +908,7 @@ END;
 $$;
 COMMENT ON FUNCTION public.create_expense IS 'Atomically creates an expense and deducts the amount from the bank account balance.';
 
+
 DROP FUNCTION IF EXISTS public.delete_expense(uuid);
 CREATE OR REPLACE FUNCTION public.delete_expense(p_expense_id uuid)
 RETURNS void
@@ -917,6 +928,7 @@ END;
 $$;
 COMMENT ON FUNCTION public.delete_expense IS 'Atomically deletes an expense and reverts the bank account balance.';
 
+
 DROP FUNCTION IF EXISTS public.create_income(numeric, text, timestamptz, uuid, text, text, uuid, text);
 CREATE OR REPLACE FUNCTION public.create_income(p_amount numeric, p_description text, p_date timestamptz, p_bank_account_id uuid, p_owner_id text, p_source_text text, p_registered_by_user_id uuid, p_attachment_path text)
 RETURNS void
@@ -931,6 +943,7 @@ BEGIN
 END;
 $$;
 COMMENT ON FUNCTION public.create_income IS 'Atomically creates an income and adds the amount to the bank account balance.';
+
 
 DROP FUNCTION IF EXISTS public.delete_income(uuid);
 CREATE OR REPLACE FUNCTION public.delete_income(p_income_id uuid)
@@ -955,7 +968,7 @@ COMMENT ON FUNCTION public.delete_income IS 'Atomically deletes an income and re
 -- ====================================================================
 -- PART 4: FINAL TRIGGER CREATION
 -- ====================================================================
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- This trigger is now created *after* the function it depends on is defined.
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -968,20 +981,6 @@ GRANT EXECUTE ON FUNCTION public.create_expense(numeric, text, timestamptz, uuid
 GRANT EXECUTE ON FUNCTION public.delete_expense(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.create_income(numeric, text, timestamptz, uuid, text, text, uuid, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_income(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.create_check(text, text, numeric, timestamptz, timestamptz, uuid, uuid, uuid, text, text, text, uuid, text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.clear_check(uuid, uuid, text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.delete_check(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.create_loan(text, numeric, text, numeric, integer, timestamptz, timestamptz, uuid, boolean, uuid, uuid, text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.pay_loan_installment(uuid, uuid, numeric, uuid, text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.delete_loan(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.pay_debt_installment(uuid, uuid, numeric, uuid, text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.delete_debt(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.create_transfer(uuid, uuid, numeric, text, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.delete_transfer(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.add_contribution_to_goal(uuid, uuid, numeric, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.achieve_financial_goal(uuid, numeric, uuid, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.revert_financial_goal(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.delete_financial_goal(uuid) TO authenticated;
 
 
 -- ====================================================================
