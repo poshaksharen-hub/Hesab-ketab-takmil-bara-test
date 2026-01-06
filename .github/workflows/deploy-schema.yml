@@ -26,8 +26,20 @@ jobs:
             echo "::error::SUPABASE_DATABASE_URL secret is not set. Please check repository settings."
             exit 1
           fi
-      
+
+      - name: Apply Main SQL Schema
+        if: "contains(github.event.head_commit.message, 'supabase/migrations')"
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          for file in supabase/migrations/*.sql; do
+            echo "Applying SQL schema from $file..."
+            psql "$SUPABASE_DATABASE_URL" -f "$file"
+            echo "$file applied successfully."
+          done
+
       - name: Apply SQL RLS Test Schema
+        if: "contains(github.event.head_commit.message, 'supabase/test-migrations')"
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
