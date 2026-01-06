@@ -102,4 +102,26 @@ describe('getNextDueDate', () => {
     expect(startOfDay(nextDueDate!)).toEqual(startOfDay(expectedDate));
   });
 
+  // --- Test Case 7: Fully paid debt ---
+  it('should return null for a fully paid debt', () => {
+    const debt: PreviousDebt = {
+        id: 'debt3',
+        isInstallment: true,
+        firstInstallmentDate: new Date().toISOString(),
+        paidInstallments: 6,
+        numberOfInstallments: 6,
+        remainingAmount: 0,
+        // other required fields...
+        description: 'Fully paid debt', amount: 600, ownerId: 'fatemeh', payeeId: 'p2', registeredByUserId: 'u1', startDate: new Date().toISOString()
+    };
+    const nextDueDate = getNextDueDate(debt);
+    expect(nextDueDate).toBeNull();
+  });
+
+  // --- Test Case 8: Input is null or undefined ---
+  it('should return null when the input is null or undefined', () => {
+    expect(getNextDueDate(null)).toBeNull();
+    expect(getNextDueDate(undefined)).toBeNull();
+  });
+
 });
