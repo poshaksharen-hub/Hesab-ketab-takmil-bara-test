@@ -45,3 +45,4 @@ jobs:
           echo "Applying column rename patch from supabase/migrations/0001_rename_check_id_column.sql..."
           psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f "supabase/migrations/0001_rename_check_id_column.sql"
           echo "Column rename patch applied successfully."
+          # Workflow trigger comment.
