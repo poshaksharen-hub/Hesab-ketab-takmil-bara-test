@@ -28,10 +28,12 @@ jobs:
           fi
 
       - name: Apply Main SQL Schema
-        if: "contains(github.event.head_commit.message, 'supabase/migrations')"
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
+          # Note: This is a simple implementation that runs all migrations.
+          # For a more advanced setup, one might track applied migrations.
+          # With 'CREATE OR REPLACE' and 'CREATE TABLE IF NOT EXISTS', this is safe.
           for file in supabase/migrations/*.sql; do
             echo "Applying SQL schema from $file..."
             psql "$SUPABASE_DATABASE_URL" -f "$file"
@@ -39,10 +41,19 @@ jobs:
           done
 
       - name: Apply SQL RLS Test Schema
-        if: "contains(github.event.head_commit.message, 'supabase/test-migrations')"
+        # This step only runs if a file in test-migrations was part of the push
+        if: steps.filter.outputs.test_migrations == 'true'
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           echo "Applying SQL schema from supabase/test-migrations/0000_disable_rls_for_read_test.sql..."
           psql "$SUPABASE_DATABASE_URL" -f "supabase/test-migrations/0000_disable_rls_for_read_test.sql"
           echo "Test schema applied successfully."
+        
+      - name: Identify changed files # This step is for the condition above
+        id: filter
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            test_migrations:
+              - 'supabase/test-migrations/**.sql'
