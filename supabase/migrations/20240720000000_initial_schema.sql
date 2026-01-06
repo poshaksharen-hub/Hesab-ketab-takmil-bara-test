@@ -1,1 +1,1 @@
--- Another trigger for the workflow
+-- Let's trigger the action again
