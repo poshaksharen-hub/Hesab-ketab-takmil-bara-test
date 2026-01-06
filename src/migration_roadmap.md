@@ -831,7 +831,7 @@ BEGIN
         SELECT exp.id as expense_id, exp.amount, exp.bank_account_id
         FROM public.expenses AS exp WHERE exp.goal_id = p_goal_id AND exp.sub_type = 'goal_contribution'
     LOOP
-        -- Revert balances (remove from blocked balance, balance itself is not changed as it's just a contribution)
+        -- Revert balances (remove from blocked balance, balance itself is not changed as it is just a contribution)
         UPDATE public.bank_accounts 
         SET blocked_balance = blocked_balance - v_contribution.amount 
         WHERE id = v_contribution.bank_account_id;
@@ -840,7 +840,7 @@ BEGIN
         DELETE FROM public.expenses WHERE id = v_contribution.expense_id;
     END LOOP;
     
-    -- Also update the goal's current amount to 0
+    -- Also update the goal''s current amount to 0
     UPDATE public.financial_goals SET current_amount = 0 WHERE id = p_goal_id;
 
     -- Finally, delete the goal itself
@@ -963,4 +963,3 @@ GRANT EXECUTE ON FUNCTION public.delete_income(uuid) TO authenticated;
 -- ====================================================================
 -- END OF SCRIPT
 -- ====================================================================
-
